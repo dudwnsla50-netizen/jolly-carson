@@ -233,8 +233,11 @@ def extract_pdf(file_path):
         import pdfplumber
         # pdfplumber가 성공적으로 로드된 경우 표 보존 파싱을 수행합니다.
         markdown_elements = []
+        is_past_exam = "past_exams" in file_path or "자격검정" in file_path or "필기시험" in file_path
         with pdfplumber.open(file_path) as pdf:
             for i, page in enumerate(pdf.pages):
+                if is_past_exam and i == 0:
+                    continue
                 # 2단/4단 레이아웃 꼬임을 방지하기 위해 페이지의 종횡비를 감지하여 분할(Crop) 추출을 시도합니다.
                 width = page.width
                 height = page.height
@@ -287,7 +290,10 @@ def extract_pdf(file_path):
             import pypdf
             reader = pypdf.PdfReader(file_path)
             text_pages = []
-            for page in reader.pages:
+            is_past_exam = "past_exams" in file_path or "자격검정" in file_path or "필기시험" in file_path
+            for i, page in enumerate(reader.pages):
+                if is_past_exam and i == 0:
+                    continue
                 text_pages.append(page.extract_text() or "")
             return "\n\n".join(text_pages)
         except ImportError:
