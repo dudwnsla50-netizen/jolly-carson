@@ -1,0 +1,17 @@
+# Python 가상환경 및 캐시
+.venv/
+__pycache__/
+*.pyc
+
+# 로그 및 빌드 부산물
+build_log.txt
+.vscode/
+
+# 용량이 큰 파일 (GitHub 업로드 제한 방지)
+# PDF 원본 파일들은 용량이 커서 GitHub 업로드 시 지연을 방지하기 위해 제외합니다. (수동 이동 권장)
+data/past_exams/
+
+# 파싱된 크롭 이미지 (선택사항)
+# 다른 PC에서 build 스크립트 실행으로 이미지 재생성이 가능하므로 깃허브에서 제외하는 것이 가볍습니다.
+reports/images/
+C:/Users/DCCIS040000/.gemini/antigravity-ide/brain/7e1fd111-1dc1-495d-82a1-c40573600184/images/

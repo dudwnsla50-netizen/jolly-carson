@@ -1,0 +1,27 @@
+{
+  "PM": {
+    "소프트웨어사업 계약 및 관리감독에 관한 지침(과학기술정보통신부고시)(제2023-15호)(20230515).pdf": {
+      "mtime": 1779936901.7835875,
+      "size": 122189,
+      "status": "success",
+      "extracted_path": "extracted\\PM\\소프트웨어사업 계약 및 관리감독에 관한 지침(과학기술정보통신부고시)(제2023-15호)(20230515).md",
+      "parsed_at": "2026-06-04T16:37:53.695605"
+    },
+    "test_subj_PM.txt": {
+      "mtime": 1780558639.0162306,
+      "size": 101,
+      "status": "success",
+      "extracted_path": "extracted\\PM\\test_subj_PM.md",
+      "parsed_at": "2026-06-09T13:54:06.103755"
+    }
+  },
+  "SE": {
+    "test_subj_SE.docx": {
+      "mtime": 1780558639.0172298,
+      "size": 1347,
+      "status": "success",
+      "extracted_path": "extracted\\SE\\test_subj_SE.md",
+      "parsed_at": "2026-06-09T13:33:49.901946"
+    }
+  }
+}

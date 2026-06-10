@@ -1,0 +1,412 @@
+{
+  "PM": [
+    {
+      "id": "PM_MOCK_01",
+      "category": "1. 정보화 및 소프트웨어 관련 법/제도 및 국내외 지침, 가이드",
+      "question": "소프트웨어 진흥법 제48조(중소 소프트웨어사업자의 참여 지원)에 따른 대기업인 소프트웨어사업자의 참여 제한 예외 사업으로 옳지 않은 것은?",
+      "options": [
+        "1. 국가안보, 국방, 외교, 치안 등 국가 중대사와 관련된 사업",
+        "2. 대형 재난 예방 및 재난 안전 관리 등 국민의 안전에 직접 영향을 미치는 사업",
+        "3. 지방자치단체가 자체 예산으로 발주하는 5억 원 미만의 정보시스템 고도화 사업",
+        "4. 인공지능, 블록체인 등 신기술을 활용한 사업으로서 과학기술정보통신부 장관이 인정하는 사업"
+      ],
+      "answer": 3,
+      "explanation": "지방자치단체의 일반 고도화 사업은 대기업 참여 제한 예외 대상이 아닙니다. 소프트웨어 진흥법 시행령에 따라 국가안보, 국민안전, 신기술 적용 등의 특수 목적 사업에 대해서만 과기부 장관의 예외 승인을 받아 대기업 참여가 허용됩니다.",
+      "reference": "소프트웨어 진흥법 제48조(중소 소프트웨어사업자의 참여 지원) 및 동법 시행령 제41조",
+      "source": "소프트웨어 진흥법 및 대기업 참여제한 예외사업 심의 가이드라인",
+      "similar_exam": "2025년 기출 3번 유사"
+    },
+    {
+      "id": "PM_MOCK_02",
+      "category": "2. 감리 관련 법제도 및 관련 기술",
+      "question": "행정기관 및 공공기관 정보시스템 구축·운영 지침에 따른 정보시스템 감리 대상 기준에 대한 설명 중 옳은 것은?",
+      "options": [
+        "1. 발주하는 정보화사업의 총 사업비가 5억 원 미만인 경우 감리 적용 대상에서 항상 제외된다.",
+        "2. 감리대상 기준에 해당하는 사업은 행정기관 등의 장이 예산 규모에 관계없이 의무적으로 감리를 시행하여야 한다.",
+        "3. 대국민 서비스를 제공하는 정보화사업으로서 총 사업비 5억 원 이상인 경우 감리 의무 대상에 해당한다.",
+        "4. 행정기관 내부에서 사용하는 단순 PC 보급 사업은 사업비가 10억 원 이상이더라도 항상 감리 의무 대상이다."
+      ],
+      "answer": 3,
+      "explanation": "전자정부법 시행령 제71조에 따라 대국민 서비스를 제공하는 정보시스템 구축 사업으로서 총 사업비가 5억 원 이상(소프트웨어 개발이 포함된 경우)이면 의무 감리 대상에 해당합니다. PC 보급 등 단순 단순 하드웨어 구매는 제외 대상이 될 수 있습니다.",
+      "reference": "전자정부법 시행령 제71조(정보시스템 감리의 대상) 및 행정안전부 고시 제2023-53호",
+      "source": "행정기관 및 공공기관 정보시스템 구축·운영 지침",
+      "similar_exam": "2025년 기출 15번 유사"
+    },
+    {
+      "id": "PM_MOCK_03",
+      "category": "3. 조직 관리론",
+      "question": "허즈버그(Herzberg)의 2요인(Motivation-Hygiene) 이론에서 위생 요인(Hygiene Factors)에 해당하는 항목으로 묶인 것은?",
+      "options": [
+        "1. 성취감, 인정, 직무 자체의 도전성",
+        "2. 회사 정책 및 관리, 급여, 대인관계",
+        "3. 개인의 성장 기회, 책임감, 승진",
+        "4. 일의 보람, 성장에 대한 기대, 성취 기회"
+      ],
+      "answer": 2,
+      "explanation": "허즈버그 이론에서 회사 정책, 작업 조건, 급여, 대인관계, 직무 안정성 등은 위생 요인(Hygiene Factors)으로 분류됩니다. 이 요인들은 결핍되면 불만을 야기하지만 충족되더라도 동기를 유발하지는 않습니다. 1, 3, 4번은 동기 요인(Motivators)에 해당합니다.",
+      "reference": "허즈버그(Frederick Herzberg)의 동기-위생 이론 (Motivation-Hygiene Theory)",
+      "source": "경영학원론 및 프로젝트 인적자원관리 조직행동론",
+      "similar_exam": "2024년 기출 18번 유사"
+    },
+    {
+      "id": "PM_MOCK_04",
+      "category": "4. 프로젝트 관리",
+      "question": "프로젝트 일정관리에서 임계경로(Critical Path)에 대한 설명으로 옳은 것은?",
+      "options": [
+        "1. 프로젝트 경로 중 가장 활동(Activity)의 개수가 많은 경로이다.",
+        "2. 프로젝트 전체 기간을 가장 단축할 수 있는 가상의 경로를 말한다.",
+        "3. 여유시간(Total Float)이 0 또는 음수를 가지며, 가장 긴 소요 기간을 갖는 경로이다.",
+        "4. 자원의 제약 조건을 고려하여 가장 일정을 뒤로 미룬 경로를 말한다."
+      ],
+      "answer": 3,
+      "explanation": "임계경로(Critical Path)는 네트워크 다이어그램 상에서 가장 긴 소요 시간을 가지는 경로로, 전체 프로젝트의 최소 기간을 결정합니다. 임계경로 위에 있는 활동들의 여유시간(Float)은 0이 됩니다.",
+      "reference": "주공정법(CPM) 네트워크 분석 이론 - 임계경로의 총 여유시간(Total Float = 0) 정의",
+      "source": "PMI PMBOK Guide 6th/7th Edition - 프로젝트 일정 관리",
+      "similar_exam": "2025년 기출 22번 유사"
+    },
+    {
+      "id": "PM_MOCK_05",
+      "category": "4. 프로젝트 관리",
+      "question": "PMBOK 7판에서 제시하는 프로젝트 관리 12대 원칙 중, 변화를 수용하고 새로운 상황에 빠르게 적응하는 역량을 강조하는 원칙은?",
+      "options": [
+        "1. 스튜어드십 (Stewardship)",
+        "2. 적응성 및 회복탄력성 (Adaptability and Resiliency)",
+        "3. 시스템적 사고 (Systems Thinking)",
+        "4. 복잡성 해소 (Complexity)"
+      ],
+      "answer": 2,
+      "explanation": "적응성 및 회복탄력성(Adaptability and Resiliency) 원칙은 피드백 루프를 수용하고 변화에 유연하게 대처하며, 예기치 못한 상황에서 빠르게 회복하는 역량을 중시합니다.",
+      "reference": "PMBOK 7th Edition - 12대 프로젝트 관리 원칙 (Principles of Project Management)",
+      "source": "PMI PMBOK Guide 7th Edition",
+      "similar_exam": "2025년 기출 25번 유사"
+    }
+  ],
+  "SE": [
+    {
+      "id": "SE_MOCK_01",
+      "category": "1. 요구사항분석 및 설계",
+      "question": "다음 중 SOLID 객체지향 설계 원칙에서 '서브타입은 언제나 자신의 기반타입으로 교체할 수 있어야 한다'는 리스코프 치환 원칙(LSP)에 부합하는 설계 활동으로 가장 적절한 것은?",
+      "options": [
+        "1. 자식 클래스가 부모 클래스의 선행 조건(Precondition)을 더 강화하여 재정의(Override)한다.",
+        "2. 상속 구조 대신 컴포지션(Composition)을 활용하여 코드 재사용성을 올린다.",
+        "3. 자식 클래스가 부모 클래스의 계약(Behavioral Contract)과 일관성을 유지하며 동작하도록 구현한다.",
+        "4. 하위 클래스에서 부모 클래스의 메소드를 호출할 때 UnsupportedOperationException을 발생시켜 상속을 제한한다."
+      ],
+      "answer": 3,
+      "explanation": "리스코프 치환 원칙(LSP)을 만족하려면 자식 클래스는 부모 클래스의 기능을 오동작 없이 완전히 수행할 수 있어야 합니다. 즉 부모 클래스의 행위적 계약을 위반하지 않고 일관되게 동작해야 하므로 3번이 정답입니다. 부모의 선행 조건을 강화하거나 예외를 던지는 것은 LSP를 위반하는 대표적 사례입니다.",
+      "reference": "Liskov Substitution Principle (LSP) - 계약에 의한 설계(Design by Contract) 규칙",
+      "source": "SOLID 객체지향 설계 원칙 (Robert C. Martin)",
+      "similar_exam": "2025년 기출 27번 유사"
+    },
+    {
+      "id": "SE_MOCK_02",
+      "category": "2. 구현 및 테스트",
+      "question": "화이트박스 테스트 검증 기준 중, 프로그램 내의 모든 결정문(Decision) 내부의 개별 조건식(Condition)들의 참(True)과 거짓(False)을 최소한 한 번씩 실행해보며 동시에 결정문 전체의 결과도 참/거짓을 모두 만족하게 만드는 가장 적절한 검증 기준은?",
+      "options": [
+        "1. 구문 검증 기준 (Statement Coverage)",
+        "2. 결정 검증 기준 (Branch Coverage)",
+        "3. 조건 검증 기준 (Condition Coverage)",
+        "4. 결정/조건 검증 기준 (Branch/Condition Coverage)"
+      ],
+      "answer": 4,
+      "explanation": "개별 조건식의 결과와 전체 결정문의 분기 결과를 동시에 모두 최소한 한 번씩 참/거짓으로 만족하게 만드는 기준은 결정/조건 검증 기준(Branch/Condition Coverage)입니다.",
+      "reference": "화이트박스 테스트 기법 - 결정/조건 커버리지(Branch/Condition Coverage) 정의 및 제약조건",
+      "source": "KS X ISO/IEC/IEEE 29119 소프트웨어 테스트 표준",
+      "similar_exam": "2025년 기출 35번 유사"
+    },
+    {
+      "id": "SE_MOCK_03",
+      "category": "3. 유지관리 및 운영",
+      "question": "소프트웨어 형상 관리(Configuration Management)의 활동 중, 베이스라인(Baseline)의 제어 하에 있는 형상 항목들의 변경 제안을 공식적으로 접수, 심의, 통제하여 시스템의 무분별한 갱신을 차단하는 통제 활동으로 옳은 것은?",
+      "options": [
+        "1. 형상 식별 (Configuration Identification)",
+        "2. 형상 통제 (Configuration Control)",
+        "3. 형상 감사 (Configuration Audit)",
+        "4. 형상 상태 보고 (Configuration Status Accounting)"
+      ],
+      "answer": 2,
+      "explanation": "형상 통제(Configuration Control)는 변경 제안의 타당성을 평가하고 공식 승인하는 형상 관리 심의 기구(CCB) 등을 통해 소프트웨어 변경 활동을 통제하고 기준선을 유지하는 작업입니다.",
+      "reference": "소프트웨어 형상 관리(SCM) 변경 제어 및 CCB 프로세스 표준",
+      "source": "IEEE Std 828-2012 Configuration Management 표준",
+      "similar_exam": "2024년 기출 38번 유사"
+    },
+    {
+      "id": "SE_MOCK_04",
+      "category": "4. 개발방법론, sw 구조 및 공개sw",
+      "question": "애자일(Agile) 스크럼(Scrum) 방법론에서, 이전 스프린트 동안의 개발 과정에서 무엇이 잘 되었고 어떤 부분 개선이 필요한지 팀 전체가 참여하여 프로세스적 회고와 다음 개선 행동 계획을 수립하는 회의 명칭은?",
+      "options": [
+        "1. 스프린트 계획 회의 (Sprint Planning Meeting)",
+        "2. 일일 스크럼 회의 (Daily Scrum Meeting)",
+        "3. 스프린트 리뷰 회의 (Sprint Review Meeting)",
+        "4. 스프린트 회고 회의 (Sprint Retrospective)"
+      ],
+      "answer": 4,
+      "explanation": "스프린트 회고(Sprint Retrospective)는 스프린트가 끝난 시점에 팀의 프로세스, 도구, 협업 방식 등에 대해 개선할 점을 스스로 되돌아보고 액션 플랜을 도출하는 정식 스크럼 의식입니다.",
+      "reference": "애자일 스크럼 프레임워크 - 스프린트 회고(Sprint Retrospective) 미팅 목적 및 수행 기준",
+      "source": "공식 Scrum Guide (Ken Schwaber & Jeff Sutherland)",
+      "similar_exam": "2025년 기출 42번 유사"
+    },
+    {
+      "id": "SE_MOCK_05",
+      "category": "5. SW 품질 및 비용산정",
+      "question": "ISO/IEC 25010 소프트웨어 제품 품질 모델의 8대 품질 특성 중, 시스템이 규정된 조건 하에서 규정된 기간 동안 장애 없이 작동하여 신뢰할 수 있는 수준을 나타내는 신뢰성(Reliability)의 하위 특성에 해당하지 않는 것은?",
+      "options": [
+        "1. 성숙성 (Maturity)",
+        "2. 장애 허용성 (Fault Tolerance)",
+        "3. 복구 가능성 (Recoverability)",
+        "4. 보안성 (Security)"
+      ],
+      "answer": 4,
+      "explanation": "ISO/IEC 25010에서 신뢰성(Reliability)의 하위 부특성은 성숙성, 장애 허용성, 복구 가능성, 가용성 등이 있습니다. 보안성(Security)은 신뢰성과 동등한 레벨의 독립적인 8대 품질 주특성 중 하나입니다.",
+      "reference": "ISO/IEC 25010 System and Software Quality Models - 기능성 및 품질 속성 분류 체계",
+      "source": "ISO/IEC 25010 소프트웨어 제품 품질 표준",
+      "similar_exam": "2025년 기출 49번 유사"
+    }
+  ],
+  "DB": [
+    {
+      "id": "DB_MOCK_01",
+      "category": "1. DB개념 및 설계",
+      "question": "관계형 데이터베이스 설계에서 정규화(Normalization) 과정 중, 제3정규형(3NF)에서 보이스-코드 정규형(BCNF)으로 이행하기 위해 제거해야 하는 조건으로 가장 옳은 것은?",
+      "options": [
+        "1. 주식별자에 완전 종속되지 않는 부분 함수 종속 제거",
+        "2. 기본키가 아닌 일반 속성 간의 이행적 함수 종속(Transitive Functional Dependency) 제거",
+        "3. 모든 결정자가 후보키(Candidate Key)가 되도록 규정하여, 후보키가 아닌 결정자 제거",
+        "4. 다치 종속(Multi-valued Dependency) 관계를 제거하여 독립된 테이블로 분리"
+      ],
+      "answer": 3,
+      "explanation": "3NF에서 BCNF가 되기 위해서는 모든 결정자가 후보키여야 합니다. 즉 후보키가 아닌 속성이 결정자 역할을 하고 있는 경우 이를 분리하는 것이 BCNF의 조건입니다.",
+      "reference": "관계형 데이터베이스 정규화 이론 - 보이스-코드 정규형(BCNF) 함수 종속성 관계식",
+      "source": "데이터베이스 이론 및 NIA 데이터베이스 구축 방법론 v4.0",
+      "similar_exam": "2025년 기출 55번 유사"
+    },
+    {
+      "id": "DB_MOCK_02",
+      "category": "2. DB언어",
+      "question": "다음 SQL문 중, 관계 대수(Relational Algebra)의 세타 조인(Theta Join) 혹은 자연 조인(Natural Join)의 내부적 구현과 의미가 상호 가장 유사하며 테이블 결합을 위해 사용되는 연산자는?",
+      "options": [
+        "1. UNION",
+        "2. INTERSECT",
+        "3. INNER JOIN",
+        "4. OUTER JOIN"
+      ],
+      "answer": 3,
+      "explanation": "INNER JOIN은 공통되는 속성 조건에 따라 튜플들을 결합하는 연산으로, 관계대수의 조인(Join) 연산에 대치됩니다.",
+      "reference": "관계대수(Relational Algebra) 조인(Join) 정리 및 ANSI SQL 표준 결합 연산 스펙",
+      "source": "ISO/IEC 9075 SQL 데이터베이스 언어 표준 규격",
+      "similar_exam": "2024년 기출 52번 유사"
+    },
+    {
+      "id": "DB_MOCK_03",
+      "category": "3. DBMS 기술",
+      "question": "데이터베이스의 트랜잭션 특징 중 ACID 속성에 대한 설명으로 옳지 않은 것은?",
+      "options": [
+        "1. 원자성(Atomicity): 트랜잭션의 연산은 전체가 완료되거나 아니면 전혀 수행되지 않아야 한다.",
+        "2. 일관성(Consistency): 트랜잭션 실행 성공 후 데이터베이스는 언제나 모순 없는 상태를 유지해야 한다.",
+        "3. 격리성(Isolation): 트랜잭션 실행 중에는 다른 트랜잭션이 해당 데이터를 간섭하거나 참조할 수 없다.",
+        "4. 영속성(Durability): 트랜잭션이 성공 완료되면, 시스템 장애가 발생하더라도 그 결과가 손실되어서는 안 된다."
+      ],
+      "answer": 3,
+      "explanation": "격리성(Isolation)은 여러 트랜잭션이 동시에 실행될 때 상호 간에 영향을 주지 않도록 제어하는 것이지만, 격리 수준(Read Uncommitted 등)에 따라 실행 중인 데이터를 부분적으로 다른 트랜잭션이 참조할 수도 있어 항상 아예 조회가 차단되는 것은 아닙니다. 3번의 설명은 다소 엄격하게 모든 레벨을 대표하지 못하거나 오해의 소지가 있어 오답 지문으로 적절합니다.",
+      "reference": "데이터베이스 트랜잭션 이론 - ACID 원칙 및 ANSI/ISO SQL 트랜잭션 격리성 수준(Isolation Levels)",
+      "source": "Database System Concepts (Silberschatz, Korth, Sudarshan)",
+      "similar_exam": "2025년 기출 61번 유사"
+    },
+    {
+      "id": "DB_MOCK_04",
+      "category": "4. DB응용",
+      "question": "공공데이터를 배포하고 연동할 때 널리 쓰이며, URL을 통해 자원을 명시하고 HTTP Method(GET, POST, PUT, DELETE)를 사용해 자원을 제어하는 경량 웹 서비스 인터페이스 설계 모델은?",
+      "options": [
+        "1. SOAP (Simple Object Access Protocol)",
+        "2. REST (Representational State Transfer)",
+        "3. WSDL (Web Services Description Language)",
+        "4. gRPC"
+      ],
+      "answer": 2,
+      "explanation": "자원을 명확히 식별하는 URI와 HTTP 표준 메소드를 사용하여 경량으로 데이터를 주고받는 방식은 REST(Representational State Transfer) 아키텍처 스타일입니다.",
+      "reference": "로이 필딩(Roy Fielding) 박사 학위 논문의 REST 아키텍처 핵심 제약 조건 명세",
+      "source": "Architectural Styles and the Design of Network-based Software Architectures",
+      "similar_exam": "2025년 기출 68번 유사"
+    },
+    {
+      "id": "DB_MOCK_05",
+      "category": "5. 빅데이터 및 AI데티어",
+      "question": "NoSQL 데이터베이스의 특징 중 분산 시스템 아키텍처의 한계를 명시한 CAP 이론에 대한 설명으로 옳은 것은?",
+      "options": [
+        "1. 일관성(C), 가용성(A), 분할 용인성(P)의 세 가지 속성을 동시에 모두 완벽히 보장할 수 없다.",
+        "2. 전통적인 RDBMS는 가용성(A)과 분할 용인성(P)을 극대화하는 CA 시스템이다.",
+        "3. NoSQL은 네트워크 장애가 발생했을 때 언제나 일관성(C)을 포기하고 오직 가용성(A)만을 선택한다.",
+        "4. CAP 중 데이터베이스 분산 환경에서 분할 용인성(P)은 옵션으로 선택 해제할 수 있다."
+      ],
+      "answer": 1,
+      "explanation": "CAP 이론은 분산 데이터 저장소가 일관성(Consistency), 가용성(Availability), 네트워크 분할 허용(Partition Tolerance)의 3가지 속성 중 동시에 2가지만 보장할 수 있고, 3가지를 모두 다 가질 수는 없음을 정립한 이론입니다.",
+      "reference": "에릭 브루어(Eric Brewer)의 분산 컴퓨팅 CAP 정리 (Brewer's CAP Theorem)",
+      "source": "Brewer's Conjecture and the Feasibility of Consistent, Available, Partition-Tolerant Web Services",
+      "similar_exam": "2024년 기출 74번 유사"
+    }
+  ],
+  "SA": [
+    {
+      "id": "SA_MOCK_01",
+      "category": "1. 공통기술",
+      "question": "정보기술 아키텍처(EA, Enterprise Architecture)의 참조 모델 중, 업무 수행에 필요한 정보 기술과 인프라의 표준화 및 상호운용성을 확보하기 위해 기술 규격과 가이드를 제시하는 모델은?",
+      "options": [
+        "1. 업무 참조 모델 (BRM)",
+        "2. 데이터 참조 모델 (DRM)",
+        "3. 기술 참조 모델 (TRM)",
+        "4. 서비스 참조 모델 (SRM)"
+      ],
+      "answer": 3,
+      "explanation": "정보기술 아키텍처(EA) 구성 참조 모델 중 정보시스템 구축에 필요한 인프라 기술 표준과 분류를 명시하는 것은 기술 참조 모델(TRM, Technical Reference Model)입니다.",
+      "reference": "정보기술아키텍처(EA) 참조모델 정의 - 기술 참조 모델(TRM) 표준 가이드라인",
+      "source": "정보기술아키텍처(EA) 도입·운영 지침 (행정안전부 고시)",
+      "similar_exam": "2025년 기출 76번 유사"
+    },
+    {
+      "id": "SA_MOCK_02",
+      "category": "2. 아키텍처 설계 및 구축",
+      "question": "디스크 배열 저장장치인 RAID(Redundant Array of Independent Disks) 구성 방식 중, 최소 3개 이상의 디스크가 필요하며 블록 단위로 스트라이핑을 수행하고 패리티(Parity) 정보를 분산하여 저장하는 방식은?",
+      "options": [
+        "1. RAID 0",
+        "2. RAID 1",
+        "3. RAID 5",
+        "4. RAID 6"
+      ],
+      "answer": 3,
+      "explanation": "RAID 5는 패리티 정보를 디스크마다 분산 저장하여 쓰기 병목을 줄이고, 디스크 1개 장애 시 복구가 가능하도록 구현한 대중적인 고가용성 구성입니다.",
+      "reference": "RAID 기술 명세서 및 블록 레벨 분산 패리티 스트라이핑 동작 규격",
+      "source": "컴퓨터 구조론 및 엔터프라이즈 스토리지 아키텍처 실무",
+      "similar_exam": "2025년 기출 81번 유사"
+    },
+    {
+      "id": "SA_MOCK_03",
+      "category": "2. 아키텍처 설계 및 구축",
+      "question": "재해복구시스템(DRS)의 복구 목표 기준 중, 재해가 발생했을 때 서비스가 복구되어 다시 정상 가동될 때까지 허용되는 최대 중단 시간을 나타내는 용어는?",
+      "options": [
+        "1. RPO (Recovery Point Objective)",
+        "2. RTO (Recovery Time Objective)",
+        "3. RCO (Recovery Consistency Objective)",
+        "4. RSO (Recovery Scope Objective)"
+      ],
+      "answer": 2,
+      "explanation": "RTO(복구 목표 시간, Recovery Time Objective)는 재해로 인해 시스템이 중단되었을 때, 이를 다시 가동하기까지 허용되는 최대 지연 시간입니다. RPO는 유실 가능한 데이터의 기준 시점(복구 목표 시점)을 의미합니다.",
+      "reference": "재해복구시스템(DRS) 인프라 가용성 메트릭 표준 정의 (RTO 및 RPO)",
+      "source": "정보시스템 재해복구계획 수립 지침 및 재난 대비 백업/복구 설계 표준 가이드",
+      "similar_exam": "2024년 기출 85번 유사"
+    },
+    {
+      "id": "SA_MOCK_04",
+      "category": "3. 데이터 통신 및 네트워크 설계",
+      "question": "OSI 7계층 참조 모델 중, 송수신 단말 간의 패킷 전송을 위해 최적의 경로 설정(Routing) 및 중계 기능을 수행하며 IP 프로토콜이 동작하는 계층은?",
+      "options": [
+        "1. 데이터 링크 계층 (Data Link Layer)",
+        "2. 네트워크 계층 (Network Layer)",
+        "3. 전송 계층 (Transport Layer)",
+        "4. 세션 계층 (Session Layer)"
+      ],
+      "answer": 2,
+      "explanation": "네트워크 계층(Network Layer)은 데이터를 목적지까지 안전하고 신속하게 전송하기 위한 경로 지정(Routing) 및 논리적 주소(IP) 관리를 수행하는 3계층입니다.",
+      "reference": "ISO OSI 7-Layer Reference Model - 네트워크 계층(Layer 3)의 최적화 라우팅 명세",
+      "source": "RFC 791 Internet Protocol 표준 및 TCP/IP 네트워크 프로토콜 명세",
+      "similar_exam": "2025년 기출 92번 유사"
+    },
+    {
+      "id": "SA_MOCK_05",
+      "category": "4. 기타 신기술",
+      "question": "클라우드 서비스 모델 중, 사용자에게 하드웨어 인프라(서버, 네트워크, 가상머신, 스토리지 등)만을 가상화하여 서비스 형태로 제공하며 사용자가 운영체제(OS)와 미들웨어 등을 직접 설치·관리해야 하는 모델은?",
+      "options": [
+        "1. SaaS (Software as a Service)",
+        "2. PaaS (Platform as a Service)",
+        "3. IaaS (Infrastructure as a Service)",
+        "4. Serverless"
+      ],
+      "answer": 3,
+      "explanation": "인프라 자원만을 클라우드로 서빙하여 사용자의 자유도가 가장 높고 인프라 운영 부담을 줄이는 모델은 IaaS(Infrastructure as a Service)입니다.",
+      "reference": "NIST SP 800-145 클라우드 컴퓨팅 서비스 표준 모델 정의 (IaaS, PaaS, SaaS)",
+      "source": "NIST(National Institute of Standards and Technology) Cloud Computing",
+      "similar_exam": "2025년 기출 98번 유사"
+    }
+  ],
+  "SC": [
+    {
+      "id": "SC_MOCK_01",
+      "category": "1. 공통 보안 기술",
+      "question": "다음 암호 알고리즘 중 대칭키 암호화(Symmetric Cryptography) 방식이며, 대한민국 KISA에서 개발하여 공공 시스템 등 국내에서 널리 활용되는 128비트 블록 암호 알고리즘은?",
+      "options": [
+        "1. RSA",
+        "2. AES",
+        "3. SEED",
+        "4. SHA-256"
+      ],
+      "answer": 3,
+      "explanation": "SEED는 한국인터넷진흥원(KISA)이 주도하여 개발한 국산 128비트 블록 암호 알고리즘입니다. RSA는 비대칭키, AES는 미국의 표준 블록 암호화, SHA-256은 일방향 해시 함수입니다.",
+      "reference": "SEED 128비트 블록 암호화 표준 알고리즘 동작 규격 (Feistel 구조)",
+      "source": "KISA(한국인터넷진흥원) 암호 알고리즘 명세 및 국가용 암호제품 검증필 기준",
+      "similar_exam": "2024년 기출 103번 유사"
+    },
+    {
+      "id": "SC_MOCK_02",
+      "category": "2. 네트워크 및 시스템 보안",
+      "question": "네트워크 보안 장비 중, 패킷의 헤더 정보뿐만 아니라 실제 전송되는 콘텐츠(Payload)의 내용까지 심층적으로 분석하여 비정상적인 패턴이나 알려진 공격 유입을 실시간 감지하고 능동적으로 차단하는 시스템은?",
+      "options": [
+        "1. 방화벽 (Firewall)",
+        "2. 침입 방지 시스템 (IPS)",
+        "3. 가상 사설망 (VPN)",
+        "4. ESM"
+      ],
+      "answer": 2,
+      "explanation": "알려진 침입 패턴을 분석하여 탐지할 뿐만 아니라 네트워크 흐름을 실시간으로 가로막고 차단 조치까지 능동 수행하는 보안 장비는 침입 방지 시스템(IPS, Intrusion Prevention System)입니다.",
+      "reference": "침입방지시스템(IPS) 시그니처 매칭 엔진 및 DPI(Deep Packet Inspection) 보안 모니터링 명세",
+      "source": "정보보호제품 공통평가기준(CC) 및 정보보호 인프라 기술 표준 가이드",
+      "similar_exam": "2025년 기출 106번 유사"
+    },
+    {
+      "id": "SC_MOCK_03",
+      "category": "3. 응용 및 신기술 보안",
+      "question": "디지털 콘텐츠의 저작권을 보호하기 위한 기술로, 콘텐츠에 비허가된 복제나 변조를 막기 위해 암호화 및 유통 제어 권한(라이선스 발급) 등을 수행하는 보안 기술 모델은?",
+      "options": [
+        "1. DLP (Data Loss Prevention)",
+        "2. DRM (Digital Rights Management)",
+        "3. SSL/TLS",
+        "4. VPN"
+      ],
+      "answer": 2,
+      "explanation": "디지털 권리 관리(DRM, Digital Rights Management)는 허가된 사용자만 암호화된 콘텐츠를 키 라이선스를 발급받아 열람할 수 있도록 제한함으로써 불법 복제와 배포를 차단합니다.",
+      "reference": "DRM 기술 패키징 및 라이선스 발급 흐름도(Clearinghouse 모델) 규격",
+      "source": "디지털 저작권 보호 기술 표준 및 DRM 상호운용성 기술 규약",
+      "similar_exam": "2024년 기출 111번 유사"
+    },
+    {
+      "id": "SC_MOCK_04",
+      "category": "4. 개발 및 운영 보안",
+      "question": "소프트웨어 개발 단계에서 코딩 오류나 보안 취약점을 예방하기 위해 소스 코드 작성 시 보안 표준 규칙을 준수하여 개발하는 시큐어 코딩(Secure Coding) 활동에 대한 설명 중 옳은 것은?",
+      "options": [
+        "1. 주로 운영 단계에서 정기 보안 스캔을 진행하는 블랙박스 테스트 활동이다.",
+        "2. 입력값 검증, 예외 처리, 세션 통제 등을 코드 설계 및 작성 시 반영하여 취약점을 원천 방지한다.",
+        "3. 시큐어 코딩은 개발비용을 불필요하게 가중시키므로 공공사업 가이드라인에서는 권장만 할 뿐 의무사항이 아니다.",
+        "4. SQL 인젝션 공격은 데이터베이스의 오류이므로 소스 코드 단에서는 해결할 수 없다."
+      ],
+      "answer": 2,
+      "explanation": "시큐어 코딩은 개발 단계에서 입력 데이터 검증, 적절한 에러 핸들링, 보안 API 활용 등을 통해 취약점이 없는 안전한 코드를 설계/구축하는 핵심 활동입니다.",
+      "reference": "행정기관 및 공공기관 정보시스템 구축운영 지침 제50조(소프트웨어 개발보안)",
+      "source": "행정안전부 공공기관 소프트웨어 개발보안 가이드 (시큐어 코딩 기준)",
+      "similar_exam": "2025년 기출 115번 유사"
+    },
+    {
+      "id": "SC_MOCK_05",
+      "category": "5. 정보보호 법규 및 개인정보보호",
+      "question": "개인정보 보호법상 개인정보의 식별 가능성을 완전히 제거하여 더 이상 특정 개인을 알아볼 수 없도록 조치하는 것을 뜻하는 용어로 옳은 것은?",
+      "options": [
+        "1. 가명 처리 (Pseudonymization)",
+        "2. 익명 처리 (Anonymization)",
+        "3. 암호화 (Encryption)",
+        "4. 마스킹 (Masking)"
+      ],
+      "answer": 2,
+      "explanation": "개인정보 보호법에 따르면 가명 처리는 추가 정보의 사용 없이는 특정 개인을 알아볼 수 없게 가공하는 것이며, 익명 처리는 다른 정보를 사용하여도 특정 개인을 더 이상 알아볼 수 없게(완전한 비식별) 조치하는 것을 의미합니다.",
+      "reference": "개인정보 보호법 제2조(정의) 및 제29조의2(가명정보의 가공 등에 관한 특례) 법령 규정",
+      "source": "개인정보 보호법 및 개인정보 비식별 조치 가이드라인 (관계부처 합동)",
+      "similar_exam": "2025년 기출 120번 유사"
+    }
+  ]
+}

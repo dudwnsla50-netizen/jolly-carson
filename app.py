@@ -1,0 +1,847 @@
+# -*- coding: utf-8 -*-
+"""
+[Flask 기반 다중 과목 통합 예상문제 웹 서버]
+- 작성 목적: 수험생이 웹 브라우저를 통해 PM, SE, DB, SA, SC 5대 과목의 예상문제를 풀고, 
+  누적 정답률 분석을 통해 즉각적인 처방(출제 범위 및 학습 팁)을 받을 수 있게 돕는 통합 웹 서비스 백엔드입니다.
+- 설계 원칙:
+  1. 외부 SDK 의존 없이 urllib 표준 라이브러리를 사용하여 Gemini 2.5-flash 모델과 연동합니다.
+  2. 오프라인이나 API 장애 발생 시 미리 구축한 mock_quizzes.json에서 즉각 로드하는 하이브리드 안정성을 확보합니다.
+  3. 모든 파일 I/O는 UTF-8 인코딩을 지정하여 Windows 시스템 환경에서의 인코딩 크래시를 원천 차단합니다.
+"""
+
+import os
+import sys
+import json
+import re
+import urllib.request
+import urllib.error
+from datetime import datetime
+from flask import Flask, jsonify, request, render_template, send_from_directory
+
+app = Flask(__name__, template_folder="templates", static_folder="static")
+
+# ==========================================
+# 1. 파일 경로 및 환경 설정
+# ==========================================
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+HISTORY_PATH = os.path.join(DATA_DIR, "quiz_history.json")
+MOCK_QUIZ_PATH = os.path.join(DATA_DIR, "mock_quizzes.json")
+
+# 과목 코드와 한글 과목명 매핑
+SUBJECT_MAP = {
+    "PM": "프로젝트관리 및 감리",
+    "SE": "소프트웨어공학",
+    "DB": "데이터베이스",
+    "SA": "시스템구조",
+    "SC": "보안"
+}
+
+# 각 단원별 핵심 보강 팁 매핑
+REMEDY_TIPS = {
+    # PM (사업관리)
+    "1. 정보화 및 소프트웨어 관련 법/제도 및 국내외 지침, 가이드": "소프트웨어 진흥법 상의 중소기업 참여제한 예외 요건, 지능정보화 기본법의 국가정보화 기본 계획 수립 주체 및 공공데이터 표준화 지침을 대조 학습하세요.",
+    "2. 감리 관련 법제도 및 관련 기술": "전자정부법상 의무감리 대상 기준(5억 이상 SW개발 등) 및 정보시스템 감리기준의 감리인 수행 규격, 의견 진술서 처리 기한을 숙지하십시오.",
+    "3. 조직 관리론": "허즈버그의 동기-위생 이론, 맥그리거 X-Y이론, 매슬로우 욕구단계설 등 인적자원 관리이론의 동기 요인들을 구분하여 학습해 두어야 합니다.",
+    "4. 프로젝트 관리": "임계경로(Critical Path) 계산에서 여유시간(Float) 분석 기법과 PMBOK 7판의 12대 프로젝트 관리 원칙 및 8대 성과 도메인의 정의를 철저히 매핑해 두세요.",
+    
+    # SE (소프트웨어공학)
+    "1. 요구사항분석 및 설계": "요구사항 추적성 매트릭스 구성 요소와 SOLID 설계 원칙(특히 LSP, ISP) 및 GoF 디자인 패턴(생성/구조/행위)의 구체적 활용 매칭을 복습하세요.",
+    "2. 구현 및 테스트": "화이트박스 테스트 기법 중 분기/조건/결정 조건 커버리지를 계산하는 연산식과 ISO/IEC/IEEE 29119 표준에 따른 테스트 레벨 산출물을 암기하십시오.",
+    "3. 유지관리 및 운영": "형상 통제 위원회(CCB)의 승인 프로세스, ITSM/ITIL 4의 서비스 가치 체계(SVS) 및 리팩토링과 재공학의 개념적 차이를 명확히 하세요.",
+    "4. 개발방법론, sw 구조 및 공개sw": "스크럼의 3가지 산출물(제품 백로그, 스프린트 백로그, 증가분)과 MSA(마이크로서비스 아키텍처)의 패턴(API 게이트웨이, 서킷 브레이커)을 재정리하십시오.",
+    "5. SW 품질 및 비용산정": "기능점수(FP) 산정 시 데이터 기능점수(ILF, EIF)와 트랜잭션 기능점수(EI, EO, EQ)의 산정 기준 가이드를 암기하고 직접 계산하는 기출을 풀어보세요.",
+
+    # DB (데이터베이스)
+    "1. DB개념 및 설계": "제3정규형(3NF)에서 BCNF, 제4정규형(4NF), 제5정규형(5NF)으로 가기 위한 종속성 특징(이행적 함수 종속 제거, 모든 결정자가 후보키, 다치종속 제거)을 완벽히 정리하세요.",
+    "2. DB언어": "관계대수의 순수 관계 연산자(Select, Project, Join, Division)와 일반 집합 연산자를 SQL 쿼리와 매핑하여 상호 변환하는 연습을 반복해야 합니다.",
+    "3. DBMS 기술": "트랜잭션 ACID 특성, 회복 기법(REDO/UNDO, 즉시/지연 갱신), 동시성 제어(2단계 잠금 규약의 교착상태 리스크) 동작 원리를 파헤쳐야 합니다.",
+    "4. DB응용": "공공데이터 연동 표준 포맷(XML, JSON)과 REST API 아키텍처 규칙(Stateless, Uniform Interface) 및 분산 DBMS의 투명성 4가지 요건을 정리하십시오.",
+    "5. 빅데이터 및 AI데티어": "NoSQL의 CAP 이론 분류(CP, AP, CA)와 데이터웨어하우스(DW) 스키마(스타, 스노우플레이크) 및 AI 학습 데이터 수집 가이드라인을 암기하세요.",
+
+    # SA (시스템구조)
+    "1. 공통기술": "정보기술 아키텍처(EA)의 5대 참조 모델(업무, 서비스, 데이터, 기술, 성과)의 목적 및 상호운용성 기술 표준(TRM/SP) 관계를 복습해 두어야 합니다.",
+    "2. 아키텍처 설계 및 구축": "RAID 레벨별(0, 1, 5, 6, 10) 디스크 효율 및 패리티 저장 기법과 고가용성 액티브-액티브 이중화 및 재해복구(DRS)의 복구목표시간(RTO/RPO)을 비교 정리하세요.",
+    "3. 데이터 통신 및 네트워크 설계": "OSI 7계층 프로토콜 매핑, IPv4와 IPv6 헤더 구조의 주요 필드 차이점 및 TCP 혼잡 제어(Slow Start, 혼잡 회피) 동작 메커니즘을 상세히 공부하세요.",
+    "4. 기타 신기술": "클라우드 서비스 모델(IaaS, PaaS, SaaS)의 책임 한계선 분기점 및 컨테이너 가상화(Docker)와 하이퍼바이저 방식의 성능 구조 차이를 암기하십시오.",
+
+    # SC (보안)
+    "1. 공통 보안 기술": "대칭키(블록/스트림)와 비대칭키(RSA, ECC)의 연산 속도 및 키 관리 특징, 암호학적 해시 함수의 충돌 저항성 개념을 비교 숙지해야 합니다.",
+    "2. 네트워크 및 시스템 보안": "침입방지시스템(IPS)과 방화벽의 패킷 필터링 범위 차이, 망분리 기술(물리적/논리적-SBC, CBC) 및 SQL 인젝션/XSS 해킹 메커니즘을 파악하세요.",
+    "3. 응용 및 신기술 보안": "OAuth 2.0 권한 획득 프레임워크 동작 절차, DRM 유통 패키징 구조 및 공공 클라우드 보안인증제도(CSAP) 등급별 기준을 상세 대조하십시오.",
+    "4. 개발 및 운영 보안": "SW 개발보안(시큐어 코딩) 7대 취약점 영역(입력데이터 검증 및 표현, 보안기능, 시간 및 상태 등) 가이드라인 준수 기법을 코드 관점에서 정리하세요.",
+    "5. 정보보호 법규 및 개인정보보호": "개인정보 보호법상 고유식별정보의 종류 및 동의 획득 절차, 가명정보와 익명정보의 활용 제한 범위 및 ISMS-P 인증 기준을 비교 숙지하십시오."
+}
+
+# ==========================================
+# 2. 유틸리티 함수 및 비즈니스 로직
+# ==========================================
+
+def get_scope_details(subject, category):
+    """
+    [설계 의도]
+    지정된 과목의 txt 파일(예: SE.txt)을 열고, 
+    해당 취약 카테고리가 시작되는 라인부터 다음 대단원이 시작되는 라인 전까지를 슬라이싱하여 반환합니다.
+    """
+    scope_file = os.path.join(DATA_DIR, "exam_scopes", f"{subject}.txt")
+    if not os.path.exists(scope_file):
+        return "상세 시험 범위 규격서가 로드되지 않았습니다."
+
+    scope_details = ""
+    try:
+        with open(scope_file, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            in_target = False
+            for line in lines:
+                # 타겟 단어 검색 (카테고리 번호와 매칭, 예: "3. 유지관리 및 운영")
+                if line.strip().startswith(category):
+                    in_target = True
+                    scope_details += line
+                    continue
+                # 다음 번호 대단원("4. ...", "5. ...")을 발견하면 파싱 중단
+                if in_target and re.match(r"^\d+\.", line.strip()):
+                    break
+                if in_target:
+                    scope_details += line
+        return scope_details.strip()
+    except Exception as e:
+        return f"시험 범위를 추출하는 중 오류가 발생했습니다: {e}"
+
+
+def load_quiz_history():
+    """
+    [설계 의도]
+    기존에 누적된 풀이 데이터를 data/quiz_history.json 파일에서 안전하게 로드합니다.
+    파일이 없거나 손상되었을 시 빈 리스트 구조를 리턴하여 예외를 방지합니다.
+    """
+    if not os.path.exists(HISTORY_PATH):
+        return {"attempts": []}
+    try:
+        with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"attempts": []}
+
+
+def save_quiz_history(history):
+    """
+    [설계 의도]
+    사용자의 풀이 데이터를 누적한 뒤 파일로 디스크에 영속 저장합니다.
+    """
+    os.makedirs(os.path.dirname(HISTORY_PATH), exist_ok=True)
+    try:
+        with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
+
+
+def call_gemini_api(prompt):
+    """
+    [설계 의도]
+    외부 SDK에 의존하지 않고 Python 내장 urllib 모듈만을 사용하여 
+    Gemini 2.5-flash 모델의 API 포인트를 호출하고 원시 텍스트 결과를 가공합니다.
+    """
+    if not GEMINI_API_KEY:
+        raise ValueError("API Key가 누락되었습니다.")
+
+    url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+    
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    
+    with urllib.request.urlopen(req, timeout=15) as res:
+        response_data = json.loads(res.read().decode("utf-8"))
+        raw_text = response_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        
+        # Markdown Fences가 씌워져서 응답이 올 경우 정제 처리
+        if raw_text.startswith("```"):
+            lines = raw_text.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines[-1].startswith("```"):
+                lines = lines[:-1]
+            raw_text = "\n".join(lines).strip()
+            
+        return json.loads(raw_text)
+
+
+# ==========================================
+# 3. HTTP 라우트 및 API 정의
+# ==========================================
+
+@app.route("/")
+def index():
+    """메인 Single Page Application(SPA)의 HTML 템플릿을 서빙합니다."""
+    return render_template("index.html")
+
+
+@app.route("/api/stats", methods=["GET"])
+def get_stats():
+    """
+    [설계 의도]
+    각 과목별 누적 진행도, 정답률을 계산하고, 가장 성적이 나쁜 취약 대단원을 판별하여
+    RAG 범위와 학습 보강 처방을 포함한 종합 대시보드 데이터를 리턴합니다.
+    """
+    history = load_quiz_history()
+    attempts = history.get("attempts", [])
+
+    # 과목별 데이터 구조 초기화
+    subject_stats = {}
+    for code, name in SUBJECT_MAP.items():
+        subject_stats[code] = {
+            "name": name,
+            "total_solved": 0,
+            "correct_solved": 0,
+            "rate": 100.0,  # 초기 정답률 기본값
+            "chapter_stats": {}  # 세부 단원별 집계
+        }
+
+    # 누적 이력 분석 루프
+    for att in attempts:
+        quiz_id = att.get("quiz_id", "")
+        # quiz_id 포맷: "PM_MOCK_01" 또는 "SE_AUTO_01" 등에서 과목 코드 파싱
+        sub_code = quiz_id.split("_")[0] if "_" in quiz_id else "SE"
+        if sub_code not in SUBJECT_MAP:
+            continue
+            
+        category = att.get("category", "")
+        is_correct = att.get("is_correct", False)
+
+        sub_data = subject_stats[sub_code]
+        sub_data["total_solved"] += 1
+        if is_correct:
+            sub_data["correct_solved"] += 1
+
+        # 세부 단원별 통계
+        if category:
+            if category not in sub_data["chapter_stats"]:
+                sub_data["chapter_stats"][category] = {"total": 0, "correct": 0}
+            sub_data["chapter_stats"][category]["total"] += 1
+            if is_correct:
+                sub_data["chapter_stats"][category]["correct"] += 1
+
+    # 과목별 최종 정답률 산정
+    for code, info in subject_stats.items():
+        if info["total_solved"] > 0:
+            info["rate"] = round((info["correct_solved"] / info["total_solved"]) * 100, 1)
+
+    # 전체를 통틀어 '정답률이 100% 미만'이고 가장 심각하게 낮은 '취약 대단원'을 진단
+    weakest_subject = None
+    weakest_category = None
+    min_rate = 1.0  # 100% 기준 비교를 위해 소수점으로 변환
+
+    for code, info in subject_stats.items():
+        for cat, data in info["chapter_stats"].items():
+            rate = data["correct"] / data["total"]
+            # 100%보다 낮으면서 기존 최솟값보다 더 낮을 때 갱신
+            if rate < min_rate:
+                min_rate = rate
+                weakest_subject = code
+                weakest_category = cat
+
+    # 처방 데이터 빌드
+    remedy_data = None
+    if weakest_category:
+        scope_text = get_scope_details(weakest_subject, weakest_category)
+        tip_text = REMEDY_TIPS.get(weakest_category, "이 단원의 개념을 심도 있게 짚고 기출문제를 반복 풀이하세요.")
+        remedy_data = {
+            "subject_code": weakest_subject,
+            "subject_name": SUBJECT_MAP[weakest_subject],
+            "category": weakest_category,
+            "rate": round(min_rate * 100, 1),
+            "scope_details": scope_text,
+            "tip": tip_text
+        }
+
+    return jsonify({
+        "overall_solved": len(attempts),
+        "overall_correct": sum(1 for a in attempts if a.get("is_correct", False)),
+        "subjects": subject_stats,
+        "remedy": remedy_data
+    })
+
+
+@app.route("/api/stats/reset", methods=["POST"])
+def reset_stats():
+    """
+    [설계 의도]
+    기존의 모든 풀이 히스토리를 깔끔하게 제거하여 수험생이 다시 공부를 시작할 수 있게 리셋을 지원합니다.
+    """
+    empty_history = {"attempts": []}
+    if save_quiz_history(empty_history):
+        return jsonify({"success": True, "message": "학습 이력이 성공적으로 초기화되었습니다."})
+    return jsonify({"success": False, "message": "이력 초기화 중 오류가 발생했습니다."}), 500
+
+
+@app.route("/api/quiz/<subject>", methods=["GET"])
+def get_quiz(subject):
+    """
+    [설계 의도]
+    요청된 과목(PM, SE, DB, SA, SC)에 대한 4지선다 예상문제 5문항을 생성합니다.
+    API 키가 있을 경우 텍스트 기반 RAG로 LLM 실시간 빌드하며,
+    연동 실패 시 data/mock_quizzes.json에서 즉각 로드하는 이중 방어막(하이브리드)을 동작시킵니다.
+    """
+    subject = subject.upper()
+    if subject not in SUBJECT_MAP:
+        return jsonify({"error": "존재하지 않는 과목 코드입니다."}), 400
+
+    # 1순위: Gemini API 실시간 변형 예상문제 생성 시도
+    if GEMINI_API_KEY:
+        try:
+            scope_path = os.path.join(DATA_DIR, "exam_scopes", f"{subject}.txt")
+            trend_path = os.path.join(DATA_DIR, "exam_analysis_reports", f"{subject}_trend_analysis.md")
+            
+            scope_text = ""
+            if os.path.exists(scope_path):
+                with open(scope_path, "r", encoding="utf-8") as f:
+                    scope_text = f.read()
+                    
+            trend_text = ""
+            if os.path.exists(trend_path):
+                with open(trend_path, "r", encoding="utf-8") as f:
+                    trend_text = f.read()
+
+            prompt = f"""
+당신은 대한민국 최고 권위의 '정보시스템 감리사 자격검정 출제위원'입니다.
+제공된 {SUBJECT_MAP[subject]} [{subject} 상세 시험 범위]와 [기출문제 분석 경향]을 바탕으로,
+수험생의 이해도를 실전 수준으로 평가할 수 있는 객관식 변형 예상 문제 5문항을 정밀하게 출제해 주세요.
+
+[{SUBJECT_MAP[subject]} 상세 시험 범위]
+{scope_text}
+
+[{SUBJECT_MAP[subject]} 최근 기출분석 트렌드]
+{trend_text}
+
+[출제 요구사항]
+1. 해당 과목의 주요 대단원들에 대해 중복을 줄이고 최대한 골고루 안배하여 총 5문항을 출제하세요.
+   * 각 문항의 "category" 값은 반드시 제공된 시험 범위 텍스트 내의 최상위 대단원 규격과 글자 하나 다르지 않게 정확하게 일치해야 합니다. (예: "1. DB개념 및 설계" 또는 "4. 프로젝트 관리")
+2. 감리사 검정 난이도에 맞추어 지문을 구성하고 4지선다형 객관식 형식을 엄수하세요.
+3. 반드시 마크다운(```json 등) 기호를 제외한 순수 JSON Array 데이터 규격으로만 응답해 주세요.
+
+[응답 JSON 스키마 규격]
+[
+  {{
+    "id": "{subject}_AUTO_01",
+    "category": "출제한 대단원 명칭 (완전 일치 필수)",
+    "question": "문제 지문 내용...",
+    "options": [
+      "1. 보기 1...",
+      "2. 보기 2...",
+      "3. 보기 3...",
+      "4. 보기 4..."
+    ],
+    "answer": 3,
+    "explanation": "해설 및 해당 단원 공략 팁...",
+    "reference": "해당 답의 법적/학술적 구체적 근거 (예: 소프트웨어 진흥법 제48조, SOLID 리스코프 치환 원칙 등)",
+    "source": "출제 연계 지침/가이드/표준명 (예: 행정기관 및 공공기관 정보시스템 구축운영 지침, ISO/IEC 25010 등)",
+    "similar_exam": "이 문항과 가장 유사하게 출제되었던 실제 기출문항 정보 (예: '2025년 기출 32번 유사' 또는 '2024년 기출 45번 유사')"
+  }}
+]
+"""
+            quizzes = call_gemini_api(prompt)
+            if isinstance(quizzes, list) and len(quizzes) > 0:
+                return jsonify({"quizzes": quizzes, "source": "AI_GENERATED"})
+        except Exception as e:
+            # API 호출 장애 발생 시 로그 출력 후 아래 로컬 Mock 로직으로 자연스럽게 Fallback
+            print(f"[경고] {subject} 과목 실시간 AI 문제 출제 실패 ({e}). 오프라인 Mock 퀴즈로 전환합니다.")
+
+    # 2순위: 로컬 Mock 데이터셋 로드
+    if os.path.exists(MOCK_QUIZ_PATH):
+        try:
+            with open(MOCK_QUIZ_PATH, "r", encoding="utf-8") as f:
+                mock_data = json.load(f)
+                quizzes = mock_data.get(subject, [])
+                if quizzes:
+                    return jsonify({"quizzes": quizzes, "source": "LOCAL_MOCK"})
+        except Exception as e:
+            print(f"[오류] 로컬 Mock 문제 파일 로딩 에러: {e}")
+
+    return jsonify({"error": "예상문제를 로드하지 못했습니다."}), 500
+
+
+@app.route("/api/quiz/submit", methods=["POST"])
+def submit_quiz():
+    """
+    [설계 의도]
+    사용자가 웹 화면에서 제출한 각 문항의 답안 리스트를 접수받아 채점 결과를 집계하고,
+    풀이 이력 DB(quiz_history.json)에 기록하여 대시보드 상태를 동적 업데이트하도록 연동합니다.
+    """
+    data = request.get_json() or {}
+    answers = data.get("answers", [])  # 구조: [{"quiz_id": "SE_MOCK_01", "category": "...", "user_answer": 3, "correct_answer": 3}]
+
+    if not answers:
+        return jsonify({"success": False, "message": "채점할 답안 내역이 전달되지 않았습니다."}), 400
+
+    new_attempts = []
+    correct_count = 0
+    
+    for ans in answers:
+        user_ans = ans.get("user_answer")
+        correct_ans = ans.get("correct_answer")
+        is_correct = (user_ans == correct_ans)
+        
+        if is_correct:
+            correct_count += 1
+
+        new_attempts.append({
+            "quiz_id": ans.get("quiz_id"),
+            "category": ans.get("category"),
+            "user_answer": user_ans,
+            "is_correct": is_correct,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    # 누적 기록 로드 및 병합 저장
+    history = load_quiz_history()
+    history["attempts"].extend(new_attempts)
+    save_quiz_history(history)
+
+    return jsonify({
+        "success": True,
+        "total_items": len(answers),
+        "correct_items": correct_count,
+        "message": f"총 {len(answers)}문항 중 {correct_count}문항 정답 처리 완료."
+    })
+
+
+# ==========================================
+# 3-1. 기출문제 원본 및 유사기출 연동 API
+# ==========================================
+PAST_EXAMS_DB_PATH = os.path.join(DATA_DIR, "past_exams_db.json")
+
+@app.route("/api/exam/pdf/<filename>", methods=["GET"])
+def get_exam_pdf(filename):
+    """
+    [설계 의도]
+    기출 원본 PDF 파일을 브라우저에서 직접 열람하거나 다운로드할 수 있도록 정적 서빙합니다.
+    """
+    exam_dir = os.path.join(DATA_DIR, "past_exams")
+    return send_from_directory(exam_dir, filename)
+
+
+@app.route("/api/exam/query", methods=["GET"])
+def query_past_exam():
+    """
+    [설계 의도]
+    사용자가 '2025년 기출 55번 유사' 텍스트를 클릭하면, 연도와 문항 번호를 파싱해 기출문제를 조회합니다.
+    1단계: past_exams_db.json 에 이미 로드되어 있는 문제이면 즉시 리턴 (Mock 맵핑 100% 처리).
+    2단계: 온라인 상태인 경우, data/past_exams 내의 연도 매칭 PDF 텍스트에서 해당 문항 부근을 
+           정규식으로 슬라이싱하여 Gemini API에 연동해 정형 JSON을 획득하고 캐시 보관.
+    3단계: 모두 실패 시 PDF 다운로드/보기 링크를 폴백으로 전달하여 수험 흐름 유지.
+    """
+    year = request.args.get("year", "").strip()
+    num = request.args.get("num", "").strip()
+
+    if not year or not num:
+        return jsonify({"success": False, "message": "연도(year)와 문항 번호(num) 정보가 부족합니다."}), 400
+
+    db_key = f"{year}_{num}"
+
+    # 1단계: 로컬 기출 캐시 DB 조회
+    if os.path.exists(PAST_EXAMS_DB_PATH):
+        try:
+            with open(PAST_EXAMS_DB_PATH, "r", encoding="utf-8") as f:
+                db_data = json.load(f)
+                if db_key in db_data:
+                    return jsonify({
+                        "success": True,
+                        "data": db_data[db_key],
+                        "source": "LOCAL_CACHE"
+                    })
+        except Exception as e:
+            print(f"[경고] 기출 DB 캐시 로드 오류: {e}")
+
+    # 2단계: AI 실시간 기출 원문 RAG 파싱 및 복원
+    exam_dir = os.path.join(DATA_DIR, "past_exams")
+    target_pdf = None
+    if os.path.exists(exam_dir):
+        for file in os.listdir(exam_dir):
+            if file.endswith(".pdf") and (year in file):
+                target_pdf = file
+                break
+
+    if target_pdf and GEMINI_API_KEY:
+        try:
+            pdf_path = os.path.join(exam_dir, target_pdf)
+            import parser  # 기존 파일 파서 연동
+            
+            # PDF 전체 텍스트 수집
+            full_text = parser.extract_pdf(pdf_path)
+            
+            # 정규식을 이용해 해당 문항 슬라이싱 (예: 55. 부터 56. 전까지)
+            num_int = int(num)
+            pattern = rf"\b{num_int}\s*\.(.*?)(?=\b{num_int + 1}\s*\.|$)"
+            match = re.search(pattern, full_text, re.DOTALL)
+            
+            chunk = ""
+            if match:
+                chunk = match.group(0).strip()
+            else:
+                pattern_alt = rf"\n\s*{num_int}\s+(.*?)(?=\n\s*{num_int + 1}\s+|$)"
+                match_alt = re.search(pattern_alt, full_text, re.DOTALL)
+                if match_alt:
+                    chunk = match_alt.group(0).strip()
+
+            if chunk and len(chunk) > 10:
+                prompt = f"""
+다음 텍스트는 {year}년 정보시스템 감리사 기출문제 중 일부({num_int}번 문항)입니다.
+텍스트에서 문제 질문 본문, 4개의 보기 지문, 정답(1~4번 중 하나)을 추적 및 추출하여 
+반드시 아래 JSON 규격으로만 응답해 주세요. 마크다운 기호(```json)는 절대 덧붙이지 마십시오.
+
+[기출문제 원문 텍스트]
+{chunk}
+
+[응답 JSON 스키마]
+{{
+  "year": {year},
+  "num": {num_int},
+  "question": "추출한 문제 질문 지문...",
+  "options": [
+    "1. 보기 1...",
+    "2. 보기 2...",
+    "3. 보기 3...",
+    "4. 보기 4..."
+  ],
+  "answer": 정답번호(정수형 1~4),
+  "explanation": "해당 기출문제 정답의 간략한 근거 해설"
+}}
+"""
+                parsed_quiz = call_gemini_api(prompt)
+                
+                # 로컬 캐시에 영속 저장하여 다음 번엔 즉각 반환 처리
+                db_data = {}
+                if os.path.exists(PAST_EXAMS_DB_PATH):
+                    try:
+                        with open(PAST_EXAMS_DB_PATH, "r", encoding="utf-8") as f:
+                            db_data = json.load(f)
+                    except Exception:
+                        pass
+                
+                db_data[db_key] = parsed_quiz
+                save_past_exams_db(db_data)
+                
+                return jsonify({
+                    "success": True,
+                    "data": parsed_quiz,
+                    "source": "AI_RAG_EXTRACT"
+                })
+        except Exception as e:
+            print(f"[경고] 기출문제 AI 실시간 RAG 추출 에러: {e}")
+
+    # 3단계: 복원 실패 시 PDF 다운로드 및 보기 폴백 정보 전달
+    fallback_url = f"/api/exam/pdf/{target_pdf}" if target_pdf else None
+    return jsonify({
+        "success": False,
+        "message": f"{year}년 기출 {num}번 문항의 상세 텍스트 데이터를 파싱할 수 없습니다.",
+        "pdf_url": fallback_url,
+        "pdf_name": target_pdf
+    })
+
+
+def save_past_exams_db(db_data):
+    """RAG로 추출한 기출문제를 JSON에 영속적으로 캐싱합니다."""
+    try:
+        with open(PAST_EXAMS_DB_PATH, "w", encoding="utf-8") as f:
+            json.dump(db_data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+SE_MEMOS_PATH = os.path.join(DATA_DIR, "se_memos.json")
+
+@app.route("/api/se/memos", methods=["GET"])
+def get_se_memos():
+    """소프트웨어공학 기출 개념 메모 데이터를 se_memos.json 파일에서 로드합니다."""
+    if not os.path.exists(SE_MEMOS_PATH):
+        return jsonify({})
+    try:
+        with open(SE_MEMOS_PATH, "r", encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    except Exception:
+        return jsonify({})
+
+@app.route("/api/se/memos", methods=["POST", "OPTIONS"])
+def save_se_memo():
+    """소프트웨어공학 기출 개념 메모 데이터를 se_memos.json 파일에 저장/삭제합니다."""
+    if request.method == "OPTIONS":
+        return jsonify({"success": True})
+        
+    data = request.get_json() or {}
+    concept_name = data.get("concept")
+    text = data.get("text")
+    updated_at = data.get("updatedAt")
+    action = data.get("action", "save")
+    
+    if not concept_name:
+        return jsonify({"success": False, "message": "개념명 정보가 누락되었습니다."}), 400
+        
+    memos = {}
+    if os.path.exists(SE_MEMOS_PATH):
+        try:
+            with open(SE_MEMOS_PATH, "r", encoding="utf-8") as f:
+                memos = json.load(f)
+        except Exception:
+            pass
+            
+    if action == "delete":
+        if concept_name in memos:
+            del memos[concept_name]
+    else:
+        memos[concept_name] = {
+            "text": text,
+            "updatedAt": updated_at
+        }
+        
+    try:
+        os.makedirs(os.path.dirname(SE_MEMOS_PATH), exist_ok=True)
+        with open(SE_MEMOS_PATH, "w", encoding="utf-8") as f:
+            json.dump(memos, f, ensure_ascii=False, indent=2)
+        return jsonify({"success": True, "memos": memos})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"파일 저장 실패: {e}"}), 500
+
+
+PM_MEMOS_PATH = os.path.join(DATA_DIR, "pm_memos.json")
+
+@app.route("/api/pm/memos", methods=["GET"])
+def get_pm_memos():
+    """PM(감리 및 사업관리) 기출 개념 메모 데이터를 pm_memos.json 파일에서 로드합니다."""
+    if not os.path.exists(PM_MEMOS_PATH):
+        return jsonify({})
+    try:
+        with open(PM_MEMOS_PATH, "r", encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    except Exception:
+        return jsonify({})
+
+@app.route("/api/pm/memos", methods=["POST", "OPTIONS"])
+def save_pm_memo():
+    """PM(감리 및 사업관리) 기출 개념 메모 데이터를 pm_memos.json 파일에 저장/삭제합니다."""
+    if request.method == "OPTIONS":
+        return jsonify({"success": True})
+        
+    data = request.get_json() or {}
+    concept_name = data.get("concept")
+    text = data.get("text")
+    updated_at = data.get("updatedAt")
+    action = data.get("action", "save")
+    
+    if not concept_name:
+        return jsonify({"success": False, "message": "개념명 정보가 누락되었습니다."}), 400
+        
+    memos = {}
+    if os.path.exists(PM_MEMOS_PATH):
+        try:
+            with open(PM_MEMOS_PATH, "r", encoding="utf-8") as f:
+                memos = json.load(f)
+        except Exception:
+            pass
+            
+    if action == "delete":
+        if concept_name in memos:
+            del memos[concept_name]
+    else:
+        memos[concept_name] = {
+            "text": text,
+            "updatedAt": updated_at
+        }
+        
+    try:
+        os.makedirs(os.path.dirname(PM_MEMOS_PATH), exist_ok=True)
+        with open(PM_MEMOS_PATH, "w", encoding="utf-8") as f:
+            json.dump(memos, f, ensure_ascii=False, indent=2)
+        return jsonify({"success": True, "memos": memos})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"파일 저장 실패: {e}"}), 500
+
+
+DB_MEMOS_PATH = os.path.join(DATA_DIR, "db_memos.json")
+
+@app.route("/api/db/memos", methods=["GET"])
+def get_db_memos():
+    """DB(데이터베이스) 기출 개념 메모 데이터를 db_memos.json 파일에서 로드합니다."""
+    if not os.path.exists(DB_MEMOS_PATH):
+        return jsonify({})
+    try:
+        with open(DB_MEMOS_PATH, "r", encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    except Exception:
+        return jsonify({})
+
+@app.route("/api/db/memos", methods=["POST", "OPTIONS"])
+def save_db_memo():
+    """DB(데이터베이스) 기출 개념 메모 데이터를 db_memos.json 파일에 저장/삭제합니다."""
+    if request.method == "OPTIONS":
+        return jsonify({"success": True})
+        
+    data = request.get_json() or {}
+    concept_name = data.get("concept")
+    text = data.get("text")
+    updated_at = data.get("updatedAt")
+    action = data.get("action", "save")
+    
+    if not concept_name:
+        return jsonify({"success": False, "message": "개념명 정보가 누락되었습니다."}), 400
+        
+    memos = {}
+    if os.path.exists(DB_MEMOS_PATH):
+        try:
+            with open(DB_MEMOS_PATH, "r", encoding="utf-8") as f:
+                memos = json.load(f)
+        except Exception:
+            pass
+            
+    if action == "delete":
+        if concept_name in memos:
+            del memos[concept_name]
+    else:
+        memos[concept_name] = {
+            "text": text,
+            "updatedAt": updated_at
+        }
+        
+    try:
+        os.makedirs(os.path.dirname(DB_MEMOS_PATH), exist_ok=True)
+        with open(DB_MEMOS_PATH, "w", encoding="utf-8") as f:
+            json.dump(memos, f, ensure_ascii=False, indent=2)
+        return jsonify({"success": True, "memos": memos})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"파일 저장 실패: {e}"}), 500
+
+
+SA_MEMOS_PATH = os.path.join(DATA_DIR, "sa_memos.json")
+
+@app.route("/api/sa/memos", methods=["GET"])
+def get_sa_memos():
+    """SA(시스템구조) 기출 개념 메모 데이터를 sa_memos.json 파일에서 로드합니다."""
+    if not os.path.exists(SA_MEMOS_PATH):
+        return jsonify({})
+    try:
+        with open(SA_MEMOS_PATH, "r", encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    except Exception:
+        return jsonify({})
+
+@app.route("/api/sa/memos", methods=["POST", "OPTIONS"])
+def save_sa_memo():
+    """SA(시스템구조) 기출 개념 메모 데이터를 sa_memos.json 파일에 저장/삭제합니다."""
+    if request.method == "OPTIONS":
+        return jsonify({"success": True})
+        
+    data = request.get_json() or {}
+    concept_name = data.get("concept")
+    text = data.get("text")
+    updated_at = data.get("updatedAt")
+    action = data.get("action", "save")
+    
+    if not concept_name:
+        return jsonify({"success": False, "message": "개념명 정보가 누락되었습니다."}), 400
+        
+    memos = {}
+    if os.path.exists(SA_MEMOS_PATH):
+        try:
+            with open(SA_MEMOS_PATH, "r", encoding="utf-8") as f:
+                memos = json.load(f)
+        except Exception:
+            pass
+            
+    if action == "delete":
+        if concept_name in memos:
+            del memos[concept_name]
+    else:
+        memos[concept_name] = {
+            "text": text,
+            "updatedAt": updated_at
+        }
+        
+    try:
+        os.makedirs(os.path.dirname(SA_MEMOS_PATH), exist_ok=True)
+        with open(SA_MEMOS_PATH, "w", encoding="utf-8") as f:
+            json.dump(memos, f, ensure_ascii=False, indent=2)
+        return jsonify({"success": True, "memos": memos})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"파일 저장 실패: {e}"}), 500
+
+
+SC_MEMOS_PATH = os.path.join(DATA_DIR, "sc_memos.json")
+
+@app.route("/api/sc/memos", methods=["GET"])
+def get_sc_memos():
+    """SC(보안) 기출 개념 메모 데이터를 sc_memos.json 파일에서 로드합니다."""
+    if not os.path.exists(SC_MEMOS_PATH):
+        return jsonify({})
+    try:
+        with open(SC_MEMOS_PATH, "r", encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    except Exception:
+        return jsonify({})
+
+@app.route("/api/sc/memos", methods=["POST", "OPTIONS"])
+def save_sc_memo():
+    """SC(보안) 기출 개념 메모 데이터를 sc_memos.json 파일에 저장/삭제합니다."""
+    if request.method == "OPTIONS":
+        return jsonify({"success": True})
+        
+    data = request.get_json() or {}
+    concept_name = data.get("concept")
+    text = data.get("text")
+    updated_at = data.get("updatedAt")
+    action = data.get("action", "save")
+    
+    if not concept_name:
+        return jsonify({"success": False, "message": "개념명 정보가 누락되었습니다."}), 400
+        
+    memos = {}
+    if os.path.exists(SC_MEMOS_PATH):
+        try:
+            with open(SC_MEMOS_PATH, "r", encoding="utf-8") as f:
+                memos = json.load(f)
+        except Exception:
+            pass
+            
+    if action == "delete":
+        if concept_name in memos:
+            del memos[concept_name]
+    else:
+        memos[concept_name] = {
+            "text": text,
+            "updatedAt": updated_at
+        }
+        
+    try:
+        os.makedirs(os.path.dirname(SC_MEMOS_PATH), exist_ok=True)
+        with open(SC_MEMOS_PATH, "w", encoding="utf-8") as f:
+            json.dump(memos, f, ensure_ascii=False, indent=2)
+        return jsonify({"success": True, "memos": memos})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"파일 저장 실패: {e}"}), 500
+
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    return response
+
+
+# ==========================================
+# 4. 서버 구동 진입점
+# ==========================================
+if __name__ == "__main__":
+    # 데이터 폴더가 없으면 미리 구조화하여 생성
+    os.makedirs(DATA_DIR, exist_ok=True)
+    
+    # 디버그 모드로 구동하여 개발 편리성 확보
+    app.run(host="127.0.0.1", port=5000, debug=True)

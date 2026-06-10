@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jolly-Carson 감리사 자율 학습 플랫폼</title>
+  <!-- 프리미엄 타이포그래피 구현을 위한 Google Fonts 적용 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN 적용 -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- CSS 스타일시트 링크 -->
+  <link rel="stylesheet" href="/static/css/index.css">
+</head>
+<body>
+  <div class="glass-bg-blur"></div>
+  
+  <div class="container">
+    <!-- 헤더 영역 -->
+    <header class="app-header">
+      <div class="logo-area">
+        <i data-lucide="graduation-cap" class="logo-icon"></i>
+        <h1>Jolly-Carson <span>자율 학습 플랫폼</span></h1>
+      </div>
+      <p class="subtitle">정보시스템 감리사 5대 과목 예상문제 및 오답 처방 엔진</p>
+    </header>
+
+    <main class="app-main">
+      <!-- 1. 대시보드 뷰 영역 -->
+      <section id="dashboard-view" class="view-panel active">
+        <!-- 종합 통계 요약 바 -->
+        <div class="summary-bar card">
+          <div class="summary-item">
+            <span class="label">총 풀이 문항</span>
+            <span id="overall-solved" class="value outfit">0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="label">맞춘 문항 수</span>
+            <span id="overall-correct" class="value outfit">0</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="label">전체 평균 정답률</span>
+            <span id="overall-rate" class="value outfit text-purple">0%</span>
+          </div>
+        </div>
+
+        <!-- 5대 과목 퀴즈 카드 목록 -->
+        <h2 class="section-title"><i data-lucide="book-open"></i> 과목별 예상문제 출제</h2>
+        <div id="subject-grid" class="subject-grid">
+          <!-- JS에서 동적으로 생성될 예정 -->
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>과목별 학습 이력을 계산 중입니다...</p>
+          </div>
+        </div>
+
+        <!-- RAG 취약점 긴급 분석 보고서 및 오답 보강 처방 영역 -->
+        <div id="remedy-container" style="display: none;">
+          <h2 class="section-title text-danger"><i data-lucide="alert-triangle"></i> 취약점 긴급 분석 보고서 및 맞춤 학습 처방</h2>
+          <div class="remedy-card card border-danger">
+            <div class="remedy-header">
+              <div class="badge badge-danger">위험도 상</div>
+              <h3>진단된 취약 대단원: <span id="remedy-category" class="text-white">-</span></h3>
+              <p class="remedy-meta">해당 단원 누적 정답률: <span id="remedy-rate" class="outfit">-</span></p>
+            </div>
+            <div class="remedy-body">
+              <div class="remedy-sub-section">
+                <h4><i data-lucide="list-checks"></i> 출제 기준에 명시된 취약 단원 세부 목차 (RAG 발췌)</h4>
+                <pre id="remedy-scope" class="scope-box"></pre>
+              </div>
+              <div class="remedy-sub-section">
+                <h4><i data-lucide="shield-alert"></i> 에이전트 처방 수험 전략 가이드 (Remedy)</h4>
+                <p id="remedy-tip" class="tip-box"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 리프레시 제어 버튼 -->
+        <div class="control-footer">
+          <button id="btn-reset-stats" class="btn btn-secondary">
+            <i data-lucide="rotate-ccw"></i> 모든 학습 이력 초기화
+          </button>
+        </div>
+      </section>
+
+      <!-- 2. 퀴즈 풀이 플레이 뷰 영역 -->
+      <section id="quiz-view" class="view-panel">
+        <div class="quiz-header card">
+          <div class="quiz-nav">
+            <button id="btn-back-to-dashboard" class="btn btn-text">
+              <i data-lucide="arrow-left"></i> 대시보드로 돌아가기
+            </button>
+            <div class="quiz-progress-label outfit">
+              문제 <span id="current-question-num">1</span> / 5
+            </div>
+          </div>
+          <div class="quiz-progress-bar">
+            <div id="quiz-progress-fill" style="width: 20%;"></div>
+          </div>
+          <div class="quiz-meta-info">
+            <span class="subject-badge" id="quiz-subject-badge">과목명</span>
+            <span class="category-path"><i data-lucide="folder"></i> <span id="quiz-category-badge">세부 단원</span></span>
+          </div>
+        </div>
+
+        <!-- 퀴즈 문항 내용 -->
+        <div class="quiz-content card">
+          <h3 id="quiz-question-text" class="question-text">문항 지문 로딩 중...</h3>
+          <div id="quiz-options-container" class="options-container">
+            <!-- 4지선다 보기 동적 주입 -->
+          </div>
+        </div>
+
+        <!-- 문제 해설 노출 카드 (기본 숨김) -->
+        <div id="quiz-explanation-card" class="explanation-card card card-success" style="display: none;">
+          <div class="explanation-header">
+            <div class="status-badge" id="explanation-status-badge">
+              <i data-lucide="check-circle"></i> 정답입니다!
+            </div>
+            <h4>정답: <span id="explanation-correct-num" class="outfit">0</span>번</h4>
+          </div>
+          <div class="explanation-body">
+            <p id="explanation-text">해설 내용...</p>
+            <div class="explanation-meta-boxes">
+              <div class="meta-box">
+                <span class="meta-title"><i data-lucide="bookmark"></i> 근거</span>
+                <span id="explanation-reference" class="meta-desc">-</span>
+              </div>
+              <div class="meta-box">
+                <span class="meta-title"><i data-lucide="link"></i> 출처</span>
+                <span id="explanation-source" class="meta-desc">-</span>
+              </div>
+              <div class="meta-box">
+                <span class="meta-title"><i data-lucide="history"></i> 유사 기출</span>
+                <span id="explanation-similar-exam" class="meta-desc">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-footer">
+          <div class="quiz-source-label">
+            출제 방식: <span id="quiz-source-badge" class="badge">API 실시간</span>
+          </div>
+          <button id="btn-next-question" class="btn btn-primary" style="display: none;">
+            다음 문제로 <i data-lucide="chevron-right"></i>
+          </button>
+          <button id="btn-submit-quiz" class="btn btn-success" style="display: none;">
+            최종 결과 제출 및 채점 <i data-lucide="check-square"></i>
+          </button>
+        </div>
+      </section>
+    </main>
+    
+    <footer class="app-footer">
+      <p>&copy; 2026 Jolly-Carson 정보시스템 감리사 합격 보강 시스템</p>
+    </footer>
+  </div>
+
+  <!-- 결과 분석 팝업 모달 -->
+  <div id="result-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content card">
+      <div class="modal-header">
+        <i data-lucide="award" class="modal-award-icon"></i>
+        <h2>퀴즈 세션 결과 보고서</h2>
+      </div>
+      <div class="modal-body">
+        <p class="modal-score-desc">이번 세션에서 총 <span id="modal-total-count" class="outfit">5</span>개 문항 중</p>
+        <div class="modal-score-circle">
+          <span id="modal-correct-count" class="outfit">0</span>
+          <span class="divider">/</span>
+          <span class="outfit-total">5</span>
+        </div>
+        <p class="modal-feedback-text" id="modal-feedback-text">고생하셨습니다! 오답 영역은 대시보드 약점 분석 리포트에서 처방 가이드를 확인하여 보강하세요.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-close-modal" class="btn btn-primary btn-block">대시보드로 복귀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 유사 기출문제 상세 조회 팝업 모달 -->
+  <div id="past-exam-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content card past-exam-content">
+      <div class="modal-header past-exam-header">
+        <div class="title-with-icon">
+          <i data-lucide="file-text" class="modal-text-icon"></i>
+          <h3>유사 기출문제 상세 조회</h3>
+        </div>
+        <button id="btn-close-exam-modal" class="btn-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body text-left" id="exam-modal-body">
+        <div id="exam-loading" class="loading-spinner">
+          <div class="spinner"></div>
+          <p>해당 기출문항 복원 및 분석 중...</p>
+        </div>
+        <div id="exam-container" style="display: none;">
+          <div class="exam-meta">
+            <span id="exam-year-badge" class="badge badge-danger">2025년 기출</span>
+            <span id="exam-num-badge" class="badge badge-danger">32번 문항</span>
+          </div>
+          <h4 id="exam-question-text" class="exam-question-text">기출문제 본문 지문...</h4>
+          <div id="exam-options-container" class="exam-options-container">
+            <!-- 4지선다 리스트 -->
+          </div>
+          <div id="exam-explanation-box" class="exam-explanation-box">
+            <h5><i data-lucide="check-circle" class="text-success"></i> 실제 정답: <span id="exam-correct-num" class="outfit">0</span>번</h5>
+            <p id="exam-explanation-text">실제 기출 정답 해설...</p>
+          </div>
+        </div>
+        <div id="exam-fallback-container" style="display: none;">
+          <p class="fallback-msg"><i data-lucide="alert-circle"></i> 해당 기출문항의 상세 텍스트 복원에 실패하였습니다.</p>
+          <div class="fallback-action-box">
+            <p>대신 아래 원본 PDF 기출문제를 열람하여 직접 확인하실 수 있습니다.</p>
+            <a id="exam-pdf-link" href="#" target="_blank" class="btn btn-primary btn-block">
+              <i data-lucide="download"></i> 기출 원본 PDF 열기 (<span id="exam-pdf-name">-</span>)
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 스크립트 모듈 로딩 -->
+  <script src="/static/js/index.js"></script>
+</body>
+</html>

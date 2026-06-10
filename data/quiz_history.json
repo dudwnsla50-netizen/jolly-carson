@@ -1,0 +1,39 @@
+{
+  "attempts": [
+    {
+      "quiz_id": "DB_MOCK_01",
+      "category": "1. DB개념 및 설계",
+      "user_answer": 3,
+      "is_correct": true,
+      "timestamp": "2026-06-09T17:07:04.163835"
+    },
+    {
+      "quiz_id": "DB_MOCK_02",
+      "category": "2. DB언어",
+      "user_answer": 3,
+      "is_correct": true,
+      "timestamp": "2026-06-09T17:07:04.163849"
+    },
+    {
+      "quiz_id": "DB_MOCK_03",
+      "category": "3. DBMS 기술",
+      "user_answer": 3,
+      "is_correct": true,
+      "timestamp": "2026-06-09T17:07:04.163852"
+    },
+    {
+      "quiz_id": "DB_MOCK_04",
+      "category": "4. DB응용",
+      "user_answer": 2,
+      "is_correct": true,
+      "timestamp": "2026-06-09T17:07:04.163854"
+    },
+    {
+      "quiz_id": "DB_MOCK_05",
+      "category": "5. 빅데이터 및 AI데티어",
+      "user_answer": 1,
+      "is_correct": true,
+      "timestamp": "2026-06-09T17:07:04.163855"
+    }
+  ]
+}
