@@ -11,5 +11,8 @@ build_log.txt
 # PDF 원본 파일들은 용량이 커서 GitHub 업로드 시 지연을 방지하기 위해 제외합니다. (수동 이동 권장)
 data/past_exams/
 
+# 인증 설정 파일 — 비밀번호 해시 유출 방지
+data/auth.properties
+
 # 에이전트 작업 공간 이미지 (프로젝트 외부 경로이므로 제외)
 C:/Users/DCCIS040000/.gemini/antigravity-ide/brain/7e1fd111-1dc1-495d-82a1-c40573600184/images/

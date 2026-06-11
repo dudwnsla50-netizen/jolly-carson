@@ -13,6 +13,7 @@ import os
 import sys
 import json
 import re
+import hashlib
 import urllib.request
 import urllib.error
 from datetime import datetime
@@ -29,6 +30,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 HISTORY_PATH = os.path.join(DATA_DIR, "quiz_history.json")
 MOCK_QUIZ_PATH = os.path.join(DATA_DIR, "mock_quizzes.json")
+AUTH_PROPERTIES_PATH = os.path.join(DATA_DIR, "auth.properties")
 
 # 과목 코드와 한글 과목명 매핑
 SUBJECT_MAP = {
@@ -826,6 +828,70 @@ def save_sc_memo():
         return jsonify({"success": True, "memos": memos})
     except Exception as e:
         return jsonify({"success": False, "message": f"파일 저장 실패: {e}"}), 500
+
+
+# ==========================================
+# 인증(로그인) API
+# ==========================================
+
+def _load_auth_properties():
+    """
+    auth.properties 파일을 파싱하여 key=value 딕셔너리로 반환합니다.
+    # 주석과 빈 줄은 무시하며, '=' 구분자 기준으로 key/value를 분리합니다.
+    """
+    props = {}
+    if not os.path.exists(AUTH_PROPERTIES_PATH):
+        return props
+    try:
+        with open(AUTH_PROPERTIES_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                # 주석 또는 빈 줄은 건너뜀
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    props[key.strip()] = value.strip()
+    except Exception as e:
+        print(f"[AUTH] properties 파일 읽기 실패: {e}", file=sys.stderr)
+    return props
+
+
+@app.route("/api/auth/login", methods=["POST", "OPTIONS"])
+def api_auth_login():
+    """
+    로그인 인증 엔드포인트.
+    - 클라이언트에서 보낸 평문 비밀번호를 서버에서 SHA-256 해시 후,
+      properties 파일에 저장된 해시값과 비교합니다.
+    - 평문 비밀번호는 메모리에 잠깐만 존재하고 즉시 해시 처리됩니다.
+    """
+    # CORS preflight 요청 처리
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
+    data = request.get_json(silent=True) or {}
+    input_username = data.get("username", "").strip()
+    input_password = data.get("password", "").strip()
+
+    # 입력값 유효성 검증
+    if not input_username or not input_password:
+        return jsonify({"success": False, "message": "아이디와 비밀번호를 모두 입력해주세요."}), 400
+
+    # properties 파일에서 저장된 인증 정보 로드
+    auth_props = _load_auth_properties()
+    stored_username = auth_props.get("auth.username", "")
+    stored_password_hash = auth_props.get("auth.password_hash", "")
+
+    if not stored_username or not stored_password_hash:
+        return jsonify({"success": False, "message": "서버 인증 설정이 올바르지 않습니다."}), 500
+
+    # 입력된 비밀번호를 SHA-256 해시 후 비교
+    input_password_hash = hashlib.sha256(input_password.encode("utf-8")).hexdigest()
+
+    if input_username == stored_username and input_password_hash == stored_password_hash:
+        return jsonify({"success": True, "message": "로그인 성공"})
+    else:
+        return jsonify({"success": False, "message": "아이디 또는 비밀번호가 올바르지 않습니다."}), 401
 
 
 @app.after_request

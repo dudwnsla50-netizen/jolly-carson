@@ -2,14 +2,542 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=se_frequent_concepts.html" />
-    <title>정보시스템감리사 기출분석 대시보드</title>
-    <script>
-        // 기본 화면인 소프트웨어공학 대시보드로 즉시 리다이렉트
-        window.location.href = "se_frequent_concepts.html";
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정보시스템감리사 기출분석 — 로그인</title>
+    <meta name="description" content="정보시스템감리사 12개년 기출문제 정밀 분석 대시보드 로그인 페이지">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* ==================================
+           디자인 토큰 — 대시보드와 동일한 테마
+        ================================== */
+        :root {
+            --bg-color: #080b13;
+            --card-bg: rgba(17, 24, 39, 0.75);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-violet: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+            --accent-glow: rgba(139, 92, 246, 0.12);
+            --error-color: #ef4444;
+            --card-hover-border: rgba(139, 92, 246, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* 대시보드와 동일한 배경 그라데이션 */
+            background-image:
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.06) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.06) 0px, transparent 50%);
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+
+        /* ==================================
+           배경 애니메이션 파티클
+        ================================== */
+        .bg-particles {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-particles .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.35;
+            animation: float 12s ease-in-out infinite;
+        }
+        .bg-particles .orb:nth-child(1) {
+            width: 350px; height: 350px;
+            background: rgba(139, 92, 246, 0.15);
+            top: -5%; left: -5%;
+            animation-duration: 14s;
+        }
+        .bg-particles .orb:nth-child(2) {
+            width: 280px; height: 280px;
+            background: rgba(59, 130, 246, 0.12);
+            bottom: -8%; right: -3%;
+            animation-duration: 18s;
+            animation-delay: -4s;
+        }
+        .bg-particles .orb:nth-child(3) {
+            width: 200px; height: 200px;
+            background: rgba(139, 92, 246, 0.08);
+            top: 50%; left: 60%;
+            animation-duration: 20s;
+            animation-delay: -8s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.08); }
+        }
+
+        /* ==================================
+           로그인 카드
+        ================================== */
+        .login-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            padding: 0 1.25rem;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2.75rem 2.25rem 2.25rem;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow:
+                0 0 60px rgba(139, 92, 246, 0.06),
+                0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: cardEntry 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(24px);
+        }
+        @keyframes cardEntry {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 헤더 로고 영역 --- */
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-logo {
+            width: 56px; height: 56px;
+            border-radius: 16px;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.15rem;
+            font-size: 1.6rem;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.25);
+        }
+        .login-header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.35rem;
+        }
+        .login-header p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        /* --- 입력 필드 --- */
+        .form-group {
+            margin-bottom: 1.1rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+            letter-spacing: 0.02em;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper .icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: color 0.25s;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.72rem 0.85rem 0.72rem 2.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+        }
+        .form-input::placeholder {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+        .form-input:focus {
+            border-color: var(--accent-violet);
+            background: rgba(139, 92, 246, 0.04);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+        .form-input:focus + .icon,
+        .form-input:focus ~ .icon {
+            color: var(--accent-violet);
+        }
+
+        /* --- 비밀번호 토글 --- */
+        .toggle-pw {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+        .toggle-pw:hover {
+            color: var(--accent-violet);
+        }
+
+        /* --- 로그인 버튼 --- */
+        .btn-login {
+            width: 100%;
+            padding: 0.78rem 1rem;
+            margin-top: 0.6rem;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent-gradient);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.02em;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
+        }
+        .btn-login:active {
+            transform: translateY(0);
+        }
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        /* 버튼 클릭 시 물결 효과 */
+        .btn-login::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.15);
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-login:active::after {
+            opacity: 1;
+        }
+
+        /* --- 로딩 스피너 --- */
+        .spinner {
+            display: none;
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .btn-login.loading .spinner { display: inline-block; }
+        .btn-login.loading .btn-text { opacity: 0.7; }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- 에러 메시지 --- */
+        .error-msg {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--error-color);
+            margin-top: 0.85rem;
+            min-height: 1.2rem;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .error-msg.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- 입력 에러 테두리 --- */
+        .form-input.input-error {
+            border-color: var(--error-color);
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+        }
+
+        /* --- 하단 푸터 --- */
+        .login-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .login-footer p {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        /* ==================================
+           흔들림 애니메이션 (로그인 실패 시)
+        ================================== */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            15%, 45%, 75% { transform: translateX(-8px); }
+            30%, 60%, 90% { transform: translateX(8px); }
+        }
+        .login-card.shake {
+            animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        }
+
+        /* ==================================
+           반응형
+        ================================== */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 2rem 1.5rem 1.75rem;
+            }
+            .login-logo {
+                width: 48px; height: 48px;
+                font-size: 1.3rem;
+            }
+            .login-header h1 {
+                font-size: 1.15rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <p>소프트웨어공학 대시보드로 이동 중입니다...</p>
+    <!-- 배경 오브 파티클 -->
+    <div class="bg-particles">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="login-card" id="loginCard">
+            <!-- 헤더 -->
+            <div class="login-header">
+                <div class="login-logo">🛡️</div>
+                <h1>기출분석 대시보드</h1>
+                <p>정보시스템감리사 12개년 빈출 개념 정밀 뷰어</p>
+            </div>
+
+            <!-- 로그인 폼 -->
+            <form id="loginForm" autocomplete="off">
+                <div class="form-group">
+                    <label for="username">아이디</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="username" class="form-input" placeholder="아이디를 입력하세요" autofocus>
+                        <span class="icon">👤</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="password" class="form-input" placeholder="비밀번호를 입력하세요">
+                        <span class="icon">🔒</span>
+                        <button type="button" class="toggle-pw" id="togglePw" title="비밀번호 표시/숨기기">👁️</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login" id="btnLogin">
+                    <span class="spinner"></span>
+                    <span class="btn-text">로그인</span>
+                </button>
+            </form>
+
+            <div class="error-msg" id="errorMsg"></div>
+
+            <!-- 푸터 -->
+            <div class="login-footer">
+                <p>© 2026 정보시스템감리사 기출분석 시스템</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // =============================================
+        // 설정 상수
+        // =============================================
+        // Flask 서버의 로그인 API 엔드포인트 주소
+        const API_LOGIN_URL = 'http://127.0.0.1:5000/api/auth/login';
+        // 로그인 성공 후 이동할 기본 대시보드
+        const REDIRECT_URL = 'se_frequent_concepts.html';
+        // 세션 스토리지에 저장할 인증 키 이름
+        const AUTH_KEY = 'dashboard_auth';
+
+        // =============================================
+        // 이미 인증된 사용자는 즉시 대시보드로 리다이렉트
+        // =============================================
+        if (sessionStorage.getItem(AUTH_KEY) === 'authenticated') {
+            window.location.href = REDIRECT_URL;
+            return;
+        }
+
+        // =============================================
+        // DOM 요소 참조
+        // =============================================
+        const form = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const btnLogin = document.getElementById('btnLogin');
+        const errorMsg = document.getElementById('errorMsg');
+        const loginCard = document.getElementById('loginCard');
+        const togglePw = document.getElementById('togglePw');
+
+        // =============================================
+        // 비밀번호 표시/숨기기 토글
+        // =============================================
+        togglePw.addEventListener('click', function () {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            togglePw.textContent = isPassword ? '🙈' : '👁️';
+        });
+
+        // =============================================
+        // 에러 메시지 표시/숨기기 헬퍼
+        // =============================================
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('visible');
+            // 카드 흔들림 효과
+            loginCard.classList.add('shake');
+            setTimeout(() => loginCard.classList.remove('shake'), 500);
+        }
+        function hideError() {
+            errorMsg.classList.remove('visible');
+        }
+
+        // =============================================
+        // 입력 필드 에러 스타일 관리
+        // =============================================
+        function setInputError(input, hasError) {
+            if (hasError) {
+                input.classList.add('input-error');
+            } else {
+                input.classList.remove('input-error');
+            }
+        }
+
+        // 입력 시 에러 스타일 자동 해제
+        [usernameInput, passwordInput].forEach(input => {
+            input.addEventListener('input', function () {
+                setInputError(this, false);
+                hideError();
+            });
+        });
+
+        // =============================================
+        // 로그인 폼 제출 처리
+        // =============================================
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            hideError();
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            // 유효성 검사: 빈 입력 체크
+            let hasValidationError = false;
+            if (!username) {
+                setInputError(usernameInput, true);
+                hasValidationError = true;
+            }
+            if (!password) {
+                setInputError(passwordInput, true);
+                hasValidationError = true;
+            }
+            if (hasValidationError) {
+                showError('아이디와 비밀번호를 모두 입력해주세요.');
+                return;
+            }
+
+            // 로딩 상태 전환
+            btnLogin.disabled = true;
+            btnLogin.classList.add('loading');
+
+            try {
+                const response = await fetch(API_LOGIN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // 인증 성공 → 세션에 인증 상태 저장 후 리다이렉트
+                    sessionStorage.setItem(AUTH_KEY, 'authenticated');
+                    // 성공 시 버튼 색 변경 후 부드럽게 전환
+                    btnLogin.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    btnLogin.querySelector('.btn-text').textContent = '✓ 로그인 성공';
+                    btnLogin.classList.remove('loading');
+                    setTimeout(() => {
+                        window.location.href = REDIRECT_URL;
+                    }, 500);
+                } else {
+                    // 인증 실패
+                    showError(result.message || '로그인에 실패했습니다.');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    btnLogin.disabled = false;
+                    btnLogin.classList.remove('loading');
+                }
+            } catch (err) {
+                // 네트워크 오류 또는 서버 미실행 시 처리
+                console.error('로그인 요청 실패:', err);
+                showError('서버에 연결할 수 없습니다. Flask 서버가 실행 중인지 확인하세요.');
+                btnLogin.disabled = false;
+                btnLogin.classList.remove('loading');
+            }
+        });
+
+        // Enter 키로 로그인 편의성 확보
+        passwordInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
