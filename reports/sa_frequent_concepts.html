@@ -768,7 +768,7 @@
   {
     "concept": "네트워크 라우팅 프로토콜 (RIP/OSPF/BGP)",
     "category": "데이터 통신 및 네트워크 설계",
-    "count": 31,
+    "count": 28,
     "years": [
       2015,
       2018,
@@ -785,10 +785,6 @@
       {
         "year": 2026,
         "num": 94
-      },
-      {
-        "year": 2026,
-        "num": 78
       },
       {
         "year": 2025,
@@ -821,10 +817,6 @@
       {
         "year": 2023,
         "num": 89
-      },
-      {
-        "year": 2023,
-        "num": 79
       },
       {
         "year": 2022,
@@ -895,10 +887,6 @@
         "num": 98
       },
       {
-        "year": 2018,
-        "num": 76
-      },
-      {
         "year": 2015,
         "num": 88
       },
@@ -917,7 +905,7 @@
   {
     "concept": "IP 주소 체계 비교 (IPv4 vs IPv6 헤더 필드)",
     "category": "데이터 통신 및 네트워크 설계",
-    "count": 25,
+    "count": 23,
     "years": [
       2015,
       2018,
@@ -927,14 +915,9 @@
       2022,
       2023,
       2024,
-      2025,
       2026
     ],
     "questions": [
-      {
-        "year": 2026,
-        "num": 97
-      },
       {
         "year": 2026,
         "num": 95
@@ -942,10 +925,6 @@
       {
         "year": 2026,
         "num": 94
-      },
-      {
-        "year": 2025,
-        "num": 82
       },
       {
         "year": 2024,
@@ -1035,314 +1014,9 @@
     "core_concept": "인터넷망 상의 호스트 식별을 위한 주소 규격 및 차세대 인터넷 프로토콜 헤더 사양",
     "features": "IPv4(32비트, 가변 헤더)와 IPv6(128비트, 고정 헤더, 흐름 레이블 필드 도입, 체크섬 필드 제거)의 헤더 필드 대조 및 서브넷 마스크 연산 문제가 빈출됩니다.",
     "scope": "데이터 통신 및 네트워크 설계 -> IP 프로토콜",
-    "rep_question": "97. IPv6에서는 확장헤더를 갖고 있다. 다음 중 확장\n헤더로 가장 적절하지 않은 것은?\n① Fragmentation\n② Destination\n③ ESP(Encapsulating Security Payload)\n④ Hop Limit",
+    "rep_question": "95. 다음 보기에서 설명하고 있는 응용 계층 프로토콜로\n가장 적절한 것은?\n보기\nŸ 네트워크 관리자가 클라이언트에게 수동으로\nIP 주소를 할당하는 번거로움을 해결하기 위해\n사용된다.\nŸ 클라이언트가 네트워크에 접속할 때 IP 주소,\n서브넷 마스크, 기본 게이트웨이 주소 등을\n동적으로 임대해 준다.\nŸ Discover, Offer, Request, Ack 등의 메시지\n교환 과정을 거친다.\n① FTP ② SNMP\n③ DHCP ④ NAT",
     "rep_year": 2026,
-    "rep_num": 97
-  },
-  {
-    "concept": "고가용성 아키텍처 및 재해 복구 시스템 (DRS)",
-    "category": "아키텍처 설계 및 구축",
-    "count": 23,
-    "years": [
-      2015,
-      2018,
-      2019,
-      2020,
-      2022,
-      2023,
-      2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 98
-      },
-      {
-        "year": 2026,
-        "num": 76
-      },
-      {
-        "year": 2024,
-        "num": 99
-      },
-      {
-        "year": 2024,
-        "num": 82
-      },
-      {
-        "year": 2023,
-        "num": 97
-      },
-      {
-        "year": 2023,
-        "num": 91
-      },
-      {
-        "year": 2023,
-        "num": 82
-      },
-      {
-        "year": 2022,
-        "num": 91
-      },
-      {
-        "year": 2022,
-        "num": 84
-      },
-      {
-        "year": 2020,
-        "num": 100
-      },
-      {
-        "year": 2020,
-        "num": 99
-      },
-      {
-        "year": 2020,
-        "num": 83
-      },
-      {
-        "year": 2019,
-        "num": 99
-      },
-      {
-        "year": 2019,
-        "num": 92
-      },
-      {
-        "year": 2019,
-        "num": 83
-      },
-      {
-        "year": 2019,
-        "num": 82
-      },
-      {
-        "year": 2019,
-        "num": 78
-      },
-      {
-        "year": 2018,
-        "num": 77
-      },
-      {
-        "year": 2015,
-        "num": 99
-      },
-      {
-        "year": 2015,
-        "num": 94
-      },
-      {
-        "year": 2015,
-        "num": 91
-      },
-      {
-        "year": 2015,
-        "num": 85
-      },
-      {
-        "year": 2015,
-        "num": 79
-      }
-    ],
-    "core_concept": "시스템 다운 타임을 최소화하기 위한 이중화 및 재해 복구(DR) 아키텍처 표준",
-    "features": "Active-Active, Active-Standby 구성의 세션 동기화 문제와 DRS 수준(Mirroring, Hot, Warm, Cold)에 따른 RTO(복구목표시간) 및 RPO(복구목표시점) 관계를 매년 질문합니다.",
-    "scope": "아키텍처 설계 및 구축 -> 가용성 설계",
-    "rep_question": "98. 대역폭이 3000Hz인 통신 채널에서 신호 대 잡음\n비가 31일 때 섀넌(Shannon)의 정리에 따른 이 채\n널의 이론적인 최대 전송률로 가장 적절한 것은?\n(단, 채널은 백색 잡음 환경을 가정하며, 주어진\n신호 대 잡음비는 dB이 아닌 순수 비율 값이다.)\n① 15000 bps ② 30000 bps\n③ 45000 bps ④ 93000 bps",
-    "rep_year": 2026,
-    "rep_num": 98
-  },
-  {
-    "concept": "CPU 정보 레지스터 및 명령어 사이클",
-    "category": "공통기술",
-    "count": 19,
-    "years": [
-      2015,
-      2018,
-      2019,
-      2020,
-      2022,
-      2024,
-      2025,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 86
-      },
-      {
-        "year": 2025,
-        "num": 92
-      },
-      {
-        "year": 2025,
-        "num": 86
-      },
-      {
-        "year": 2025,
-        "num": 84
-      },
-      {
-        "year": 2025,
-        "num": 83
-      },
-      {
-        "year": 2024,
-        "num": 99
-      },
-      {
-        "year": 2024,
-        "num": 82
-      },
-      {
-        "year": 2022,
-        "num": 97
-      },
-      {
-        "year": 2022,
-        "num": 81
-      },
-      {
-        "year": 2020,
-        "num": 93
-      },
-      {
-        "year": 2019,
-        "num": 99
-      },
-      {
-        "year": 2019,
-        "num": 97
-      },
-      {
-        "year": 2019,
-        "num": 86
-      },
-      {
-        "year": 2019,
-        "num": 81
-      },
-      {
-        "year": 2019,
-        "num": 79
-      },
-      {
-        "year": 2018,
-        "num": 93
-      },
-      {
-        "year": 2018,
-        "num": 89
-      },
-      {
-        "year": 2015,
-        "num": 99
-      },
-      {
-        "year": 2015,
-        "num": 94
-      }
-    ],
-    "core_concept": "중앙처리장치의 구성 요소 및 주소 지정 방식과 실행 주기 제어",
-    "features": "프로그램 카운터(PC), 누산기(AC), 메모리 주소 레지스터(MAR)의 흐름과 인출(Fetch)->간접(Indirect)->실행(Execute)->인터럽트(Interrupt) 사이클 상태 변화를 묻습니다.",
-    "scope": "공통기술 -> 컴퓨터 구조 -> CPU",
-    "rep_question": "86. 메모리 계층 구조를 설계하는 근본적인 이유로\n가장 적절한 것은?\n① 속도가 빠르고 비싼 메모리와 속도는 느리지만\n저렴한 메모리를 조합해 최적의 가성비를 얻기\n위해\n② 메인 메모리의 전력 소모를 줄이는 것이 유일한\n목적이기 때문에\n③ 모든 데이터를 가장 빠른 CPU 레지스터에만\n저장하기 위해\n④ 보조기억장치를 제거하고 캐시만 사용하기 위해",
-    "rep_year": 2026,
-    "rep_num": 86
-  },
-  {
-    "concept": "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)",
-    "category": "데이터 통신 및 네트워크 설계",
-    "count": 17,
-    "years": [
-      2015,
-      2018,
-      2020,
-      2021,
-      2022,
-      2023,
-      2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 96
-      },
-      {
-        "year": 2026,
-        "num": 93
-      },
-      {
-        "year": 2026,
-        "num": 92
-      },
-      {
-        "year": 2024,
-        "num": 100
-      },
-      {
-        "year": 2024,
-        "num": 99
-      },
-      {
-        "year": 2023,
-        "num": 100
-      },
-      {
-        "year": 2023,
-        "num": 89
-      },
-      {
-        "year": 2023,
-        "num": 77
-      },
-      {
-        "year": 2022,
-        "num": 83
-      },
-      {
-        "year": 2021,
-        "num": 93
-      },
-      {
-        "year": 2020,
-        "num": 96
-      },
-      {
-        "year": 2020,
-        "num": 79
-      },
-      {
-        "year": 2020,
-        "num": 78
-      },
-      {
-        "year": 2018,
-        "num": 100
-      },
-      {
-        "year": 2018,
-        "num": 96
-      },
-      {
-        "year": 2018,
-        "num": 84
-      },
-      {
-        "year": 2015,
-        "num": 100
-      }
-    ],
-    "core_concept": "송신 호스트가 네트워크 내의 혼잡 상태를 감지하여 전송률을 스스로 조절하는 흐름 제어 기법",
-    "features": "Slow Start(지수적 증가), Congestion Avoidance(선형적 증가), 빠른 재전송(3 Duplicate ACKs 시 임계값 조정 및 전송) 그래프 상의 윈도우 크기 변화를 계산합니다.",
-    "scope": "데이터 통신 및 네트워크 설계 -> 전송 프로토콜",
-    "rep_question": "96. 다음 보기에서 설명하고 있는 TCP 혼잡 제어 알고리즘의\n특정 단계로 가장 적절한 것은?\n보기\nŸ 연결 초기화 또는 타임아웃이 발생한 후 혼잡\n윈도우 크기를 1로 설정하여 데이터 전송을\n시작한다.\nŸ 확인 응답(ACK)을 수신할 때마다 혼잡 윈도우\n크기를 1씩 증가시킨다.\nŸ 혼잡 윈도우 크기가 임계값에 도달할 때까지\n이 방식을 유지한다.\n① Fast Retransmission ② Congestion Avoidance\n③ Slow Start ④ Fast Recovery\n- 20",
-    "rep_year": 2026,
-    "rep_num": 96
+    "rep_num": 95
   },
   {
     "concept": "OSI 7계층 및 TCP/IP 프로토콜 스택",
@@ -1604,61 +1278,133 @@
     "rep_num": 78
   },
   {
-    "concept": "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)",
-    "category": "공통기술",
-    "count": 9,
+    "concept": "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)",
+    "category": "데이터 통신 및 네트워크 설계",
+    "count": 14,
     "years": [
       2015,
       2018,
-      2019,
+      2020,
       2021,
+      2022,
       2023,
       2024,
-      2025
+      2026
     ],
     "questions": [
       {
-        "year": 2025,
-        "num": 86
+        "year": 2026,
+        "num": 96
+      },
+      {
+        "year": 2026,
+        "num": 93
+      },
+      {
+        "year": 2026,
+        "num": 92
+      },
+      {
+        "year": 2024,
+        "num": 100
       },
       {
         "year": 2024,
         "num": 99
       },
       {
-        "year": 2024,
-        "num": 78
+        "year": 2023,
+        "num": 100
       },
       {
-        "year": 2023,
-        "num": 76
+        "year": 2022,
+        "num": 83
       },
       {
         "year": 2021,
+        "num": 93
+      },
+      {
+        "year": 2020,
+        "num": 96
+      },
+      {
+        "year": 2020,
+        "num": 79
+      },
+      {
+        "year": 2018,
+        "num": 100
+      },
+      {
+        "year": 2018,
+        "num": 96
+      },
+      {
+        "year": 2018,
+        "num": 84
+      },
+      {
+        "year": 2015,
+        "num": 100
+      }
+    ],
+    "core_concept": "송신 호스트가 네트워크 내의 혼잡 상태를 감지하여 전송률을 스스로 조절하는 흐름 제어 기법",
+    "features": "Slow Start(지수적 증가), Congestion Avoidance(선형적 증가), 빠른 재전송(3 Duplicate ACKs 시 임계값 조정 및 전송) 그래프 상의 윈도우 크기 변화를 계산합니다.",
+    "scope": "데이터 통신 및 네트워크 설계 -> 전송 프로토콜",
+    "rep_question": "96. 다음 보기에서 설명하고 있는 TCP 혼잡 제어 알고리즘의\n특정 단계로 가장 적절한 것은?\n보기\nŸ 연결 초기화 또는 타임아웃이 발생한 후 혼잡\n윈도우 크기를 1로 설정하여 데이터 전송을\n시작한다.\nŸ 확인 응답(ACK)을 수신할 때마다 혼잡 윈도우\n크기를 1씩 증가시킨다.\nŸ 혼잡 윈도우 크기가 임계값에 도달할 때까지\n이 방식을 유지한다.\n① Fast Retransmission ② Congestion Avoidance\n③ Slow Start ④ Fast Recovery\n- 20",
+    "rep_year": 2026,
+    "rep_num": 96
+  },
+  {
+    "concept": "CPU 정보 레지스터 및 명령어 사이클",
+    "category": "공통기술",
+    "count": 8,
+    "years": [
+      2019,
+      2022,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 86
+      },
+      {
+        "year": 2025,
+        "num": 92
+      },
+      {
+        "year": 2025,
+        "num": 83
+      },
+      {
+        "year": 2022,
         "num": 81
       },
       {
         "year": 2019,
-        "num": 85
+        "num": 99
       },
       {
-        "year": 2018,
-        "num": 94
+        "year": 2019,
+        "num": 97
       },
       {
-        "year": 2018,
-        "num": 93
+        "year": 2019,
+        "num": 81
       },
       {
-        "year": 2015,
-        "num": 82
+        "year": 2019,
+        "num": 79
       }
     ],
-    "core_concept": "물리 메모리 크기 한계를 극복하고 가상 주소를 물리 주소로 사상하여 관리하는 메모리 관리 모델",
-    "features": "LRU(최근 최소 사용), LFU(최소 빈도 사용), FIFO 교체 알고리즘의 페이지 부재(Page Fault) 횟수 계산 문제 및 스래싱(Thrashing) 예방을 위한 워킹셋 모델을 다룹니다.",
-    "scope": "공통기술 -> 운영체제 -> 메모리 관리",
-    "rep_question": "86. 다음 중 가상 기억장치에 대한 설명으로 가장\n적절하지 않은 것은?\n① CPU가 참조하는 가상주소를 주기억 장치의\n실제 주소로 변환하는 주소 매핑이 필요하다.\n② 프로그램이 적재되는 주기억 장치의 주소를\n물리주소라고 한다.\n③ 가상주소가 주기억장치에 존재하지않는 경우에는\n페이지 부재(fault)가 발생한다.\n④ LFU은 최근까지 가장 오랫동안 사용하지 않은\n페이지를 선택하여 교체한다.",
-    "rep_year": 2025,
+    "core_concept": "중앙처리장치의 구성 요소 및 주소 지정 방식과 실행 주기 제어",
+    "features": "프로그램 카운터(PC), 누산기(AC), 메모리 주소 레지스터(MAR)의 흐름과 인출(Fetch)->간접(Indirect)->실행(Execute)->인터럽트(Interrupt) 사이클 상태 변화를 묻습니다.",
+    "scope": "공통기술 -> 컴퓨터 구조 -> CPU",
+    "rep_question": "86. 메모리 계층 구조를 설계하는 근본적인 이유로\n가장 적절한 것은?\n① 속도가 빠르고 비싼 메모리와 속도는 느리지만\n저렴한 메모리를 조합해 최적의 가성비를 얻기\n위해\n② 메인 메모리의 전력 소모를 줄이는 것이 유일한\n목적이기 때문에\n③ 모든 데이터를 가장 빠른 CPU 레지스터에만\n저장하기 위해\n④ 보조기억장치를 제거하고 캐시만 사용하기 위해",
+    "rep_year": 2026,
     "rep_num": 86
   },
   {
@@ -1710,6 +1456,54 @@
     "rep_num": 86
   },
   {
+    "concept": "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)",
+    "category": "공통기술",
+    "count": 7,
+    "years": [
+      2018,
+      2019,
+      2021,
+      2023,
+      2024
+    ],
+    "questions": [
+      {
+        "year": 2024,
+        "num": 99
+      },
+      {
+        "year": 2024,
+        "num": 78
+      },
+      {
+        "year": 2023,
+        "num": 76
+      },
+      {
+        "year": 2021,
+        "num": 81
+      },
+      {
+        "year": 2019,
+        "num": 85
+      },
+      {
+        "year": 2018,
+        "num": 94
+      },
+      {
+        "year": 2018,
+        "num": 93
+      }
+    ],
+    "core_concept": "물리 메모리 크기 한계를 극복하고 가상 주소를 물리 주소로 사상하여 관리하는 메모리 관리 모델",
+    "features": "LRU(최근 최소 사용), LFU(최소 빈도 사용), FIFO 교체 알고리즘의 페이지 부재(Page Fault) 횟수 계산 문제 및 스래싱(Thrashing) 예방을 위한 워킹셋 모델을 다룹니다.",
+    "scope": "공통기술 -> 운영체제 -> 메모리 관리",
+    "rep_question": "99.9% 이상\n② IaaS : 99.5% 이상\n③ SaaS : 99.9% 이상\n④ 그 외 서비스 : 99.9% 이상\n77. 디지털논리회로 중에서 다수의 입력 단자 중에서\n조건에 맞는 하나를 선택하여 단일 출력 단자로\n연결하는 조합회로로 가장 적절한 것은?\n① 인코더 ② 디코더\n③ 멀티플렉서 ④ 디멀티플렉서\n78. 다음 중 리눅스의 파일 종류로 가장 적절하지 않은\n것은?\n① FIFO 파일 ② 가상 파일\n③ 일반 파일 ④ 디렉토리 파일\n79. 다음 그림은 전가산기(full adder) 4개를 사용한 4비\n트 가산기를 나타낸 것이다. 2의 보수로 표현된 수\n들 간의 덧셈에서 상태 비트 제어 회로의 오버플로\n우 플래그(V) 논리식으로 가장 적절한 것은?\n①  ② ⋅\n   \n③    ④ ⊕\n   \n- 16\n80. 시스템 업타임은 시스템이 액세스 가능한 상태인\n시간이다. 액세스 가능하지 않은 시간은 시스템\n다운타임이다. 어떤 서비스가 “5개의 9 가용성”\n이라고 하면 1년에 99.999% 시간 동안 사용 가능\n함을 의미한다. “5개의 9 가용성”일 때 1년당\n다운 타임으로 가장 적절한 것은?\n① 31.5초 ② 5.25분\n③ 52.5분 ④ 8시간 45분\n81. SSD의 구성요소인 플래시 메모리는 블록 단위의\n삭제만 가능하기 때문에 쓰레기 수집(garbage\ncollection) 과정이 요구된다. 이 과정의 효율성을\n증대시키기 위해 운영체제 차원에서 지원하는 기\n능으로 가장 적절한 것은?\n① TRIM ② 미러링\n③ 마모 평준화 ④ 캐시 교체 정책\n82. 큰 데이터 블록을 전송하는 경우에는 CPU가 그\n동작들을 수행하는데 많은 시간을 소모해야 하\n고, 시스템 버스도 대부분의 시간 동안 그러한\nI/O 동작들을 위해 사용될 수 밖에 없다. 이 문제\n점을 해결하기 위해, CPU의 개입 없이 I/O 장치\n와 기억장치 간에 데이터 전송을 수행하도록 지\n원하는 메커니즘으로 가장 적절한 것은?\n① DMA ② Daisy-chain\n③ Software polling ④ Memory-mapped I/O\n83. RAID(Redundant Array of Independant Disk)의 특성에\n대한 설명으로 가장 적절하지 않은 것은?\n① RAID-0은 성능을 추구하고 RAID-1은 안정성을\n추구한 방식이다.\n② RAID-2와 RAID-3은 성능향상을 위해 실제 데이\n터를 저장하는 디스크를 RAID-0으로 구성한 방\n식이다.\n③ RAID-3은 데이터 복구를 위해 해밍코드를 사용하고,\nRAID-4는 패리티 코드를 이용한다.\n④ RAID-5와 RAID-6은 데이터 복구를 위해 다른 디\n스크에 패리티 정보를 함께 저장해 안정성을 높\n인 방식이다.\n6 -\n\n=== NEW PAGE ===\n\n84. 다음 중 광역 통신망의 데이터 송수신(교환) 방법\n중에서 회선 교환(Circuit Switching)에 대한 설명\n으로 옳은 것은?\n① 축적 전송 방식(Store-and-Forward)이라고도 한다.\n② 데이터를 전송하지 않는 유휴 시간에도 회선을\n점유하므로 비효율적이다.\n③ 전송할 메시지를 패킷 단위로 나누어 우선순위\n가 높은 패킷을 먼저 전송할 수 있다.\n④ 실시간 통신이나 대화형 통신보다는 지연이 상\n대적으로 중요하지 않은 이메일·파일 전송 등\n에 적합하다.\n85. 다음 중 데이터 통신에서 사용하는 에러검출 방식\n으로 가장 적절하지 않은 것은?\n① 블록합검사(Block Sum Check)\n② 패리티검사(Parity Check)\n③ 순환중복검사(Cyclic Redundancy Check)\n④ 허프만코딩검사(Huffman Coding Check)\n86. 다음에서 설명하는 라우팅 기법으로 가장 적절한 것은?\nŸ 패킷을 전송하는 호스트가 목적지 호스트까지\n전달경로를 스스로 결정하는 방식\nŸ 이 방식을 지원하려면 송신 호스트의 라우팅\n테이블에서 패킷을 수신 호스트까지 전달하기\n위한 정보경로를 관리하여야 하며, 경로 정보를\n패킷에 기록해야 함\n① 계층라우팅(Hierarchical Routing)\n② 분산라우팅(Distributed Routing)\n③ 소스라우팅(Source Routing)\n④ 중앙라우팅(Centralized Routing)\n87. 다음 보기의 IP주소를 가진 노드가 속하는 LAN에서\n디폴트 게이트웨이 IP주소로 가장 적절한 것은? (단,\n디폴트 게이트웨이의 IP주소에서 호스트 아이디 부\n분은 1로 가정한다.)\n182.75.187.69/27\n① 182.75.187.1\n② 182.75.187.5\n③ 182.75.187.65\n④ 182.75.187.255\n- 17\n88. 다음 중 IP에 대한 설명으로 가장 적절한 것은?\n① IPv4 헤더는 옵션이 없을 경우 20바이트이다.\n② IPv6 헤더의 크기는 40바이트이며 IPv4와 마찬\n가지로 옵션을 가진다.\n③ IPv6 헤더에도 IPv4에서 패킷 단편화에 필요했던\nID Number, Don’t Fragment, More Fragment\n필드가 존재한다.\n④ IPv4 패킷 단편화와 관련된 3가지 필드 중 분할\n된 패킷이 여러 개 있는 경우, 같은 원본 패킷\n에 속한 것인지를 확인할 수 있는 것은 More\nFragment이다.\n89. NAT(Network Address Translation)와 사설 IP주소에\n대한 설명으로 옳지 않은 것은?\n① 13.234.23.87은 사설 IP주소로 활용할 수 있다.\n② 사설 IP주소와 공인 IP주소를 1대1로 고정적으\n로 매핑하는 것을 Static NAT라고 한다.\n③ 내부 네트워크(LAN)에서 사용하는 사설 IP주소\n와 외부 인터넷에서 사용하는 공인 IP주소를 변\n환하는 것을 의미한다.\n④ IP주소뿐만 아니라 포트 번호를 사용하는 NAPT\n(Network Address Port Translation) 또는 PAT(Port\nAddress Translation) 방법이 있다.\n90. 다음에 해당하는 장비로 가장 적합한 것은?\n하나의 LAN 내부에 속하는 여러 단말노드를 연결\n하기 위한 장비로서, 이더넷(Ethernet) 방식의 네\n트워크에서는 충돌 도메인(Collision Domain)을 나\n누는 역할을 수행할 수 있다.\n① 모뎀(MODEM) ② 리피터(Repeater)\n③ L2 스위치(L2 Switch) ④ USB 허브(USB Hub)\n91. FSK(Frequency Shift Keying)에 대한 설명으로 가\n장 적절한 것은?\n① 주파수와 위상이 일정하게 유지된다.\n② 최대진폭과 위상이 일정하게 유지된다.\n③ 최대진폭과 주파수가 일정하게 유지된다.\n④ ASK(Amplitude Shift Keying)에 비해 잡음과 간섭\n에 매우 민감하다.\n7 -\n\n=== NEW PAGE ===\n\n92. 다음 중 RIP(Routing Information Protocol)에 대한\n설명으로 옳지 않은 것은?\n① 정적(Static) 라우팅 프로토콜이다.\n② 일반적으로 도착 가능한 최대 홉 카운트는 15이다.\n③ 거리 벡터(Distance Vector) 알고리즘을 기반으\n로 한다.\n④ RIP를 사용하는 라우터에서는 일반적으로 일정\n주기로 라우팅 테이블을 업데이트한다.\n93. 다음 중 GPU 컴퓨팅에 대한 설명으로 가장 적합\n하지 않은 것은?\n① GPU는 자체 지역메모리를 사용한다.\n② GPU는 고도의 하드웨어 멀티스레딩(multi-threading)\n을 사용한다.\n③ GPU를 사용하기 위해 CUDA와 같은 플랫폼을\n사용할 수 있다.\n④ GPU는 메모리 지연시간을 극복하기 위해 중앙처\n리장치를 사용한다.\n94. 다음 중 트랜스포머 모델에 대한 설명으로 가장\n적절한 것은?\n가. 멀티 헤드 어텐션 기법을 사용할 수 있다.\n나. 대표적인 트랜스포머 모델에는 RNN이 있다.\n다. 인코더는 생성문장을 출력한다.\n라. 인코더와 디코더로 구성된 모델이다.\n① 가, 나 ② 나, 다\n③ 가, 라 ④ 다, 라\n95. BERT(Bidirectional Encoder Representation from\nTransformer)에 대한 설명으로 가장 적절하지 않은\n것은?\n① 위치 임베딩을 사용한다.\n② 인코더와 디코더를 갖는다.\n③ 트랜스포머 모델을 기반으로 한다.\n④ 자연어 처리를 위한 딥러닝 아키텍처 중 하나이다.\n96. 다음 중 신경망 기반의 기계학습알고리즘으로 가장\n적절하지 않은 것은?\n① DBN(Deep Belief Network)\n② SVM(Support Vector Machine)\n③ VAE(Variational Auto Encoder)\n④ GAN(Generative Adversarial Network)\n- 18\n97. 다음 중 UDP 기반의 응용계층 프로토콜에 가장\n적합한 것은?\n① telnet\n② IMAP(Internet Message Access Protocol)\n③ SMTP(Simple Mail Transfer Protocol)\n④ SNMP(Simple Network Management Protocol)\n98. TCP 프로토콜 애플리케이션과 잘 알려진 포트\n(Well-known Port)번호를 연결한 것으로 가장 적\n절하지 않은 것은?\n① DNS-53 ② FTP-21\n③ POP3-25 ④ HTTPS-433\n99. 다음에서 송신자가 ARP Request를 발송할 때, A~D\n중 해당 패킷을 수신하는 노드로 가장 적절한 것은?\n(단, 스위치는 L2 스위치로 가정한다.)\n① 수신 노드가 없음 ② A, B\n③ C, D ④ A, B, C, D",
+    "rep_year": 2024,
+    "rep_num": 99
+  },
+  {
     "concept": "컴퓨터 조합/순서 논리 회로 (가산기/플립플롭 등)",
     "category": "공통기술",
     "count": 6,
@@ -1749,6 +1543,36 @@
     "rep_question": "99.9% 이상\n② IaaS : 99.5% 이상\n③ SaaS : 99.9% 이상\n④ 그 외 서비스 : 99.9% 이상\n77. 디지털논리회로 중에서 다수의 입력 단자 중에서\n조건에 맞는 하나를 선택하여 단일 출력 단자로\n연결하는 조합회로로 가장 적절한 것은?\n① 인코더 ② 디코더\n③ 멀티플렉서 ④ 디멀티플렉서\n78. 다음 중 리눅스의 파일 종류로 가장 적절하지 않은\n것은?\n① FIFO 파일 ② 가상 파일\n③ 일반 파일 ④ 디렉토리 파일\n79. 다음 그림은 전가산기(full adder) 4개를 사용한 4비\n트 가산기를 나타낸 것이다. 2의 보수로 표현된 수\n들 간의 덧셈에서 상태 비트 제어 회로의 오버플로\n우 플래그(V) 논리식으로 가장 적절한 것은?\n①  ② ⋅\n   \n③    ④ ⊕\n   \n- 16\n80. 시스템 업타임은 시스템이 액세스 가능한 상태인\n시간이다. 액세스 가능하지 않은 시간은 시스템\n다운타임이다. 어떤 서비스가 “5개의 9 가용성”\n이라고 하면 1년에 99.999% 시간 동안 사용 가능\n함을 의미한다. “5개의 9 가용성”일 때 1년당\n다운 타임으로 가장 적절한 것은?\n① 31.5초 ② 5.25분\n③ 52.5분 ④ 8시간 45분\n81. SSD의 구성요소인 플래시 메모리는 블록 단위의\n삭제만 가능하기 때문에 쓰레기 수집(garbage\ncollection) 과정이 요구된다. 이 과정의 효율성을\n증대시키기 위해 운영체제 차원에서 지원하는 기\n능으로 가장 적절한 것은?\n① TRIM ② 미러링\n③ 마모 평준화 ④ 캐시 교체 정책\n82. 큰 데이터 블록을 전송하는 경우에는 CPU가 그\n동작들을 수행하는데 많은 시간을 소모해야 하\n고, 시스템 버스도 대부분의 시간 동안 그러한\nI/O 동작들을 위해 사용될 수 밖에 없다. 이 문제\n점을 해결하기 위해, CPU의 개입 없이 I/O 장치\n와 기억장치 간에 데이터 전송을 수행하도록 지\n원하는 메커니즘으로 가장 적절한 것은?\n① DMA ② Daisy-chain\n③ Software polling ④ Memory-mapped I/O\n83. RAID(Redundant Array of Independant Disk)의 특성에\n대한 설명으로 가장 적절하지 않은 것은?\n① RAID-0은 성능을 추구하고 RAID-1은 안정성을\n추구한 방식이다.\n② RAID-2와 RAID-3은 성능향상을 위해 실제 데이\n터를 저장하는 디스크를 RAID-0으로 구성한 방\n식이다.\n③ RAID-3은 데이터 복구를 위해 해밍코드를 사용하고,\nRAID-4는 패리티 코드를 이용한다.\n④ RAID-5와 RAID-6은 데이터 복구를 위해 다른 디\n스크에 패리티 정보를 함께 저장해 안정성을 높\n인 방식이다.\n6 -\n\n=== NEW PAGE ===\n\n84. 다음 중 광역 통신망의 데이터 송수신(교환) 방법\n중에서 회선 교환(Circuit Switching)에 대한 설명\n으로 옳은 것은?\n① 축적 전송 방식(Store-and-Forward)이라고도 한다.\n② 데이터를 전송하지 않는 유휴 시간에도 회선을\n점유하므로 비효율적이다.\n③ 전송할 메시지를 패킷 단위로 나누어 우선순위\n가 높은 패킷을 먼저 전송할 수 있다.\n④ 실시간 통신이나 대화형 통신보다는 지연이 상\n대적으로 중요하지 않은 이메일·파일 전송 등\n에 적합하다.\n85. 다음 중 데이터 통신에서 사용하는 에러검출 방식\n으로 가장 적절하지 않은 것은?\n① 블록합검사(Block Sum Check)\n② 패리티검사(Parity Check)\n③ 순환중복검사(Cyclic Redundancy Check)\n④ 허프만코딩검사(Huffman Coding Check)\n86. 다음에서 설명하는 라우팅 기법으로 가장 적절한 것은?\nŸ 패킷을 전송하는 호스트가 목적지 호스트까지\n전달경로를 스스로 결정하는 방식\nŸ 이 방식을 지원하려면 송신 호스트의 라우팅\n테이블에서 패킷을 수신 호스트까지 전달하기\n위한 정보경로를 관리하여야 하며, 경로 정보를\n패킷에 기록해야 함\n① 계층라우팅(Hierarchical Routing)\n② 분산라우팅(Distributed Routing)\n③ 소스라우팅(Source Routing)\n④ 중앙라우팅(Centralized Routing)\n87. 다음 보기의 IP주소를 가진 노드가 속하는 LAN에서\n디폴트 게이트웨이 IP주소로 가장 적절한 것은? (단,\n디폴트 게이트웨이의 IP주소에서 호스트 아이디 부\n분은 1로 가정한다.)\n182.75.187.69/27\n① 182.75.187.1\n② 182.75.187.5\n③ 182.75.187.65\n④ 182.75.187.255\n- 17\n88. 다음 중 IP에 대한 설명으로 가장 적절한 것은?\n① IPv4 헤더는 옵션이 없을 경우 20바이트이다.\n② IPv6 헤더의 크기는 40바이트이며 IPv4와 마찬\n가지로 옵션을 가진다.\n③ IPv6 헤더에도 IPv4에서 패킷 단편화에 필요했던\nID Number, Don’t Fragment, More Fragment\n필드가 존재한다.\n④ IPv4 패킷 단편화와 관련된 3가지 필드 중 분할\n된 패킷이 여러 개 있는 경우, 같은 원본 패킷\n에 속한 것인지를 확인할 수 있는 것은 More\nFragment이다.\n89. NAT(Network Address Translation)와 사설 IP주소에\n대한 설명으로 옳지 않은 것은?\n① 13.234.23.87은 사설 IP주소로 활용할 수 있다.\n② 사설 IP주소와 공인 IP주소를 1대1로 고정적으\n로 매핑하는 것을 Static NAT라고 한다.\n③ 내부 네트워크(LAN)에서 사용하는 사설 IP주소\n와 외부 인터넷에서 사용하는 공인 IP주소를 변\n환하는 것을 의미한다.\n④ IP주소뿐만 아니라 포트 번호를 사용하는 NAPT\n(Network Address Port Translation) 또는 PAT(Port\nAddress Translation) 방법이 있다.\n90. 다음에 해당하는 장비로 가장 적합한 것은?\n하나의 LAN 내부에 속하는 여러 단말노드를 연결\n하기 위한 장비로서, 이더넷(Ethernet) 방식의 네\n트워크에서는 충돌 도메인(Collision Domain)을 나\n누는 역할을 수행할 수 있다.\n① 모뎀(MODEM) ② 리피터(Repeater)\n③ L2 스위치(L2 Switch) ④ USB 허브(USB Hub)\n91. FSK(Frequency Shift Keying)에 대한 설명으로 가\n장 적절한 것은?\n① 주파수와 위상이 일정하게 유지된다.\n② 최대진폭과 위상이 일정하게 유지된다.\n③ 최대진폭과 주파수가 일정하게 유지된다.\n④ ASK(Amplitude Shift Keying)에 비해 잡음과 간섭\n에 매우 민감하다.\n7 -\n\n=== NEW PAGE ===\n\n92. 다음 중 RIP(Routing Information Protocol)에 대한\n설명으로 옳지 않은 것은?\n① 정적(Static) 라우팅 프로토콜이다.\n② 일반적으로 도착 가능한 최대 홉 카운트는 15이다.\n③ 거리 벡터(Distance Vector) 알고리즘을 기반으\n로 한다.\n④ RIP를 사용하는 라우터에서는 일반적으로 일정\n주기로 라우팅 테이블을 업데이트한다.\n93. 다음 중 GPU 컴퓨팅에 대한 설명으로 가장 적합\n하지 않은 것은?\n① GPU는 자체 지역메모리를 사용한다.\n② GPU는 고도의 하드웨어 멀티스레딩(multi-threading)\n을 사용한다.\n③ GPU를 사용하기 위해 CUDA와 같은 플랫폼을\n사용할 수 있다.\n④ GPU는 메모리 지연시간을 극복하기 위해 중앙처\n리장치를 사용한다.\n94. 다음 중 트랜스포머 모델에 대한 설명으로 가장\n적절한 것은?\n가. 멀티 헤드 어텐션 기법을 사용할 수 있다.\n나. 대표적인 트랜스포머 모델에는 RNN이 있다.\n다. 인코더는 생성문장을 출력한다.\n라. 인코더와 디코더로 구성된 모델이다.\n① 가, 나 ② 나, 다\n③ 가, 라 ④ 다, 라\n95. BERT(Bidirectional Encoder Representation from\nTransformer)에 대한 설명으로 가장 적절하지 않은\n것은?\n① 위치 임베딩을 사용한다.\n② 인코더와 디코더를 갖는다.\n③ 트랜스포머 모델을 기반으로 한다.\n④ 자연어 처리를 위한 딥러닝 아키텍처 중 하나이다.\n96. 다음 중 신경망 기반의 기계학습알고리즘으로 가장\n적절하지 않은 것은?\n① DBN(Deep Belief Network)\n② SVM(Support Vector Machine)\n③ VAE(Variational Auto Encoder)\n④ GAN(Generative Adversarial Network)\n- 18\n97. 다음 중 UDP 기반의 응용계층 프로토콜에 가장\n적합한 것은?\n① telnet\n② IMAP(Internet Message Access Protocol)\n③ SMTP(Simple Mail Transfer Protocol)\n④ SNMP(Simple Network Management Protocol)\n98. TCP 프로토콜 애플리케이션과 잘 알려진 포트\n(Well-known Port)번호를 연결한 것으로 가장 적\n절하지 않은 것은?\n① DNS-53 ② FTP-21\n③ POP3-25 ④ HTTPS-433\n99. 다음에서 송신자가 ARP Request를 발송할 때, A~D\n중 해당 패킷을 수신하는 노드로 가장 적절한 것은?\n(단, 스위치는 L2 스위치로 가정한다.)\n① 수신 노드가 없음 ② A, B\n③ C, D ④ A, B, C, D",
     "rep_year": 2024,
     "rep_num": 99
+  },
+  {
+    "concept": "고가용성 아키텍처 및 재해 복구 시스템 (DRS)",
+    "category": "아키텍처 설계 및 구축",
+    "count": 3,
+    "years": [
+      2019,
+      2020,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 76
+      },
+      {
+        "year": 2020,
+        "num": 99
+      },
+      {
+        "year": 2019,
+        "num": 78
+      }
+    ],
+    "core_concept": "시스템 다운 타임을 최소화하기 위한 이중화 및 재해 복구(DR) 아키텍처 표준",
+    "features": "Active-Active, Active-Standby 구성의 세션 동기화 문제와 DRS 수준(Mirroring, Hot, Warm, Cold)에 따른 RTO(복구목표시간) 및 RPO(복구목표시점) 관계를 매년 질문합니다.",
+    "scope": "아키텍처 설계 및 구축 -> 가용성 설계",
+    "rep_question": "76. 재해복구 설계에서 데이터 손실 허용 범위를 시간\n단위로 정의하는 목표 지표로 가장 적절한 것은?\n① RPO(Recovery Point Objective)\n② RTO(Recovery Time Objective)\n③ MTBF(Mean Time Between Failures)\n④ MTTR(Mean Time To Repair)",
+    "rep_year": 2026,
+    "rep_num": 76
   }
 ];
     let currentCategory = '전체';
