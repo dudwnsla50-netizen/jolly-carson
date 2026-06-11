@@ -730,7 +730,7 @@
         <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
         
         <div class="meta-badges" style="margin-bottom: 1.5rem;">
-            <a href="/" class="badge" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
+            <a href="#" class="badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
             <a href="se_frequent_concepts.html" class="badge accent" style="text-decoration: none;">소프트웨어공학</a>
             <a href="sa_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">시스템 아키텍처</a>
             <a href="db_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">데이터베이스</a>
@@ -778,6 +778,16 @@
 </div>
 
 <script>
+    // [설계 의도] 로컬 오프라인 실행(file:///)과 웹 서버 호스팅(http://) 환경 양쪽 모두에서 퀴즈 대시보드 홈으로 매끄럽게 이동하도록 분기 처리합니다.
+    function goToHome(event) {
+        event.preventDefault();
+        if (window.location.protocol === 'file:') {
+            window.location.href = '../index.html';
+        } else {
+            window.location.href = '/';
+        }
+    }
+
     // 파이썬 빌더에서 동적으로 인젝션하는 기출문제 데이터베이스
     const examDatabase = {
   "2015_26": "26. 다음 설명은 개발방법론 중에서 나선형 모델\n(spiral model)을 나타내고 있다. 다음 중 나선형\n모델의 각 단계별 작업내용을 순서대로 나열한\n것으로 가장 적절한 것은?\n나선형 모델은 비선형적이며 반복적으로 개발이\n진행되므로 소프트웨어 품질 중 강인성을 높일\n수 있는 방법이다. 특히 이 방법은 개발자나\n사용자가 각 확장 단계에서 발생될 위험에 대한\n이해와 대책이 가능하다. 따라서 프로젝트가\n실패할 위험을 사전에 최소화할 수 있다.\n① 계획수립 – 위험분석 – 개발 - 평가\n② 위험분석 – 계획수립 – 개발 - 평가\n③ 계획수립 – 개발 – 위험분석 - 평가\n④ 계획수립 – 위험분석 – 평가 - 개발",

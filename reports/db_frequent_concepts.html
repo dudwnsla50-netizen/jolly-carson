@@ -714,13 +714,25 @@
 </head>
 <body>
 
+<script>
+    // [설계 의도] 로컬 오프라인 실행(file:///)과 웹 서버 호스팅(http://) 환경 양쪽 모두에서 퀴즈 대시보드 홈으로 매끄럽게 이동하도록 분기 처리합니다.
+    function goToHome(event) {
+        event.preventDefault();
+        if (window.location.protocol === 'file:') {
+            window.location.href = '../index.html';
+        } else {
+            window.location.href = '/';
+        }
+    }
+</script>
+
 <div class="container">
     <header>
         <h1>데이터베이스 기출 정밀 분석 대시보드</h1>
         <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
         
         <div class="meta-badges" style="margin-bottom: 1.5rem;">
-            <a href="/" class="badge" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
+            <a href="#" class="badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
             <a href="se_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">소프트웨어공학</a>
             <a href="sa_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">시스템 아키텍처</a>
             <a href="db_frequent_concepts.html" class="badge accent" style="text-decoration: none;">데이터베이스</a>
