@@ -13,7 +13,7 @@
     <style>
         /* ==================================
            디자인 토큰 — 대시보드와 동일한 테마
-        ================================== */
+         ================================== */
         :root {
             --bg-color: #080b13;
             --card-bg: rgba(17, 24, 39, 0.75);
@@ -54,7 +54,7 @@
 
         /* ==================================
            배경 애니메이션 파티클
-        ================================== */
+         ================================== */
         .bg-particles {
             position: fixed;
             inset: 0;
@@ -113,7 +113,7 @@
 
         /* ==================================
            로그인 카드
-        ================================== */
+         ================================== */
         .login-wrapper {
             position: relative;
             z-index: 1;
@@ -371,7 +371,7 @@
 
         /* ==================================
            흔들림 애니메이션 (로그인 실패 시)
-        ================================== */
+         ================================== */
         @keyframes shake {
 
             0%,
@@ -398,7 +398,7 @@
 
         /* ==================================
            반응형
-        ================================== */
+         ================================== */
         @media (max-width: 480px) {
             .login-card {
                 padding: 2rem 1.5rem 1.75rem;
@@ -412,6 +412,7 @@
 
             .login-header h1 {
                 font-size: 1.15rem;
+            }
         }
     </style>
     <!-- Google Identity Services (GIS) SDK -->
@@ -550,7 +551,7 @@
             if (allowedEmails.includes(email)) {
                 // 인증 성공 → 세션스토리지에 상태 저장 후 리다이렉트
                 sessionStorage.setItem('dashboard_auth', 'authenticated');
-                window.location.href = 'se_frequent_concepts.html';
+                window.location.href = 'reports/se_frequent_concepts.html';
             } else {
                 // 비인가 이메일 차단
                 showError(`허용되지 않은 구글 계정입니다: ${payload.email}`);
@@ -561,7 +562,7 @@
         (function() {
             const AUTH_KEY = 'dashboard_auth';
             if (sessionStorage.getItem(AUTH_KEY) === 'authenticated') {
-                window.location.href = 'se_frequent_concepts.html';
+                window.location.href = 'reports/se_frequent_concepts.html';
             }
         })();
     </script>
