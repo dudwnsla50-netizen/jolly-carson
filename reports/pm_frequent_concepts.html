@@ -470,11 +470,56 @@
             background: rgba(248, 113, 113, 0.05);
             border-color: #f87171;
         }
+
+        /* 글로벌 네비게이션 바 */
+        .global-nav {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-bottom: 2.5rem;
+            padding: 0.75rem 1rem;
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .global-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            border: 1px solid transparent;
+        }
+
+        .global-nav a:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .global-nav a.active {
+            color: var(--text-primary);
+            background: var(--accent-gradient);
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="global-nav">
+        <a href="se_frequent_concepts.html">소프트웨어공학</a>
+        <a href="sa_frequent_concepts.html">시스템 아키텍처</a>
+        <a href="db_frequent_concepts.html">데이터베이스</a>
+        <a href="pm_frequent_concepts.html" class="active">프로젝트 관리</a>
+        <a href="sc_frequent_concepts.html">보안</a>
+    </div>
     <header>
         <h1>프로젝트관리 및 감리 기출 정밀 분석 대시보드</h1>
         <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
