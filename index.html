@@ -466,28 +466,23 @@
             -->
 
             <!-- 구글 로그인 연동 버튼 영역 -->
-            <div style="margin-top: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; width: 100%;">
+            <div
+                style="margin-top: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; width: 100%;">
                 <!-- [주의] 실제 서비스 환경에서는 아래 client_id 값을 발급받으신 클라이언트 ID로 대치해 주셔야 합니다. -->
                 <div id="g_id_onload"
-                     data-client_id="845214589254-impmr4mab0pt2smp1b90kblm0r0kblc3.apps.googleusercontent.com"
-                     data-context="signin"
-                     data-ux_mode="popup"
-                     data-callback="handleCredentialResponse"
-                     data-auto_prompt="false">
+                    data-client_id="908779603767-94di2gh9bai86dkqnlcrhom9cm17g1d0.apps.googleusercontent.com"
+                    data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse"
+                    data-auto_prompt="false">
                 </div>
-                <div class="g_id_signin"
-                     data-type="standard"
-                     data-shape="pill"
-                     data-theme="filled_blue"
-                     data-text="signin_with"
-                     data-size="large"
-                     data-logo_alignment="left"
-                     style="width: 100%;">
+                <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue"
+                    data-text="signin_with" data-size="large" data-logo_alignment="left" style="width: 100%;">
                 </div>
             </div>
 
             <!-- 구글 로그인 전용 에러 메시지 래퍼 -->
-            <div class="error-msg" id="errorMsg" style="margin-top: 1.2rem; color: #f87171; font-size: 0.85rem; text-align: center; display: none;"></div>
+            <div class="error-msg" id="errorMsg"
+                style="margin-top: 1.2rem; color: #f87171; font-size: 0.85rem; text-align: center; display: none;">
+            </div>
 
             <!-- 푸터 -->
             <div class="login-footer">
@@ -502,7 +497,7 @@
             try {
                 const base64Url = token.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
                     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
                 }).join(''));
                 return JSON.parse(jsonPayload);
@@ -528,7 +523,7 @@
         }
 
         // 구글 로그인 성공 콜백 함수
-        window.handleCredentialResponse = function(response) {
+        window.handleCredentialResponse = function (response) {
             const errorMsg = document.getElementById('errorMsg');
             if (errorMsg) {
                 errorMsg.style.display = 'none'; // 이전 에러 메시지 감춤
@@ -559,7 +554,7 @@
         };
 
         // 이미 인증을 통과한 유저는 로그인 페이지를 우회
-        (function() {
+        (function () {
             const AUTH_KEY = 'dashboard_auth';
             if (sessionStorage.getItem(AUTH_KEY) === 'authenticated') {
                 window.location.href = 'reports/se_frequent_concepts.html';
