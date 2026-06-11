@@ -34,6 +34,41 @@
       "user_answer": 1,
       "is_correct": true,
       "timestamp": "2026-06-09T17:07:04.163855"
+    },
+    {
+      "quiz_id": "SE_MOCK_01",
+      "category": "1. 요구사항분석 및 설계",
+      "user_answer": 3,
+      "is_correct": true,
+      "timestamp": "2026-06-11T17:26:27.206604"
+    },
+    {
+      "quiz_id": "SE_MOCK_02",
+      "category": "2. 구현 및 테스트",
+      "user_answer": 4,
+      "is_correct": true,
+      "timestamp": "2026-06-11T17:26:27.206625"
+    },
+    {
+      "quiz_id": "SE_MOCK_03",
+      "category": "3. 유지관리 및 운영",
+      "user_answer": 2,
+      "is_correct": true,
+      "timestamp": "2026-06-11T17:26:27.206629"
+    },
+    {
+      "quiz_id": "SE_MOCK_04",
+      "category": "4. 개발방법론, sw 구조 및 공개sw",
+      "user_answer": 1,
+      "is_correct": false,
+      "timestamp": "2026-06-11T17:26:27.206631"
+    },
+    {
+      "quiz_id": "SE_MOCK_05",
+      "category": "5. SW 품질 및 비용산정",
+      "user_answer": 1,
+      "is_correct": false,
+      "timestamp": "2026-06-11T17:26:27.206633"
     }
   ]
 }

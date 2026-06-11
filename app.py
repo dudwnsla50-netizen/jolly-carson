@@ -286,90 +286,325 @@ def reset_stats():
     return jsonify({"success": False, "message": "이력 초기화 중 오류가 발생했습니다."}), 500
 
 
+@app.route("/reports/<path:filename>")
+def serve_reports(filename):
+    """
+    [설계 의도]
+    E 드라이브의 reports/ 폴더 내에 빌드된 5대 과목 프리미엄 대시보드 HTML 파일을 
+    웹 서버 환경(http://localhost:5000/reports/...)에서도 정상적으로 조회할 수 있도록 서빙합니다.
+    """
+    reports_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
+    return send_from_directory(reports_dir, filename)
+
+
+def get_exam_category_heuristic(subject, question_text):
+    """
+    [설계 의도]
+    기출문제 질문 속의 핵심 키워드를 스캔하여 과목별 공식 대단원(1~5장) 중 
+    가장 관련도(매칭 스코어)가 높은 대단원 명칭을 반환하여 통계 및 처방 연동의 무결성을 지킵니다.
+    """
+    subject_chapters = {
+        "PM": [
+            "1. 정보화 및 소프트웨어 관련 법/제도 및 국내외 지침, 가이드",
+            "2. 감리 관련 법제도 및 관련 기술",
+            "3. 조직 관리론",
+            "4. 프로젝트 관리"
+        ],
+        "SE": [
+            "1. 요구사항분석 및 설계",
+            "2. 구현 및 테스트",
+            "3. 유지관리 및 운영",
+            "4. 개발방법론, sw 구조 및 공개sw",
+            "5. SW 품질 및 비용산정"
+        ],
+        "DB": [
+            "1. DB개념 및 설계",
+            "2. DB언어",
+            "3. DBMS 기술",
+            "4. DB응용",
+            "5. 빅데이터 및 AI데티어"
+        ],
+        "SA": [
+            "1. 공통기술",
+            "2. 아키텍처 설계 및 구축",
+            "3. 데이터 통신 및 네트워크 설계",
+            "4. 기타 신기술"
+        ],
+        "SC": [
+            "1. 공통 보안 기술",
+            "2. 네트워크 및 시스템 보안",
+            "3. 응용 및 신기술 보안",
+            "4. 개발 및 운영 보안",
+            "5. 정보보호 법규 및 개인정보보호"
+        ]
+    }
+    
+    chapters = subject_chapters.get(subject, [])
+    if not chapters:
+        return "기타 공통영역"
+        
+    chapter_keywords = {
+        "PM": {
+            0: ["법", "제도", "지침", "가이드", "고시", "진흥법", "계약", "대기업", "조달"],
+            1: ["감리", "전자정부법", "감리기준", "감리원", "수행"],
+            2: ["허즈버그", "동기", "위생", "맥그리거", "매슬로우", "인적", "조직", "리더십"],
+            3: ["일정", "임계", "경로", "wbs", "pmbok", "여유시간", "float", "원칙", "위험", "원가"]
+        },
+        "SE": {
+            0: ["요구", "분석", "명세", "추적", "객체지향", "설계", "uml", "sysml", "다이어그램", "패턴", "solid", "리스코프"],
+            1: ["테스트", "검증", "커버리지", "구문", "분기", "조건", "결정", "29119", "웹접근성", "화이트박스", "블랙박스", "코딩"],
+            2: ["유지보수", "유지관리", "형상", "itsm", "itil", "sla", "slm", "재사용", "재공학", "역공학", "리팩토링", "refactoring"],
+            3: ["방법론", "애자일", "agile", "스크럼", "scrum", "스프린트", "데브옵스", "devops", "클린 아키텍처", "msa", "마이크로서비스", "프레임워크", "스프링", "soap", "rest", "오픈소스"],
+            4: ["품질", "비용", "산정", "cmmi", "spice", "25010", "12207", "기능점수", "fp", "cocomo", "loc"]
+        },
+        "DB": {
+            0: ["정규화", "정규형", "릴레이션", "erd", "모델", "키", "종속", "bcnf", "후보키"],
+            1: ["sql", "쿼리", "관계대수", "조인", "join", "select", "project", "division"],
+            2: ["트랜잭션", "acid", "회복", "동시성", "제어", "락킹", "locking", "교착", "2단계", "격리"],
+            3: ["xml", "json", "rest", "공공데이터", "분산", "투명성"],
+            4: ["nosql", "cap", "하두프", "dw", "마이닝", "빅데이터", "ai", "학습"]
+        },
+        "SA": {
+            0: ["ea", "참조", "trm", "srm", "brm", "drm", "정보기술", "아키텍처"],
+            1: ["raid", "디스크", "가용성", "재해복구", "drs", "rto", "rpo", "백업", "이중화", "패리티"],
+            2: ["네트워크", "프로토콜", "라우팅", "routing", "ip", "ipv6", "tcp", "혼잡", "osi", "arp", "icmp"],
+            3: ["클라우드", "iaas", "paas", "saas", "컨테이너", "가상화", "docker", "도커"]
+        },
+        "SC": {
+            0: ["대칭키", "비대칭키", "rsa", "seed", "aes", "암호", "해시", "sha-256", "서명", "인증", "pki"],
+            1: ["방화벽", "firewall", "ips", "침입", "vpn", "망분리", "인젝션", "xss", "취약점", "보안"],
+            2: ["oauth", "drm", "ssl", "tls", "클리어링", "라이선스", "csap"],
+            3: ["시큐어", "코딩", "개발보안", "취약점", "7대", "행안부"],
+            4: ["개인정보", "보호법", "가명", "익명", "비식별", "isms-p", "고유식별"]
+        }
+    }
+    
+    txt = question_text.lower()
+    subject_map = chapter_keywords.get(subject, {})
+    
+    best_chapter_idx = 0
+    max_matches = 0
+    
+    for idx, keywords in subject_map.items():
+        matches = sum(1 for kw in keywords if kw.lower() in txt)
+        if matches > max_matches:
+            max_matches = matches
+            best_chapter_idx = idx
+            
+    return chapters[best_chapter_idx]
+
+
+def extract_single_past_exam(year, num):
+    """
+    [설계 의도]
+    기출 PDF 텍스트에서 특정 연도/문제번호의 지문을 찾아내고 Gemini API로 구조화한 뒤 캐시하고 반환합니다.
+    """
+    db_key = f"{year}_{num}"
+    
+    # 1. 캐시 DB 먼저 로드
+    db_data = {}
+    if os.path.exists(PAST_EXAMS_DB_PATH):
+        try:
+            with open(PAST_EXAMS_DB_PATH, "r", encoding="utf-8") as f:
+                db_data = json.load(f)
+                if db_key in db_data:
+                    return db_data[db_key]
+        except Exception:
+            pass
+            
+    # 2. 실시간 파싱 시도
+    exam_dir = os.path.join(DATA_DIR, "past_exams")
+    target_pdf = None
+    if os.path.exists(exam_dir):
+        for file in os.listdir(exam_dir):
+            if file.endswith(".pdf") and (str(year) in file):
+                target_pdf = file
+                break
+                
+    if not target_pdf or not GEMINI_API_KEY:
+        raise ValueError(f"기출 PDF를 찾을 수 없거나 Gemini API Key가 없습니다. (연도: {year})")
+        
+    pdf_path = os.path.join(exam_dir, target_pdf)
+    import parser
+    
+    full_text = parser.extract_pdf(pdf_path)
+    
+    num_int = int(num)
+    pattern = rf"\b{num_int}\s*\.(.*?)(?=\b{num_int + 1}\s*\.|$)"
+    match = re.search(pattern, full_text, re.DOTALL)
+    
+    chunk = ""
+    if match:
+        chunk = match.group(0).strip()
+    else:
+        pattern_alt = rf"\n\s*{num_int}\s+(.*?)(?=\n\s*{num_int + 1}\s+|$)"
+        match_alt = re.search(pattern_alt, full_text, re.DOTALL)
+        if match_alt:
+            chunk = match_alt.group(0).strip()
+            
+    if not chunk or len(chunk) < 10:
+        raise ValueError(f"PDF에서 {year}년 {num}번 문항의 텍스트 슬라이싱에 실패했습니다.")
+        
+    prompt = f"""
+다음 텍스트는 {year}년 정보시스템 감리사 기출문제 중 일부({num_int}번 문항)입니다.
+텍스트에서 문제 질문 본문, 4개의 보기 지문, 정답(1~4번 중 하나)을 추적 및 추출하여 
+반드시 아래 JSON 규격으로만 응답해 주세요. 마크다운 기호(```json)는 절대 덧붙이지 마십시오.
+
+[기출문제 원문 텍스트]
+{chunk}
+
+[응답 JSON 스키마]
+{{
+  "year": {year},
+  "num": {num_int},
+  "question": "추출한 문제 질문 지문...",
+  "options": [
+    "1. 보기 1...",
+    "2. 보기 2...",
+    "3. 보기 3...",
+    "4. 보기 4..."
+  ],
+  "answer": 정답번호(정수형 1~4),
+  "explanation": "해당 기출문제 정답의 간략한 근거 해설"
+}}
+"""
+    parsed_quiz = call_gemini_api(prompt)
+    
+    db_data[db_key] = parsed_quiz
+    save_past_exams_db(db_data)
+    
+    return parsed_quiz
+
+
 @app.route("/api/quiz/<subject>", methods=["GET"])
 def get_quiz(subject):
     """
     [설계 의도]
-    요청된 과목(PM, SE, DB, SA, SC)에 대한 4지선다 예상문제 5문항을 생성합니다.
-    API 키가 있을 경우 텍스트 기반 RAG로 LLM 실시간 빌드하며,
-    연동 실패 시 data/mock_quizzes.json에서 즉각 로드하는 이중 방어막(하이브리드)을 동작시킵니다.
+    요청된 과목(PM, SE, DB, SA, SC)의 12개년 기출문제(총 300문항 범위) 중 무작위 5문항을 추출하여 제공합니다.
+    1단계: 기출 캐시 DB(past_exams_db.json)에서 해당 과목 범위 문항들을 무작위 추출하되,
+    2단계: 캐시가 부족하거나 새로운 문항 출제를 위해 실시간 PDF 파싱(extract_single_past_exam)을 병행 시도합니다.
+    3단계: Gemini API 장애나 오프라인 상태일 경우, data/mock_quizzes.json에서 즉각 로드하는 Fallback(이중 방어막)을 작동시킵니다.
     """
     subject = subject.upper()
     if subject not in SUBJECT_MAP:
         return jsonify({"error": "존재하지 않는 과목 코드입니다."}), 400
 
-    # 1순위: Gemini API 실시간 변형 예상문제 생성 시도
-    if GEMINI_API_KEY:
-        try:
-            scope_path = os.path.join(DATA_DIR, "exam_scopes", f"{subject}.txt")
-            trend_path = os.path.join(DATA_DIR, "exam_analysis_reports", f"{subject}_trend_analysis.md")
+    # 과목별 기출문제 번호 범위 정의
+    subject_ranges = {
+        "PM": (1, 25),
+        "SE": (26, 50),
+        "DB": (51, 75),
+        "SA": (76, 100),
+        "SC": (101, 120)  # 감리사 보안 과목은 일반적으로 120번까지임
+    }
+    
+    start_num, end_num = subject_ranges.get(subject, (26, 50))
+    years = list(range(2015, 2027)) # 2015년 ~ 2026년 (12개년)
+    
+    # 전체 300문항(또는 보안의 경우 240문항)의 후보 목록 생성
+    candidate_keys = []
+    for y in years:
+        for n in range(start_num, end_num + 1):
+            candidate_keys.append((y, n))
             
-            scope_text = ""
-            if os.path.exists(scope_path):
-                with open(scope_path, "r", encoding="utf-8") as f:
-                    scope_text = f.read()
-                    
-            trend_text = ""
-            if os.path.exists(trend_path):
-                with open(trend_path, "r", encoding="utf-8") as f:
-                    trend_text = f.read()
-
-            prompt = f"""
-당신은 대한민국 최고 권위의 '정보시스템 감리사 자격검정 출제위원'입니다.
-제공된 {SUBJECT_MAP[subject]} [{subject} 상세 시험 범위]와 [기출문제 분석 경향]을 바탕으로,
-수험생의 이해도를 실전 수준으로 평가할 수 있는 객관식 변형 예상 문제 5문항을 정밀하게 출제해 주세요.
-
-[{SUBJECT_MAP[subject]} 상세 시험 범위]
-{scope_text}
-
-[{SUBJECT_MAP[subject]} 최근 기출분석 트렌드]
-{trend_text}
-
-[출제 요구사항]
-1. 해당 과목의 주요 대단원들에 대해 중복을 줄이고 최대한 골고루 안배하여 총 5문항을 출제하세요.
-   * 각 문항의 "category" 값은 반드시 제공된 시험 범위 텍스트 내의 최상위 대단원 규격과 글자 하나 다르지 않게 정확하게 일치해야 합니다. (예: "1. DB개념 및 설계" 또는 "4. 프로젝트 관리")
-2. 감리사 검정 난이도에 맞추어 지문을 구성하고 4지선다형 객관식 형식을 엄수하세요.
-3. 반드시 마크다운(```json 등) 기호를 제외한 순수 JSON Array 데이터 규격으로만 응답해 주세요.
-
-[응답 JSON 스키마 규격]
-[
-  {{
-    "id": "{subject}_AUTO_01",
-    "category": "출제한 대단원 명칭 (완전 일치 필수)",
-    "question": "문제 지문 내용...",
-    "options": [
-      "1. 보기 1...",
-      "2. 보기 2...",
-      "3. 보기 3...",
-      "4. 보기 4..."
-    ],
-    "answer": 3,
-    "explanation": "해설 및 해당 단원 공략 팁...",
-    "reference": "해당 답의 법적/학술적 구체적 근거 (예: 소프트웨어 진흥법 제48조, SOLID 리스코프 치환 원칙 등)",
-    "source": "출제 연계 지침/가이드/표준명 (예: 행정기관 및 공공기관 정보시스템 구축운영 지침, ISO/IEC 25010 등)",
-    "similar_exam": "이 문항과 가장 유사하게 출제되었던 실제 기출문항 정보 (예: '2025년 기출 32번 유사' 또는 '2024년 기출 45번 유사')"
-  }}
-]
-"""
-            quizzes = call_gemini_api(prompt)
-            if isinstance(quizzes, list) and len(quizzes) > 0:
-                return jsonify({"quizzes": quizzes, "source": "AI_GENERATED"})
-        except Exception as e:
-            # API 호출 장애 발생 시 로그 출력 후 아래 로컬 Mock 로직으로 자연스럽게 Fallback
-            print(f"[경고] {subject} 과목 실시간 AI 문제 출제 실패 ({e}). 오프라인 Mock 퀴즈로 전환합니다.")
-
-    # 2순위: 로컬 Mock 데이터셋 로드
-    if os.path.exists(MOCK_QUIZ_PATH):
+    import random
+    # 중복되지 않게 5개 조합을 무작위 셔플하여 선택 후보 생성
+    random.shuffle(candidate_keys)
+    
+    quizzes = []
+    
+    # 로컬 기출 캐시 DB 먼저 로드
+    db_data = {}
+    if os.path.exists(PAST_EXAMS_DB_PATH):
         try:
-            with open(MOCK_QUIZ_PATH, "r", encoding="utf-8") as f:
-                mock_data = json.load(f)
-                quizzes = mock_data.get(subject, [])
-                if quizzes:
-                    return jsonify({"quizzes": quizzes, "source": "LOCAL_MOCK"})
-        except Exception as e:
-            print(f"[오류] 로컬 Mock 문제 파일 로딩 에러: {e}")
+            with open(PAST_EXAMS_DB_PATH, "r", encoding="utf-8") as f:
+                db_data = json.load(f)
+        except Exception:
+            pass
 
-    return jsonify({"error": "예상문제를 로드하지 못했습니다."}), 500
+    # 후보들 중 5문항을 확보할 때까지 루프
+    for year, num in candidate_keys:
+        if len(quizzes) >= 5:
+            break
+            
+        db_key = f"{year}_{num}"
+        quiz_item = None
+        
+        # 1. 로컬 캐시 DB에 존재하면 바로 가져옴
+        if db_key in db_data:
+            # 원본 데이터가 변경되지 않도록 깊은 복사 혹은 딕셔너리 재할당
+            quiz_item = dict(db_data[db_key])
+            # 캐시 데이터에 id가 없을 수 있으므로 보정
+            if "id" not in quiz_item:
+                quiz_item["id"] = db_key
+            # category가 없거나 올바르지 않으면 헤리스틱으로 매핑
+            if "category" not in quiz_item or not quiz_item["category"]:
+                quiz_item["category"] = get_exam_category_heuristic(subject, quiz_item.get("question", ""))
+            quizzes.append(quiz_item)
+            continue
+            
+        # 2. 캐시에 없으면 Gemini API 실시간 RAG 추출 시도 (API 키가 있는 경우만)
+        if GEMINI_API_KEY:
+            try:
+                # 단일 문항 RAG 추출
+                parsed = extract_single_past_exam(year, num)
+                if parsed:
+                    parsed_copy = dict(parsed)
+                    parsed_copy["id"] = db_key
+                    parsed_copy["category"] = get_exam_category_heuristic(subject, parsed_copy.get("question", ""))
+                    quizzes.append(parsed_copy)
+                    continue
+            except Exception as e:
+                # 실시간 파싱 에러 시 로그 출력 후 다음 후보로 넘어가거나 Mock 폴백 처리
+                print(f"[경고] {year}년 {num}번 기출 실시간 파싱 실패: {e}")
+                
+    # 만약 RAG 추출 실패나 캐시 부족으로 5문항을 못 채웠다면, 캐시된 전체 문항 중에서 중복되지 않게 무작위 수급
+    if len(quizzes) < 5:
+        cached_subject_quizzes = []
+        for key, val in db_data.items():
+            try:
+                k_year, k_num = map(int, key.split("_"))
+                if start_num <= k_num <= end_num:
+                    val_copy = dict(val)
+                    val_copy["id"] = key
+                    if "category" not in val_copy or not val_copy["category"]:
+                        val_copy["category"] = get_exam_category_heuristic(subject, val_copy.get("question", ""))
+                    cached_subject_quizzes.append(val_copy)
+            except Exception:
+                continue
+                
+        # 캐시된 것들 중에서 채움
+        for item in cached_subject_quizzes:
+            if len(quizzes) >= 5:
+                break
+            if item["id"] not in [q["id"] for q in quizzes]:
+                quizzes.append(item)
+                
+    # 그럼에도 5문항을 못 채웠다면 최종 보루로 mock_quizzes.json에서 무작위 추출하여 Fallback
+    if len(quizzes) < 5:
+        print(f"[알림] 기출문제 데이터가 부족하여 {subject} 과목의 로컬 Mock 문제로 Fallback합니다.")
+        if os.path.exists(MOCK_QUIZ_PATH):
+            try:
+                with open(MOCK_QUIZ_PATH, "r", encoding="utf-8") as f:
+                    mock_data = json.load(f)
+                    mock_list = mock_data.get(subject, [])
+                    # 부족한 개수만큼 mock에서 채움
+                    random.shuffle(mock_list)
+                    for item in mock_list:
+                        if len(quizzes) >= 5:
+                            break
+                        item_copy = dict(item)
+                        if item_copy.get("id") not in [q.get("id") for q in quizzes]:
+                            quizzes.append(item_copy)
+            except Exception as e:
+                print(f"[오류] Mock 파일 읽기 에러: {e}")
+                
+    # 최종 퀴즈 구성 완료
+    if len(quizzes) >= 5:
+        # 반환 포맷을 맞추어 준다
+        return jsonify({"quizzes": quizzes[:5], "source": "PAST_EXAM_RAG"})
+        
+    return jsonify({"error": "기출문제 및 예상문제를 로드하지 못했습니다."}), 500
 
 
 @app.route("/api/quiz/submit", methods=["POST"])

@@ -105,10 +105,13 @@ async function fetchStats() {
             </div>
           </div>
         </div>
-        <div class="card-bottom">
-          <button class="btn btn-primary btn-block" onclick="startQuiz('${code}')">
-            <i data-lucide="play-circle"></i> 예상문제 풀기
+        <div class="card-bottom" style="display: flex; flex-direction: column; gap: 8px;">
+          <button class="btn btn-primary btn-block" onclick="startQuiz('${code}')" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i data-lucide="play-circle"></i> 기출문제 퀴즈 풀기
           </button>
+          <a class="btn btn-secondary btn-block" href="/reports/${code.toLowerCase()}_frequent_concepts.html" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i data-lucide="bar-chart-2"></i> 기출분석 대시보드
+          </a>
         </div>
       `;
       
