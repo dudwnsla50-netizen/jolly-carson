@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>소프트웨어공학 12개년 빈출 개념 정밀 뷰어</title>
+    <title>소프트웨어공학 공식 범위별 기출 뷰어</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -151,7 +151,6 @@
             gap: 0.8rem;
         }
 
-        /* Card Layout 내부 요소 */
         .card-header-row {
             display: flex;
             justify-content: space-between;
@@ -263,7 +262,6 @@
             margin-top: 0.2rem;
         }
 
-        /* Year Badges Grid */
         .year-grid {
             display: flex;
             flex-wrap: wrap;
@@ -304,7 +302,6 @@
             font-size: 0.7rem;
         }
 
-        /* Inline Question Viewer */
         .inline-question-viewer {
             background: #090d16;
             border: 1px solid rgba(255, 255, 255, 0.04);
@@ -369,7 +366,7 @@
         .viewer-body::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.2);
         }
-        /* Memo Section Styles */
+
         .memo-section {
             background: rgba(139, 92, 246, 0.02);
             border: 1px dashed rgba(139, 92, 246, 0.15);
@@ -481,7 +478,6 @@
             border-color: #f87171;
         }
 
-        /* 뱃지 호버 효과 */
         a.badge {
             transition: all 0.2s ease;
         }
@@ -601,138 +597,59 @@
             color: var(--text-primary) !important;
         }
 
-        /* ==================================
-           반응형 미디어 쿼리 (모바일 최적화)
-        ================================== */
+        /* 반응형 모바일 최적화 */
         @media (max-width: 768px) {
-            body {
-                padding: 1.5rem 0.8rem;
-            }
-
-            header h1 {
-                font-size: 1.8rem;
-                line-height: 1.3;
-            }
-
-            header p.subtitle {
-                font-size: 0.88rem;
-                padding: 0 0.5rem;
-                word-break: keep-all;
-            }
-
-            .meta-badges {
-                gap: 0.5rem;
-            }
-
-            .badge {
-                padding: 0.25rem 0.6rem;
-                font-size: 0.72rem;
-            }
-
-            .filter-section {
-                gap: 0.4rem;
-                margin-bottom: 1.5rem;
-            }
-
-            .filter-btn {
-                padding: 0.35rem 0.7rem;
-                font-size: 0.78rem;
-            }
-
-            .accordion-trigger {
-                padding: 1.2rem 1rem;
-                gap: 0.6rem;
-            }
-
-            .concept-title {
-                font-size: 1.05rem;
-            }
-
-            .rank-badge {
-                font-size: 1rem;
-            }
-
-            .category-tag, .freq-count-badge {
-                font-size: 0.7rem;
-                padding: 0.1rem 0.35rem;
-            }
-
-            .card-meta-grid {
-                grid-template-columns: 80px 1fr;
-                font-size: 0.82rem;
-                row-gap: 0.4rem;
-            }
-
-            .accordion-inner {
-                padding: 1.2rem 1rem;
-                gap: 1rem;
-            }
-
-            .section-title {
-                font-size: 0.75rem;
-            }
-
-            .year-btn {
-                padding: 0.3rem 0.6rem;
-                font-size: 0.75rem;
-            }
-
-            .inline-question-viewer {
-                padding: 0.9rem;
-            }
-
-            .viewer-body {
-                font-size: 0.85rem;
-                max-height: 300px;
-            }
-
-            .memo-section {
-                padding: 0.9rem;
-            }
-
-            .memo-textarea {
-                font-size: 0.85rem;
-                min-height: 100px;
-            }
-
-            .modal-card {
-                width: 95%;
-                max-height: 90%;
-            }
-
-            .modal-card-header {
-                padding: 1rem;
-            }
-
-            .modal-card-title {
-                font-size: 1.05rem;
-            }
-
-            .modal-card-body {
-                padding: 0.8rem 1rem 1.2rem 1rem;
-            }
-
-            .modal-topic-item {
-                padding: 0.6rem 0.8rem;
-            }
-
-            .modal-topic-name {
-                font-size: 0.85rem;
-            }
+            body { padding: 1.5rem 0.8rem; }
+            header h1 { font-size: 1.8rem; line-height: 1.3; }
+            header p.subtitle { font-size: 0.88rem; padding: 0 0.5rem; word-break: keep-all; }
+            .meta-badges { gap: 0.5rem; }
+            .badge { padding: 0.25rem 0.6rem; font-size: 0.72rem; }
+            .filter-section { gap: 0.4rem; margin-bottom: 1.5rem; }
+            .filter-btn { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
+            .accordion-trigger { padding: 1.2rem 1rem; gap: 0.6rem; }
+            .concept-title { font-size: 1.05rem; }
+            .rank-badge { font-size: 1rem; }
+            .category-tag, .freq-count-badge { font-size: 0.7rem; padding: 0.1rem 0.35rem; }
+            .card-meta-grid { grid-template-columns: 80px 1fr; font-size: 0.82rem; row-gap: 0.4rem; }
+            .accordion-inner { padding: 1.2rem 1rem; gap: 1rem; }
+            .section-title { font-size: 0.75rem; }
+            .year-btn { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+            .inline-question-viewer { padding: 0.9rem; }
+            .viewer-body { font-size: 0.85rem; max-height: 300px; }
+            .memo-section { padding: 0.9rem; }
+            .memo-textarea { font-size: 0.85rem; min-height: 100px; }
+            .modal-card { width: 95%; max-height: 90%; }
+            .modal-card-header { padding: 1rem; }
+            .modal-card-title { font-size: 1.05rem; }
+            .modal-card-body { padding: 0.8rem 1rem 1.2rem 1rem; }
+            .modal-topic-item { padding: 0.6rem 0.8rem; }
+            .modal-topic-name { font-size: 0.85rem; }
         }
     </style>
 </head>
 <body>
 
+<script>
+    // [설계 의도] 로컬 오프라인 실행(file:///)과 웹 서버 호스팅(http://) 환경 양쪽 모두에서 퀴즈 대시보드 홈으로 매끄럽게 이동하도록 분기 처리합니다.
+    function goToHome(event) {
+        event.preventDefault();
+        if (window.location.protocol === 'file:') {
+            window.location.href = '../index.html';
+        } else {
+            window.location.href = '/';
+        }
+    }
+</script>
+
 <div class="container">
     <header>
-        <h1>소프트웨어공학 기출 정밀 분석 대시보드</h1>
-        <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
+        <h1>소프트웨어공학 공식 범위별 기출 대시보드</h1>
+        <p class="subtitle">공식 시험 가이드라인(SE.txt) 5대 단원 및 31개 중단원 매핑 기출 뷰어</p>
         
         <div class="meta-badges" style="margin-bottom: 1.5rem;">
             <a href="#" class="badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
-            <a href="se_frequent_concepts.html" class="badge accent" style="text-decoration: none;">소프트웨어공학(빈출순)</a>
-            <a href="se_official_scopes.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">소프트웨어공학(공식범위순)</a>
+            <a href="se_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">소프트웨어공학(빈출순)</a>
+            <a href="se_official_scopes.html" class="badge accent" style="text-decoration: none;">소프트웨어공학(공식범위순)</a>
             <a href="sa_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">시스템 아키텍처</a>
             <a href="db_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">데이터베이스</a>
             <a href="pm_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">프로젝트 관리</a>
@@ -742,8 +659,8 @@
         <div class="meta-badges">
             <span class="badge">기출 범위: 2015년 ~ 2026년</span>
             <span class="badge accent">총 분석 데이터: 300 문항</span>
-            <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 검출된 세부 토픽 목록 팝업 열기">
-                검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
+            <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
+                매핑된 공식 중단원: <span id="topic-count-badge">0</span>개
             </span>
             <span id="storage-badge" class="badge" style="cursor: help;">저장소 로딩 중...</span>
         </div>
@@ -765,11 +682,11 @@
     <!-- Category Filtering badges -->
     <div class="filter-section">
         <button class="filter-btn active" onclick="filterCategory('전체')">전체</button>
-        <button class="filter-btn" onclick="filterCategory('요구분석/설계')">요구분석/설계</button>
-        <button class="filter-btn" onclick="filterCategory('품질/비용산정')">품질/비용산정</button>
-        <button class="filter-btn" onclick="filterCategory('구현/테스트')">구현/테스트</button>
-        <button class="filter-btn" onclick="filterCategory('유지관리/운영')">유지관리/운영</button>
-        <button class="filter-btn" onclick="filterCategory('방법론/플랫폼')">방법론/플랫폼</button>
+        <button class="filter-btn" onclick="filterCategory('1. 요구사항분석 및 설계')">요구분석/설계</button>
+        <button class="filter-btn" onclick="filterCategory('2. 구현 및 테스트')">구현/테스트</button>
+        <button class="filter-btn" onclick="filterCategory('3. 유지관리 및 운영')">유지관리/운영</button>
+        <button class="filter-btn" onclick="filterCategory('4. 개발방법론, sw 구조 및 공개sw')">개발방법론</button>
+        <button class="filter-btn" onclick="filterCategory('5. SW 품질 및 비용산정')">품질/비용산정</button>
     </div>
 
     <!-- Accordion List -->
@@ -779,17 +696,6 @@
 </div>
 
 <script>
-    // [설계 의도] 로컬 오프라인 실행(file:///)과 웹 서버 호스팅(http://) 환경 양쪽 모두에서 퀴즈 대시보드 홈으로 매끄럽게 이동하도록 분기 처리합니다.
-    function goToHome(event) {
-        event.preventDefault();
-        if (window.location.protocol === 'file:') {
-            window.location.href = '../index.html';
-        } else {
-            window.location.href = '/';
-        }
-    }
-
-    // 파이썬 빌더에서 동적으로 인젝션하는 기출문제 데이터베이스
     const examDatabase = {
   "2015_26": "26. 다음 설명은 개발방법론 중에서 나선형 모델\n(spiral model)을 나타내고 있다. 다음 중 나선형\n모델의 각 단계별 작업내용을 순서대로 나열한\n것으로 가장 적절한 것은?\n나선형 모델은 비선형적이며 반복적으로 개발이\n진행되므로 소프트웨어 품질 중 강인성을 높일\n수 있는 방법이다. 특히 이 방법은 개발자나\n사용자가 각 확장 단계에서 발생될 위험에 대한\n이해와 대책이 가능하다. 따라서 프로젝트가\n실패할 위험을 사전에 최소화할 수 있다.\n① 계획수립 – 위험분석 – 개발 - 평가\n② 위험분석 – 계획수립 – 개발 - 평가\n③ 계획수립 – 개발 – 위험분석 - 평가\n④ 계획수립 – 위험분석 – 평가 - 개발",
   "2015_27": "27. 다음의 클래스 다이어그램은 Java 언어에서\nInvoice 클래스와 Employee 클래스가 Payable\n인터페이스를 상속받는 것을 나타내고 있다.\nJava 인터페이스에 대한 설명으로 가장 적절하지\n않은 것은?\n① Java 인터페이스는 구현 부분이 없는 추상 메소\n드로 구성되어 있다.\n② 인터페이스를 상속받는 일반 클래스는 인터페이\n스의 추상 메소드를 재정의해야 한다.\n③ Java 언어에서 인터페이스는 다중 상속을 허용\n하지 않고 단일 상속만 가능하다.\n④ Java 인터페이스에는 메소드가 없고 비어있는\n태깅(tagging) 인터페이스가 존재한다.\n- 6",
@@ -1092,502 +998,16 @@
   "2026_49": "49. 마이크로서비스 설계를 위한 다음 그림의 특정 패\n턴을 적용하기 위한 Best Practice로 가장 적절한\n것은?\n① 데이터베이스는 비즈니스 규칙이 아닌 데이터를\n저장하기 위한 용도로만 사용되어야 한다.\n② 데이터를 읽고, 쓰는 책임을 분리하는 CQRS\n코딩 패턴을 적용해야 한다.\n③ 서비스간 통신오류 방지를 위해 연관 ID를 정의\n하여 사용해야 한다.\n④ 비동기 메시지의 구조를 잘 이해하고 정의해야\n한다.\n0 -",
   "2026_50": "50. 다음 표는 어떤 프로젝트를 수행하는데 필요한\n작업, 작업 수행기간, 작업들 간의 종속 관계를\n나타낸 것이다. 프로젝트 전체 일정이 지연되지\n않고 원래 일정대로 종료되어야 한다면 T6 작업\n의 허용 가능한 최대 지연 시간(Slack Time)은?\n작업 작업 수행 기간(일) 종속 관계\nT1 4 -\nT2 7 T1\nT3 9 T1\nT4 6 T2\nT5 11 T2, T3\nT6 8 T3\nT7 10 T4, T5\nT8 6 T6, T7\n① 8일 ② 11일\n③ 13일 ④ 15일\n- 11\n1 -"
 };
-
-    // 파이썬 빌더에서 동적으로 인젝션하는 개념별 매핑 구조
     const topicMapping = [
   {
-    "concept": "ISO/IEC 25010 품질 표준",
-    "category": "품질/비용산정",
-    "count": 25,
+    "concept": "1-a. 요구사항 도출/분석/명세/추적",
+    "category": "1. 요구사항분석 및 설계",
+    "count": 37,
     "years": [
       2015,
       2016,
       2017,
       2018,
-      2019,
-      2020,
-      2021,
-      2022,
-      2023,
-      2024,
-      2025,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 32
-      },
-      {
-        "year": 2025,
-        "num": 41
-      },
-      {
-        "year": 2025,
-        "num": 37
-      },
-      {
-        "year": 2025,
-        "num": 31
-      },
-      {
-        "year": 2025,
-        "num": 27
-      },
-      {
-        "year": 2024,
-        "num": 39
-      },
-      {
-        "year": 2023,
-        "num": 28
-      },
-      {
-        "year": 2022,
-        "num": 48
-      },
-      {
-        "year": 2022,
-        "num": 47
-      },
-      {
-        "year": 2022,
-        "num": 46
-      },
-      {
-        "year": 2022,
-        "num": 42
-      },
-      {
-        "year": 2021,
-        "num": 33
-      },
-      {
-        "year": 2021,
-        "num": 30
-      },
-      {
-        "year": 2020,
-        "num": 44
-      },
-      {
-        "year": 2020,
-        "num": 42
-      },
-      {
-        "year": 2019,
-        "num": 39
-      },
-      {
-        "year": 2018,
-        "num": 40
-      },
-      {
-        "year": 2018,
-        "num": 35
-      },
-      {
-        "year": 2018,
-        "num": 29
-      },
-      {
-        "year": 2017,
-        "num": 48
-      },
-      {
-        "year": 2016,
-        "num": 44
-      },
-      {
-        "year": 2016,
-        "num": 43
-      },
-      {
-        "year": 2016,
-        "num": 42
-      },
-      {
-        "year": 2016,
-        "num": 32
-      },
-      {
-        "year": 2015,
-        "num": 41
-      }
-    ],
-    "core_concept": "소프트웨어 제품 품질 평가를 위한 8대 주특성 및 하위 31개 부특성 체계",
-    "features": "매년 출제되는 초빈출 단골 영역으로, 신뢰성(장애 허용성, 복구 가능성), 유지보수성(모듈성, 재사용성, 테스트 가능성), 이식성(설치성, 대체성) 등의 부특성 매핑을 중점 질문합니다.",
-    "scope": "품질/비용산정 -> 품질 평가 표준",
-    "rep_question": "32. 시스템의 유지보수성과 확장성을 향상시키기 위해\n아래와 같은 방향으로 설계를 개선하려고 한다.\n모듈 간 의존관계를 최소화하고 각 모듈이 하나의\n기능 중심으로 구성되도록 한다. 그리고 모듈 내부\n구현 정보는 외부에 노출하지 않도록 한다.\n다음 중 위 설계 개선에 적용할 수 있는 소프트웨\n어 설계 기법의 조합으로 가장 적합한 것은?\n① 응집도 감소 – 결합도 증가 – 정보은닉 강화\n② 응집도 증가 – 결합도 감소 – 정보은닉 강화\n③ 결합도 증가 – 추상화 강화 – 모듈화 강화\n④ 모듈화 강화 – 응집도 감소 – 추상화 강화",
-    "rep_year": 2026,
-    "rep_num": 32
-  },
-  {
-    "concept": "리팩토링 기법 (Refactoring)",
-    "category": "유지관리/운영",
-    "count": 17,
-    "years": [
-      2015,
-      2016,
-      2018,
-      2019,
-      2021,
-      2022,
-      2024,
-      2025,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 40
-      },
-      {
-        "year": 2026,
-        "num": 38
-      },
-      {
-        "year": 2025,
-        "num": 49
-      },
-      {
-        "year": 2024,
-        "num": 50
-      },
-      {
-        "year": 2024,
-        "num": 40
-      },
-      {
-        "year": 2024,
-        "num": 35
-      },
-      {
-        "year": 2024,
-        "num": 32
-      },
-      {
-        "year": 2022,
-        "num": 34
-      },
-      {
-        "year": 2022,
-        "num": 28
-      },
-      {
-        "year": 2021,
-        "num": 50
-      },
-      {
-        "year": 2021,
-        "num": 41
-      },
-      {
-        "year": 2021,
-        "num": 38
-      },
-      {
-        "year": 2021,
-        "num": 35
-      },
-      {
-        "year": 2019,
-        "num": 47
-      },
-      {
-        "year": 2018,
-        "num": 38
-      },
-      {
-        "year": 2016,
-        "num": 37
-      },
-      {
-        "year": 2015,
-        "num": 40
-      }
-    ],
-    "core_concept": "외부 동작은 변경하지 않고 내부 소스 코드를 재구성하여 가독성과 유지보수성을 극대화",
-    "features": "메서드 추출(Extract Method), 임시변수 분리(Split Temporary Variable), 다형성을 활용한 조건문 제거 등 중복 및 구조 결함을 안전하게 교정하는 구체적 실천법이 출제됩니다.",
-    "scope": "유지관리/운영 -> 코드 품질 개선",
-    "rep_question": "40. 다음 중 Test-Driven Development(TDD)의 개발\n절차로 가장 적합한 것은?\n① 설계 – 코드 작성 – 테스트 수행\n② 코드 작성 – 테스트 수행 - 리팩토링\n③ 테스트 작성 – 리팩토링 – 코드 작성\n④ 테스트 작성 – 코드 작성 - 리팩토링",
-    "rep_year": 2026,
-    "rep_num": 40
-  },
-  {
-    "concept": "GoF 디자인 패턴 (행위/구조/생성)",
-    "category": "방법론/플랫폼",
-    "count": 17,
-    "years": [
-      2015,
-      2017,
-      2018,
-      2019,
-      2020,
-      2021,
-      2022,
-      2025,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 38
-      },
-      {
-        "year": 2026,
-        "num": 28
-      },
-      {
-        "year": 2026,
-        "num": 27
-      },
-      {
-        "year": 2025,
-        "num": 48
-      },
-      {
-        "year": 2022,
-        "num": 43
-      },
-      {
-        "year": 2021,
-        "num": 31
-      },
-      {
-        "year": 2021,
-        "num": 27
-      },
-      {
-        "year": 2020,
-        "num": 41
-      },
-      {
-        "year": 2020,
-        "num": 35
-      },
-      {
-        "year": 2020,
-        "num": 28
-      },
-      {
-        "year": 2019,
-        "num": 41
-      },
-      {
-        "year": 2018,
-        "num": 48
-      },
-      {
-        "year": 2018,
-        "num": 41
-      },
-      {
-        "year": 2018,
-        "num": 39
-      },
-      {
-        "year": 2017,
-        "num": 30
-      },
-      {
-        "year": 2015,
-        "num": 43
-      },
-      {
-        "year": 2015,
-        "num": 30
-      }
-    ],
-    "core_concept": "자주 마주하는 클래스 설계 문제들에 대해 입증된 23대 객체지향 설계 재사용 솔루션",
-    "features": "행위(State, Strategy, Observer, Template Method), 구조(Decorator, Proxy, Adapter), 생성(Singleton, Factory Method, Builder) 패턴의 차이를 파악하고 Java 소스 코드 매핑 구조를 이해해야 합니다.",
-    "scope": "방법론/플랫폼 -> 디자인 패턴",
-    "rep_question": "38. 다음 그림과 같이 객체 타입에 따라 다른 동작을\n하는 조건 분기가 있는 경우에 적용한 리팩토링\n기법으로 가장 적절한 것은?\n① Inline Method\n② Encapsulate Downcast\n③ Replace Conditional with Polymorphism\n④ Replace Constructor with Factory Method",
-    "rep_year": 2026,
-    "rep_num": 38
-  },
-  {
-    "concept": "애자일 및 스크럼 방법론",
-    "category": "방법론/플랫폼",
-    "count": 16,
-    "years": [
-      2016,
-      2017,
-      2018,
-      2019,
-      2020,
-      2021,
-      2022,
-      2023,
-      2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 46
-      },
-      {
-        "year": 2026,
-        "num": 43
-      },
-      {
-        "year": 2024,
-        "num": 26
-      },
-      {
-        "year": 2023,
-        "num": 37
-      },
-      {
-        "year": 2022,
-        "num": 38
-      },
-      {
-        "year": 2021,
-        "num": 38
-      },
-      {
-        "year": 2021,
-        "num": 37
-      },
-      {
-        "year": 2021,
-        "num": 28
-      },
-      {
-        "year": 2020,
-        "num": 36
-      },
-      {
-        "year": 2020,
-        "num": 31
-      },
-      {
-        "year": 2020,
-        "num": 30
-      },
-      {
-        "year": 2019,
-        "num": 45
-      },
-      {
-        "year": 2019,
-        "num": 37
-      },
-      {
-        "year": 2018,
-        "num": 33
-      },
-      {
-        "year": 2017,
-        "num": 32
-      },
-      {
-        "year": 2016,
-        "num": 50
-      }
-    ],
-    "core_concept": "지속적 소통과 빠른 피드백을 강조하는 기민한 반복형 소프트웨어 개발 패러다임",
-    "features": "스크럼(Scrum)의 3대 산출물(백로그)과 4대 회의(계획, 스크럼, 리뷰, 회고), 사용자 스토리 규모 추정을 위한 플래닝 포커(Planning Poker) 및 XP의 12대 실천수칙을 주로 출제합니다.",
-    "scope": "방법론/플랫폼 -> 애자일 기법",
-    "rep_question": "46. 다음은 게임 소프트웨어의 출시 가능한 버전을 스\n크럼 방식으로 만드는 과정이다. (가)~(라)에 해당\n하는 가장 적절한 것은?\n① (가) 제품 백로그 (나) 스프린트 백로그\n(다) 일일 스크럼 (라) 스프린트\n② (가) 제품 백로그 (나) 스프린트 백로그\n(다) 일일 스프린트 (라) 스크럼\n③ (가) 스프린트 백로그 (나) 제품 백로그\n(다) 일일 스크럼 (라) 스프린트\n④ (가) 제품 백로그 (나) 스프린트 백로그\n(다) 일일 스프린트 (라) 스크럼",
-    "rep_year": 2026,
-    "rep_num": 46
-  },
-  {
-    "concept": "클래스 다이어그램 (UML)",
-    "category": "요구분석/설계",
-    "count": 15,
-    "years": [
-      2015,
-      2016,
-      2017,
-      2019,
-      2021,
-      2022,
-      2023,
-      2024,
-      2025,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 33
-      },
-      {
-        "year": 2025,
-        "num": 30
-      },
-      {
-        "year": 2024,
-        "num": 35
-      },
-      {
-        "year": 2024,
-        "num": 28
-      },
-      {
-        "year": 2023,
-        "num": 31
-      },
-      {
-        "year": 2022,
-        "num": 45
-      },
-      {
-        "year": 2021,
-        "num": 50
-      },
-      {
-        "year": 2021,
-        "num": 48
-      },
-      {
-        "year": 2021,
-        "num": 42
-      },
-      {
-        "year": 2019,
-        "num": 31
-      },
-      {
-        "year": 2019,
-        "num": 29
-      },
-      {
-        "year": 2017,
-        "num": 49
-      },
-      {
-        "year": 2016,
-        "num": 27
-      },
-      {
-        "year": 2015,
-        "num": 38
-      },
-      {
-        "year": 2015,
-        "num": 27
-      }
-    ],
-    "core_concept": "클래스 간의 정적 관계(일반화, 실현, 연관, 집합, 합성, 의존) 및 다중도 설계",
-    "features": "다이어그램 해석을 기반으로 소스 코드 매핑 구조를 파악하고, 집합(Aggregation)과 합성(Composition)의 객체 생명주기 의존성 차이를 구별하는 능력을 검증합니다.",
-    "scope": "요구분석/설계 -> 정적 모델링",
-    "rep_question": "33. 아래 클래스 다이어그램에서 유추할 수 있는 개념\n들의 묶음으로 가장 적합한 것은?\n① Overloading, Overriding, Inheritance\n② Overriding, Inheritance, Aggregation\n③ Overloading, Inheritance, Aggregation\n④ Overriding, Aggregation, Polymorphism",
-    "rep_year": 2026,
-    "rep_num": 33
-  },
-  {
-    "concept": "요구사항 분석 및 명세",
-    "category": "요구분석/설계",
-    "count": 15,
-    "years": [
-      2015,
-      2016,
-      2017,
       2019,
       2020,
       2021,
@@ -1602,6 +1022,18 @@
         "num": 45
       },
       {
+        "year": 2025,
+        "num": 43
+      },
+      {
+        "year": 2025,
+        "num": 32
+      },
+      {
+        "year": 2024,
+        "num": 44
+      },
+      {
         "year": 2024,
         "num": 28
       },
@@ -1611,11 +1043,43 @@
       },
       {
         "year": 2023,
+        "num": 47
+      },
+      {
+        "year": 2023,
+        "num": 37
+      },
+      {
+        "year": 2023,
+        "num": 34
+      },
+      {
+        "year": 2023,
         "num": 31
       },
       {
         "year": 2022,
+        "num": 49
+      },
+      {
+        "year": 2022,
+        "num": 42
+      },
+      {
+        "year": 2022,
         "num": 41
+      },
+      {
+        "year": 2022,
+        "num": 27
+      },
+      {
+        "year": 2022,
+        "num": 26
+      },
+      {
+        "year": 2021,
+        "num": 47
       },
       {
         "year": 2021,
@@ -1626,8 +1090,40 @@
         "num": 35
       },
       {
+        "year": 2020,
+        "num": 31
+      },
+      {
+        "year": 2020,
+        "num": 26
+      },
+      {
+        "year": 2019,
+        "num": 38
+      },
+      {
+        "year": 2019,
+        "num": 32
+      },
+      {
         "year": 2019,
         "num": 30
+      },
+      {
+        "year": 2019,
+        "num": 26
+      },
+      {
+        "year": 2018,
+        "num": 42
+      },
+      {
+        "year": 2018,
+        "num": 33
+      },
+      {
+        "year": 2018,
+        "num": 27
       },
       {
         "year": 2017,
@@ -1650,714 +1146,48 @@
         "num": 30
       },
       {
+        "year": 2016,
+        "num": 26
+      },
+      {
+        "year": 2015,
+        "num": 41
+      },
+      {
         "year": 2015,
         "num": 39
+      },
+      {
+        "year": 2015,
+        "num": 33
       },
       {
         "year": 2015,
         "num": 31
       }
     ],
-    "core_concept": "사용자 및 시스템 요구사항 도출, 분석, 명세, 검증 및 추적성 관리",
-    "features": "기능적/비기능적 요구사항 식별 기준과 요구사항 추적성 매트릭스(Traceability Matrix) 작성 및 유스케이스 모델링의 기본/대안 흐름 명세 구조에 대한 출제가 많습니다.",
-    "scope": "요구분석/설계 -> 요구공학",
+    "core_concept": "요구사항 생명주기 관리",
+    "features": "요구사항 도출 기법, 분석 원리, 명세서 가이드라인, 추적 매트릭스 구성 요소를 검증합니다.",
+    "scope": "요구분석 및 설계",
     "rep_question": "45. 보통의 경우 Normal 유스케이스 시나리오가 사용\n되지만 특정 조건 하에서 Conditional 유스케이스\n시나리오가사용된다는UML 표기법으로가장 적절한\n것은?\n①\n②\n③\n④\n9 -",
     "rep_year": 2025,
     "rep_num": 45
   },
   {
-    "concept": "모듈화 (결합도 및 응집도)",
-    "category": "요구분석/설계",
-    "count": 12,
+    "concept": "1-b. 객체지향 개념",
+    "category": "1. 요구사항분석 및 설계",
+    "count": 39,
     "years": [
       2015,
+      2016,
+      2017,
       2018,
       2019,
+      2020,
       2021,
       2022,
       2023,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 32
-      },
-      {
-        "year": 2023,
-        "num": 35
-      },
-      {
-        "year": 2023,
-        "num": 28
-      },
-      {
-        "year": 2022,
-        "num": 50
-      },
-      {
-        "year": 2022,
-        "num": 40
-      },
-      {
-        "year": 2021,
-        "num": 36
-      },
-      {
-        "year": 2019,
-        "num": 33
-      },
-      {
-        "year": 2018,
-        "num": 46
-      },
-      {
-        "year": 2015,
-        "num": 49
-      },
-      {
-        "year": 2015,
-        "num": 43
-      },
-      {
-        "year": 2015,
-        "num": 40
-      },
-      {
-        "year": 2015,
-        "num": 32
-      }
-    ],
-    "core_concept": "모듈 독립성을 극대화하기 위해 '강한 응집도, 약한 결합도'를 지향하는 아키텍처 설계 지표",
-    "features": "응집도 7단계(우연->논리->시간->절차->통신->순차->기능적 응집도) 및 결합도 6단계(자료->스탬프->제어->외부->공통->내용 결합도)의 강약 순서와 소스 코드 모듈 분석을 질문합니다.",
-    "scope": "요구분석/설계 -> 아키텍처 품질",
-    "rep_question": "32. 시스템의 유지보수성과 확장성을 향상시키기 위해\n아래와 같은 방향으로 설계를 개선하려고 한다.\n모듈 간 의존관계를 최소화하고 각 모듈이 하나의\n기능 중심으로 구성되도록 한다. 그리고 모듈 내부\n구현 정보는 외부에 노출하지 않도록 한다.\n다음 중 위 설계 개선에 적용할 수 있는 소프트웨\n어 설계 기법의 조합으로 가장 적합한 것은?\n① 응집도 감소 – 결합도 증가 – 정보은닉 강화\n② 응집도 증가 – 결합도 감소 – 정보은닉 강화\n③ 결합도 증가 – 추상화 강화 – 모듈화 강화\n④ 모듈화 강화 – 응집도 감소 – 추상화 강화",
-    "rep_year": 2026,
-    "rep_num": 32
-  },
-  {
-    "concept": "형상 관리 활동 (식별/통제/감사/기록)",
-    "category": "유지관리/운영",
-    "count": 10,
-    "years": [
-      2015,
-      2017,
-      2018,
-      2019,
-      2020,
-      2021,
-      2023,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 36
-      },
-      {
-        "year": 2023,
-        "num": 49
-      },
-      {
-        "year": 2023,
-        "num": 43
-      },
-      {
-        "year": 2021,
-        "num": 40
-      },
-      {
-        "year": 2020,
-        "num": 50
-      },
-      {
-        "year": 2019,
-        "num": 49
-      },
-      {
-        "year": 2018,
-        "num": 43
-      },
-      {
-        "year": 2017,
-        "num": 39
-      },
-      {
-        "year": 2017,
-        "num": 27
-      },
-      {
-        "year": 2015,
-        "num": 33
-      }
-    ],
-    "core_concept": "소프트웨어 생명주기 전반에 걸쳐 모든 개발 산출물의 버전 및 변경 이력을 통제하는 활동",
-    "features": "베이스라인(Baseline) 설정, 변경 관리의 최종 의결 기구인 형상 통제 위원회(CCB)의 승인 프로세스, 그리고 식별->통제->감사->기록으로 이어지는 4대 고유 활동 순서와 정의를 검증합니다.",
-    "scope": "유지관리/운영 -> 형상 관리",
-    "rep_question": "36. 다음은 형상관리 활동에 대한 설명이다. 각 활동을\n적용시기 순으로 나열한 것으로 가장 적합한 것은?\n가. 변경에 대한 반영이 정확히 이루어졌는지를\n평가한다.\n나. 형상 항목에 대한 상태를 기록하고 보고한다.\n다. 변경 요청이 발생했을 때 해당 변경에 대한\n평가, 변경 승인 등의 활동을 수행한다.\n라. 기준에 따라 형상 항목을 선정하고 항목 간의\n관계를 정의한다.\n① 라, 나, 다, 가 ② 라, 다, 가, 나\n③ 다, 라, 나, 가 ④ 라, 다, 나, 가",
-    "rep_year": 2026,
-    "rep_num": 36
-  },
-  {
-    "concept": "상태/활동 다이어그램 (UML)",
-    "category": "요구분석/설계",
-    "count": 9,
-    "years": [
-      2016,
-      2017,
-      2018,
-      2021,
-      2023,
       2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 34
-      },
-      {
-        "year": 2024,
-        "num": 31
-      },
-      {
-        "year": 2024,
-        "num": 28
-      },
-      {
-        "year": 2023,
-        "num": 40
-      },
-      {
-        "year": 2021,
-        "num": 39
-      },
-      {
-        "year": 2018,
-        "num": 45
-      },
-      {
-        "year": 2017,
-        "num": 46
-      },
-      {
-        "year": 2017,
-        "num": 41
-      },
-      {
-        "year": 2016,
-        "num": 30
-      }
-    ],
-    "core_concept": "단일 객체의 상태 전이(State Machine) 및 업무 프로세스의 제어 흐름(Activity) 분석",
-    "features": "상태 전이 이벤트, Guard 조건, 내부 액션(entry, do, exit) 해석과 활동 다이어그램의 병렬 분기/결합(Fork/Join, Decision/Merge) 메커니즘을 주로 묻습니다.",
-    "scope": "요구분석/설계 -> 동적 모델링",
-    "rep_question": "34. 다음 UML State Machine 다이어그램에 대해,\n초기상태에서 E1 이벤트와 E2 이벤트가 연달아\n발생하여 최종적으로 전이된 상태에서의  값으\n로 올바른 것은?\n① 3 ② 5\n③ 8 ④ 10\n7 -",
-    "rep_year": 2026,
-    "rep_num": 34
-  },
-  {
-    "concept": "3R (역공학/재공학/재사용)",
-    "category": "유지관리/운영",
-    "count": 9,
-    "years": [
-      2016,
-      2017,
-      2018,
-      2020,
-      2022,
-      2023,
-      2024
-    ],
-    "questions": [
-      {
-        "year": 2024,
-        "num": 27
-      },
-      {
-        "year": 2023,
-        "num": 28
-      },
-      {
-        "year": 2022,
-        "num": 37
-      },
-      {
-        "year": 2022,
-        "num": 31
-      },
-      {
-        "year": 2020,
-        "num": 48
-      },
-      {
-        "year": 2020,
-        "num": 42
-      },
-      {
-        "year": 2018,
-        "num": 27
-      },
-      {
-        "year": 2017,
-        "num": 40
-      },
-      {
-        "year": 2016,
-        "num": 44
-      }
-    ],
-    "core_concept": "레거시 시스템을 분석하여 현대적으로 재설계 및 자산화하는 소프트웨어 진화 활동",
-    "features": "대상 소스 코드로부터 추상화 모델을 복원(역공학), 기존 소스를 분석하여 새로운 요건과 기술을 적용해 개선(재공학), 범용 모듈을 자산화하여 신규 개발 비용을 절감(재사용)을 구분합니다.",
-    "scope": "유지관리/운영 -> 소프트웨어 진화",
-    "rep_question": "27. 다음 중 소프트웨어 비용산정 모델인 COCOMO II\n에 대한 설명으로 가장 적절하지 않은 것은?\n① COCOMO II 2000 계수조정모델에서 소프트웨어\n개발에 소요되는 노력의 양은 소프트웨어 규모\n에 대해 규모의 경제(Scale of Economy) 효과를\n가지지 못한다.\n② 외부입력(EI)의 복잡도 가중치와 외부질의(EQ)의\n복잡도 가중치는 같다.\n③ 재사용 모델에서 변경률(AAF)의 산정시 코드 변\n경률(CM)에 대한 가중치가 설계 변경률(DM)에\n대한 가중치와 재사용 소프트웨어에 대한 통합\n노력률(IM)에 대한 가중치 보다 높다.\n④ 재사용 모델에서 설계 변경률(DM) 또는 코드 변\n경률(CM)이 0이면, 소프트웨어에 대한 이해도\n(SU)는 0이 된다.",
-    "rep_year": 2024,
-    "rep_num": 27
-  },
-  {
-    "concept": "기능 점수 (Function Point) 산정",
-    "category": "품질/비용산정",
-    "count": 9,
-    "years": [
-      2015,
-      2016,
-      2017,
-      2018,
-      2020,
-      2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 26
-      },
-      {
-        "year": 2024,
-        "num": 48
-      },
-      {
-        "year": 2024,
-        "num": 27
-      },
-      {
-        "year": 2020,
-        "num": 48
-      },
-      {
-        "year": 2018,
-        "num": 26
-      },
-      {
-        "year": 2017,
-        "num": 26
-      },
-      {
-        "year": 2016,
-        "num": 46
-      },
-      {
-        "year": 2016,
-        "num": 45
-      },
-      {
-        "year": 2015,
-        "num": 34
-      }
-    ],
-    "core_concept": "LOC가 아닌 사용자 요구 기능 사양(데이터 및 트랜잭션 크기)을 정량 평가하여 SW 규모를 산정하는 표준",
-    "features": "데이터 기능(ILF 내부논리파일, EIF 외부연계파일)과 트랜잭션 기능(EI 외부입력, EO 외부출력, EQ 외부조회)의 가중치를 계산하고, 보정계수를 곱하여 소프트웨어 대가를 정밀 계산하는 문항입니다.",
-    "scope": "품질/비용산정 -> 비용 산정",
-    "rep_question": "26. 공공기관 A에서 민원관리 정보시스템을 새로 개\n발하면서 기능점수(function point) 분석을 수행하고\n있다. 시스템 분석 과정에서 아래와 같은 요구\n사항들이 파악되었다. 아래 민원관리 시스템\n기능점수의 Internal Logical File(ILF)과 External\nInterface File(EIF)의 개수로 가장 적합한 것은?\n- 민원관리 시스템에서는 민원 신청 정보를\n저장하고 민원 처리 상태를 갱신하며 필요시\n기존 민원 정보를 수정할 수 있다.\n- 민원 처리 과정에서 기존 인사시스템에 저장된\n직원 정보와 기존 회계시스템의 예산 데이터를\n조회하여 활용한다.\n① ILF 1개, EIF 1개\n② ILF 1개, EIF 2개\n③ ILF 1개, EIF 3개\n④ ILF 2개, EIF 1개",
-    "rep_year": 2026,
-    "rep_num": 26
-  },
-  {
-    "concept": "시퀀스 다이어그램 (UML)",
-    "category": "요구분석/설계",
-    "count": 8,
-    "years": [
-      2015,
-      2016,
-      2021,
-      2022,
-      2023,
-      2025,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 31
-      },
-      {
-        "year": 2025,
-        "num": 29
-      },
-      {
-        "year": 2023,
-        "num": 26
-      },
-      {
-        "year": 2022,
-        "num": 50
-      },
-      {
-        "year": 2022,
-        "num": 45
-      },
-      {
-        "year": 2021,
-        "num": 49
-      },
-      {
-        "year": 2016,
-        "num": 30
-      },
-      {
-        "year": 2015,
-        "num": 44
-      }
-    ],
-    "core_concept": "객체 간 주고받는 동적 메시지 흐름을 시간 순서에 따라 시각화 및 분석",
-    "features": "동기 메시지(채워진 실선), 비동기 메시지(선형 실선), 반환 메시지(점선) 및 Alt, Opt, Loop, Par 복합 프레임 내 실행 제어 흐름과 객체 간 생명주기 분석이 출제됩니다.",
-    "scope": "요구분석/설계 -> 동적 모델링",
-    "rep_question": "31. 다음 시퀀스 다이어그램에 대해 적법한 실행 흐름\n(interaction trace)은?\n① a → f\n② a → d → f\n③ a → b → c → e → f\n④ a → b → c → d → e → f\n- 7",
-    "rep_year": 2026,
-    "rep_num": 31
-  },
-  {
-    "concept": "CMMI 모델",
-    "category": "품질/비용산정",
-    "count": 8,
-    "years": [
-      2015,
-      2017,
-      2018,
-      2019,
-      2023,
-      2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 29
-      },
-      {
-        "year": 2024,
-        "num": 43
-      },
-      {
-        "year": 2023,
-        "num": 38
-      },
-      {
-        "year": 2023,
-        "num": 32
-      },
-      {
-        "year": 2019,
-        "num": 34
-      },
-      {
-        "year": 2018,
-        "num": 34
-      },
-      {
-        "year": 2017,
-        "num": 27
-      },
-      {
-        "year": 2015,
-        "num": 42
-      }
-    ],
-    "core_concept": "소프트웨어 개발 프로세스 역량 평가 및 프로세스 성숙도 평가 모델",
-    "features": "단계형 표현의 5가지 성숙도 수준(Initial->Managed->Defined->Quantitatively Managed->Optimizing)의 고유 특징과 각 수준별 핵심 프로세스 영역(PA) 매핑을 물어봅니다.",
-    "scope": "품질/비용산정 -> 프로세스 개선 모델",
-    "rep_question": "29. 다음 중 CMMI 성숙도 수준(Level) 4의 특징을 가장\n잘 설명한 것은?\n① 프로세스 성능을 정량적으로 측정하고 통계적\n기법을 통해 관리한다.\n② 프로젝트 관리가 기본적으로 수행된다.\n③ 조직의 프로세스가 정의되고 표준화된다.\n④ 지속적인 프로세스 혁신을 통해 조직 성능을\n최적화한다.",
-    "rep_year": 2026,
-    "rep_num": 29
-  },
-  {
-    "concept": "SOLID 객체지향 설계 원칙",
-    "category": "요구분석/설계",
-    "count": 7,
-    "years": [
-      2016,
-      2017,
-      2019,
-      2021,
-      2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 35
-      },
-      {
-        "year": 2024,
-        "num": 46
-      },
-      {
-        "year": 2021,
-        "num": 48
-      },
-      {
-        "year": 2019,
-        "num": 29
-      },
-      {
-        "year": 2017,
-        "num": 47
-      },
-      {
-        "year": 2017,
-        "num": 26
-      },
-      {
-        "year": 2016,
-        "num": 27
-      }
-    ],
-    "core_concept": "유지보수와 확장에 유리한 객체지향 클래스 설계를 위한 5가지 원칙",
-    "features": "단일 책임(SRP), 개방 폐쇄(OCP), 리스코프 치환(LSP - 상속 계약 준수), 인터페이스 분리(ISP), 의존 역전(DIP - 추상화 의존)의 의미를 이해하고 코드가 어떤 원칙을 위배했는지 평가합니다.",
-    "scope": "요구분석/설계 -> 객체지향 설계",
-    "rep_question": "35. 다음 중 SOLID 설계원칙에 대한 설명으로 가장\n거리가 먼 것은?\n① SRP 원칙에 의하면 클래스는 단 하나의 변경\n이유만을 가져야 한다.\n② OCP 원칙을 잘 준수하는 경우 기존의 코드를\n변경하지 않으면서도 새로운 기능을 추가하기가\n용이하다.\n③ DIP 원칙에 의하면 의존 관계를 설정할 때 변화\n하기 어렵거나 거의 변화하지 않을 대상에 대해\n의존관계를 가지는 것이 바람직하다.\n④ LSP 원칙을 통해 일반화 관계가 적절히 사용되\n었는지 점검할 수 있으며, 이 원칙을 위반하면\n컴파일러가 자동적으로 에러를 발생시킨다.",
-    "rep_year": 2026,
-    "rep_num": 35
-  },
-  {
-    "concept": "화이트박스 테스팅 & 커버리지",
-    "category": "구현/테스트",
-    "count": 6,
-    "years": [
-      2016,
-      2017,
-      2019,
-      2020,
-      2021,
-      2023
-    ],
-    "questions": [
-      {
-        "year": 2023,
-        "num": 45
-      },
-      {
-        "year": 2021,
-        "num": 29
-      },
-      {
-        "year": 2020,
-        "num": 33
-      },
-      {
-        "year": 2019,
-        "num": 50
-      },
-      {
-        "year": 2017,
-        "num": 44
-      },
-      {
-        "year": 2016,
-        "num": 38
-      }
-    ],
-    "core_concept": "코드의 내부 제어 구조를 기반으로 경로를 실행하여 검증하는 동적 테스트 기법",
-    "features": "구문(Statement), 결정(Decision), 조건(Condition), 결정/조건, 다중 조건 커버리지의 포함 관계와 제어 흐름 그래프(CFG)에서의 순환 복잡도(McCabe: E - N + 2) 및 최소 테스트 케이스 계산이 매년 출제됩니다.",
-    "scope": "구현/테스트 -> 화이트박스 테스팅",
-    "rep_question": "45. 다음 소스 코드 커버리지의 포함 관계에서\n(가)~(라)에 해당하는 항목으로 바르게 연결한\n것은?\n① (가) 구문커버리지 (나) 조건/결정커버리지\n(다) 변경 조건/결정 커버리지 (라) 다중 조건 커버리지\n② (가) 다중 조건 커버리지 (나) 조건/결정커버리지\n(다) 변경 조건/결정 커버리지 (라) 구문커버리지\n③ (가) 구문커버리지 (나) 변경 조건/결정 커버리지\n(다) 조건/결정커버리지 (라) 다중 조건 커버리지\n④ (가) 다중 조건 커버리지 (나) 변경 조건/결정 커버리지\n(다) 조건/결정커버리지 (라) 구문커버리지\n- 9",
-    "rep_year": 2023,
-    "rep_num": 45
-  },
-  {
-    "concept": "SDLC 프로세스 모델 (폭포수/나선형/V-모델)",
-    "category": "방법론/플랫폼",
-    "count": 5,
-    "years": [
-      2015,
-      2018,
-      2020,
-      2024
-    ],
-    "questions": [
-      {
-        "year": 2024,
-        "num": 44
-      },
-      {
-        "year": 2020,
-        "num": 31
-      },
-      {
-        "year": 2018,
-        "num": 47
-      },
-      {
-        "year": 2018,
-        "num": 33
-      },
-      {
-        "year": 2015,
-        "num": 26
-      }
-    ],
-    "core_concept": "소프트웨어 개발 전 주기 생명주기 관리 프로세스 아키텍처 모델",
-    "features": "폭포수(선형 순차형), V-모델(개발과 테스트 단계 간 1:1 대칭 검증), 나선형(위험 분석 및 완화를 통한 점진적 진화) 모델의 고유 특징과 적합 프로젝트 선정을 출제합니다.",
-    "scope": "방법론/플랫폼 -> 프로세스 모델",
-    "rep_question": "44. 다음의 상황에서 사용할 수 있는 요구사항 추출\n방법으로 가장 적절한 것은?\n가. 고객이 자신의 요구사항에 대하여 구체적으로\n파악하고 있지 못한 상태임\n나. 최종 시스템의 예상 기능 중 일부를 빠르게 구\n현하여 고객의 피드백을 조기에 받고자함\n다. 발굴된 아이디어를 시험하고 검증하여 새로운\n아이디어를 얻고자함\n① 관찰(Observation)\n② 인터뷰(Interview)\n③ 브레인스토밍(Brainstorming)\n④ 프로토타이핑(Prototyping)\n- 8",
-    "rep_year": 2024,
-    "rep_num": 44
-  },
-  {
-    "concept": "코드 스멜 (Bad Smell)",
-    "category": "유지관리/운영",
-    "count": 5,
-    "years": [
-      2016,
-      2019,
-      2021,
-      2023
-    ],
-    "questions": [
-      {
-        "year": 2023,
-        "num": 30
-      },
-      {
-        "year": 2021,
-        "num": 41
-      },
-      {
-        "year": 2019,
-        "num": 28
-      },
-      {
-        "year": 2016,
-        "num": 40
-      },
-      {
-        "year": 2016,
-        "num": 37
-      }
-    ],
-    "core_concept": "시스템 아키텍처나 소스 코드에서 유지보수성 저하를 유발하는 잘못된 설계 징후",
-    "features": "중복 코드, 너무 긴 메서드, 거대한 클래스, 기능에 대한 욕심(Feature Envy), 산재한 변경(Shotgun Surgery) 등 코드 악취 유형을 정의하고 적합한 리팩토링 전략을 맵핑하는 문제입니다.",
-    "scope": "유지관리/운영 -> 코드 품질 개선",
-    "rep_question": "30. 다음 설명으로 가장 적절한 용어는?\n악의적인 행위자가 시스템에 무단으로 진입하거나\n악의적인 행동을 유발하는 데 사용될 수 있는 소\n프트웨어 아키텍처 및 소스 코드의 문제점을 말하\n며, 최근 소프트웨어 시스템에 영향을 미치는 다\n른 심각한 약점을 수용하기 위해 보안을 넘어 그\n범위가 확장되고 있다.\n① Common Weakness Enumeration\n② Technical Debt\n③ Bad Smells\n④ Anti-patterns",
-    "rep_year": 2023,
-    "rep_num": 30
-  },
-  {
-    "concept": "ISO/IEC/IEEE 29119 표준",
-    "category": "구현/테스트",
-    "count": 4,
-    "years": [
-      2018,
-      2021,
-      2023,
-      2024
-    ],
-    "questions": [
-      {
-        "year": 2024,
-        "num": 34
-      },
-      {
-        "year": 2023,
-        "num": 34
-      },
-      {
-        "year": 2021,
-        "num": 44
-      },
-      {
-        "year": 2018,
-        "num": 37
-      }
-    ],
-    "core_concept": "소프트웨어 테스팅 국제 표준 구조 및 전 수명주기 테스트 프로세스 체계",
-    "features": "Part 1(개념/정의)~Part 5(키워드 드리븐 테스팅)의 구성 요소 및 테스트 계획서, 테스트 시나리오 등 산출물 표준 정의를 평가합니다.",
-    "scope": "구현/테스트 -> 테스트 표준",
-    "rep_question": "34. ISO/IEC/IEEE 29119 Part 4에서는 Cause-effect\ngraphing 방법을 설명하고 있다. Cause-effect\ngraphing에서는 여러 개의 Cause들간의 제약 사\n항을 표현할 수 있다. 다음 중 Cause간의 제약\n사항으로서 가장 적절하지 않은 것은?\n① Mask ② Requires\n③ Exclusive ④ One and only one\n- 6",
-    "rep_year": 2024,
-    "rep_num": 34
-  },
-  {
-    "concept": "클린 아키텍처 (Clean Architecture)",
-    "category": "방법론/플랫폼",
-    "count": 4,
-    "years": [
-      2019,
-      2020,
-      2022,
-      2023
-    ],
-    "questions": [
-      {
-        "year": 2023,
-        "num": 28
-      },
-      {
-        "year": 2022,
-        "num": 41
-      },
-      {
-        "year": 2020,
-        "num": 35
-      },
-      {
-        "year": 2019,
-        "num": 33
-      }
-    ],
-    "core_concept": "비즈니스 규칙(Core Domain) 중심 설계와 외부 기술(DB, 프레임워크)의 철저한 관심사 격리",
-    "features": "의존성 방향은 항상 고수준 핵심 비즈니스 영역(안쪽 엔티티)으로만 흐르며, 제어 흐름 역전을 통해 외부 어댑터 레이어와의 결합을 낮추는 의존성 제어 규칙이 핵심 출제 주제입니다.",
-    "scope": "방법론/플랫폼 -> 아키텍처 패턴",
-    "rep_question": "28. Robert C. Martin은 clean architecture를 설명하\n면서 컴포넌트 결합도에 대한 3가지 원칙을 제시\n하였다. 이에 대한 설명 중 가장 적절하지 않은\n것은?\n① 자신보다 재사용성이 높은 컴포넌트에 의존해야\n한다.\n② 컴포넌트간의 의존성에 사이클이 존재하지 않아\n야 한다.\n③ 자신보다 안정적(stable)인 컴포넌트에 의존해\n야 한다.\n④ 자신보다 추상화된 컴포넌트에 의존해야 한다.",
-    "rep_year": 2023,
-    "rep_num": 28
-  },
-  {
-    "concept": "SysML 모델링",
-    "category": "요구분석/설계",
-    "count": 3,
-    "years": [
-      2023,
-      2024,
-      2025
-    ],
-    "questions": [
-      {
-        "year": 2025,
-        "num": 32
-      },
-      {
-        "year": 2024,
-        "num": 31
-      },
-      {
-        "year": 2023,
-        "num": 31
-      }
-    ],
-    "core_concept": "하드웨어와 소프트웨어가 융합된 복잡한 시스템 엔지니어링 모델링 표준 명세",
-    "features": "요구사항 간 추적을 표시하는 요구사항 다이어그램(Requirement Diagram)과 물리 수식/수학적 제약조건을 정의하는 파라메트릭 다이어그램(Parametric Diagram)의 특징 비교가 출제됩니다.",
-    "scope": "요구분석/설계 -> 시스템 모델링",
-    "rep_question": "32. 다음 중 SysML의 Requirement Diagram이 표현\n하는정보에해당되는것으로가장적절한것은?\n가. 요구사항의 계층 구조를 가시적으로 표현한다.\n나. 다른 모델 요소들과의 관계를 표현한다.\n다. 개별 요구사항에 대하여 표현한다.\n라. 입력, 출력, 처리의 흐름 관점에서 표현한다.\n마. 시스템특성의제약사항에대한수식을표현한다.\n① 가, 나, 다 ② 가, 다, 라\n③ 나, 다, 마 ④ 다, 라, 마",
-    "rep_year": 2025,
-    "rep_num": 32
-  },
-  {
-    "concept": "MSA (마이크로서비스 아키텍처)",
-    "category": "방법론/플랫폼",
-    "count": 3,
-    "years": [
-      2023,
       2025,
       2026
     ],
@@ -2367,24 +1197,1164 @@
         "num": 49
       },
       {
+        "year": 2026,
+        "num": 35
+      },
+      {
+        "year": 2026,
+        "num": 33
+      },
+      {
+        "year": 2026,
+        "num": 32
+      },
+      {
         "year": 2025,
-        "num": 37
+        "num": 43
+      },
+      {
+        "year": 2024,
+        "num": 50
+      },
+      {
+        "year": 2024,
+        "num": 46
+      },
+      {
+        "year": 2024,
+        "num": 40
+      },
+      {
+        "year": 2024,
+        "num": 38
+      },
+      {
+        "year": 2024,
+        "num": 32
+      },
+      {
+        "year": 2024,
+        "num": 31
+      },
+      {
+        "year": 2024,
+        "num": 30
       },
       {
         "year": 2023,
+        "num": 34
+      },
+      {
+        "year": 2023,
+        "num": 28
+      },
+      {
+        "year": 2022,
+        "num": 49
+      },
+      {
+        "year": 2022,
+        "num": 45
+      },
+      {
+        "year": 2022,
+        "num": 41
+      },
+      {
+        "year": 2022,
         "num": 39
+      },
+      {
+        "year": 2022,
+        "num": 26
+      },
+      {
+        "year": 2021,
+        "num": 40
+      },
+      {
+        "year": 2021,
+        "num": 36
+      },
+      {
+        "year": 2020,
+        "num": 50
+      },
+      {
+        "year": 2020,
+        "num": 41
+      },
+      {
+        "year": 2020,
+        "num": 35
+      },
+      {
+        "year": 2020,
+        "num": 26
+      },
+      {
+        "year": 2019,
+        "num": 49
+      },
+      {
+        "year": 2019,
+        "num": 35
+      },
+      {
+        "year": 2019,
+        "num": 32
+      },
+      {
+        "year": 2018,
+        "num": 43
+      },
+      {
+        "year": 2018,
+        "num": 37
+      },
+      {
+        "year": 2017,
+        "num": 50
+      },
+      {
+        "year": 2017,
+        "num": 47
+      },
+      {
+        "year": 2017,
+        "num": 31
+      },
+      {
+        "year": 2017,
+        "num": 28
+      },
+      {
+        "year": 2016,
+        "num": 28
+      },
+      {
+        "year": 2015,
+        "num": 49
+      },
+      {
+        "year": 2015,
+        "num": 38
+      },
+      {
+        "year": 2015,
+        "num": 29
+      },
+      {
+        "year": 2015,
+        "num": 27
       }
     ],
-    "core_concept": "하나의 거대 서비스를 여러 개의 독립 배포 가능한 초소형 서비스로 결합하는 아키텍처",
-    "features": "도메인 주도 설계(DDD)의 Bounded Context 활용, 서비스별 독립 DB(Database per Service) 패턴, Saga 패턴을 이용한 분산 트랜잭션 처리, API Gateway 적용에 초점이 맞춰집니다.",
-    "scope": "방법론/플랫폼 -> 아키텍처 패턴",
+    "core_concept": "객체지향 설계 핵심 원칙",
+    "features": "상속, 다형성, 캡슐화, 추상화 및 5대 의존 관계의 소스 코드 매핑 구조를 검증합니다.",
+    "scope": "요구분석 및 설계",
     "rep_question": "49. 마이크로서비스 설계를 위한 다음 그림의 특정 패\n턴을 적용하기 위한 Best Practice로 가장 적절한\n것은?\n① 데이터베이스는 비즈니스 규칙이 아닌 데이터를\n저장하기 위한 용도로만 사용되어야 한다.\n② 데이터를 읽고, 쓰는 책임을 분리하는 CQRS\n코딩 패턴을 적용해야 한다.\n③ 서비스간 통신오류 방지를 위해 연관 ID를 정의\n하여 사용해야 한다.\n④ 비동기 메시지의 구조를 잘 이해하고 정의해야\n한다.\n0 -",
     "rep_year": 2026,
     "rep_num": 49
   },
   {
-    "concept": "ITIL / ITSM 및 SLA",
-    "category": "유지관리/운영",
+    "concept": "1-c. 설계원리",
+    "category": "1. 요구사항분석 및 설계",
+    "count": 19,
+    "years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2021,
+      2022,
+      2023,
+      2024,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 35
+      },
+      {
+        "year": 2026,
+        "num": 32
+      },
+      {
+        "year": 2024,
+        "num": 46
+      },
+      {
+        "year": 2023,
+        "num": 35
+      },
+      {
+        "year": 2023,
+        "num": 28
+      },
+      {
+        "year": 2022,
+        "num": 50
+      },
+      {
+        "year": 2022,
+        "num": 40
+      },
+      {
+        "year": 2021,
+        "num": 48
+      },
+      {
+        "year": 2021,
+        "num": 36
+      },
+      {
+        "year": 2019,
+        "num": 33
+      },
+      {
+        "year": 2019,
+        "num": 29
+      },
+      {
+        "year": 2018,
+        "num": 46
+      },
+      {
+        "year": 2017,
+        "num": 47
+      },
+      {
+        "year": 2017,
+        "num": 26
+      },
+      {
+        "year": 2016,
+        "num": 27
+      },
+      {
+        "year": 2015,
+        "num": 49
+      },
+      {
+        "year": 2015,
+        "num": 43
+      },
+      {
+        "year": 2015,
+        "num": 40
+      },
+      {
+        "year": 2015,
+        "num": 32
+      }
+    ],
+    "core_concept": "결합도와 응집도 및 설계 원리",
+    "features": "SOLID 설계 원칙과 강한 응집도/약한 결합도를 달성하기 위한 상세 설계 요소를 질문합니다.",
+    "scope": "요구분석 및 설계",
+    "rep_question": "35. 다음 중 SOLID 설계원칙에 대한 설명으로 가장\n거리가 먼 것은?\n① SRP 원칙에 의하면 클래스는 단 하나의 변경\n이유만을 가져야 한다.\n② OCP 원칙을 잘 준수하는 경우 기존의 코드를\n변경하지 않으면서도 새로운 기능을 추가하기가\n용이하다.\n③ DIP 원칙에 의하면 의존 관계를 설정할 때 변화\n하기 어렵거나 거의 변화하지 않을 대상에 대해\n의존관계를 가지는 것이 바람직하다.\n④ LSP 원칙을 통해 일반화 관계가 적절히 사용되\n었는지 점검할 수 있으며, 이 원칙을 위반하면\n컴파일러가 자동적으로 에러를 발생시킨다.",
+    "rep_year": 2026,
+    "rep_num": 35
+  },
+  {
+    "concept": "1-d. UML/SysML 모델링",
+    "category": "1. 요구사항분석 및 설계",
+    "count": 44,
+    "years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 34
+      },
+      {
+        "year": 2026,
+        "num": 33
+      },
+      {
+        "year": 2026,
+        "num": 31
+      },
+      {
+        "year": 2026,
+        "num": 28
+      },
+      {
+        "year": 2025,
+        "num": 44
+      },
+      {
+        "year": 2025,
+        "num": 30
+      },
+      {
+        "year": 2025,
+        "num": 29
+      },
+      {
+        "year": 2024,
+        "num": 35
+      },
+      {
+        "year": 2024,
+        "num": 31
+      },
+      {
+        "year": 2024,
+        "num": 28
+      },
+      {
+        "year": 2023,
+        "num": 40
+      },
+      {
+        "year": 2023,
+        "num": 31
+      },
+      {
+        "year": 2022,
+        "num": 45
+      },
+      {
+        "year": 2022,
+        "num": 43
+      },
+      {
+        "year": 2021,
+        "num": 50
+      },
+      {
+        "year": 2021,
+        "num": 49
+      },
+      {
+        "year": 2021,
+        "num": 48
+      },
+      {
+        "year": 2021,
+        "num": 45
+      },
+      {
+        "year": 2021,
+        "num": 42
+      },
+      {
+        "year": 2021,
+        "num": 39
+      },
+      {
+        "year": 2021,
+        "num": 31
+      },
+      {
+        "year": 2021,
+        "num": 26
+      },
+      {
+        "year": 2019,
+        "num": 44
+      },
+      {
+        "year": 2019,
+        "num": 41
+      },
+      {
+        "year": 2019,
+        "num": 31
+      },
+      {
+        "year": 2019,
+        "num": 30
+      },
+      {
+        "year": 2019,
+        "num": 29
+      },
+      {
+        "year": 2018,
+        "num": 50
+      },
+      {
+        "year": 2018,
+        "num": 48
+      },
+      {
+        "year": 2018,
+        "num": 45
+      },
+      {
+        "year": 2018,
+        "num": 41
+      },
+      {
+        "year": 2017,
+        "num": 49
+      },
+      {
+        "year": 2017,
+        "num": 46
+      },
+      {
+        "year": 2017,
+        "num": 41
+      },
+      {
+        "year": 2017,
+        "num": 30
+      },
+      {
+        "year": 2017,
+        "num": 29
+      },
+      {
+        "year": 2016,
+        "num": 30
+      },
+      {
+        "year": 2016,
+        "num": 27
+      },
+      {
+        "year": 2015,
+        "num": 45
+      },
+      {
+        "year": 2015,
+        "num": 44
+      },
+      {
+        "year": 2015,
+        "num": 39
+      },
+      {
+        "year": 2015,
+        "num": 38
+      },
+      {
+        "year": 2015,
+        "num": 30
+      },
+      {
+        "year": 2015,
+        "num": 27
+      }
+    ],
+    "core_concept": "UML 및 SysML 표기법 분석",
+    "features": "다양한 UML 다이어그램(클래스, 시퀀스, 상태, 활동)과 SysML 제약 조건 명세 특징을 검증합니다.",
+    "scope": "요구분석 및 설계",
+    "rep_question": "34. 다음 UML State Machine 다이어그램에 대해,\n초기상태에서 E1 이벤트와 E2 이벤트가 연달아\n발생하여 최종적으로 전이된 상태에서의  값으\n로 올바른 것은?\n① 3 ② 5\n③ 8 ④ 10\n7 -",
+    "rep_year": 2026,
+    "rep_num": 34
+  },
+  {
+    "concept": "1-e. 아키텍처 스타일",
+    "category": "1. 요구사항분석 및 설계",
+    "count": 14,
+    "years": [
+      2015,
+      2017,
+      2020,
+      2022,
+      2023,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 44
+      },
+      {
+        "year": 2026,
+        "num": 27
+      },
+      {
+        "year": 2025,
+        "num": 38
+      },
+      {
+        "year": 2025,
+        "num": 32
+      },
+      {
+        "year": 2025,
+        "num": 29
+      },
+      {
+        "year": 2023,
+        "num": 35
+      },
+      {
+        "year": 2023,
+        "num": 33
+      },
+      {
+        "year": 2022,
+        "num": 32
+      },
+      {
+        "year": 2020,
+        "num": 35
+      },
+      {
+        "year": 2020,
+        "num": 27
+      },
+      {
+        "year": 2017,
+        "num": 33
+      },
+      {
+        "year": 2015,
+        "num": 50
+      },
+      {
+        "year": 2015,
+        "num": 48
+      },
+      {
+        "year": 2015,
+        "num": 47
+      }
+    ],
+    "core_concept": "소프트웨어 아키텍처 패턴",
+    "features": "MVC, Layered, Event-Driven, Repository 등 전통적인 아키텍처 스타일의 구성과 특징을 비교 평가합니다.",
+    "scope": "요구분석 및 설계",
+    "rep_question": "44. 다음 상황에 가장 적합한 아키텍처 스타일은?\n대규모 전자상거래 시스템을 개발하고자 한다. 상\n품 검색, 주문 및 결제, 재고 관리, 배송 추적 기\n능이 서로 독립적으로 배포되고 확장될 수 있어\n야 하며, 특정 기능에 문제가 발생해도 전체 시스\n템이 중단되지 않아야 한다. 또한 각 서비스는 서\n로 다른 기술 스택으로 개발될 수 있다.\n① Microservices Architecture\n② Repository Architecture\n③ Layered Architecture\n④ Monolithic Architecture",
+    "rep_year": 2026,
+    "rep_num": 44
+  },
+  {
+    "concept": "1-f. 설계패턴",
+    "category": "1. 요구사항분석 및 설계",
+    "count": 17,
+    "years": [
+      2015,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 38
+      },
+      {
+        "year": 2026,
+        "num": 28
+      },
+      {
+        "year": 2026,
+        "num": 27
+      },
+      {
+        "year": 2025,
+        "num": 48
+      },
+      {
+        "year": 2022,
+        "num": 43
+      },
+      {
+        "year": 2021,
+        "num": 31
+      },
+      {
+        "year": 2021,
+        "num": 27
+      },
+      {
+        "year": 2020,
+        "num": 41
+      },
+      {
+        "year": 2020,
+        "num": 35
+      },
+      {
+        "year": 2020,
+        "num": 28
+      },
+      {
+        "year": 2019,
+        "num": 41
+      },
+      {
+        "year": 2018,
+        "num": 48
+      },
+      {
+        "year": 2018,
+        "num": 41
+      },
+      {
+        "year": 2018,
+        "num": 39
+      },
+      {
+        "year": 2017,
+        "num": 30
+      },
+      {
+        "year": 2015,
+        "num": 43
+      },
+      {
+        "year": 2015,
+        "num": 30
+      }
+    ],
+    "core_concept": "GoF 디자인 패턴 실전 연계",
+    "features": "23대 생성, 구조, 행위 패턴의 자바 소스코드 수준 활용 방안을 질문합니다.",
+    "scope": "요구분석 및 설계",
+    "rep_question": "38. 다음 그림과 같이 객체 타입에 따라 다른 동작을\n하는 조건 분기가 있는 경우에 적용한 리팩토링\n기법으로 가장 적절한 것은?\n① Inline Method\n② Encapsulate Downcast\n③ Replace Conditional with Polymorphism\n④ Replace Constructor with Factory Method",
+    "rep_year": 2026,
+    "rep_num": 38
+  },
+  {
+    "concept": "1-g. 사용자 인터페이스 설계",
+    "category": "1. 요구사항분석 및 설계",
+    "count": 12,
+    "years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2023
+    ],
+    "questions": [
+      {
+        "year": 2023,
+        "num": 35
+      },
+      {
+        "year": 2023,
+        "num": 28
+      },
+      {
+        "year": 2021,
+        "num": 30
+      },
+      {
+        "year": 2020,
+        "num": 42
+      },
+      {
+        "year": 2020,
+        "num": 35
+      },
+      {
+        "year": 2019,
+        "num": 39
+      },
+      {
+        "year": 2018,
+        "num": 35
+      },
+      {
+        "year": 2017,
+        "num": 38
+      },
+      {
+        "year": 2016,
+        "num": 44
+      },
+      {
+        "year": 2016,
+        "num": 43
+      },
+      {
+        "year": 2016,
+        "num": 26
+      },
+      {
+        "year": 2015,
+        "num": 41
+      }
+    ],
+    "core_concept": "UI/UX 설계 및 사용성 지침",
+    "features": "UI 설계 3대 규칙, 웹 접근성 설계 기준과 사용자 인터랙션 평가 기법을 질문합니다.",
+    "scope": "요구분석 및 설계",
+    "rep_question": "35. 다음 설명에 해당하는 아키텍처 스타일로 가장\n적절한 것은?\n사용자 인터페이스를 시스템의 다른 부분과 분리\n하여 결합도를 낮추기 위한 아키텍처 스타일로,\n사용자 인터페이스를 담당하는 계층의 응집력을\n높일 수 있고, 여러 개의 다른 UI를 만들어 그 사\n이에 결합도를 낮출 수 있다.\n① Event-Driven style\n② Client-Server style\n③ Model-View-Controller style\n④ Layered style",
+    "rep_year": 2023,
+    "rep_num": 35
+  },
+  {
+    "concept": "2-a. 프로그래밍언어 및 환경",
+    "category": "2. 구현 및 테스트",
+    "count": 22,
+    "years": [
+      2015,
+      2016,
+      2017,
+      2019,
+      2021,
+      2022,
+      2024,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 48
+      },
+      {
+        "year": 2026,
+        "num": 41
+      },
+      {
+        "year": 2026,
+        "num": 35
+      },
+      {
+        "year": 2025,
+        "num": 30
+      },
+      {
+        "year": 2024,
+        "num": 41
+      },
+      {
+        "year": 2022,
+        "num": 48
+      },
+      {
+        "year": 2022,
+        "num": 30
+      },
+      {
+        "year": 2021,
+        "num": 45
+      },
+      {
+        "year": 2021,
+        "num": 42
+      },
+      {
+        "year": 2021,
+        "num": 32
+      },
+      {
+        "year": 2019,
+        "num": 46
+      },
+      {
+        "year": 2019,
+        "num": 32
+      },
+      {
+        "year": 2017,
+        "num": 49
+      },
+      {
+        "year": 2017,
+        "num": 45
+      },
+      {
+        "year": 2017,
+        "num": 33
+      },
+      {
+        "year": 2016,
+        "num": 46
+      },
+      {
+        "year": 2016,
+        "num": 45
+      },
+      {
+        "year": 2016,
+        "num": 34
+      },
+      {
+        "year": 2015,
+        "num": 46
+      },
+      {
+        "year": 2015,
+        "num": 38
+      },
+      {
+        "year": 2015,
+        "num": 34
+      },
+      {
+        "year": 2015,
+        "num": 27
+      }
+    ],
+    "core_concept": "코딩 규칙 및 언어별 컴파일 메커니즘",
+    "features": "MISRA-C 등 코딩 표준 규칙 위배 사례 및 디버깅 지침을 검증합니다.",
+    "scope": "구현 및 테스트",
+    "rep_question": "48. 다음 중 소프트웨어 개발의 지속적 통합\n(Continuous Integration)에 대한 설명으로 올바르지\n않은 것으로만 묶인 것은?\n가. 지속적 통합은 특정 기능의 개발이 완료되었을\n때 진행한다.\n나. 지속적 통합은 개발자가 저장소에 코드를 커밋\n할 때마다 진행된다.\n다. Git이나 SVN과 같은 버전 관리 도구를 사용\n한다.\n라. 코드를 컴파일하고 통합하는 빌드 과정이 자\n동화 된다.\n마. 개발자는 코드 테스트를 완료한 후, 커밋을\n진행한다.\n① 가, 나 ② 가, 마\n③ 나, 다, 라 ④ 나, 다, 마",
+    "rep_year": 2026,
+    "rep_num": 48
+  },
+  {
+    "concept": "2-b. 코드 자동생성, 로우코드/노코드",
+    "category": "2. 구현 및 테스트",
+    "count": 0,
+    "years": [],
+    "questions": [],
+    "core_concept": "현대적 개발 패러다임 플랫폼",
+    "features": "모델 기반 개발(MDD)의 코드 자동 생성 기법 및 로우코드 플랫폼의 아키텍처 특징을 질문합니다.",
+    "scope": "구현 및 테스트",
+    "rep_question": "",
+    "rep_year": "",
+    "rep_num": ""
+  },
+  {
+    "concept": "2-c. 웹접근성, 웹호환성 점검",
+    "category": "2. 구현 및 테스트",
+    "count": 4,
+    "years": [
+      2020,
+      2024,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 35
+      },
+      {
+        "year": 2025,
+        "num": 43
+      },
+      {
+        "year": 2024,
+        "num": 38
+      },
+      {
+        "year": 2020,
+        "num": 26
+      }
+    ],
+    "core_concept": "국가 웹 접근성 표준 지침 준수",
+    "features": "대체 텍스트, 키보드 조작 보장 등 24대 웹 접근성 점검 기준을 중점 검증합니다.",
+    "scope": "구현 및 테스트",
+    "rep_question": "35. 다음 중 SOLID 설계원칙에 대한 설명으로 가장\n거리가 먼 것은?\n① SRP 원칙에 의하면 클래스는 단 하나의 변경\n이유만을 가져야 한다.\n② OCP 원칙을 잘 준수하는 경우 기존의 코드를\n변경하지 않으면서도 새로운 기능을 추가하기가\n용이하다.\n③ DIP 원칙에 의하면 의존 관계를 설정할 때 변화\n하기 어렵거나 거의 변화하지 않을 대상에 대해\n의존관계를 가지는 것이 바람직하다.\n④ LSP 원칙을 통해 일반화 관계가 적절히 사용되\n었는지 점검할 수 있으며, 이 원칙을 위반하면\n컴파일러가 자동적으로 에러를 발생시킨다.",
+    "rep_year": 2026,
+    "rep_num": 35
+  },
+  {
+    "concept": "2-d. 단위, 모듈, 연계, 통합, 시스템, 인수 등",
+    "category": "2. 구현 및 테스트",
+    "count": 4,
+    "years": [
+      2016,
+      2018,
+      2025
+    ],
+    "questions": [
+      {
+        "year": 2025,
+        "num": 28
+      },
+      {
+        "year": 2018,
+        "num": 32
+      },
+      {
+        "year": 2016,
+        "num": 50
+      },
+      {
+        "year": 2016,
+        "num": 36
+      }
+    ],
+    "core_concept": "테스트 단계별 수행 범위",
+    "features": "하향식/상향식 통합 테스트(드라이버/스텁), 시스템 성능 테스트 및 알파/베타 인수 조건 분석이 출제됩니다.",
+    "scope": "구현 및 테스트",
+    "rep_question": "28. 다음 설명에 해당하는 테스트 설계 기법으로 가장\n적절한 것은?\nŸ 테스트대상과사용자사이에발생할수있는입/출력\n의 시퀀스에 대한 모델을 바탕으로 테스트 케이스를\n설계한다.\nŸ 시스템 테스트, 인수 테스트를 수행할 때\nEnd-to-End기능테스트를위하여주로활용된다.\n① State transition testing\n② Decision table testing\n③ Scenario testing\n④ Requirement-based testing\n- 6",
+    "rep_year": 2025,
+    "rep_num": 28
+  },
+  {
+    "concept": "2-e. 테스팅 방법 및 도구",
+    "category": "2. 구현 및 테스트",
+    "count": 9,
+    "years": [
+      2016,
+      2017,
+      2018,
+      2019,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 40
+      },
+      {
+        "year": 2026,
+        "num": 39
+      },
+      {
+        "year": 2019,
+        "num": 27
+      },
+      {
+        "year": 2018,
+        "num": 47
+      },
+      {
+        "year": 2018,
+        "num": 32
+      },
+      {
+        "year": 2018,
+        "num": 28
+      },
+      {
+        "year": 2017,
+        "num": 28
+      },
+      {
+        "year": 2016,
+        "num": 39
+      },
+      {
+        "year": 2016,
+        "num": 35
+      }
+    ],
+    "core_concept": "동적/정적 테스트 설계 기법",
+    "features": "화이트박스(제어 흐름 커버리지, 순환 복잡도)와 블랙박스(경계값, 동등 분할)의 세부 연산을 질문합니다.",
+    "scope": "구현 및 테스트",
+    "rep_question": "40. 다음 중 Test-Driven Development(TDD)의 개발\n절차로 가장 적합한 것은?\n① 설계 – 코드 작성 – 테스트 수행\n② 코드 작성 – 테스트 수행 - 리팩토링\n③ 테스트 작성 – 리팩토링 – 코드 작성\n④ 테스트 작성 – 코드 작성 - 리팩토링",
+    "rep_year": 2026,
+    "rep_num": 40
+  },
+  {
+    "concept": "2-f. KS X ISO/IEC/IEEE 29119, KS X ISO/IEC 33063 테스트 표준",
+    "category": "2. 구현 및 테스트",
+    "count": 4,
+    "years": [
+      2018,
+      2019,
+      2023,
+      2024
+    ],
+    "questions": [
+      {
+        "year": 2024,
+        "num": 34
+      },
+      {
+        "year": 2023,
+        "num": 34
+      },
+      {
+        "year": 2019,
+        "num": 42
+      },
+      {
+        "year": 2018,
+        "num": 37
+      }
+    ],
+    "core_concept": "국제 SW 테스팅 표준",
+    "features": "29119 표준이 규정하는 테스트 프로세스 산출물과 테스트 계획 설계 표준을 검증합니다.",
+    "scope": "구현 및 테스트",
+    "rep_question": "34. ISO/IEC/IEEE 29119 Part 4에서는 Cause-effect\ngraphing 방법을 설명하고 있다. Cause-effect\ngraphing에서는 여러 개의 Cause들간의 제약 사\n항을 표현할 수 있다. 다음 중 Cause간의 제약\n사항으로서 가장 적절하지 않은 것은?\n① Mask ② Requires\n③ Exclusive ④ One and only one\n- 6",
+    "rep_year": 2024,
+    "rep_num": 34
+  },
+  {
+    "concept": "3-a. 유지관리 개념 및 방법",
+    "category": "3. 유지관리 및 운영",
+    "count": 15,
+    "years": [
+      2015,
+      2016,
+      2017,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 32
+      },
+      {
+        "year": 2025,
+        "num": 27
+      },
+      {
+        "year": 2024,
+        "num": 38
+      },
+      {
+        "year": 2023,
+        "num": 48
+      },
+      {
+        "year": 2022,
+        "num": 37
+      },
+      {
+        "year": 2021,
+        "num": 38
+      },
+      {
+        "year": 2020,
+        "num": 49
+      },
+      {
+        "year": 2020,
+        "num": 44
+      },
+      {
+        "year": 2020,
+        "num": 31
+      },
+      {
+        "year": 2019,
+        "num": 39
+      },
+      {
+        "year": 2017,
+        "num": 48
+      },
+      {
+        "year": 2016,
+        "num": 43
+      },
+      {
+        "year": 2016,
+        "num": 42
+      },
+      {
+        "year": 2015,
+        "num": 49
+      },
+      {
+        "year": 2015,
+        "num": 35
+      }
+    ],
+    "core_concept": "유지보수 유형 분류 및 개선 방법",
+    "features": "수정, 예방, 적응, 완전 유지보수의 특징과 3R 진화 활동을 질문합니다.",
+    "scope": "유지관리 및 운영",
+    "rep_question": "32. 시스템의 유지보수성과 확장성을 향상시키기 위해\n아래와 같은 방향으로 설계를 개선하려고 한다.\n모듈 간 의존관계를 최소화하고 각 모듈이 하나의\n기능 중심으로 구성되도록 한다. 그리고 모듈 내부\n구현 정보는 외부에 노출하지 않도록 한다.\n다음 중 위 설계 개선에 적용할 수 있는 소프트웨\n어 설계 기법의 조합으로 가장 적합한 것은?\n① 응집도 감소 – 결합도 증가 – 정보은닉 강화\n② 응집도 증가 – 결합도 감소 – 정보은닉 강화\n③ 결합도 증가 – 추상화 강화 – 모듈화 강화\n④ 모듈화 강화 – 응집도 감소 – 추상화 강화",
+    "rep_year": 2026,
+    "rep_num": 32
+  },
+  {
+    "concept": "3-b. 형상관리",
+    "category": "3. 유지관리 및 운영",
+    "count": 14,
+    "years": [
+      2015,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 37
+      },
+      {
+        "year": 2026,
+        "num": 36
+      },
+      {
+        "year": 2024,
+        "num": 29
+      },
+      {
+        "year": 2023,
+        "num": 49
+      },
+      {
+        "year": 2023,
+        "num": 43
+      },
+      {
+        "year": 2023,
+        "num": 42
+      },
+      {
+        "year": 2022,
+        "num": 35
+      },
+      {
+        "year": 2021,
+        "num": 40
+      },
+      {
+        "year": 2020,
+        "num": 50
+      },
+      {
+        "year": 2019,
+        "num": 49
+      },
+      {
+        "year": 2018,
+        "num": 43
+      },
+      {
+        "year": 2017,
+        "num": 39
+      },
+      {
+        "year": 2017,
+        "num": 27
+      },
+      {
+        "year": 2015,
+        "num": 33
+      }
+    ],
+    "core_concept": "형상 식별, 통제, 감사 및 버전 관리",
+    "features": "베이스라인 설정 요건, CCB 변경 제어 위원회의 변경 통제 절차 및 Git 명령어 분석이 출제됩니다.",
+    "scope": "유지관리 및 운영",
+    "rep_question": "37. Git 버전관리 시스템에 대한 (가)~(라)에 해당하는\n명령을 순서대로 가장 적절하게 나열한 것은?\n가. 원격 저장소를 로컬 저장소로 복제\n나. 로컬 저장소 변경을 원격 저장소에 반영\n다. 원격 저장소 브랜치의 변경을 로컬 저장소로\n가져오되 merge는 안 함\n라. 원격 저장소 브랜치의 변경을 로컬 저장소로\n가져와서 merge를 실시함\n① clone, push, fetch, pull\n② clone, commit, fetch, pull\n③ fetch, push, pull, commit\n④ fetch, commit, pull, push\n- 8",
+    "rep_year": 2026,
+    "rep_num": 37
+  },
+  {
+    "concept": "3-c. ITSM, ITIL(SLA, SLM 등)",
+    "category": "3. 유지관리 및 운영",
     "count": 3,
     "years": [
       2019,
@@ -2405,25 +2375,801 @@
         "num": 43
       }
     ],
-    "core_concept": "고객 관점의 안정적인 IT 서비스 운영 및 유지관리를 위한 표준 품질 관리 체계",
-    "features": "ITIL v4 서비스 가치 시스템, SLA(서비스 수준 계약) 상의 가용성/장애 처리 속도 등 정량 평가지표, 이를 관리하는 SLM(서비스 수준 관리) 수명주기 활동을 주로 묻습니다.",
-    "scope": "유지관리/운영 -> IT 서비스 관리",
+    "core_concept": "IT 서비스 수준 및 프로세스 관리",
+    "features": "ITIL v4 서비스 생명주기 관리 프로세스 및 SLA 정량 평가 메트릭 설정을 평가합니다.",
+    "scope": "유지관리 및 운영",
     "rep_question": "40. ITIL 4는 IT 서비스 관리의 프레임워크이다. ITIL\nService Value System(SVS)에서는 14개의 General\nManagement Practices, 17개의Service Management\nPractices, 그리고 3개의 Technical Management\nPractices를 포함한다. 다음 중 Service Management\nPractices로가장적절하지않은것은?\n① Business Analysis\n② Change Control\n③ IT Asset Management\n④ Software Deployment and Management",
     "rep_year": 2025,
     "rep_num": 40
   },
   {
-    "concept": "COCOMO / 비용산정 모델",
-    "category": "품질/비용산정",
-    "count": 3,
+    "concept": "3-d. 재사용, 재공학, 역공학, Refactoring",
+    "category": "3. 유지관리 및 운영",
+    "count": 28,
     "years": [
+      2015,
       2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 40
+      },
+      {
+        "year": 2026,
+        "num": 38
+      },
+      {
+        "year": 2025,
+        "num": 49
+      },
+      {
+        "year": 2024,
+        "num": 40
+      },
+      {
+        "year": 2024,
+        "num": 35
+      },
+      {
+        "year": 2024,
+        "num": 32
+      },
+      {
+        "year": 2024,
+        "num": 27
+      },
+      {
+        "year": 2023,
+        "num": 30
+      },
+      {
+        "year": 2023,
+        "num": 28
+      },
+      {
+        "year": 2022,
+        "num": 37
+      },
+      {
+        "year": 2022,
+        "num": 34
+      },
+      {
+        "year": 2022,
+        "num": 31
+      },
+      {
+        "year": 2022,
+        "num": 28
+      },
+      {
+        "year": 2021,
+        "num": 50
+      },
+      {
+        "year": 2021,
+        "num": 41
+      },
+      {
+        "year": 2021,
+        "num": 38
+      },
+      {
+        "year": 2021,
+        "num": 35
+      },
+      {
+        "year": 2020,
+        "num": 48
+      },
+      {
+        "year": 2020,
+        "num": 42
+      },
+      {
+        "year": 2019,
+        "num": 47
+      },
+      {
+        "year": 2019,
+        "num": 28
+      },
+      {
+        "year": 2018,
+        "num": 38
+      },
+      {
+        "year": 2018,
+        "num": 27
+      },
+      {
+        "year": 2017,
+        "num": 40
+      },
+      {
+        "year": 2016,
+        "num": 44
+      },
+      {
+        "year": 2016,
+        "num": 40
+      },
+      {
+        "year": 2016,
+        "num": 37
+      },
+      {
+        "year": 2015,
+        "num": 40
+      }
+    ],
+    "core_concept": "코드 현대화 및 소스코드 품질 개선",
+    "features": "코드 스멜 유형 식별 및 메서드 추출 등 안전한 리팩토링 실천 전략을 중점적으로 묻습니다.",
+    "scope": "유지관리 및 운영",
+    "rep_question": "40. 다음 중 Test-Driven Development(TDD)의 개발\n절차로 가장 적합한 것은?\n① 설계 – 코드 작성 – 테스트 수행\n② 코드 작성 – 테스트 수행 - 리팩토링\n③ 테스트 작성 – 리팩토링 – 코드 작성\n④ 테스트 작성 – 코드 작성 - 리팩토링",
+    "rep_year": 2026,
+    "rep_num": 40
+  },
+  {
+    "concept": "3-e. 아웃소싱",
+    "category": "3. 유지관리 및 운영",
+    "count": 0,
+    "years": [],
+    "questions": [],
+    "core_concept": "IT 서비스 위탁 관리 모델",
+    "features": "SLA 기반의 아웃소싱 관리 절차와 위탁 리스크 식별 기준을 평가합니다.",
+    "scope": "유지관리 및 운영",
+    "rep_question": "",
+    "rep_year": "",
+    "rep_num": ""
+  },
+  {
+    "concept": "4-a. 구조적, 정보공학, 객체지향 방법론",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 0,
+    "years": [],
+    "questions": [],
+    "core_concept": "정통적 소프트웨어 방법론 특징",
+    "features": "각 방법론의 분석 대상(프로세스, 데이터, 객체)과 고유 산출물 특징을 비교 질문합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "",
+    "rep_year": "",
+    "rep_num": ""
+  },
+  {
+    "concept": "4-b. CBD, Agile, 데브 옵스, aop 등",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 18,
+    "years": [
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 46
+      },
+      {
+        "year": 2026,
+        "num": 45
+      },
+      {
+        "year": 2026,
+        "num": 43
+      },
+      {
+        "year": 2024,
+        "num": 26
+      },
+      {
+        "year": 2023,
+        "num": 37
+      },
+      {
+        "year": 2022,
+        "num": 39
+      },
+      {
+        "year": 2022,
+        "num": 38
+      },
+      {
+        "year": 2022,
+        "num": 31
+      },
+      {
+        "year": 2021,
+        "num": 37
+      },
+      {
+        "year": 2021,
+        "num": 28
+      },
+      {
+        "year": 2020,
+        "num": 43
+      },
+      {
+        "year": 2020,
+        "num": 36
+      },
+      {
+        "year": 2020,
+        "num": 31
+      },
+      {
+        "year": 2020,
+        "num": 30
+      },
+      {
+        "year": 2019,
+        "num": 45
+      },
+      {
+        "year": 2019,
+        "num": 37
+      },
+      {
+        "year": 2018,
+        "num": 33
+      },
+      {
+        "year": 2017,
+        "num": 32
+      }
+    ],
+    "core_concept": "현대적 기민한 개발 아키텍처",
+    "features": "스크럼 프레임워크 5대 회의와 산출물, AOP의 횡단 관심사 삽입 기법(Joinpoint/Advice)을 질문합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "46. 다음은 게임 소프트웨어의 출시 가능한 버전을 스\n크럼 방식으로 만드는 과정이다. (가)~(라)에 해당\n하는 가장 적절한 것은?\n① (가) 제품 백로그 (나) 스프린트 백로그\n(다) 일일 스크럼 (라) 스프린트\n② (가) 제품 백로그 (나) 스프린트 백로그\n(다) 일일 스프린트 (라) 스크럼\n③ (가) 스프린트 백로그 (나) 제품 백로그\n(다) 일일 스크럼 (라) 스프린트\n④ (가) 제품 백로그 (나) 스프린트 백로그\n(다) 일일 스프린트 (라) 스크럼",
+    "rep_year": 2026,
+    "rep_num": 46
+  },
+  {
+    "concept": "4-c. 프로세스 모델",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 5,
+    "years": [
+      2015,
+      2018,
+      2020,
       2024
     ],
     "questions": [
       {
         "year": 2024,
+        "num": 44
+      },
+      {
+        "year": 2020,
+        "num": 31
+      },
+      {
+        "year": 2018,
+        "num": 47
+      },
+      {
+        "year": 2018,
+        "num": 33
+      },
+      {
+        "year": 2015,
+        "num": 26
+      }
+    ],
+    "core_concept": "SDLC 생명주기 생태계 프로세스",
+    "features": "폭포수, V-모델, 나선형(위험 분석), 점진적 모델의 생명주기 통제 절차를 검증합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "44. 다음의 상황에서 사용할 수 있는 요구사항 추출\n방법으로 가장 적절한 것은?\n가. 고객이 자신의 요구사항에 대하여 구체적으로\n파악하고 있지 못한 상태임\n나. 최종 시스템의 예상 기능 중 일부를 빠르게 구\n현하여 고객의 피드백을 조기에 받고자함\n다. 발굴된 아이디어를 시험하고 검증하여 새로운\n아이디어를 얻고자함\n① 관찰(Observation)\n② 인터뷰(Interview)\n③ 브레인스토밍(Brainstorming)\n④ 프로토타이핑(Prototyping)\n- 8",
+    "rep_year": 2024,
+    "rep_num": 44
+  },
+  {
+    "concept": "4-d. 클린 아키텍처",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 4,
+    "years": [
+      2019,
+      2020,
+      2022,
+      2023
+    ],
+    "questions": [
+      {
+        "year": 2023,
+        "num": 28
+      },
+      {
+        "year": 2022,
+        "num": 41
+      },
+      {
+        "year": 2020,
+        "num": 35
+      },
+      {
+        "year": 2019,
+        "num": 33
+      }
+    ],
+    "core_concept": "관심사 분리 및 비즈니스 룰 보호",
+    "features": "고수준 도메인 룰(엔티티/유스케이스) 중심의 내부 의존성 통제 규칙을 묻습니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "28. Robert C. Martin은 clean architecture를 설명하\n면서 컴포넌트 결합도에 대한 3가지 원칙을 제시\n하였다. 이에 대한 설명 중 가장 적절하지 않은\n것은?\n① 자신보다 재사용성이 높은 컴포넌트에 의존해야\n한다.\n② 컴포넌트간의 의존성에 사이클이 존재하지 않아\n야 한다.\n③ 자신보다 안정적(stable)인 컴포넌트에 의존해\n야 한다.\n④ 자신보다 추상화된 컴포넌트에 의존해야 한다.",
+    "rep_year": 2023,
+    "rep_num": 28
+  },
+  {
+    "concept": "4-e. 웹기반 기술구조, j2ee, 닷넷, 컨테이너 등 개발 플랫폼",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 2,
+    "years": [
+      2022,
+      2025
+    ],
+    "questions": [
+      {
+        "year": 2025,
+        "num": 36
+      },
+      {
+        "year": 2022,
+        "num": 39
+      }
+    ],
+    "core_concept": "웹 개발 기술 플랫폼 인프라",
+    "features": "Docker 컨테이너 가상화 기술의 경량성 아키텍처 장점 및 Kubernetes 관리 기법을 평가합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "36. 다음 클라우드 컨테이너에 대한 설명 중 적절하지\n않은 것을 모두 묶은 것은?\n가. 독립된 환경에서 동작하는 가상화의 일종이다.\n나. 컨테이너 간의 운영체제를 공유한다.\n다. 쿠버네티스는 컨테이너화된 워크로드와 서비스를\n관리하는 오케스트레이션 도구이다.\n라. 컨테이너는서로다른운영체제를사용할수있다.\n마. 컨테이너에서는 애플리케이션을 제어하는 하이퍼\n바이저가 필요하다.\n바. 애플리케이션이모놀리식아키텍처인경우컨테이너\n기반 개발이 유리하다.\n① 가, 다, 마 ② 가, 라, 마\n③ 가, 나, 마, 바 ④ 가, 라, 마, 바",
+    "rep_year": 2025,
+    "rep_num": 36
+  },
+  {
+    "concept": "4-f. 분산컴포넌트 기술, xml 등",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 4,
+    "years": [
+      2015,
+      2019,
+      2021,
+      2025
+    ],
+    "questions": [
+      {
+        "year": 2025,
+        "num": 26
+      },
+      {
+        "year": 2021,
+        "num": 33
+      },
+      {
+        "year": 2019,
+        "num": 48
+      },
+      {
+        "year": 2015,
+        "num": 29
+      }
+    ],
+    "core_concept": "분산 환경 메시지 통신 표준",
+    "features": "XML/JSON 구조적 메시지 파싱 및 분산 컴포넌트 간 트랜잭션 보장 방안을 검증합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "26.)」에 따른 공공\n데이터 목록, 데이터 등록기준에 관한 설명으로 가\n장 적절하지 않은 것은?\n① 오픈API로 제공하는 경우 기술문서를 포함하고\n데이터수집및DB저장등민간의자유로운활용을\n반드시 보장해야 한다\n② 데이터는 엑셀, XML, JSON과 같은 구조화\n된 형태의 오픈포맷으로 등록·개방하는 것이\n원칙이다.\n③ 공공데이터목록을등록할때업무단위는정부기능\n분류(BRM)의 단위과제 수준에서 선정한다.\n④ 비정형데이터는 데이터 분석이나 학습 등에 활용\n가능한 형태로 등록해야 한다.",
+    "rep_year": 2025,
+    "rep_num": 26
+  },
+  {
+    "concept": "4-g. 전자정부표준프레임워크, 스프링 프레임워크",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 2,
+    "years": [
+      2017,
+      2021
+    ],
+    "questions": [
+      {
+        "year": 2021,
+        "num": 34
+      },
+      {
+        "year": 2017,
+        "num": 37
+      }
+    ],
+    "core_concept": "국내 공공 프레임워크 표준 기술",
+    "features": "Spring Framework의 IoC(제어역전)와 DI(의존성 주입) 원리 및 eGovFrame 구성 요소를 검증합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "34. 다음은 스프링 프레임워크가 제공하는 어드바이스의\n유형을 그림으로 나타내고 있다. (가) ~ (다)에\n가장 적절한 어드바이스는?\n① (가) AfterReturning 어드바이스\n(나) Around 어드바이스\n(다) AfterThrowing 어드바이스\n② (가) AfterReturning 어드바이스\n(나) After Throwing 어드바이스\n(다) Around 어드바이스\n③ (가) AfterThrowing 어드바이스\n(나) Around 어드바이스\n(다) AfterReturning 어드바이스\n④ (가) Around 어드바이스\n(나) AfterReturning 어드바이스\n(다) AfterThrowing 어드바이스\n8 -",
+    "rep_year": 2021,
+    "rep_num": 34
+  },
+  {
+    "concept": "4-h. SOA, MSA",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 10,
+    "years": [
+      2016,
+      2018,
+      2019,
+      2022,
+      2023,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 49
+      },
+      {
+        "year": 2025,
+        "num": 37
+      },
+      {
+        "year": 2023,
+        "num": 39
+      },
+      {
+        "year": 2023,
+        "num": 36
+      },
+      {
+        "year": 2022,
+        "num": 49
+      },
+      {
+        "year": 2019,
+        "num": 48
+      },
+      {
+        "year": 2018,
+        "num": 31
+      },
+      {
+        "year": 2018,
         "num": 27
+      },
+      {
+        "year": 2016,
+        "num": 49
+      },
+      {
+        "year": 2016,
+        "num": 47
+      }
+    ],
+    "core_concept": "마이크로서비스 아키텍처 설계 패턴",
+    "features": "Saga 패턴의 트랜잭션 관리, API Gateway, Circuit Breaker의 가용성 제어 전략을 질문합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "49. 마이크로서비스 설계를 위한 다음 그림의 특정 패\n턴을 적용하기 위한 Best Practice로 가장 적절한\n것은?\n① 데이터베이스는 비즈니스 규칙이 아닌 데이터를\n저장하기 위한 용도로만 사용되어야 한다.\n② 데이터를 읽고, 쓰는 책임을 분리하는 CQRS\n코딩 패턴을 적용해야 한다.\n③ 서비스간 통신오류 방지를 위해 연관 ID를 정의\n하여 사용해야 한다.\n④ 비동기 메시지의 구조를 잘 이해하고 정의해야\n한다.\n0 -",
+    "rep_year": 2026,
+    "rep_num": 49
+  },
+  {
+    "concept": "4-i. 웹서비스(SOAP, REST)",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 5,
+    "years": [
+      2015,
+      2019,
+      2021,
+      2023,
+      2025
+    ],
+    "questions": [
+      {
+        "year": 2025,
+        "num": 47
+      },
+      {
+        "year": 2023,
+        "num": 36
+      },
+      {
+        "year": 2021,
+        "num": 33
+      },
+      {
+        "year": 2019,
+        "num": 48
+      },
+      {
+        "year": 2015,
+        "num": 29
+      }
+    ],
+    "core_concept": "웹 서비스 연동 인터페이스 규격",
+    "features": "SOAP(WSDL/XML 기반)과 REST(Stateless/HTTP Resource 기반)의 장단점 대조가 출제됩니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "47. RESTful 서비스의 사용 예로 가장 적절하게 묶은\n것은?\n가. 회원 정보를 알고 싶은 경우,\nREAD http://localhost:8080/rest/api/v1/user/1\n나. 회원 가입을 하는 경우,\nPOST http://localhost:8080/rest/api/v1/user\n{\n\"username\": \"박혜자\",\n\"password\": \"5798\",\n\"email\": \"hyeja@google.com\",\n...\n}\n다. 회원 정보를 수정하고 싶은 경우,\nUPDATEhttp://localhost:8080/rest/api/v1/user/1\n{\n\"\"password\": \"9057\"\n}\n라. 회원을 탈퇴 처리하고 싶은 경우,\nDELETEhttp://localhost:8080/rest/api/v1/user/1\n① 가, 라 ② 가, 다\n③ 나, 라 ④ 나, 다, 라\n- 1",
+    "rep_year": 2025,
+    "rep_num": 47
+  },
+  {
+    "concept": "4-j. 오픈소스 개념 및 활용방법",
+    "category": "4. 개발방법론, sw 구조 및 공개sw",
+    "count": 2,
+    "years": [
+      2020,
+      2025
+    ],
+    "questions": [
+      {
+        "year": 2025,
+        "num": 35
+      },
+      {
+        "year": 2020,
+        "num": 37
+      }
+    ],
+    "core_concept": "공개 소프트웨어 라이선스 의무사항",
+    "features": "GPL, LGPL, Apache, BSD, MIT 라이선스의 저작권 고지 및 소스코드 공개 의무 수준을 비교 검증합니다.",
+    "scope": "개발방법론 및 플랫폼",
+    "rep_question": "35. 다음 의무사항을 가지는 오픈소스 라이선스로 가장\n적절한 것은?\n가. 각 복제본에 적절한 저작권 안내와 보증책임이\n없음을 명시할 것\n나. 본 라이선스를 언급하는 안내 사항과 보증책임\n관련 고지사항을 원본 그대로 유지할 것\n다. 소프트웨어를 양도받는 모든 이들에게 소프트\n웨어와 함께 라이선스 사본을 제공할 것\n라. 라이브러리 형태로의 수정을 허용하며, 만약 수\n정한경우수정사실과날짜를파일에명기할 것\n마. 원본저작물 및 파생저작물에 대한 소스코드를\n제공하거나 요청 시 제공하겠다는 약정서를\n제공할 것\n바. 응용 프로그램을 배포할 경우, 본 라이브러리를\n사용하고 있다는 사실을 명시할 것\n사. 사용자가라이브러리를수정해도응용프로그램을\n사용할 수 있도록 허용할 것\n① MPL(Mozilla Public License)\n② GPL(General Public License)\n③ LGPL(Lesser General Public License)\n④ BSD(Berkeley Software Distribution)\n7 -",
+    "rep_year": 2025,
+    "rep_num": 35
+  },
+  {
+    "concept": "5-a. SW Product 품질",
+    "category": "5. SW 품질 및 비용산정",
+    "count": 27,
+    "years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2025,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 32
+      },
+      {
+        "year": 2025,
+        "num": 41
+      },
+      {
+        "year": 2025,
+        "num": 37
+      },
+      {
+        "year": 2025,
+        "num": 31
+      },
+      {
+        "year": 2025,
+        "num": 27
+      },
+      {
+        "year": 2022,
+        "num": 48
+      },
+      {
+        "year": 2022,
+        "num": 47
+      },
+      {
+        "year": 2022,
+        "num": 46
+      },
+      {
+        "year": 2022,
+        "num": 42
+      },
+      {
+        "year": 2022,
+        "num": 26
+      },
+      {
+        "year": 2021,
+        "num": 47
+      },
+      {
+        "year": 2021,
+        "num": 33
+      },
+      {
+        "year": 2021,
+        "num": 30
+      },
+      {
+        "year": 2020,
+        "num": 44
+      },
+      {
+        "year": 2020,
+        "num": 34
+      },
+      {
+        "year": 2020,
+        "num": 31
+      },
+      {
+        "year": 2019,
+        "num": 39
+      },
+      {
+        "year": 2019,
+        "num": 26
+      },
+      {
+        "year": 2018,
+        "num": 40
+      },
+      {
+        "year": 2018,
+        "num": 35
+      },
+      {
+        "year": 2018,
+        "num": 29
+      },
+      {
+        "year": 2017,
+        "num": 48
+      },
+      {
+        "year": 2017,
+        "num": 31
+      },
+      {
+        "year": 2016,
+        "num": 43
+      },
+      {
+        "year": 2016,
+        "num": 42
+      },
+      {
+        "year": 2016,
+        "num": 32
+      },
+      {
+        "year": 2015,
+        "num": 31
+      }
+    ],
+    "core_concept": "제품 품질 평가 모델",
+    "features": "ISO/IEC 25010 제품 품질 8대 특성과 시나리오 기반 품질속성 측정 방안을 중점 질문합니다.",
+    "scope": "SW 품질 및 비용산정",
+    "rep_question": "32. 시스템의 유지보수성과 확장성을 향상시키기 위해\n아래와 같은 방향으로 설계를 개선하려고 한다.\n모듈 간 의존관계를 최소화하고 각 모듈이 하나의\n기능 중심으로 구성되도록 한다. 그리고 모듈 내부\n구현 정보는 외부에 노출하지 않도록 한다.\n다음 중 위 설계 개선에 적용할 수 있는 소프트웨\n어 설계 기법의 조합으로 가장 적합한 것은?\n① 응집도 감소 – 결합도 증가 – 정보은닉 강화\n② 응집도 증가 – 결합도 감소 – 정보은닉 강화\n③ 결합도 증가 – 추상화 강화 – 모듈화 강화\n④ 모듈화 강화 – 응집도 감소 – 추상화 강화",
+    "rep_year": 2026,
+    "rep_num": 32
+  },
+  {
+    "concept": "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)",
+    "category": "5. SW 품질 및 비용산정",
+    "count": 9,
+    "years": [
+      2015,
+      2017,
+      2018,
+      2019,
+      2023,
+      2024,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 29
+      },
+      {
+        "year": 2024,
+        "num": 47
+      },
+      {
+        "year": 2024,
+        "num": 43
+      },
+      {
+        "year": 2023,
+        "num": 38
+      },
+      {
+        "year": 2023,
+        "num": 32
+      },
+      {
+        "year": 2019,
+        "num": 34
+      },
+      {
+        "year": 2018,
+        "num": 34
+      },
+      {
+        "year": 2017,
+        "num": 27
+      },
+      {
+        "year": 2015,
+        "num": 42
+      }
+    ],
+    "core_concept": "프로세스 역량 및 성숙도 평가 모델",
+    "features": "CMMI 5단계 성숙도 핵심 프로세스 영역(PA)과 SP인증 등급별 판정 기준을 비교 평가합니다.",
+    "scope": "SW 품질 및 비용산정",
+    "rep_question": "29. 다음 중 CMMI 성숙도 수준(Level) 4의 특징을 가장\n잘 설명한 것은?\n① 프로세스 성능을 정량적으로 측정하고 통계적\n기법을 통해 관리한다.\n② 프로젝트 관리가 기본적으로 수행된다.\n③ 조직의 프로세스가 정의되고 표준화된다.\n④ 지속적인 프로세스 혁신을 통해 조직 성능을\n최적화한다.",
+    "rep_year": 2026,
+    "rep_num": 29
+  },
+  {
+    "concept": "5-c. ISO/IEC 12207, ISO/IEC 25000, ISO/IEC 5055 등 SW품질 관련 표준",
+    "category": "5. SW 품질 및 비용산정",
+    "count": 0,
+    "years": [],
+    "questions": [],
+    "core_concept": "소프트웨어 국제 품질 표준",
+    "features": "12207의 3가지 생명주기 프로세스(기본/지원/조직) 구조 및 품질 제약 조건 표준을 질문합니다.",
+    "scope": "SW 품질 및 비용산정",
+    "rep_question": "",
+    "rep_year": "",
+    "rep_num": ""
+  },
+  {
+    "concept": "5-d. SW 대가산정(기능점수 등)",
+    "category": "5. SW 품질 및 비용산정",
+    "count": 10,
+    "years": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2020,
+      2024,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 26
+      },
+      {
+        "year": 2024,
+        "num": 48
+      },
+      {
+        "year": 2024,
+        "num": 27
+      },
+      {
+        "year": 2020,
+        "num": 48
+      },
+      {
+        "year": 2018,
+        "num": 26
+      },
+      {
+        "year": 2017,
+        "num": 26
       },
       {
         "year": 2016,
@@ -2431,20 +3177,28 @@
       },
       {
         "year": 2016,
+        "num": 45
+      },
+      {
+        "year": 2016,
         "num": 44
+      },
+      {
+        "year": 2015,
+        "num": 34
       }
     ],
-    "core_concept": "소프트웨어의 원시 코드 라인수(LOC) 기반의 비용 및 노력 추정 모델",
-    "features": "COCOMO II 단계(애플리케이션 조성, 초기 설계, 포스트 아키텍처)의 차이점, 규모에 따른 프로젝트 유형(유기형, 반결합형, 내장형) 특징 및 노력보정계수를 반영한 M/M(Man-Month) 연산이 핵심입니다.",
-    "scope": "품질/비용산정 -> 비용 산정",
-    "rep_question": "27. 다음 중 소프트웨어 비용산정 모델인 COCOMO II\n에 대한 설명으로 가장 적절하지 않은 것은?\n① COCOMO II 2000 계수조정모델에서 소프트웨어\n개발에 소요되는 노력의 양은 소프트웨어 규모\n에 대해 규모의 경제(Scale of Economy) 효과를\n가지지 못한다.\n② 외부입력(EI)의 복잡도 가중치와 외부질의(EQ)의\n복잡도 가중치는 같다.\n③ 재사용 모델에서 변경률(AAF)의 산정시 코드 변\n경률(CM)에 대한 가중치가 설계 변경률(DM)에\n대한 가중치와 재사용 소프트웨어에 대한 통합\n노력률(IM)에 대한 가중치 보다 높다.\n④ 재사용 모델에서 설계 변경률(DM) 또는 코드 변\n경률(CM)이 0이면, 소프트웨어에 대한 이해도\n(SU)는 0이 된다.",
-    "rep_year": 2024,
-    "rep_num": 27
+    "core_concept": "소프트웨어 기능 점수 및 LOC 비용 산정",
+    "features": "내부논리파일(ILF)과 외부인터페이스파일(EIF)의 기능점수 가중치 산정법 및 COCOMO II 계산 공식을 출제합니다.",
+    "scope": "SW 품질 및 비용산정",
+    "rep_question": "26. 공공기관 A에서 민원관리 정보시스템을 새로 개\n발하면서 기능점수(function point) 분석을 수행하고\n있다. 시스템 분석 과정에서 아래와 같은 요구\n사항들이 파악되었다. 아래 민원관리 시스템\n기능점수의 Internal Logical File(ILF)과 External\nInterface File(EIF)의 개수로 가장 적합한 것은?\n- 민원관리 시스템에서는 민원 신청 정보를\n저장하고 민원 처리 상태를 갱신하며 필요시\n기존 민원 정보를 수정할 수 있다.\n- 민원 처리 과정에서 기존 인사시스템에 저장된\n직원 정보와 기존 회계시스템의 예산 데이터를\n조회하여 활용한다.\n① ILF 1개, EIF 1개\n② ILF 1개, EIF 2개\n③ ILF 1개, EIF 3개\n④ ILF 2개, EIF 1개",
+    "rep_year": 2026,
+    "rep_num": 26
   },
   {
     "concept": "[기타]",
     "category": "기타",
-    "count": 129,
+    "count": 63,
     "years": [
       2015,
       2016,
@@ -2466,35 +3220,11 @@
       },
       {
         "year": 2026,
-        "num": 48
-      },
-      {
-        "year": 2026,
         "num": 47
       },
       {
         "year": 2026,
-        "num": 45
-      },
-      {
-        "year": 2026,
-        "num": 44
-      },
-      {
-        "year": 2026,
         "num": 42
-      },
-      {
-        "year": 2026,
-        "num": 41
-      },
-      {
-        "year": 2026,
-        "num": 39
-      },
-      {
-        "year": 2026,
-        "num": 37
       },
       {
         "year": 2026,
@@ -2506,19 +3236,7 @@
       },
       {
         "year": 2025,
-        "num": 47
-      },
-      {
-        "year": 2025,
         "num": 46
-      },
-      {
-        "year": 2025,
-        "num": 44
-      },
-      {
-        "year": 2025,
-        "num": 43
       },
       {
         "year": 2025,
@@ -2530,18 +3248,6 @@
       },
       {
         "year": 2025,
-        "num": 38
-      },
-      {
-        "year": 2025,
-        "num": 36
-      },
-      {
-        "year": 2025,
-        "num": 35
-      },
-      {
-        "year": 2025,
         "num": 34
       },
       {
@@ -2549,20 +3255,8 @@
         "num": 33
       },
       {
-        "year": 2025,
-        "num": 28
-      },
-      {
-        "year": 2025,
-        "num": 26
-      },
-      {
         "year": 2024,
         "num": 49
-      },
-      {
-        "year": 2024,
-        "num": 47
       },
       {
         "year": 2024,
@@ -2574,11 +3268,7 @@
       },
       {
         "year": 2024,
-        "num": 41
-      },
-      {
-        "year": 2024,
-        "num": 38
+        "num": 39
       },
       {
         "year": 2024,
@@ -2593,24 +3283,8 @@
         "num": 33
       },
       {
-        "year": 2024,
-        "num": 30
-      },
-      {
-        "year": 2024,
-        "num": 29
-      },
-      {
         "year": 2023,
         "num": 50
-      },
-      {
-        "year": 2023,
-        "num": 48
-      },
-      {
-        "year": 2023,
-        "num": 47
       },
       {
         "year": 2023,
@@ -2618,11 +3292,11 @@
       },
       {
         "year": 2023,
-        "num": 44
+        "num": 45
       },
       {
         "year": 2023,
-        "num": 42
+        "num": 44
       },
       {
         "year": 2023,
@@ -2630,14 +3304,6 @@
       },
       {
         "year": 2023,
-        "num": 36
-      },
-      {
-        "year": 2023,
-        "num": 33
-      },
-      {
-        "year": 2023,
         "num": 29
       },
       {
@@ -2645,8 +3311,8 @@
         "num": 27
       },
       {
-        "year": 2022,
-        "num": 49
+        "year": 2023,
+        "num": 26
       },
       {
         "year": 2022,
@@ -2654,15 +3320,7 @@
       },
       {
         "year": 2022,
-        "num": 39
-      },
-      {
-        "year": 2022,
         "num": 36
-      },
-      {
-        "year": 2022,
-        "num": 35
       },
       {
         "year": 2022,
@@ -2670,35 +3328,15 @@
       },
       {
         "year": 2022,
-        "num": 32
-      },
-      {
-        "year": 2022,
-        "num": 30
-      },
-      {
-        "year": 2022,
         "num": 29
       },
       {
-        "year": 2022,
-        "num": 27
-      },
-      {
-        "year": 2022,
-        "num": 26
-      },
-      {
-        "year": 2021,
-        "num": 47
-      },
-      {
         "year": 2021,
         "num": 46
       },
       {
         "year": 2021,
-        "num": 45
+        "num": 44
       },
       {
         "year": 2021,
@@ -2706,19 +3344,7 @@
       },
       {
         "year": 2021,
-        "num": 34
-      },
-      {
-        "year": 2021,
-        "num": 32
-      },
-      {
-        "year": 2021,
-        "num": 26
-      },
-      {
-        "year": 2020,
-        "num": 49
+        "num": 29
       },
       {
         "year": 2020,
@@ -2731,10 +3357,6 @@
       {
         "year": 2020,
         "num": 45
-      },
-      {
-        "year": 2020,
-        "num": 43
       },
       {
         "year": 2020,
@@ -2746,11 +3368,7 @@
       },
       {
         "year": 2020,
-        "num": 37
-      },
-      {
-        "year": 2020,
-        "num": 34
+        "num": 33
       },
       {
         "year": 2020,
@@ -2761,28 +3379,8 @@
         "num": 29
       },
       {
-        "year": 2020,
-        "num": 27
-      },
-      {
-        "year": 2020,
-        "num": 26
-      },
-      {
         "year": 2019,
-        "num": 48
-      },
-      {
-        "year": 2019,
-        "num": 46
-      },
-      {
-        "year": 2019,
-        "num": 44
-      },
-      {
-        "year": 2019,
-        "num": 42
+        "num": 50
       },
       {
         "year": 2019,
@@ -2790,27 +3388,7 @@
       },
       {
         "year": 2019,
-        "num": 38
-      },
-      {
-        "year": 2019,
         "num": 36
-      },
-      {
-        "year": 2019,
-        "num": 35
-      },
-      {
-        "year": 2019,
-        "num": 32
-      },
-      {
-        "year": 2019,
-        "num": 26
-      },
-      {
-        "year": 2018,
-        "num": 50
       },
       {
         "year": 2018,
@@ -2822,35 +3400,15 @@
       },
       {
         "year": 2018,
-        "num": 42
-      },
-      {
-        "year": 2018,
         "num": 36
-      },
-      {
-        "year": 2018,
-        "num": 32
-      },
-      {
-        "year": 2018,
-        "num": 31
       },
       {
         "year": 2018,
         "num": 30
       },
       {
-        "year": 2018,
-        "num": 28
-      },
-      {
         "year": 2017,
-        "num": 50
-      },
-      {
-        "year": 2017,
-        "num": 45
+        "num": 44
       },
       {
         "year": 2017,
@@ -2862,14 +3420,6 @@
       },
       {
         "year": 2017,
-        "num": 38
-      },
-      {
-        "year": 2017,
-        "num": 37
-      },
-      {
-        "year": 2017,
         "num": 36
       },
       {
@@ -2881,24 +3431,8 @@
         "num": 34
       },
       {
-        "year": 2017,
-        "num": 33
-      },
-      {
-        "year": 2017,
-        "num": 28
-      },
-      {
-        "year": 2016,
-        "num": 49
-      },
-      {
         "year": 2016,
         "num": 48
-      },
-      {
-        "year": 2016,
-        "num": 47
       },
       {
         "year": 2016,
@@ -2906,15 +3440,7 @@
       },
       {
         "year": 2016,
-        "num": 39
-      },
-      {
-        "year": 2016,
-        "num": 36
-      },
-      {
-        "year": 2016,
-        "num": 34
+        "num": 38
       },
       {
         "year": 2016,
@@ -2929,66 +3455,28 @@
         "num": 29
       },
       {
-        "year": 2016,
-        "num": 28
-      },
-      {
-        "year": 2016,
-        "num": 26
-      },
-      {
-        "year": 2015,
-        "num": 50
-      },
-      {
-        "year": 2015,
-        "num": 48
-      },
-      {
-        "year": 2015,
-        "num": 47
-      },
-      {
-        "year": 2015,
-        "num": 46
-      },
-      {
-        "year": 2015,
-        "num": 45
-      },
-      {
         "year": 2015,
         "num": 37
       },
       {
         "year": 2015,
         "num": 36
-      },
-      {
-        "year": 2015,
-        "num": 35
-      },
-      {
-        "year": 2015,
-        "num": 29
       },
       {
         "year": 2015,
         "num": 28
       }
     ],
-    "core_concept": "기출문제 중 기존 세부 개념으로 정의되지 않은 기타 문항들입니다.",
-    "features": "기타 분류된 문제 리스트를 검토하여 누락된 개념이나 특이 문제 유형을 점검합니다.",
-    "scope": "기타",
+    "core_concept": "기출문제 중 가이드라인 세부 중단원에 포함되지 않는 복합/기타 문항들입니다.",
+    "features": "기타 분류 문제를 검토하여 변형 기출을 대비하세요.",
+    "scope": "기타 영역",
     "rep_question": "50. 다음 표는 어떤 프로젝트를 수행하는데 필요한\n작업, 작업 수행기간, 작업들 간의 종속 관계를\n나타낸 것이다. 프로젝트 전체 일정이 지연되지\n않고 원래 일정대로 종료되어야 한다면 T6 작업\n의 허용 가능한 최대 지연 시간(Slack Time)은?\n작업 작업 수행 기간(일) 종속 관계\nT1 4 -\nT2 7 T1\nT3 9 T1\nT4 6 T2\nT5 11 T2, T3\nT6 8 T3\nT7 10 T4, T5\nT8 6 T6, T7\n① 8일 ② 11일\n③ 13일 ④ 15일\n- 11\n1 -",
     "rep_year": 2026,
     "rep_num": 50
   }
 ];
-
     let currentCategory = '전체';
 
-    // 초기 로딩 렌더러
     function renderTopics() {
         const container = document.getElementById('accordion-container');
         container.innerHTML = '';
@@ -3005,7 +3493,6 @@
             accItem.className = 'accordion-item';
             accItem.id = `accordion-${idx}`;
 
-            // 연도별 뱃지 버튼 빌드
             let yearButtonsHtml = '';
             item.questions.forEach(q => {
                 yearButtonsHtml += `<button class="year-btn q-btn-${q.year}-${q.num}" onclick="openQuestion('${q.year}', '${q.num}', ${idx}, this)">
@@ -3017,24 +3504,24 @@
                 <button class="accordion-trigger" onclick="toggleAccordion(${idx})">
                     <div class="card-header-row">
                         <div class="card-title-group">
-                            <span class="rank-badge">RANK ${String(idx + 1).padStart(2, '0')}</span>
+                            <span class="rank-badge">${item.concept.split('.')[0]}</span>
                             <span class="concept-title">${item.concept}</span>
-                            <span class="category-tag">${item.category}</span>
+                            <span class="category-tag">${item.category.split(' ')[1] || item.category}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.8rem;">
-                            <span class="freq-count-badge">총 ${item.count}회 기출</span>
+                            <span class="freq-count-badge">매핑 문항 ${item.count}개</span>
                             <span class="arrow">▼</span>
                         </div>
                     </div>
                     <div class="card-meta-grid">
-                        <div class="meta-label">출제 범위</div>
+                        <div class="meta-label">공식 영역</div>
                         <div class="meta-value accent">${item.scope}</div>
                         <div class="meta-label">핵심 개념</div>
                         <div class="meta-value" style="font-weight: 500; color: #ffffff;">${item.core_concept}</div>
                         <div class="meta-label">출제 특징</div>
                         <div class="meta-value">${item.features}</div>
-                        <div class="meta-label">기출 연도</div>
-                        <div class="meta-value">${item.years.join(', ')}년</div>
+                        <div class="meta-label">출제 연도</div>
+                        <div class="meta-value">${item.years.length > 0 ? item.years.join(', ') + '년' : '출제 이력 없음'}</div>
                     </div>
                 </button>
                 <div class="accordion-content" style="max-height: 0px;">
@@ -3046,7 +3533,6 @@
                                 <div class="memo-date" id="memo-date-${idx}">최근 수정일시 없음</div>
                             </div>
                             
-                            <!-- 조회 모드 -->
                             <div id="memo-view-mode-${idx}">
                                 <div class="memo-content-box" id="memo-display-${idx}"></div>
                                 <div class="memo-btn-group" style="margin-top: 0.5rem;">
@@ -3055,9 +3541,8 @@
                                 </div>
                             </div>
                             
-                            <!-- 편집 모드 -->
                             <div id="memo-edit-mode-${idx}" style="display: none;">
-                                <textarea class="memo-textarea" id="memo-input-${idx}" placeholder="이 개념에 대해 암기해야 할 사항이나 팁을 기록해보세요..."></textarea>
+                                <textarea class="memo-textarea" id="memo-input-${idx}" placeholder="이 단원에 대해 암기해야 할 사항이나 팁을 기록해보세요..."></textarea>
                                 <div class="memo-btn-group" style="margin-top: 0.5rem;">
                                     <button class="memo-btn save" onclick="saveMemo(${idx}, '${item.concept}')">저장</button>
                                     <button class="memo-btn" onclick="cancelMemoEdit(${idx})">취소</button>
@@ -3065,9 +3550,9 @@
                             </div>
                         </div>
 
-                        <div class="section-title">출제 기출문제 선택 (클릭 시 하단에 문제 전환)</div>
+                        <div class="section-title">해당 범위 기출문제 선택 (클릭 시 하단에 문제 전환)</div>
                         <div class="year-grid">
-                            ${yearButtonsHtml}
+                            ${yearButtonsHtml || '<span class="memo-placeholder">이 중단원에 직접 매핑된 기출문제가 캐시 DB에 존재하지 않습니다.</span>'}
                         </div>
                         
                         <div class="inline-question-viewer" id="viewer-${idx}" style="display: none;">
@@ -3092,7 +3577,6 @@
         });
     }
 
-    // 이미지 파일 로드 실패 시 컨테이너를 가리는 폴백 함수
     function hideImageContainer(idx) {
         const container = document.getElementById(`viewer-img-container-${idx}`);
         if (container) {
@@ -3100,18 +3584,13 @@
         }
     }
 
-    // ----------------------------------------------------
-    // [하이브리드 메모 보존 아키텍처 로직]
-    // ----------------------------------------------------
     let isServerConnected = false;
     let serverMemos = {};
     const API_URL = 'http://127.0.0.1:5000/api/se/memos';
 
-    // 1. 메모 로딩 엔트리포인트 (페이지 로드 시 호출)
     async function initMemos() {
         const badge = document.getElementById('storage-badge');
         try {
-            // CORS 및 OPTIONS 대응용 사전 검사 겸 GET 호출
             const response = await fetch(API_URL, {
                 method: 'GET',
                 mode: 'cors'
@@ -3120,7 +3599,6 @@
                 serverMemos = await response.json();
                 isServerConnected = true;
                 
-                // 배지 상태 업데이트: 파일 저장 활성화
                 badge.className = 'badge accent';
                 badge.style.background = 'rgba(16, 185, 129, 0.12)';
                 badge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
@@ -3128,14 +3606,12 @@
                 badge.innerHTML = '● 파일 저장 모드 (Active)';
                 badge.title = '공부 코멘트가 e:\jolly-carson\data\se_memos.json 파일에 영구 보존됩니다.';
                 
-                // 로컬스토리지에 있는 데이터가 있으면 마이그레이션 안내
                 checkMigration();
             } else {
                 throw new Error("API response error");
             }
         } catch (e) {
             isServerConnected = false;
-            // 배지 상태 업데이트: 로컬스토리지 백업 모드
             badge.className = 'badge';
             badge.style.background = 'rgba(239, 68, 68, 0.12)';
             badge.style.borderColor = 'rgba(239, 68, 68, 0.25)';
@@ -3144,13 +3620,11 @@
             badge.title = 'Flask 서버가 꺼진 상태입니다. 복구를 위해 임시로 브라우저 LocalStorage에 저장됩니다.';
         }
         
-        // 각 개념별 메모 로드 수행
         topicMapping.forEach((item, idx) => {
             loadMemo(idx, item.concept);
         });
     }
 
-    // 2. 브라우저 임시 저장 데이터를 서버 파일로 동기화할 수 있는지 검사
     function checkMigration() {
         const localKeys = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -3170,7 +3644,6 @@
         }
     }
 
-    // 3. 브라우저 임시 데이터를 파일로 마이그레이션 실행
     async function migrateMemos() {
         const localKeys = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -3182,7 +3655,7 @@
         
         if (localKeys.length === 0) return;
         
-        if (!confirm(`브라우저에 임시 저장된 공부 노트 ${localKeys.length}개를 서버 파일로 통합하시겠습니까? (이전 완료 시 브라우저 내의 데이터는 정리됩니다.)`)) {
+        if (!confirm(`브라우저에 임시 저장된 공부 노트 ${localKeys.length}개를 서버 파일로 통합하시겠습니까?`)) {
             return;
         }
         
@@ -3207,7 +3680,6 @@
                     });
                     
                     if (response.ok) {
-                        // 성공적으로 이관 완료 시 로컬스토리지 정리 및 메모 객체 반영
                         localStorage.removeItem(key);
                         serverMemos[conceptName] = {
                             text: data.text,
@@ -3223,12 +3695,9 @@
         
         alert(`공부 코멘트 ${successCount}개가 성공적으로 서버 파일(se_memos.json)에 병합되었습니다.`);
         banner.style.display = 'none';
-        
-        // 메모 리스트 다시 로드
         renderTopics();
     }
 
-    // 4. 개별 메모 로더
     function loadMemo(idx, conceptName) {
         const displayEl = document.getElementById(`memo-display-${idx}`);
         const dateEl = document.getElementById(`memo-date-${idx}`);
@@ -3238,12 +3707,10 @@
         let memoData = null;
         
         if (isServerConnected) {
-            // 서버 모드: 서버에서 로드한 메모 데이터 확인
             if (serverMemos && serverMemos[conceptName]) {
                 memoData = serverMemos[conceptName];
             }
         } else {
-            // 로컬스토리지 백업 모드
             const key = `se_memo_${conceptName}`;
             const dataStr = localStorage.getItem(key);
             if (dataStr) {
@@ -3271,12 +3738,10 @@
         }
     }
 
-    // 5. 메모 편집 폼 열기
     function enableMemoEdit(idx) {
         document.getElementById(`memo-view-mode-${idx}`).style.display = 'none';
         document.getElementById(`memo-edit-mode-${idx}`).style.display = 'block';
         
-        // 아코디언 높이 동적 리사이징
         const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
         content.style.maxHeight = 'none';
         setTimeout(() => {
@@ -3284,12 +3749,10 @@
         }, 50);
     }
 
-    // 6. 메모 편집 취소
     function cancelMemoEdit(idx) {
         document.getElementById(`memo-view-mode-${idx}`).style.display = 'block';
         document.getElementById(`memo-edit-mode-${idx}`).style.display = 'none';
         
-        // 아코디언 높이 동적 리사이징
         const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
         content.style.maxHeight = 'none';
         setTimeout(() => {
@@ -3297,7 +3760,6 @@
         }, 50);
     }
 
-    // 7. 메모 저장 (서버 파일 또는 로컬스토리지)
     async function saveMemo(idx, conceptName) {
         const text = document.getElementById(`memo-input-${idx}`).value.trim();
         if (!text) {
@@ -3337,11 +3799,9 @@
                 }
             } catch (err) {
                 alert(`[오류] 서버 파일 저장 실패: ${err.message}. 임시로 브라우저에 저장합니다.`);
-                // 폴백 저장
                 localStorage.setItem(`se_memo_${conceptName}`, JSON.stringify({ text, updatedAt: formattedDate }));
             }
         } else {
-            // 오프라인: 로컬스토리지 저장
             localStorage.setItem(`se_memo_${conceptName}`, JSON.stringify({ text, updatedAt: formattedDate }));
         }
         
@@ -3349,7 +3809,6 @@
         document.getElementById(`memo-edit-mode-${idx}`).style.display = 'none';
         loadMemo(idx, conceptName);
         
-        // 아코디언 높이 동적 리사이징
         const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
         content.style.maxHeight = 'none';
         setTimeout(() => {
@@ -3358,7 +3817,6 @@
         }, 50);
     }
 
-    // 8. 메모 삭제
     async function deleteMemo(idx, conceptName) {
         if (!confirm("작성하신 공부 노트를 완전히 삭제하시겠습니까?")) {
             return;
@@ -3388,14 +3846,12 @@
                 return;
             }
         } else {
-            // 오프라인: 로컬스토리지 삭제
             const key = `se_memo_${conceptName}`;
             localStorage.removeItem(key);
         }
         
         loadMemo(idx, conceptName);
         
-        // 아코디언 높이 동적 리사이징
         const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
         content.style.maxHeight = 'none';
         setTimeout(() => {
@@ -3404,11 +3860,10 @@
         }, 50);
     }
 
-    // 카테고리 필터 스위칭
     function filterCategory(category) {
         currentCategory = category;
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            if (btn.textContent === category) {
+            if (btn.textContent === category || (category === '전체' && btn.textContent === '전체') || (category.includes('요구') && btn.textContent.includes('요구')) || (category.includes('구현') && btn.textContent.includes('구현')) || (category.includes('유지') && btn.textContent.includes('유지')) || (category.includes('개발') && btn.textContent.includes('개발')) || (category.includes('품질') && btn.textContent.includes('품질'))) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
@@ -3417,13 +3872,11 @@
         renderTopics();
     }
 
-    // 아코디언 열고 닫기
     function toggleAccordion(index) {
         const item = document.getElementById(`accordion-${index}`);
         const content = item.querySelector('.accordion-content');
         const isActive = item.classList.contains('active');
 
-        // 다른 것 전부 닫기
         document.querySelectorAll('.accordion-item').forEach((el, i) => {
             if (i !== index) {
                 el.classList.remove('active');
@@ -3457,7 +3910,6 @@
                 
                 viewer.style.display = 'flex';
                 
-                // 기존의 active-btn 해제 후 대표문제 버튼 활성화
                 item.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active-btn'));
                 setTimeout(() => {
                     const activeBtn = item.querySelector(`.q-btn-${dataObj.rep_year}-${dataObj.rep_num}`);
@@ -3476,7 +3928,6 @@
         }
     }
 
-    // 인라인 문제 오픈
     function openQuestion(year, num, idx, btnElement) {
         const key = `${year}_${num}`;
         const questionText = examDatabase[key] || "해당 기출문제를 데이터베이스에서 찾을 수 없습니다.";
@@ -3484,10 +3935,8 @@
         const item = document.getElementById(`accordion-${idx}`);
         const content = item.querySelector('.accordion-content');
         
-        // 형제 버튼들의 active 클래스 해제
         item.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active-btn'));
         
-        // 현재 클릭한 버튼 활성화
         if (btnElement) {
             btnElement.classList.add('active-btn');
         }
@@ -3508,7 +3957,6 @@
         
         viewer.style.display = 'flex';
         
-        // 높이 재조정
         content.style.maxHeight = 'none';
         setTimeout(() => {
             const newHeight = content.scrollHeight;
@@ -3516,20 +3964,17 @@
         }, 50);
     }
 
-    // 인라인 문제 닫기
     function closeInlineViewer(idx, event) {
         if (event) event.stopPropagation();
         
         const item = document.getElementById(`accordion-${idx}`);
         const content = item.querySelector('.accordion-content');
         
-        // 버튼 active 클래스 모두 해제
         item.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active-btn'));
         
         const viewer = document.getElementById(`viewer-${idx}`);
         viewer.style.display = 'none';
         
-        // 높이 재조정
         content.style.maxHeight = 'none';
         setTimeout(() => {
             const newHeight = content.scrollHeight;
@@ -3537,7 +3982,6 @@
         }, 50);
     }
 
-    // [세부 토픽 목록 모달 열기]
     window.openTopicListModal = function() {
         const modal = document.getElementById('topic-modal');
         const listEl = document.getElementById('modal-topic-list');
@@ -3566,8 +4010,8 @@
             };
             
             li.innerHTML = `
-                <span class="modal-topic-name">${idx + 1}. ${item.concept}</span>
-                <span class="modal-topic-count">${item.count}회 출제</span>
+                <span class="modal-topic-name">${item.concept}</span>
+                <span class="modal-topic-count">${item.count}개 문항 매핑</span>
             `;
             listEl.appendChild(li);
         });
@@ -3578,7 +4022,6 @@
         }, 10);
     };
 
-    // [세부 토픽 목록 모달 닫기]
     window.closeTopicModal = function(event) {
         const modal = document.getElementById('topic-modal');
         modal.classList.remove('show');
@@ -3587,21 +4030,18 @@
         }, 250);
     };
 
-    // 초기화
     renderTopics();
     initMemos();
 </script>
 
-<!-- 세부 토픽 목록 팝업 모달 -->
 <div id="topic-modal" class="modal-overlay" onclick="closeTopicModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
         <div class="modal-card-header">
-            <h2 class="modal-card-title">🔍 검출된 빈출 세부 토픽 목록</h2>
+            <h2 class="modal-card-title">🔍 검출된 공식 중단원 목록</h2>
             <button class="modal-close-x" onclick="closeTopicModal()">✕</button>
         </div>
         <div class="modal-card-body">
             <ul id="modal-topic-list" class="modal-topic-list">
-                <!-- 자바스크립트로 동적 로딩 -->
             </ul>
         </div>
     </div>
