@@ -480,6 +480,116 @@
             border-color: rgba(255, 255, 255, 0.15);
             color: var(--text-primary) !important;
         }
+
+        /* [검출 토픽 팝업 모달 스타일] */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(8, 11, 19, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.show .modal-card {
+            transform: scale(1);
+        }
+        .modal-card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+        }
+        .modal-close-x {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close-x:hover {
+            color: #ffffff;
+        }
+        .modal-card-body {
+            padding: 1rem 1.5rem 1.5rem 1.5rem;
+            overflow-y: auto;
+        }
+        .modal-topic-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .modal-topic-item {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+        .modal-topic-item:hover {
+            background: rgba(139, 92, 246, 0.08);
+            transform: translateX(4px);
+        }
+        .modal-topic-name {
+            font-size: 0.92rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .modal-topic-count {
+            background: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 50px;
+            white-space: nowrap;
+        }
+        span.badge[onclick]:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: var(--text-primary) !important;
+        }
     </style>
 </head>
 <body>
@@ -500,7 +610,9 @@
         <div class="meta-badges">
             <span class="badge">기출 범위: 2015년 ~ 2026년</span>
             <span class="badge accent">총 분석 데이터: 300 문항</span>
-            <span class="badge">검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개</span>
+            <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 검출된 세부 토픽 목록 팝업 열기">
+                검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
+            </span>
             <span id="storage-badge" class="badge" style="cursor: help;">저장소 로딩 중...</span>
         </div>
     </header>
@@ -2677,8 +2789,73 @@
         }, 50);
     }
 
+    // [세부 토픽 목록 모달 열기]
+    window.openTopicListModal = function() {
+        const modal = document.getElementById('topic-modal');
+        const listEl = document.getElementById('modal-topic-list');
+        listEl.innerHTML = '';
+        
+        let filtered = topicMapping;
+        if (currentCategory !== '전체') {
+            filtered = topicMapping.filter(item => item.category === currentCategory);
+        }
+        
+        filtered.forEach((item, idx) => {
+            const li = document.createElement('li');
+            li.className = 'modal-topic-item';
+            li.style.cursor = 'pointer';
+            li.onclick = () => {
+                closeTopicModal();
+                setTimeout(() => {
+                    const itemEl = document.getElementById(`accordion-${idx}`);
+                    if (itemEl && !itemEl.classList.contains('active')) {
+                        toggleAccordion(idx);
+                    }
+                    if (itemEl) {
+                        itemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 200);
+            };
+            
+            li.innerHTML = `
+                <span class="modal-topic-name">${idx + 1}. ${item.concept}</span>
+                <span class="modal-topic-count">${item.count}회 출제</span>
+            `;
+            listEl.appendChild(li);
+        });
+        
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+    };
+
+    // [세부 토픽 목록 모달 닫기]
+    window.closeTopicModal = function(event) {
+        const modal = document.getElementById('topic-modal');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 250);
+    };
+
     renderTopics();
     initMemos();
 </script>
+
+<!-- 세부 토픽 목록 팝업 모달 -->
+<div id="topic-modal" class="modal-overlay" onclick="closeTopicModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-card-header">
+            <h2 class="modal-card-title">🔍 검출된 빈출 세부 토픽 목록</h2>
+            <button class="modal-close-x" onclick="closeTopicModal()">✕</button>
+        </div>
+        <div class="modal-card-body">
+            <ul id="modal-topic-list" class="modal-topic-list">
+                <!-- 자바스크립트로 동적 로딩 -->
+            </ul>
+        </div>
+    </div>
+</div>
 </body>
 </html>
