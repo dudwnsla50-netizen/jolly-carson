@@ -1077,11 +1077,7 @@ def build_html_content(question_db, concept_map):
         
         badges.forEach(badge => {
             const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
-            if (isLocal) {
-                badge.href = target + '?v=20260613';
-            } else {
-                badge.href = '/reports/' + target + '?v=20260613';
-            }
+            badge.href = target + '?v=20260613';
         });
 
         // 사용자의 현재 보고 있는 과목에 매칭되는 대시보드로 즉각 리다이렉트
@@ -1098,11 +1094,7 @@ def build_html_content(question_db, concept_map):
         });
 
         if (targetRedirect) {
-            if (isLocal) {
-                window.location.href = targetRedirect + '?v=20260613';
-            } else {
-                window.location.href = '/reports/' + targetRedirect + '?v=20260613';
-            }
+            window.location.href = targetRedirect + '?v=20260613';
         }
     }
 
@@ -1124,11 +1116,7 @@ def build_html_content(question_db, concept_map):
         
         badges.forEach(badge => {
             const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
-            if (isLocal) {
-                badge.href = target + '?v=20260613';
-            } else {
-                badge.href = '/reports/' + target + '?v=20260613';
-            }
+            badge.href = target + '?v=20260613';
 
             // 활성화 배지 하이라이트 (현재 페이지 파일명이 target을 포함하는 경우)
             if (currentPath.includes(target)) {
