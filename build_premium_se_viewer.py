@@ -569,6 +569,7 @@ def build_html_content(question_db, concept_map):
         .badge {
             background: var(--border-color);
             border: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
             padding: 0.35rem 0.9rem;
             border-radius: 50px;
             font-size: 0.8rem;
@@ -868,6 +869,8 @@ def build_html_content(question_db, concept_map):
         }
         /* 뱃지 호버 효과 */
         a.badge {
+            color: var(--text-secondary);
+            text-decoration: none;
             transition: all 0.2s ease;
         }
         a.badge:hover {

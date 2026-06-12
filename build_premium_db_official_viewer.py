@@ -484,6 +484,7 @@ def build_html_content(question_db, concept_map):
         .badge {
             background: var(--border-color);
             border: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
             padding: 0.35rem 0.9rem;
             border-radius: 50px;
             font-size: 0.8rem;
