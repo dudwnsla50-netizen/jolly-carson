@@ -86,18 +86,19 @@ async function fetchStats() {
         else if (rate < 60) scoreColorClass = "low-score";
       }
 
-      // card-bottom 내 버튼 분기 렌더링 (소프트웨어공학의 경우 두 종류 분석 대시보드를 제공)
+      // card-bottom 내 버튼 분기 렌더링 (모든 5대 과목에 대해 빈출순/공식범위순 대시보드를 제공)
       let buttonsHtml = "";
-      if (code === "SE") {
+      if (code === "SE" || code === "PM" || code === "DB" || code === "SA" || code === "SC") {
+        const lowerCode = code.toLowerCase();
         buttonsHtml = `
           <button class="btn btn-primary btn-block" onclick="startQuiz('${code}')" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
             <i data-lucide="play-circle"></i> 기출문제 퀴즈 풀기
           </button>
           <div style="display: flex; gap: 8px; width: 100%;">
-            <a class="btn btn-secondary btn-block" href="/reports/se_frequent_concepts.html" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem; padding: 10px 4px; flex: 1;">
+            <a class="btn btn-secondary btn-block" href="/reports/${lowerCode}_frequent_concepts.html" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem; padding: 10px 4px; flex: 1;">
               <i data-lucide="bar-chart-2"></i> 빈출순
             </a>
-            <a class="btn btn-secondary btn-block" href="/reports/se_official_scopes.html" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem; padding: 10px 4px; flex: 1; margin-left: 0;">
+            <a class="btn btn-secondary btn-block" href="/reports/${lowerCode}_official_scopes.html" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem; padding: 10px 4px; flex: 1; margin-left: 0;">
               <i data-lucide="book-open"></i> 공식범위순
             </a>
           </div>

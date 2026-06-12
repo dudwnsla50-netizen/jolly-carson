@@ -359,118 +359,6 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 3px;
         }
-
-        .memo-section {
-            background: rgba(139, 92, 246, 0.02);
-            border: 1px dashed rgba(139, 92, 246, 0.15);
-            border-radius: 8px;
-            padding: 1.2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .memo-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
-            padding-bottom: 0.4rem;
-        }
-
-        .memo-title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #c084fc;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .memo-date {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .memo-content-box {
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: #d1d5db;
-            white-space: pre-wrap;
-            min-height: 24px;
-        }
-
-        .memo-placeholder {
-            color: var(--text-muted);
-            font-style: italic;
-            font-size: 0.85rem;
-        }
-
-        .memo-textarea {
-            width: 100%;
-            min-height: 150px;
-            background: #090d16;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            color: var(--text-primary);
-            padding: 0.8rem 1rem;
-            font-family: inherit;
-            font-size: 0.92rem;
-            line-height: 1.6;
-            resize: vertical;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .memo-textarea:focus {
-            border-color: var(--accent-violet);
-            box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
-        }
-
-        .memo-btn-group {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-        }
-
-        .memo-btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 0.3rem 0.7rem;
-            border-radius: 4px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .memo-btn:hover {
-            color: #ffffff;
-            border-color: var(--text-muted);
-        }
-
-        .memo-btn.save {
-            background: var(--accent-gradient);
-            border: none;
-            color: #ffffff;
-        }
-
-        .memo-btn.save:hover {
-            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
-        }
-
-        .memo-btn.delete {
-            color: #f87171;
-            border-color: rgba(248, 113, 113, 0.2);
-        }
-
-        .memo-btn.delete:hover {
-            background: rgba(248, 113, 113, 0.05);
-            border-color: #f87171;
-        }
-
         /* 뱃지 호버 효과 */
         a.badge {
             transition: all 0.2s ease;
@@ -675,16 +563,6 @@
                 font-size: 0.85rem;
                 max-height: 300px;
             }
-
-            .memo-section {
-                padding: 0.9rem;
-            }
-
-            .memo-textarea {
-                font-size: 0.85rem;
-                min-height: 100px;
-            }
-
             .modal-card {
                 width: 95%;
                 max-height: 90%;
@@ -710,11 +588,115 @@
                 font-size: 0.85rem;
             }
         }
+    
+        /* [설계 의도] 시안A: 모드 토글 스위치 및 최적화된 내비게이션 스타일 */
+        .navigation-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+        .mode-switch-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.5rem 1.2rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+        }
+        .mode-label {
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: color 0.25s ease;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.08);
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: #ffffff;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        input:checked + .slider {
+            background: var(--accent-gradient);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+        
+        .badge.accent {
+            background: rgba(139, 92, 246, 0.12) !important;
+            border-color: rgba(139, 92, 246, 0.25) !important;
+            color: #ffffff !important;
+        }
+
     </style>
 </head>
 <body>
 
+
+
+<div class="container">
+    <header>
+        <h1>데이터베이스 기출 정밀 분석 대시보드</h1>
+        <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
+        
+                <div class="navigation-container">
+            <div class="mode-switch-wrapper">
+                <span class="mode-label" id="label-freq">🔥 빈출 개념순</span>
+                <label class="switch">
+                    <input type="checkbox" id="dashboard-mode-toggle" onchange="toggleDashboardMode(this)">
+                    <span class="slider round"></span>
+                </label>
+                <span class="mode-label" id="label-official">📋 공식 범위순</span>
+            </div>
+            
+            <div class="meta-badges" id="dynamic-nav-badges">
+                <a href="#" class="badge home-badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
+                <a href="se_frequent_concepts.html" class="badge subject-badge" data-freq="se_frequent_concepts.html" data-official="se_official_scopes.html" style="text-decoration: none;">소프트웨어공학</a>
+                <a href="pm_frequent_concepts.html" class="badge subject-badge" data-freq="pm_frequent_concepts.html" data-official="pm_official_scopes.html" style="text-decoration: none;">프로젝트 관리</a>
+                <a href="db_frequent_concepts.html" class="badge subject-badge" data-freq="db_frequent_concepts.html" data-official="db_official_scopes.html" style="text-decoration: none;">데이터베이스</a>
+                <a href="sa_frequent_concepts.html" class="badge subject-badge" data-freq="sa_frequent_concepts.html" data-official="sa_official_scopes.html" style="text-decoration: none;">시스템 아키텍처</a>
+                <a href="sc_frequent_concepts.html" class="badge subject-badge" data-freq="sc_frequent_concepts.html" data-official="sc_official_scopes.html" style="text-decoration: none;">보안</a>
+            </div>
+        </div>
+        
+        <div class="meta-badges">
+            <span class="badge">기출 범위: 2015년 ~ 2026년</span>
+            <span class="badge accent">총 분석 데이터: 300 문항</span>
+            <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 검출된 세부 토픽 목록 팝업 열기">
+                검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
+            </span>
+            </div>
+    </header>
+
+    <div id="accordion-container" class="accordion-list"></div>
+
+
+    
 <script>
+
     // [설계 의도] 로컬 오프라인 실행(file:///)과 웹 서버 호스팅(http://) 환경 양쪽 모두에서 퀴즈 대시보드 홈으로 매끄럽게 이동하도록 분기 처리합니다.
     function goToHome(event) {
         event.preventDefault();
@@ -724,82 +706,101 @@
             window.location.href = '/';
         }
     }
-</script>
 
-<div class="container">
-    <header>
-        <h1>데이터베이스 기출 정밀 분석 대시보드</h1>
-        <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
+    // [설계 의도] 학습 모드 변경에 따라 과목 뱃지의 링크 목적지를 실시간 동적 갱신하고 즉시 이동 처리합니다.
+    function toggleDashboardMode(toggleEl) {
+        const isOfficial = toggleEl.checked;
         
-        <div class="meta-badges" style="margin-bottom: 1.5rem;">
-            <a href="#" class="badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
-            <a href="se_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">소프트웨어공학</a>
-            <a href="sa_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">시스템 아키텍처</a>
-            <a href="db_frequent_concepts.html" class="badge accent" style="text-decoration: none;">데이터베이스</a>
-            <a href="pm_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">프로젝트 관리</a>
-            <a href="sc_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">보안</a>
-        </div>
+        // 라벨 색상 하이라이트 전환
+        document.getElementById('label-freq').style.color = isOfficial ? 'var(--text-secondary)' : '#ffffff';
+        document.getElementById('label-official').style.color = isOfficial ? '#ffffff' : 'var(--text-secondary)';
         
-        <div class="meta-badges">
-            <span class="badge">기출 범위: 2015년 ~ 2026년</span>
-            <span class="badge accent">총 분석 데이터: 300 문항</span>
-            <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 검출된 세부 토픽 목록 팝업 열기">
-                검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
-            </span>
-            <span id="storage-badge" class="badge" style="cursor: help;">저장소 로딩 중...</span>
-        </div>
-    </header>
+        // 과목별 이동 경로 실시간 매핑
+        const badges = document.querySelectorAll('.subject-badge');
+        const isLocal = window.location.protocol === 'file:';
+        
+        badges.forEach(badge => {
+            const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
+            if (isLocal) {
+                badge.href = target;
+            } else {
+                badge.href = '/reports/' + target;
+            }
+        });
 
-    <div id="migration-banner" style="display: none; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.3); padding: 1.2rem; border-radius: 10px; margin-bottom: 2rem; text-align: center; backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        <div style="font-size: 0.95rem; font-weight: 600; color: #ffffff; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-            <span>💡 이전 브라우저(LocalStorage)에 작성된 공부 코멘트 <span id="migration-count" style="color: #c084fc; font-weight: 700;">0</span>개가 발견되었습니다.</span>
-        </div>
-        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.8rem;">
-            이 코멘트들을 서버 파일 저장소(`data/db_memos.json`)로 안전하게 가져와서 영구 보존할 수 있습니다.
-        </div>
-        <button onclick="migrateMemos()" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.4rem 1.2rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);">
-            파일 서버로 코멘트 동기화하기
-        </button>
-    </div>
+        // 사용자의 현재 보고 있는 과목에 매칭되는 대시보드로 즉각 리다이렉트
+        const currentPath = window.location.pathname;
+        let targetRedirect = "";
+        badges.forEach(badge => {
+            const freqPath = badge.getAttribute('data-freq');
+            const officialPath = badge.getAttribute('data-official');
+            if (currentPath.includes(freqPath) && isOfficial) {
+                targetRedirect = officialPath;
+            } else if (currentPath.includes(officialPath) && !isOfficial) {
+                targetRedirect = freqPath;
+            }
+        });
 
-    <div class="filter-section">
-        <button class="filter-btn active" onclick="filterCategory('전체')">전체</button>
-        <button class="filter-btn" onclick="filterCategory('DB개념 및 설계')">DB개념 및 설계</button>
-        <button class="filter-btn" onclick="filterCategory('DB언어')">DB언어</button>
-        <button class="filter-btn" onclick="filterCategory('DBMS 기술')">DBMS 기술</button>
-        <button class="filter-btn" onclick="filterCategory('DB응용')">DB응용</button>
-        <button class="filter-btn" onclick="filterCategory('빅데이터 및 AI데이터')">빅데이터 및 AI데이터</button>
-    </div>
+        if (targetRedirect) {
+            if (isLocal) {
+                window.location.href = targetRedirect;
+            } else {
+                window.location.href = '/reports/' + targetRedirect;
+            }
+        }
+    }
 
-    <div class="accordion-list" id="accordion-container">
-        <!-- Javascript will inject accordion elements here -->
-    </div>
-</div>
+    // [설계 의도] 페이지 로드 시 현재 페이지 파일명에 매핑되는 모드 스위치 상태 및 배지 컬러를 활성화합니다.
+    function initDashboardNav() {
+        const toggle = document.getElementById('dashboard-mode-toggle');
+        const currentPath = window.location.pathname;
+        const isOfficialPage = currentPath.includes('official_scopes');
+        
+        if (toggle) {
+            toggle.checked = isOfficialPage;
+            // 라벨 색상 하이라이트 초기화
+            document.getElementById('label-freq').style.color = isOfficialPage ? 'var(--text-secondary)' : '#ffffff';
+            document.getElementById('label-official').style.color = isOfficialPage ? '#ffffff' : 'var(--text-secondary)';
+        }
 
-<script>
+        const badges = document.querySelectorAll('.subject-badge');
+        const isLocal = window.location.protocol === 'file:';
+        
+        badges.forEach(badge => {
+            const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
+            if (isLocal) {
+                badge.href = target;
+            } else {
+                badge.href = '/reports/' + target;
+            }
+
+            // 활성화 배지 하이라이트 (현재 페이지 파일명이 target을 포함하는 경우)
+            if (currentPath.includes(target)) {
+                badge.classList.add('accent');
+                badge.style.color = '#ffffff';
+                badge.style.background = 'rgba(139, 92, 246, 0.12)';
+                badge.style.borderColor = 'rgba(139, 92, 246, 0.25)';
+            } else {
+                badge.classList.remove('accent');
+            }
+        });
+    }
+
+    // DOMContentLoaded 시점에 즉시 내비게이션 초기화 적용
+    document.addEventListener('DOMContentLoaded', initDashboardNav);
+
     const examDatabase = {
-  "2015_51": "51. 다음의 릴레이션 R과 함수 종속을 고려해 보자.\n이 릴레이션을 BCNF로 올바르게 분해한 것은?\n(다음 답항에서 밑줄은 후보키를 의미함.)\nR(A, B, C)\n후보키: (A, B)\n함수종속: (A, B)→C\nC→B\n① R1(A, C), R2(A, B)\n② R1(B, C), R2(B, A)\n③ R1(C, B), R2(C, A)\n④ R1(A, B, C), R2(C, B)",
-  "2015_52": "52. 수퍼타입 개체 A가 서브타입 개체 B와 C로 세분화\n(specialization)된다고 하자. 다음의 벤다이어\n그램과 의미가 동일한 Extended E-R 다이어그램은?\n(단, 수퍼타입과 서브타입을 연결하는 중간 원 안의\n표시 ‘d’는 disjoint를, ‘o’는 overlap을 표현\n하고, 또한 수퍼타입 쪽의 단일선은 partial speci-\nalization을, 이중선은 total specialization을 표현\n한다.)\n① ②\n③ ④\n- 13",
   "2015_53": "53. 다음 스케줄에 대한 설명으로 옳은 것은? (트랜잭션\n연산 앞의 표기는 시간을 시:분:초로 표시한 것임)\n01:00:01 T1 read(x)\n01:00:02 T2 write(x)\n01:00:03 T1 write(x)\n01:00:04 T3 write(x)\n① 충돌 직렬가능과 뷰 직렬가능을 모두 만족하는\n스케줄이다.\n② 충돌 직렬가능은 만족하고 뷰 직렬가능은 만족\n하지 않는 스케줄이다.\n③ 충돌 직렬가능은 만족하지 않고 뷰 직렬가능은\n만족하는 스케줄이다.\n④ 충돌 직렬가능과 뷰 직렬가능을 모두 만족하지\n않는 스케줄이다.",
   "2015_54": "54. 인덱스 튜닝과 관련된 설명으로 가장 거리가 먼\n것은?\n① R.A가 S.B를 참조하는 외래키일 때, S.B에 대한\n인덱스는 R에 대한 삽입 속도를 높여줄 수 있다.\n② 동등(equality) 및 비동등(nonequality) 질의에는\n해시 구조의 인덱스가 유용하다.\n③ 단일 디스크 판독으로 테이블 전체를 읽을 수\n있을 정도의 소형 테이블에 대한 인덱스는 성능\n저하를 일으킬 수도 있다.\n④ 인덱스 사용으로 인해 질의에서 절약되는 시간\n보다 삽입이나 갱신에서 손해보는 시간이 더\n크다면 인덱스를 사용하지 않는 것이 좋다.",
   "2015_55": "55. 연관규칙 탐사와 Apriori 원리에 관련된 설명 중\n잘못된 것은?\n① 지지도란 해당 항목집합을 포함하는 트랜잭션의\n비율을 말한다.\n② 항목집합 {A,B}가 빈발하지 않다면 항목집합\n{A,B,C}도 빈발하지 않다.\n③ 항목집합 {A,B}의 지지도는 항목집합 {A,B,C}의\n지지도 보다 크거나 같다.\n④ 규칙 {A,B}→{C,D}의 신뢰도가 {A,B,C}→D의\n신뢰도보다 크거나 같다.\n3 -",
-  "2015_56": "56. 다음은 데이터베이스 시스템의 3-층 구조(3-tier\narchitecture)에 대한 설명이다. ㉮와 ㉯에 들어갈\n용어로 가장 적합한 것은?\n3-층 구조는 2-층 구조(2-tier architecture)를\n구성하는 클라이언트와 데이터베이스 서버 사\n이에 중간 단계를 하나 더 추가한 것이다. 중간\n단계는 일반적으로 ( ㉮ )라 부르며 ( ㉯ )\n을 처리한다.\n㉮ ㉯\n① 응용 (프로그램) 서버 함수형 프로그램\n② 응용 (프로그램) 서버 비즈니스 로직\n③ 클라우드 (프로그램) 서버 함수형 프로그램\n④ 클라우드 (프로그램) 서버 비즈니스 로직",
-  "2015_57": "57. 다음은 관계 데이터 모델에서의 주요 제약조건\n네 가지를 나타낸다. 릴레이션에 대해 투플 삽입\n연산이 발생한다면, 다음 중 어떤 제약조건들이\n위배될 수 있는지 바르게 나열한 것은?\n가. 도메인 제약조건(domain constraint)\n나. 키 제약조건(key constraint)\n다. 엔티티 무결성 제약조건(entity integrity\nconstraint)\n라. 참조 무결성 제약조건(referential integrity\nconstraint)\n① 가, 나, 라\n② 가, 다, 라\n③ 나, 다, 라\n④ 가, 나, 다, 라\n- 14",
   "2015_58": "58. 다음 중 SQL 뷰(view)에 대한 설명으로 적합하지\n않은 것은? (2개 선택)\n① 뷰에 대한 투플의 삽입은 시스템에 의해 거부될\n수 있다.\n② 원본과의 불일치 문제로 인해 뷰 생성 시 GROUP\nBY 절을 사용할 수 없다.\n③ 집계(aggregation)에 의해 생성된 뷰의 경우\n일반적으로 갱신을 허용하지 않는다.\n④ 실체화된 뷰(materialized view)를 생성할 경우\n에는 CREATE VIEW 구문을 사용하고, 그렇지 않은\n뷰를 생성할 경우에는 CREATE TABLE을 사용한다.",
   "2015_59": "59. 낙관적 동시성 제어(optimistic concurrency control)\n에서 각 트랜잭션은 세 가지 단계로 실행되는데,\n그 단계를 순서대로 바르게 나열한 것은?\n① 읽기 단계(read phase) - 검증 단계(validation\nphase) - 쓰기 단계(write phase)\n② 갱신 단계(update phase) - 검증 단계(validation\nphase) - 종료 단계(commit phase)\n③ 갱신 단계(update phase) - 종료 단계(commit\nphase) - 검증 단계(validation phase)\n④ 읽기 단계(read phase) - 쓰기 단계(write phase)\n- 검증 단계(validation phase)",
   "2015_60": "60. 문서 d에서 단어 “감리사”의 TF(term frequency)\n값이 3이라 하고, 문서집합 D에서 단어 “감리사”의\nIDF(inverse document frequency) 값이 0.3010이라\n하자. 그렇다면, 문서집합 D와 문서 d에서 단어\n“감리사”의 TF-IDF 값을 바르게 계산한 것은?\n① 0.1003 (= 0.3010 / 3)\n② 9.9668 (= 3 / 0.3010)\n③ 0.9030 (= 3 × 0.3010)\n④ 1.6459 (= 3 ×  )\n4 -",
-  "2015_61": "61. 다음은 데이터 마이닝 기법 중에서 무엇에 대한\n설명인가?\n연속성을 갖는 변수의 미래 값을 (다른 변수\n값들을 활용하여) 예측하는 방법으로, 일반적\n으로 변수에 대해 선형 혹은 비선형 모델을\n가정한다.\n① 회귀분석(regression analysis)\n② 연속변수분석(continuous variable analysis)\n③ 상관관계분석(correlation analysis)\n④ 다변량분석(multivariate analysis)",
-  "2015_62": "62. 규칙 기반 분류기(rule-based classifier)를\n사용하여 다음의 훈련 집합으로부터 \"(Marital Status\n= Single) → No\"라는 규칙 r을 찾았다. 이 때,\n이 규칙 r의 적용범위 Coverage(r)과 정확성\nAccuracy(r)로 옳은 것은?\nTID Marital Status Taxable Income Class\n1 Single 125K No\n2 Married 100K No\n3 Single 70K No\n4 Married 120K No\n5 Divorced 95K Yes\n6 Married 60K No\n7 Divorced 220K No\n8 Single 85K Yes\n9 Married 75K No\n10 Single 90K Yes\n① Coverage(r) = , Accuracy(r) = \n \n② Coverage(r) = , Accuracy(r) = \n \n③ Coverage(r) =  , Accuracy(r) = \n \n④ Coverage(r) = , Accuracy(r) = \n \n- 15",
   "2015_63": "63. 다음 표는 다차원 데이터 모델에서의 OLAP 연산\n들을 설명한 것이다. 표의 ㉮, ㉯에 들어갈 연산\n들이 바르게 짝지어진 것은?\n연산 이름 연산 설명\n하나 혹은 그 이상의 축을 중심으로\n㉮\n셀들을 선택\n속성 값의 범위를 명시하여 셀들의\n㉯\n부분집합(부분큐브)을 선택\n롤-업 작은 단위(예: day)에서 큰 단위\n(roll-up) (예: month, year)로 집계 수행\n드릴-다운 큰 단위(예: year)에서 작은 단위\n(drill- down) (예: month, day)로 집계 수행\n㉮ ㉯\n① 다이싱(dicing) 슬라이싱(slicing)\n② 슬라이싱 다이싱\n③ 피벗팅(pivoting) 다이싱\n④ 다이싱 피벗팅",
   "2015_64": "64. 버클리 대학의 Eric Brewer 교수가 발표한 CAP\n이론은 분산 컴퓨팅 환경의 세 가지 특징을 정의\n하고 있는데, NoSQL은 이중 한 두 가지 특징을\n포기하는 대신 고성능, 확장성 등의 지원에 초점을\n맞추고 있다. 여기서 CAP 이론의 세 가지 특징을\n바르게 기술한 것은?\n① C-Consistency, A-Atomicity, P-Persistency\n② C-Concurrency, A-Atomicity, P-Partition Tolerance\n③ C-Consistency, A-Availability, P-Partition\nTolerance\n④ C-Concurrency, A-Availability, P-Persistency\n5 -",
-  "2015_65": "65. 다음은 고객(Customer)과 주문(Orders)에 관한\n릴레이션이다. 밑줄 친 속성은 기본키이고, 점선\n밑줄은 외래키이다. 2개의 릴레이션을 이용하여\n고객의 아이디(custid), 이름(name)과 고객이\n구매한 책 값(saleprice)의 총액을 구하고자 한다.\n작성된 SQL문 중 틀린 것은?\n(릴레이션)\nCustomer(custid, name)\nOrders(orderid, custid, bookname, saleprice)\n① SELECT custid, (SELECT name FROM Customer cs\nWHERE cs.custid = od.custid)\nAS name, SUM(saleprice)\nFROM Orders od\nGROUP BY od.custid;\n② SELECT cs.custid, cs.name, s\nFROM (SELECT custid, SUM(saleprice) s\nFROM Orders GROUP BY custid) od,\nCustomer cs\nWHERE cs.custid = od.custid;\n③ SELECT cs.custid, cs.name, s\nFROM Customer cs, Orders od\nWHERE cs.custid = od.custid AND\n(SELECT SUM(saleprice) s FROM Orders od);\n④ SELECT cs.custid, cs.name, SUM(saleprice)\nFROM Customer cs, Orders od\nWHERE cs.custid = od.custid\nGROUP BY cs.custid, cs.name;",
-  "2015_66": "66. 다음 그림은 트랜잭션들을 병행 수행시킨 후 로\n그의 기록이다. 데이터베이스 시스템 수행 중\n시스템에 이상이 생겼다. 이상이 생긴 후 로그의\n기록을 살펴보니 다음과 같았다. 로그는 데이터\n베이스의 변경에 대한 기록으로 즉시 변경(immediate\nupdate) 방법을 사용한다. 이 상태에서 복구를\n하고자 한다. 로그의 <T,DI,v1,v2>는 순서대로\n<트랜잭션 이름, 데이터 항목, 변경전 값, 변경후\n값>을 나타낸다. 트랜잭션들의 복구 후 데이터\n값에 대한 내용 중 틀린 것은?\n- 16\n<start, T1>\n<T1, D, 20, 30>\n<commit, T1>\n<checkpoint>\n<start, T2>\n<T2, C, 12, 13>\n<start, T4>\n<T4, B, 15, 16>\n<start, T3>\n<T3, D, 30, 31>\n<T4, A, 20, 21>\n<commit, T4>\n*system crash*\n① A: 21 ② B: 16\n③ C: 12 ④ D: 31",
   "2015_67": "67. 정보검색에 있어서 재현률(recall)을 다음의 정보\n검색 결과표를 이용하여 기술하였을 때 올바른\n것은?\n(정보검색 결과표)\nTP(True Positive): 검색된 결과 중 실제 정답인\n정보의 수\nFP(False Positive): 검색된 결과 중 실제 정답이\n아닌 정보의 수\nFN(False Negative): 검색되지 않은 정보 중 실제\n정답인 정보의 수\nTN(True Negative): 검색되지 않은 정보 중 실제\n정답이 아닌 정보의 수\n① TP/(TN+FP) ② TP/(TP+TN)\n③ TP/(TP+FN) ④ TP/(FP+FN)\n6 -",
-  "2015_68": "68. 릴레이션 'employee'와 'department'에서 다음\nSQL 질의문의 수행결과는?\n<질의문>\nSELECT e.dno, d.dname, e.ename, e.score\nFROM employee e, department d\nWHERE e.dno = d.dno and (e.dno, score) IN\n(SELECT dno, max(score)\nFROM employee GROUP BY dno);\nemployee department\neno ename address score dno dno dname\n10 Hong 서울 80 100 100 영업\n20 Kim 대전 90 200 200 개발\n30 Lee 강릉 90 100 300 서비스\n40 Kim 대전 95 200\n50 Hong 서울 65 300\n① { (100, 영업, Lee, 90), (200, 개발, Kim, 95),\n(300, 서비스, Hong, 65) }\n② { (100, 영업, Lee, 90), (200, 개발, Kim, 95) }\n③ { (100, 영업, Lee, 90) }\n④ { (100, 영업, Hong, 80), (100, 영업, Lee, 90),\n(200, 개발, Kim, 90), (200, 개발, Kim, 95),\n(600, null, Hong, 65) }\n- 17",
   "2015_69": "69. 다음의 데이터베이스에서 ‘부양가족을 2명 이상\n가진 사원의 사번(eno), 성명(ename), 부양가족\n수를 검색’하는 질의를 SQL로 적절하게 표현한\n것은? (단, 밑줄은 스키마에서 기본키를 의미한다.)\n(2개 선택)\nemployee(eno, ename, adddress, score, dno)\ndependent(eno, dename, birthdate, relation)\n① SELECT eno, ename, count(*)\nFROM employee e, dependent d\nWHERE e.eno = d.eno and count(*) >= 2\nGROUP BY d.eno;\n② SELECT e.eno, e.ename, count(*)\nFROM employee e, dependent d\nWHERE EXISTS (SELECT * FROM dependent\nGROUP BY eno HAVING count(*) >= 2)\nGROUP BY e.eno, e.ename;\n③ SELECT e.eno, e.ename, t.cnt\nFROM employee e, (SELECT eno, count(*) as cnt\nFROM dependent GROUP BY\neno HAVING count(*) >= 2) t\nWHERE e.eno = t.eno;\n④ SELECT e.eno, e.ename, count(*)\nFROM employee e, dependent d\nWHERE e.eno = d.eno\nGROUP BY e.eno, e.ename\nHAVING count(*) >= 2;",
   "2015_70": "70. 관계 대수는 일반적으로 다섯 가지 기본 연산을\n가지며, 이를 관계 대수 연산의 완전 집합(complete\nset)이라 부른다. 완전 집합의 다섯 가지 기본\n연산들을 바르게 나타낸 것은? (단, π는 ∏로\n표현하기도 한다.)\n① { σ, π, × , ∪, ∩ }\n② { σ, π, ⋈, ∪, ÷ }\n③ { σ, π, × , ∪, − }\n④ { σ, π, ⋈, ∪, ∩ }\n7 -",
-  "2015_71": "71. 다음은 회사 데이터베이스의 일부를 표현한 E-R\n다이어그램이다. 밑줄 친 속성은 키 속성을 의미\n한다. 이 E-R 다이어그램을 BCNF에 속하는\n릴레이션으로 변환하는 과정을 기술한 설명으로\n가장 적절한 것은?\n① EMPLOYEE(ENO, Name) 릴레이션에 Supervisee의\nENO 속성을 외래키로 추가한다.\n② EMPLOYEE(ENO, Name) 릴레이션에 Supervisor의\nENO 속성을 외래키로 추가한다.\n③ EMPLOYEE(ENO, Name) 릴레이션에 Hours 속성을\n추가한다.\n④ PROJECT(PNO, Budget) 릴레이션에 Hours 속성을\n추가한다.",
-  "2015_72": "72. 트랜잭션 관리의 회복 기법에서 체크포인트(check\npoint)를 사용한다고 가정하자. 다음과 같이 체크\n포인트가 사용될 때, 시스템이 다운된 후 회복\n관리자가 수행하는 연산으로 틀린 것은? (2개 선택)\n체크포인트 c가 정상적으로 수행되고 체크\n포인트 f가 수행될 때 시스템이 다운되었다.\n트랜잭션 T1은 c 이전에 시작해서 c 이전에\n완료되었고, T2는 c 이전에 시작해서 f 이전에\n완료되었다. T3는 c 이전에 시작해서 f일 때\n수행 중이었고 T4는 c 이후에 시작해서 f\n이전에 완료되었다. T5는 c 이후에 시작해서\nf일 때 수행 중이었다.\n① Undo-list에 있는 모든 트랜잭션들에 대해 로그에\n기록된 순서대로 Undo 연산을 수행한다.\n② T1은 회복 작업에 관련될 필요가 없다.\n③ T2는 c 이후에 일어난 변경 부분에 대해서만\nRedo 연산을 수행한다.\n④ T3는 c 이후에 일어난 변경 부분에 대해서만\nUndo 연산을 수행한다.\n- 18",
   "2015_73": "73. SQL의 질의처리 성능을 개선하기 위해 튜닝할\n때, 불필요한 소트(sort)가 발생하지 않도록 하는\n것으로 거리가 먼 것은? (2개 선택)\n① Union ALL을 Union으로 대체\n② Distinct를 Exists 서브쿼리로 대체\n③ Sort Aggregate를 Sort Unique로 대체\n④ 데이터 존재 여부만을 확인할 경우 불필요한\nCount 연산 제거",
   "2015_74": "74. 다음의 릴레이션 A와 B에 대해 어떤 연산을 했을 때,\n그 결과로 릴레이션 C가 얻어진다. 이 때 C가\n얻어지도록 하는 어떤 연산은 무엇인가?\nA B C\nW X Y X Y Z X Y Z\nw1 x1 y1 x1 y1 z1 x1 y1 z1\nw2 x1 y1 x1 y1 z2 x1 y1 z2\nw3 x1 y2 x2 y3 z3 x2 y3 z3\nw4 x2 y3 x3 y3 z3\n① A와 B의 왼쪽 외부조인(left outer join)\n② A와 B의 오른쪽 외부조인(right outer join)\n③ A에 대해 B의 세미조인(semijoin)\n④ B에 대해 A의 세미조인(semijoin)",
   "2015_75": "75. 어떤 릴레이션 R(A, B, C, D, E, F, G)에서 다음과\n같은 함수 종속성이 존재한다고 가정하자. 이 때\n릴레이션 R에서 후보키가 아닌 것은?\nCE → A, A → ABCDEFG, BD → E\n① CE ② A ③ BD ④ BCD\n8 -",
@@ -809,13 +810,13 @@
   "2016_54": "54. 2단계 로킹 규약(2 phase locking protocol)의\n로크 전환(혹은 로크 변환)에 대한 다음 설명\n중 옳은 것은?\n① 항목 X에 read_lock(X)를 수행하여 공유 로크를\n획득한 후 나중에 write_lock(X)를 수행하여 배\n타적 로크로 로크를 상승(upgrade)시킬 수 있다.\n② 항목 X에 write_lock(X)를 수행하여 배타적\n로크를 획득한 후 나중에 read_lock(X)를 수행\n하여 공유 로크로 로크를 상승시킬 수 있다.\n③ 항목 X에 read_lock(X)를 수행하여 공유 로크를\n획득한 후 나중에 write_lock(X)를 수행하여 배타적\n로크로 로크를 하강(downgrade)시킬 수 있다.\n④ 항목 X에 read_lock(X)를 수행하여 배타적 로크를\n획득한 후 나중에 write_lock(X)를 수행하여 공유\n로크로 로크를 하강시킬 수 있다.",
   "2016_55": "55. 다음 스케줄에 대해 타임스탬프 순서 기법을 적용\n하였을때 설명이 올바른 것은? (TS(Ti)는 트랜잭션\nTi의 타임스탬프이고, read_TS(x)는 read(x) 연산을\n성공적으로 수행한 트랜잭션들의 타임스탬프 중 가장\n큰 것이고, write_TS(x)는 write(x) 연산을 성공적\n으로 수행한 트랜잭션들의 타임스탬프 중 가장 큰\n것이다. read_TS(x)와 write_TS(x)의 초기값은 모두\n1이라고 가정한다.)\n2시: T1 read(x)\n3시: T2 write(x)\n4시: T1 write(x)\n① T1은 read(x)를 실행하고 read_TS(x)를 그대로\n둔다.\n② T2의 write(x)는 TS(T2) ≥ write_TS(x)이므로\n거부된다.\n③ 타임스탬프 순서 기법을 적용하면, 위에 주어진\n스케줄은 직렬 가능하다.\n④ 토마스(Thomas)의 기록 규칙을 적용하면, T1의\nwrite(x)는 무시된다.\n2 -",
   "2016_56": "56. 다음은 두 릴레이션 R, S에 대해 어떤 관계 대수\n연산을 적용한 결과 릴레이션을 보이고 있다. R\n과 S에 대해 적용된 관계 대수 연산은?\nR S\nA B B C\na 1 1 x\nb 2 2 y\nc 1 3 z\n결과 테이블\nA B B C\na 1 2 y\na 1 3 z\nb 2 3 z\nc 1 2 y\nc 1 3 z\n① R⋈S\nN\n② R⋈ S\nB=B\n③ R⋈ S\nB<B\n④ R×S",
-  "2016_57": "57. 릴레이션 E, W가 아래와 같을 때, 완전외부조인\n(full outer join) E W의 실행결과 중 옳은\n것은?\nE\nMember City Country\nKim Seoul Korea\nSusan London England\nSmith Austin USA\nNakamura Tokyo Japan\nW\nMember Gender Age\nKim Female 39\nSusan Female 32\nGates Male 53\nNakamura Male 39\n①\nMember City Country Gender Age\nKim Seoul Korea Female 39\nSusan London England Female 32\nNakamura Tokyo Japan Male 39\n- 13\n②\nMember City Country Gender Age\nKim Seoul Korea Female 39\nSusan London England Female 32\nNakamura Tokyo Japan Male 39\nSmith Austin USA null null\n③\nMember City Country Gender Age\nKim Seoul Korea Female 39\nSusan London England Female 32\nNakamura Tokyo Japan Male 39\nGates null null Male 53\n④\nMember City Country Gender Age\nKim Seoul Korea Female 39\nSusan London England Female 32\nNakamura Tokyo Japan Male 39\nSmith Austin USA null null\nGates null null Male 53",
+  "2016_57": "57. 릴레이션 E, W가 아래와 같을 때, 완전외부조인\n(full outer join) E W의 실행결과 중 옳은\n것은?\nE\nMember City Country\nKim Seoul Korea\nSusan London England\nSmith Austin USA\nNakamura Tokyo Japan\nW\nMember Gender Age\nKim Female 39\nSusan Female 32\nGates Male 53\nNakamura Male 39\n①\nMember City Country Gender Age\nKim Seoul Korea Female 39\nSusan London England Female 32\nNakamura Tokyo Japan Male 39\n- 13",
   "2016_58": "58. 내장 SQL(Embedded SQL)은 C, Java, JSP 등 프로\n그래밍 언어(호스트 언어)에 SQL을 직접 끼워넣어\n사용하며 SQL 전처리 컴파일러(precompiler)가\n번역을 한다. 내장 SQL에 대한 다음 설명 중\n옳지 않은 것은?\n① SQL 문 결과를 행단위로 처리하기 위하여 호스트\n언어에 추가적인 명령문이 사용된다.\n② SQL 문에서는 호스트 언어에 의하여 선언된 변수를\n참조할 수 없다.\n③ 호스트 언어에 의하여 선언된 변수를 이용하여\nSQL 문의 실행 결과를 저장할 수 있다.\n④ 데이터베이스에 NULL 값을 삽입할 수 있으며,\nNULL 값을 읽어낼 수 있다.\n3 -",
   "2016_59": "59. 릴레이션 STUDENT가 다음과 같을 때, 관계 대수\n 와 동일한 결과를 얻는 SQL\n\n문장을 바르게 나타낸 것은?\nSTUDENT\nFname Lname StudID Sex GPA DeptNo\nChulsoo Kim 20160395 M A 5\nGilok Hong 20152932 F B 4\nYoosin Kim 20160244 M C 5\nSoonhee Lee 20140294 F A 5\nChansoo Shim 20151285 M A 5\nSoonsin Lee 20140893 M B 4\nDasol Park 20150203 F B 4\nKyunghee Jung 20162011 F A 5\n① SELECT ALL Sex, GPA FROM STUDENT;\n② ALL SELECT Sex, GPA FROM STUDENT;\n③ DISTINCT SELECT Sex, GPA FROM STUDENT;\n④ SELECT DISTINCT Sex, GPA FROM STUDENT;\n※ 다음 릴레이션을 읽고 60번~61번에 대하여 답하시오.\n직원 정보를 저장하는 릴레이션 EMPLOYEE\nCREATE TABLE EMPLOYEE\n(NAMEVARCHAR(30) NOT NULL,\nSSN CHAR(9) NOT NULL,\nADDRVARCHAR(30),\nPHONE CHAR(10),\nPRIMARY KEY (SSN));\n부양가족 정보를 저장하는 릴레이션 DEPENDENT\nCREATE TABLE DEPENDENT\n(ESSN CHAR(9) NOT NULL,\nDEPNAMEVARCHAR(30)NOT NULL,\nAGE INT,\nPRIMARY KEY (ESSN, DEPNAME),\nFOREIGN KEY (ESSN) REFERENCES EMPLOYEE (SSN));",
-  "2016_60": "60. “부양가족이 없는 직원의 이름을 검색하라”라는 SQL\n질의를 다음과 같이 작성했다고 할 때, ㉮, ㉯, ㉰에\n들어갈 내용으로 바르게 구성된 것은?\nSELECT NAME\nFROM EMPLOYEE\nWHERE ㉮ (SELECT ㉯ FROM DEPENDENT WHERE ㉰) ;\n- 14\n번호 ㉮ ㉯ ㉰\n① NOT IN * NAME=DEPNAME\n② NOT EXISTS * SSN=ESSN\n③ NOT IN ESSN SSN=ESSN\n④ NOT EXISTS ESSN NAME=DEPNAME",
+  "2016_60": "60. “부양가족이 없는 직원의 이름을 검색하라”라는 SQL\n질의를 다음과 같이 작성했다고 할 때, ㉮, ㉯, ㉰에\n들어갈 내용으로 바르게 구성된 것은?\nSELECT NAME\nFROM EMPLOYEE\nWHERE ㉮ (SELECT ㉯ FROM DEPENDENT WHERE ㉰) ;\n- 14",
   "2016_61": "61. 두 릴레이션 EMPLOYEE, DEPENDENT로부터 다음과\n같이 EMPDEPEND라는 뷰(view)를 생성하고자 할\n때, ㉱와 ㉲에 들어갈 내용이 바르게 짝지어진\n것은? (단, EMPDEPEND에서 EMPSSN과 EMPNAME은\n직원의 SSN과 이름을 각각 나타내고, NO_DEPS와\nM_AGE는 해당 직원의 부양가족 수와 부양가족의\n나이 평균을 각각 나타낸다.)\nEMPDEPEND\nEMPSSN EMPNAME NO_DEPS M_AGE\nCREATE VIEW EMPDEPEND(EMPSSN, EMPNAME, NO_DEPS,\nM_AGE) AS\nSELECT SSN, NAME, ㉱, ㉲\nFROM EMPLOYEE, DEPENDENT\nWHERE SSN=ESSN\nGROUP BY SSN;\n㉱ ㉲\n① UNIQUE(*) MEDIAN(AGE)\n② COUNT(*) MEDIAN(AGE)\n③ COUNT(*) AVG(AGE)\n④ UNIQUE(*) AVG(AGE)\n4 -",
   "2016_62": "62. SQL 문으로 테이블 DEPT와 EMP를 생성하고 뷰\nEMPDEPT를 생성하였다. 뷰 생성과 투플 삽입 후\n아래 문장을 실행했을 때 오류가 발생하지 않는 것은?\n(SQL 문)\nCREATE TABLE DEPT(\nDEPTNO INTEGER PRIMARY KEY,\nDNAME VARCHAR(14) NOT NULL,\nLOC VARCHAR(13)\n);\nINSERT INTO DEPT VALUES(10, 'sales', 'seoul');\nCREATE TABLE EMP (\nEMPNO INTEGER PRIMARY KEY,\nENAME VARCHAR(10),\nJOB VARCHAR(9),\nDEPTNO INTEGER REFERENCES DEPT(DEPTNO)\n);\nINSERT INTO EMP VALUES(1, 'park', 'managing', 10);\nCREATE VIEW EMPDEPT AS\nSELECT ENAME, DNAME, JOB, DEPT.DEPTNO\nFROM EMP, DEPT\nWHERE EMP.DEPTNO=DEPT.DEPTNO;\n① INSERT INTO EMPDEPT VALUES ('kim', 'sales',\n'managing', 10);\n② CREATE VIEW EMPDNAME AS SELECT ENAME, DNAME\nFROM EMPDEPT;\n③ CREATE INDEX E_01 ON EMPDEPT(ENAME);\n④ UPDATE EMPDEPT SET DEPTNO=20 WHERE JOB LIKE\n'managing';",
-  "2016_63": "63. 권한(authorization)을 부여하는 ㉮와 회수하는\n㉯를 SQL로 바르게 표현한 것은?\n㉮ 테이블 EMPLOYEE에 대한 SELECT 권한을 계정\nMary와 John에게 부여한다.\n㉯ 테이블 EMPLOYEE에 대한 SELECT 권한을 계정\nJohn으로부터 회수한다.\n- 15\n① ㉮ = GRANT SELECT ON EMPLOYEE TO Mary, John;\n㉯ = REVOKE SELECT ON EMPLOYEE FROM John;\n② ㉮ = AUTHORIZE SELECT ON EMPLOYEE TO Mary, John;\n㉯ = CANCEL SELECT ON EMPLOYEE FROM John;\n③ ㉮ = GRANT EMPLOYEE TO Mary, John ON SELECT;\n㉯ = REVOKE EMPLOYEE FROM John ON SELECT;\n④ ㉮ = AUTHORIZE EMPLOYEE TO Mary, John ON SELECT;\n㉯ = CANCEL EMPLOYEE FROM John ON SELECT;",
+  "2016_63": "63. 권한(authorization)을 부여하는 ㉮와 회수하는\n㉯를 SQL로 바르게 표현한 것은?\n㉮ 테이블 EMPLOYEE에 대한 SELECT 권한을 계정\nMary와 John에게 부여한다.\n㉯ 테이블 EMPLOYEE에 대한 SELECT 권한을 계정\nJohn으로부터 회수한다.\n- 15",
   "2016_64": "64. 데이터베이스 시스템의 데이터 독립성에 대한 설명\n중 옳지 않은 것은?\n① ANSI 3단계 스키마 아키텍쳐는 내부단계(내부스\n키마), 개념단계(개념스키마), 외부단계(외부스\n키마)로 나눈다. 3단계 스키마의 목적은 물리적\n데이터베이스로부터 사용자의 응용을 분리시키는\n것이다.\n② 외부스키마는 데이터베이스의 물리적 저장구조를,\n개념스키마는 특정 사용자 그룹이 관심을 갖는\n데이터베이스 부분을, 내부스키마는 모든 사용\n자를 위한 전체 데이터베이스 구조를 기술한다.\n③ 물리적 데이터 독립성은 개념스키마를 변경하지\n않으면서 내부스키마를 변경할 수 있음을 말한다.\n내부스키마의 접근 구조 변경이나, 파일 재구성이\n개념스키마에 가능한 한 영향을 주지 않도록 한다.\n④ 논리적 데이터 독립성은 외부스키마를 변경하지\n않으면서 개념스키마를 변경하는 것을 말한다.\n개념스키마의 데이터베이스 확장, 제약조건 갱신\n등 변경이 외부스키마에 가능한 한 영향을 주지\n않도록 한다.\n5 -",
   "2016_65": "65. 데이터 품질에 관한 다음 설명 중 옳지 않은 것은?\n① 데이터 품질은 조직의 목적 달성을 위하여 관리\n되는 데이터가 이용자의 만족을 충족시킬 수 있\n는 수준을 말한다.\n② 데이터 품질 관리는 조직이 운영하는 정보시스\n템을 활용하는 이용자의 기대를 만족시키기 위\n하여 수행하는 데이터 관리 활동이다.\n③ 데이터 품질 진단의 종류 중 데이터 구조 진단은\n데이터 관리 프로세스를 분석하여 문제점을 도\n출하고, 이를 개선할 수 있는 핵심 업무 프로\n세스를 최적화한다.\n④ 데이터 품질 진단을 위한 데이터 프로파일링은\n데이터의 중요 정보와 통계 값을 수집하는 정보\n분석 기법이다.",
   "2016_66": "66. 상품(상품번호, 상품명, 담당부서, 구매자) 릴레이션\n에서 상품번호와 상품명은 각각 후보키이고 구매자는\n하나의 부서(담당부서)에 속한다고 하자. 이 릴레\n이션의 정규형과 관련된 설명 중 옳은 것을 모두\n고르시오. (2개 선택)\n① 이 릴레이션이 속한 최고차 정규형은 1NF이다.\n② 이 릴레이션은 현재 담당부서→구매자의 함수\n종속이 성립한다.\n③ 이 릴레이션은 현재 상품명→(상품번호, 담당부서,\n구매자)의 함수 종속이 성립한다.\n④ R1(구매자, 담당부서), R2(상품번호, 상품명,\n구매자)로 분해하면 두 릴레이션은 BCNF에 속하게\n된다.",
@@ -824,10 +825,10 @@
   "2016_69": "69. 다음의 스케줄대로 트랜잭션을 실행했을 때 발생하는\n문제는? (트랜잭션 연산 앞의 표기는 시간을 시:\n분:초로 표시한 것임)\n00:00:00 T1 read(x)\n00:00:01 T1 x = x - N\n00:00:02 T1 write(x)\n00:00:03 T2 read(x)\n00:00:04 T2 x = x + M\n00:00:05 T2 write(x)\n00:00:06 T1 read(y)\n00:00:07 T1 fail\n① 갱신 손실(lost update) 문제\n② 부정확한 요약(incorrect summary) 문제\n③ 반복할 수 없는 읽기(unrepeatable read) 문제\n④ 오손 읽기(dirty read) 문제",
   "2016_70": "70. 공공데이터에 대한 다음 설명 중 가장 거리가 먼\n것은?\n① Open API를 활용하려면 정보제공자에게 활용신청\n을 해야하며, 승인을 받은 후 인증키를 받아 사\n용한다.\n② 공공데이터 또는 Open API로 제공되는 데이터는\n특별한 사유가 존재하지 않는 한 상업적으로\n이용이 가능하다.\n③ 공공데이터는 공공기관 등에서 데이터의 공개\n여부를 판단하여 제공하며, 미제공 데이터에\n대해 일반 사용자가 공개를 신청하는 것은 허용\n되지 않는다.\n④ 공공데이터 서비스 유형은 SOAP, REST, RSS, LINK\n등이 있다.\n6 -",
   "2016_71": "71. 테이블 BOOK(bookid, bookname, price)에 대해 2\n개의 트랜잭션 T1과 T2가 동시에 실행된다고 하자.\n사용자가 입력한 명령을 시간별로 다음과 같이 실\n행했을 경우, ㉮와 ㉯에 출력되는 결과 값으로\n옳은 것은? (단, BOOK 테이블을 읽거나 쓰는 트랜\n잭션은 T1과 T2만 있으며, BOOK 테이블에 bookid\n가 1인 투플이 존재한다고 가정한다.)\n트랜잭션 T1 트랜잭션 T2\nBEGIN TRANSACTION\nSET TRANSACTION ISOLATION\nLEVEL READ COMMITTED;\nselect sum(price) as 총액\nfrom book;\n(결과 값) 10000\nBEGIN TRANSACTION\nSET TRANSACTION ISOLATION\nLEVEL REPEATABLE READ;\nselect sum(price) as 총액\nfrom book;\n(결과 값) 10000\nupdate book set\nprice=price+100\nwhere bookid=1;\n/* 여기서 대기상태 */\nselect sum(price) as 총액\nfrom book;\n(결과 값) ㉮\nCOMMIT;\nselect sum(price) as 총액\nfrom book;\n(결과 값) ㉯\nCOMMIT;\n㉮ ㉯\n① 10000 10000\n② 10000 10100\n③ 10100 10000\n④ 10100 10100",
-  "2016_72": "72. 다음 표는 문서들에 대한 검색을 수행한 결과,\n검색된(retrieved) 문서와 적합한(relevant)\n문서의 수를 각각 나타낸다. 재현율(recall)과\n정확률(precision)을 각각 바르게 계산한 것은?\n- 17\n적합한(관련된) 문서 수\n(Number of relevant documents)\n구 분\nYes No\n검색된 문서 수 Yes 75 50\n(Number of\nretrieved\ndocuments) No 45 30\n재현율 정확률\n① 0.375 0.150\n② 0.375 0.400\n③ 0.525 0.475\n④ 0.625 0.600",
+  "2016_72": "72. 다음 표는 문서들에 대한 검색을 수행한 결과,\n검색된(retrieved) 문서와 적합한(relevant)\n문서의 수를 각각 나타낸다. 재현율(recall)과\n정확률(precision)을 각각 바르게 계산한 것은?\n- 17",
   "2016_73": "73. 다음 문장에서 빈칸 ㉮와 ㉯에 들어갈 용어로\n적절한 것은?\n예측 모델링(Predictive Modeling)은 목표 변수를\n설명 변수의 함수 모델로 생성하는 작업을 말한다.\n예측 모델링은 이산형 목표 변수에 사용되는 ( ㉮ )\n과(와) 연속형 목표 변수에 사용하는 ( ㉯ )의 두\n가지 유형이 있다.\n㉮ ㉯\n① 군집(clustering) 서술(descriptive)\n② 군집(clustering) 분류(classification)\n③ 분류(classification) 회귀(regression)\n④ 회귀(regression) 서술(descriptive)\n7 -",
   "2016_74": "74. 다음은 회사 데이터베이스를 표현한 E-R 다이어\n그램의 일부를 보이고 있다. 속성 이름에 밑줄 친\n것은 키 속성을 의미한다. 이 E-R 다이어그램과\n관련된 설명으로 적절한 것을 모두 고르시오.\n(2개 선택) (단, 이 E-R 다이어그램은 DEPARTMENT와\nEMPLOYEE 릴레이션으로만 변환된다고 가정한다.)\n① 특정 부서에 배치되지 않은 직원이 존재\n할 수 있다.\n② 직원이 없는 부서가 존재할 수 있다.\n③ DEPARTMENT 개체를 릴레이션으로 변환하면\nDEPARTMENT(DNO, DName)이 된다.\n④ EMPLOYEE 개체를 릴레이션으로 변환하면 EMPLOYEE\n(ENO, Name)이 된다.",
-  "2016_75": "75. 다음은 대학 데이터베이스의 일부를 E-R 다이어\n그램으로 표현한 것이다. 이 다이어그램에 대한\n설명으로 옳지 않은 것은? (단, 수퍼타입과 서브\n타입을 연결하는 중간 원안의 표시 ‘d’는 dis-\njoint를, PERSON 개체 쪽의 단일선은 partial을\n표현한다고 하자.)\n① 이 E-R 다이어그램은 세분화(specialization) 관계를\n표현한 것이다.\n② PERSON이 수퍼클래스에 해당하는 개체이다.\n③ FACULTY나 STUDENT가 아닌 PERSON 개체는 없다.\n④ FACULTY 개체이면서 동시에 STUDENT 개체일 수는\n없다.\n- 18\n8 -",
+  "2016_75": "75. 다음은 대학 데이터베이스의 일부를 E-R 다이어\n그램으로 표현한 것이다. 이 다이어그램에 대한\n설명으로 옳지 않은 것은? (단, 수퍼타입과 서브\n타입을 연결하는 중간 원안의 표시 ‘d’는 dis-\njoint를, PERSON 개체 쪽의 단일선은 partial을\n표현한다고 하자.)\n① 이 E-R 다이어그램은 세분화(specialization) 관계를\n표현한 것이다.\n② PERSON이 수퍼클래스에 해당하는 개체이다.\n③ FACULTY나 STUDENT가 아닌 PERSON 개체는 없다.\n④ FACULTY 개체이면서 동시에 STUDENT 개체일 수는\n없다.\n- 18",
   "2017_51": "51. 뷰의 장점을 설명하는 것 중 가장 거리가 먼 것은?\n① 테이블 구조가 변경되어도 뷰를 사용하는 응용 프로그램은\n변경하지 않아도 된다.\n② 뷰를 생성함으로써 복잡한 질의를 단순하게 작성할 수 있다.\n③ 직원의 급여 정보 같은 숨기고 싶은 정보가 존재한다면\n해당 칼럼을 빼고 뷰를 생성하여 사용한다.\n④ 서버에 저장되는 컴포넌트로 독립적으로 실행되거나\n다른 프로그램으로부터 실행된다.",
   "2017_52": "52. 다음은 어느 회사의 데이터베이스 구축을 위한 ER 다이어\n그램 설계 내용이다. ER 다이어그램을 데이터베이스 테이\n블로 변환할 때 생성되는 테이블의 가장 적절한 개수는?\n① 3-4개 ② 5-6개 ③ 7-8개 ④ 9-10개",
   "2017_53": "53. 다음과 같은 함수적 종속성 집합에 대한 설명 중 틀린 것은?\n① 함수적 종속성 집합 { A → { B, C, D, E }, E → { F,\nG } }로부터 A → { F, G }를 추론할 수 있다.\n② 함수적 종속성 집합 { A → B, C → { D, E }, { A, C }\n→ F } 로부터 폐포집합 { A }+ = { A, B }를 구할 수 있다.\n③ 다음 두 함수적 종속성 집합 F = { A → C, AC → D, E\n→ AD, E → H }와 G = { A → CD, E → AH }는 동등하다.\n④ 함수적 종속성 집합 { B → A, D → A, AB → D }에 대한\n최소 커버는 { B → A, D → A }이다.\n- 12",
@@ -835,7 +836,7 @@
   "2017_55": "55. 다음은 릴레이션 R1, R2와 SQL 질의문이다. SQL 문에 대한\n관계대수 연산으로 가장 적합한 것은? (⋈은 자연조인,\n⟕은 왼쪽 외부조인 기호)\n(릴레이션)\nR1(r1name, a, b, c)\nR2(r2name, a, b, c)\n(SQL 문)\nSELECT r1name FROM R1\nWHERE EXISTS (SELECT * FROM R2\nWHERE (r1name = r2name))\n① π (R1 ⟕ (R2))\nr1name r1name = r2name\n② π (R2 - R1)\nr1name\n③ π (R1 ⋈ (R2))\nr1name r1name = r2name\n④ π (R1 - R2)\nr1name",
   "2017_56": "56. SQL Injection을 줄이기 위한 방법 중 가장 거리가 먼 것은?\n① 저장 프로시저 사용을 가능한 줄이도록 한다.\n② 입력 데이터가 허용되는 타입에 한하여 허용한다.\n③ 인용부호에 대한 체크를 통하여 인젝션 가능성을 제거한다.\n④ 웹접근 코드가 접근하는 데이터베이스의 경우 꼭 필요한\n접근권한 만을 부여한다.\n2 -",
   "2017_57": "57. 수강신청 데이터를 저장한 릴레이션 ENROLL에서 강좌번호\n(COURSEID) 100과 101번 강좌를 모두 수강 신청한 학생의\n학번을 찾는 SQL 질의로 틀린 것은?\nENROLL(COURSEID, STUDENTID, TIME)\n① SELECT STUDENTID\nFROM ENROLL E1, ENROLL E2\nWHERE E1.STUDENTID=E2.STUDENTID AND\nE1.COURSEID=100 AND E2.COURSEID=101\n② SELECT STUDENTID\nFROM ENROLL E\nWHERE E.COURSEID=100\nINTERSECT\nSELECT STUDENTID\nFROM ENROLL E\nWHERE E.COURSEID=101\n③ SELECT STUDENTID\nFROM ENROLL E\nWHERE E.COURSEID =100 AND\nSTUDENTID IN (SELECT STUDENTID\nFROM ENROLL WHERE COURSEID=101)\n④ SELECT STUDENTID\nFROM ENROLL E\nWHERE E.COURSEID=100 AND E.COURSEID=101",
-  "2017_58": "58. 다음 SQL 문과 질의에 대한 결과 값으로 맞는 것은?\n(SQL CREATE, INSERT 문)\nCREATE TABLE TEST(A INTEGER, B VARCHAR(10));\nINSERT INTO TEST VALUES (1, 'kim');\nINSERT INTO TEST VALUES (2, ' ');\nINSERT INTO TEST VALUES (3, NULL);\nINSERT INTO TEST VALUES (4, 'park');\nINSERT INTO TEST VALUES (5, NULL);\nINSERT INTO TEST VALUES (6, 'lee');\n(Oracle DBMS의 SQL 문)\nSELECT X, X-Y, Z\nFROM (SELECT COUNT(*) AS X, COUNT(B) AS Y,\nCOUNT(CASE WHEN B IS NOT NULL AND LTRIM(B) IS NULL\nTHEN '1' END) AS Z\nFROM TEST) T;\n(SQL Server DBMS의 SQL 문)\nSELECT X, X-Y, Z\nFROM (SELECT COUNT(*) AS X, COUNT(B) AS Y,\nCOUNT(CASE WHEN B IS NOT NULL AND LEN(LTRIM(B)) = 0\nTHEN '1' END) AS Z\nFROM TEST) T;\n- 13\n① 6, 2, 1 ② 6, 3, 0\n③ 6, 2, 0 ④ 6, 3, 1",
+  "2017_58": "58. 다음 SQL 문과 질의에 대한 결과 값으로 맞는 것은?\n(SQL CREATE, INSERT 문)\nCREATE TABLE TEST(A INTEGER, B VARCHAR(10));\nINSERT INTO TEST VALUES (1, 'kim');\nINSERT INTO TEST VALUES (2, ' ');\nINSERT INTO TEST VALUES (3, NULL);\nINSERT INTO TEST VALUES (4, 'park');\nINSERT INTO TEST VALUES (5, NULL);\nINSERT INTO TEST VALUES (6, 'lee');\n(Oracle DBMS의 SQL 문)\nSELECT X, X-Y, Z\nFROM (SELECT COUNT(*) AS X, COUNT(B) AS Y,\nCOUNT(CASE WHEN B IS NOT NULL AND LTRIM(B) IS NULL\nTHEN '1' END) AS Z\nFROM TEST) T;\n(SQL Server DBMS의 SQL 문)\nSELECT X, X-Y, Z\nFROM (SELECT COUNT(*) AS X, COUNT(B) AS Y,\nCOUNT(CASE WHEN B IS NOT NULL AND LEN(LTRIM(B)) = 0\nTHEN '1' END) AS Z\nFROM TEST) T;\n- 13",
   "2017_59": "59. 다음의 데이터베이스에서“3명 이상의 사원이 근무하는\n각 부서에서 부서 번호, 부서 이름, 그리고 그 부서에서\n연봉이 4만불 이상인 사원의 수를 검색하라”는 질의를\nSQL로 올바르게 표시한 것은?\nEMPLOYEE(Name, Ssn, Salary, Sex, Dno)\nDEPARMENT(Dname, Dnumber, Mgr_ssn)\n① SELECT Dnumber, Dname, COUNT(*)\nFROM DEPARTMENT, EMPLOYEE\nWHERE Dnumber = Dno AND\nSalary >= 40000 AND\nDno IN (SELECT Dno\nFROM EMPLOYEE\nGROUP BY Dno\nHAVING COUNT(*) > 2)\nGROUP BY Dnumber;\n② SELECT Dnumber, Dname, COUNT(*)\nFROM DEPARTMENT, EMPLOYEE\nWHERE Dnumber = Dno AND\nSalary >= 40000 AND\nCOUNT(*) > 2\nGROUP BY Dnumber, Dname;\n③ SELECT Dnumber, Dname, COUNT(*)\nFROM DEPARTMENT, EMPLOYEE\nWHERE Dnumber = Dno AND\nSalary >= 40000 AND\nDno IN (SELECT Dno\nFROM EMPLOYEE\nGROUP BY Dno\nHAVING COUNT(*) > 2)\nGROUP BY Dnumber, Dname;\n④ SELECT Dnumber, Dname, COUNT(*)\nFROM DEPARTMENT, EMPLOYEE\nWHERE Dnumber = Dno AND\nDno IN (SELECT Dno\nFROM EMPLOYEE\nWHERE Salary >= 40000\nGROUP BY Dno\nHAVING COUNT(*) > 2)\nGROUP BY Dnumber, Dname;\n3 -",
   "2017_60": "60. EMPLOYEE(Eno, Name, DeptName, Salary) 테이블에 대해\n“평균 봉급이 가장 높은 부서명(DeptName)을 검색” 하는\n질의를 다음과 같이 작성한다고 할 때, 밑줄 친 부분에\n들어갈 내용으로 맞는 것은?\nSELECT DeptName\nFROM EMPLOYEE\nGROUP BY DeptName\n㉠ >= ㉡ (SELECT AVG(Salary)\nFROM EMPLOYEE\n㉢ DeptName);\n㉠ ㉡ ㉢\n① WHERE Salary all ORDER BY\n② WHERE AVG(Salary) some GROUP BY\n③ HAVING Salary some ORDER BY\n④ HAVING AVG(Salary) all GROUP BY",
   "2017_61": "61. 인덱스의 생성 여부를 결정하기 위해 고려할 사항에 대한\n설명이 잘못된 것은? (2개 선택)\n① 유일한 키 속성에 대해서는 인덱스를 생성한다.\n② 실렉션 조건이나 조인 조건에서 사용되는 속성에 대해서는\n인덱스를 생성한다.\n③ 인덱스 탐색만을 통해 답변이 가능한 질의에 대해서는\n클러스터 인덱스를 고려한다.\n④ 동등 조건과 범위 질의에 사용되는 속성에 대해서는 해\n시 인덱스가 유리하다.",
@@ -903,106 +904,52 @@
   "2019_73": "73. 아래 표와 같이 5개 시퀀스(순차)에 대한 시퀀스\n데이터베이스가 주어졌을 때, 서브시퀀스(부분\n순차) x의 지지도 s(x)가 바르게 계산된 것은?\nObject Timestamp Events\nA 1 1, 2\nA 2 2, 3, 4\nA 3 2, 4, 5\nB 1 1, 3\nB 2 2, 4, 5\nC 1 1, 2, 4\nC 2 2, 3\nC 3 5\nD 1 1, 2\nD 2 2, 3, 4\nE 1 2\nE 2 3, 4\nE 3 4, 5\n① s(<{1}{2}>) = 60%\n② s(<{1}{2,3}>) = 80%\n③ s(<{2}{2,3}>) = 60%\n④ s(<{3}{5}>) = 60%",
   "2019_74": "74. 다음은 즉시 갱신(immediate update) 회복 기법을 사용\n하는 트랜잭션의 로그이다. 데이터 B의 초기값은 12000\n이고, M의 초기값은 0이다. 2개의 트랜잭션 T1, T2가 다\n음과 같이 수행되어 B와 M의 데이터에 대한 로그 기록을\n남겼다. 로그번호 7에서 시스템에 장애가 생겼다고 할\n때, 회복 과정에서 해야 할 일 중 가장 적절한 것은?\n로그\n0. checkpoint\n1. T1 start\n2. T1 B old=12000 new=10000\n3. T1 M old=0 new=2000\n4. T1 commit\n5. T2 start\n6. T2 B old=10000 new=10500\n7. <system crash>\n① 로그번호 6을 REDO하여 B를 10500으로 바꾼다.\n② 로그번호 6을 UNDO하여 B를 10000으로 바꾸고, 로\n그번호 2와 3을 REDO 한다.\n③ 트랜잭션 T1이 commit을 했기 때문에 로그번호 2\n와 3을 REDO 할 필요는 없다.\n④ REDO와 UNDO는 임의의 순서로 진행해도 상관이 없다.\n- 16",
   "2019_75": "75. 다음 릴레이션에 대하여 아래와 같이 인덱스를\n생성하였다. 다음 중 생성된 인덱스에 의하여\n검색속도를 향상시킬 수 있는 질의로 가장 적절\n하지 않은 것은?\n릴레이션\nArticles(ID, title, journal, issue, year, startpage,\nendpage, TR_ID)\n<설명> 논문(Articles) 릴레이션은 과학 논문에\n관한 정보를 포함하고 있고 밑줄친 속성은 키값\n이다. 각 논문은 고유의 ID를 가지고 있으며, 논\n문제목(title)과 저널명(journal), 권(issue), 발행연도\n(year), 시작페이지(startpage), 끝페이지(endpage)\n정보를 포함하고 있다. 논문이 기술 리포트(technical\nreport)에 게재된 적이 있으면 TR_ID 번호가 기록\n된다. 각 저널에는 고유의 일련번호인 권(issue)\n번호가 있으며, 논문에는 시작페이지와 끝페이지\n가 기록된다.\n인덱스\nCREATE INDEX Idx1 ON Articles(year, startpage);\nCREATE INDEX Idx2 ON Articles(startpage,\nendpage);\nCREATE INDEX Idx3 ON Articles(journal, issue,\nyear);\n① SELECT title FROM Articles WHERE journal =\n'JACM' AND issue = 55;\n② SELECT title FROM Articles WHERE endpage -\nstartpage > 50;\n③ SELECT title FROM Articles WHERE year > 1995\nAND year < 2000;\n④ SELECT title FROM Articles WHERE journal =\n'JACM';\n6 -",
-  "2020_51": "51. 릴레이션 R의 차수(degree)가 rd이고 릴레이션 S의\n차수는 sd라고 가정했을 때, 다음의 관계 대수 연\n산에 대한 설명 중 가장 적절하지 않은 것은?\n① rd = sd인 경우, R과 S는 합병 가능(union\n-compatible)하다.\n② R에 실렉션(selection) 연산을 적용한 결과 릴\n레이션의 차수는 rd이다.\n③ R과 S를 세타 조인(theta-join)한 결과 릴레이션\n의 차수는 rd + sd이다.\n④ R을 구성하고 있는 속성 집합 X가 S를 구성하고\n있는 속성 집합 Y를 포함하고 X - Y = D라면 R\n÷ S 연산을 적용한 결과 릴레이션의 차수는 D에\n포함된 속성의 개수이다.",
-  "2020_52": "52. 다음 공간 질의(spatial query) 사례 중에서 공간\n조인(spatial join)에 해당하는 질의의 예로 가장\n적절한 것은?\n① 서울시 경계 안에 존재하는 모든 병원을 검색\n② 주어진 사건 현장에서 가장 가까운 거리에 있는\n경찰차를 검색\n③ 2Km 이내의 거리에 호수가 존재하는 모든 주택을 검색\n④ 특정 사건 현장에서 5Km 반경 이내의 거리에\n있는 모든 응급차를 검색",
-  "2020_53": "53. 데이터베이스의 트랜잭션 관리에 대한 설명 중\n가장 적절하지 않은 것은?\n① 트랜잭션은 데이터베이스를 접근하는 일의 단위\n로서 원자성(atomicity)을 유지하기 위해서\ncommit 하거나 rollback 할 수 있다.\n② 여러 트랜잭션이 동시에 실행되는 경우 충돌\n트랜잭션들의 일관성을 보장하기 위해서는 반드시\n직렬 스케쥴(serial schedule)을 생성해야 한다.\n③ 회복기법으로 그림자 페이지(shadow paging)기법을 사\n용하면 단일 사용자 환경에서 로그 레코드 출력이\n필요없어 트랜잭션의 UNDO가 간단하고 REDO가 필요\n없기 때문에 고장으로부터의 회복이 신속하다.\n④ 로깅(logging) 회복기법에서는 데이터 레코드보다 로\n그 레코드를 먼저 안전 저장장치에 기록하도록 한다.\n- 12",
   "2020_54": "54. 연관규칙 마이닝에서 6-항목집합 {Apple, Banana,\nCherry, Grape, Melon, Tomato}가 빈발(frequent)로\n판명되었을 때, 이 6-항목집합에 대해 고려할 수\n있는 연관규칙은 모두 몇 개인가?\n① 6개 ② 15개 ③ 32개 ④ 62개",
   "2020_55": "55. 다음의 데이터베이스에서 Students 릴레이션의\nsid가 53666인 튜플이 삭제되면 Enrolled 릴레이션의\nsid가 53666인 튜플도 같이 삭제되도록 하는 방법\n으로 가장 적절한 것은? (단, Students, Enrolled\n릴레이션 각각의 기본 키는 밑줄 친 속성이다.)\nStudents Enrolled\nsid cid grade\nsid name age 53666 Carnatic101 C\n53666 Jones 18 53666 Reggae203 B\n53688 Smith 18 53650 Topology112 A\n53650 Smith 19 53666 History105 B\n① Students 릴레이션을 생성할 때 FOREIGN\nKEY(sid) REFERENCES Enrolled(sid) ON\nDELETE SET DEFAULT 명령어를 추가한다.\n② Enrolled 릴레이션을 생성할 때 FOREIGN\nKEY(sid) REFERENCES Students(sid) ON\nDELETE SET DEFAULT 명령어를 추가한다.\n③ Students 릴레이션을 생성할 때 FOREIGN\nKEY(sid) REFERENCES Enrolled(sid) ON\nDELETE CASCADE 명령어를 추가한다.\n④ Enrolled 릴레이션을 생성할 때 FOREIGN\nKEY(sid) REFERENCES Students(sid) ON\nDELETE CASCADE 명령어를 추가한다.",
   "2020_56": "56. 두 릴레이션 R(Z), S(X)에 대해 X⊆Z이고 Y=Z-X\n라고 할 때 다음의 연산들을 순서대로 적용한 결\n과가 의미하는 연산으로 적절한 것은?\nT1 ← π (R)\nY\nT2 ← π ((S × T1) - R)\nY\nT ← T1 - T2\n① 조인 ② 디비전\n③ 교집합 ④ 카티션 프로덕트\n2 -",
-  "2020_57": "57. 다음 SQL 문장에 대한 설명으로 가장 적절한 것은?\nDROP SCHEMA STUDENT RESTRICT\n① 데이터베이스 스키마 STUDENT와 해당 스키마의 모\n든 테이블 및 관련 요소도 함께 제거한다.\n② 데이터베이스 스키마 STUDENT 내에 어떤 요소도\n없을 때만 해당 스키마를 제거한다.\n③ 테이블 스키마 STUDENT와 해당 스키마의 모든\n투플(tuple) 및 관련 요소도 함께 제거한다.\n④ 테이블 스키마 STUDENT 내에 어떤 요소도 없을 때\n만 해당 스키마를 제거한다.",
-  "2020_58": "58. 릴레이션 스키마 R=(A, B, C, D, E)에서 다음과\n같은 함수 종속성(functional dependency)이 존재\n할 때, 릴레이션 R의 후보 키로서 적절하지 않은\n것은?\nA → BC, CD → E, B → D, E → A\n① E ② BC ③ BD ④ CD",
-  "2020_59": "59. ANSI/ISO SQL 표준(SQL92)에서 정의한 트랜잭션의\n고립성 단계(isolation level)에 따라 발생 가능한\n비일관성(inconsistency)의 현상을 아래 표와 같이\n정리하였다. 빈칸 Ⓐ, Ⓑ, Ⓒ에 차례로 들어갈\n내용으로 맞게 구성된 것은?\nDirty Non-repeatable Phantom\n레벨\nread read read\nRead\n발생 가능 발생 가능 발생 가능\nuncommitted\nRead\nⒶ 발생 가능 발생 가능\ncommitted\nRepeatable\n발생 불가능 Ⓑ 발생 가능\nread\nSerializable\n발생 불가능 발생 불가능 Ⓒ\nread\n① 발생 가능, 발생 가능, 발생 가능\n② 발생 가능, 발생 가능, 발생 불가능\n③ 발생 가능, 발생 불가능, 발생 불가능\n④ 발생 불가능, 발생 불가능, 발생 불가능\n- 13",
   "2020_60": "60. 릴레이션 R의 투플 수를 |R|로 표기하고, 조인\n조건을 c라고 할 때, 조인 선택도(join\nselectivity) js=|(R⋈ S)|/|(R×S)|이다. c가\nC\n없으면 js=1이 되고, c를 만족하는 투플이 없으\n면 js=0이 된다. 조인 조건 c가 R.A=S.B 형태이\n고, |R|=8, |S|=3이라고 하자. 다음 설명을 만\n족하는 값들 중 가장 작은 값은?\n① B가 S의 기본키일 때 js의 최대값\n② A가 R의 기본키일 때 js의 최대값\n③ R.A의 유일한 값의 수가 2, S.B의 유일한 값의\n수가 3일 경우 js의 값\n④ B가 S의 기본키일 때 조인 결과 테이블의 카디\n널리티",
   "2020_61": "61. 다음의 두 릴레이션 ‘사원’과 ‘부서’에 대한\n관계 대수식의 결과에 관한 설명으로 가장 적절하지\n않은 것은?(단, 밑줄 친 속성은 기본 키이다.)\n<사원>\n사번 사원이름 부서번호\n2020-001 홍길동 2\n2019-001 장영실 5\n2020-002 강감찬 4\n2020-003 류관순 NULL\n2019-002 김좌진 2\n2019-003 이몽령 4\n2019-004 이산 1\n2020-004 이순신 NULL\n<부서>\n부서번호 부서이름 위치\n5 연구부 연구동-1\n4 영업부 사무동-1\n1 기획부 사무동-2\n2 생산부 생산동-1\n① 카디션 프로덕트 (사원 × 부서) 대수식의 차수\n는 6, 카디널리티는 32이다.\n② 자연조인 (사원 * 부서) 대수식의 차수는 5, 카\n디널리티는 6이다.\n③ 좌측 외부조인 (사원 ⟕ 부\n사원.부서번호=부서.부서번호\n서) 대수식의 차수는 6, 카디널리티는 6이다.\n④ 동등조인 (사원 ⋈ 부서) 대\n사원.부서번호=부서.부서번호\n수식의 차수는 6, 카디널리티는 6이다.\n3 -",
-  "2020_62": "62. 아래의 ‘사원’ 릴레이션에 대한 SQL 질의와 실\n행 결과로 적절하지 않은 것은?\n사원\n사번 사원이름 성별 급여 부서번호\n2020-001 홍길동 남 3000 2\n2019-001 장영실 남 5000 5\n2020-002 강감찬 남 2000 4\n2020-003 류관순 여 3000 NULL\n2019-002 김좌진 남 4000 2\n2019-003 이몽령 남 4000 4\n2019-004 이산 남 5000 1\n2020-004 이순신 남 3000 NULL\nSELECT 부서번호, AVG(급여)\nFROM 사원\nGROUP BY 부서번호;\n부서번호 AVG(급여)\n① NULL 3000\n1 5000\n2 3500\n4 3000\n5 5000\nSELECT 사원이름, 급여\nFROM 사원\nWHERE 부서번호 IN (SELECT 부서번호\nFROM 사원\nGROUP BY 부서번호\nHAVING COUNT(*)>=2);\n②\n사원이름 급여\n홍길동 3000\n강감찬 2000\n김좌진 4000\n이몽령 4000\nSELECT 사원이름\nFROM 사원 E\nWHERE 급여 > (SELECT AVG(급여)\nFROM 사원\n③ WHERE 부서번호 = E.부서번호);\n사원이름\n김좌진\n이순신\nSELECT 사원이름, 급여\nFROM 사원\nWHERE 급여 = (SELECT MAX(급여)\nFROM 사원);\n④\n사원이름 급여\n장영실 5000\n이산 5000\n- 14",
   "2020_63": "63. 다음의 릴레이션 Sailors에 대해 어떤 질의를 한\n결과 릴레이션 Results가 나오도록 하는 SQL 질의\n로 가장 적절한 것은?\n<Sailors>\nsid sname rating age\n22 Dustin 7 45.0\n29 Brutus 1 33.0\n31 Lubber 8 55.5\n32 Andy 8 25.5\n58 Rusty 10 35.0\n64 Horatio 7 35.0\n71 Zorba 10 16.0\n74 Horatio 9 35.0\n85 Art 3 25.5\n95 Bob 3 63.5\n<Results>\nrating average\n3 44.5\n7 40.0\n8 40.5\n10 35.0\n① SELECT S.rating, AVG(S.age) AS average\nFROM Sailors S\nGROUP BY S.rating\nHAVING COUNT(*) > 1;\n② SELECT S.rating, AVG(S.age) AS average\nFROM Sailors S\nWHERE S.age >= 18\nGROUP BY S.rating\nHAVING 1 < (SELECT COUNT(*)\nFROM Sailors S2\nWHERE S.rating=S2.rating);\n③ SELECT S.rating, AVG(S.age) AS average\nFROM Sailors S\nWHERE S.age >= 18\nGROUP BY S.rating\nHAVING 1 < (SELECT COUNT(*)\nFROM Sailors S2\nWHERE S.rating=S2.rating AND\nS2.age >= 18);\n④ SELECT S.rating, AVG(S.age) AS average\nFROM Sailors S\nGROUP BY S.rating\nHAVING 1 < (SELECT COUNT(*)\nFROM Sailors S2\nWHERE S.rating=S2.rating);\n4 -",
-  "2020_64": "64. CAP 정리는 세 가지 조건을 모두 만족하는 분산\n컴퓨터 시스템이 존재하지 않음을 증명한 정리이\n다. 이 세 가지 조건으로 옳은 것은?\n① 일관성(consistency), 원자성(atomicity),\n지속성(persistency)\n② 연속성(continuity), 가용성(availability),\n지속성(persistency)\n③ 일관성(consistency), 가용성(availability),\n분할 내성(partition tolerance)\n④ 연속성(continuity), 원자성(atomicity),\n분할 내성(partition tolerance)",
-  "2020_65": "65. 릴레이션 R에는 6개의 속성 A, B, C, D, E, F를\n가지며, 현재 R은 제1정규형을 만족한다. 이때 R\n에 대한 다음 함수적 종속성 FD 중에서\nBCNF(Boyce-Codd Normal Form)를 만족하는 것은?\n① FD ＝ {A → BCD, B → EF}\n② FD ＝ {A → BCD, B → AEF}\n③ FD ＝ {AB → C, A → DEF}\n④ FD ＝ {AB → CDEF, C → A}",
-  "2020_66": "66. 다음은 마트에서 고객들의 구매 상품 리스트를\n나타낸다. 데이터 마이닝에서 연관 규칙 A → B\n는 A를 구매하면 B도 구매한다는 것을 나타낸다\n고 할 때, 맥주 → 과자에 대한 지지도(support)\n와 신뢰도(confidence)로 옳은 것은?\nID 판매 상품\n1 주스, 맥주, 빵\n2 주스, 빵, 라면, 사과\n3 맥주, 콜라, 과자\n4 맥주, 과자, 빵\n5 생수, 맥주, 과자\n6 과자, 빵, 라면, 맥주\n7 콜라, 맥주, 빵, 아이스크림\n8 라면, 맥주, 과자, 콜라\n9 아이스크림, 라면, 빵, 사과\n10 콜라, 빵, 과자, 맥주\n① 지지도 60%, 신뢰도 75%\n② 지지도 67%, 신뢰도 50%\n③ 지지도 67%, 신뢰도 75%\n④ 지지도 75%, 신뢰도 50%\n- 15",
   "2020_67": "67. 보기의 내용은 어떤 NoSQL 시스템을 설명한 것\n이다. 보기의 내용에 해당하는 NoSQL의 범주로\n가장 적절한 것은?\n<보기>\n- 개별 데이터는 복합 객체(complex object)와 흡사하다.\n- 스키마를 명세할 필요가 없다.\n- 데이터를 JSON과 같이 잘 알려진 포맷으로 저장한다.\n① 문서-기반의 시스템\n② 키-밸류 스토어\n③ 컬럼-기반 또는 와이드 칼럼 시스템\n④ 그래프 기반 시스템",
   "2020_68": "68. 다음은 규칙  → 의 분할표(contingency\ntable)를 표현한 것이다. 이 표를 이용해 구한\n다음의 값들 중 가장 큰 값은?\n\n \n 15 5 20\n  75 5 80\n90 10 100\n①  → 의 지지도(support)\n②  → 의 신뢰도(confidence)\n③  → 의 상승(lift)\n④  →  의 신뢰도",
   "2020_69": "69. 검색 엔진에서 주어진 검색 키워드에 관련된 전\n체 문서의 수가 10개라고 하자. 다음 각 경우에\n대한 설명이 옳지 않은 것은?\n① 검색 결과 문서 수가 5개, 이 중 관련된 문서가\n3개라면 정확도(precision)는 60%이다.\n② 검색 결과 문서 수가 8개, 이 중 관련된 문서가\n5개라면 재현도(recall)는 50%이다.\n③ 검색 결과 문서 수가 5개, 이 중 관련된 문서가\n3개라면 F-스코어(F-score)는 30%이다.\n④ 검색 문서의 순위(rank) 순서대로 정확도와\n재현도를 구하면 정확도는 변동(증감)하고\n재현도는 단조적으로 증가한다.\n5 -",
-  "2020_70": "70. 다음은 실제로 2개의 클래스 a, b(즉, ~a)를 갖\n는 테스트 데이터에 대해서 분류기(classifier)\n로 클래스 a로 분류한 경우(a)와 a가 아니라고\n분류한 경우(~a)로 분류한 결과표이다. 분류기의\n성능을 분석한 것 중 가장 적절하지 않은 것은?\n예측 클래스\na ~a 합계\na 40 10 50\n실제 클래스 ~a 15 35 50\n합계 55 45 100\n① 오류율(error rate) = 25%\n② 특이도(specificity) = 70%\n③ 재현율(recall) = 80%\n④ F 측정값(F-measure) = 30%",
-  "2020_71": "71. 사용자 JOHN에게 부여된 STUDENT 릴레이션에 대한\nSELECT 권한을 회수하고자 할 때, 이를 SQL 언어\n로 가장 올바르게 표현한 것은?\n① REMOVE SELECT ON STUDENT FROM JOHN\n② REVOKE SELECT ON STUDENT FROM JOHN\n③ REMOVE SELECT ON JOHN FROM STUDENT\n④ REVOKE SELECT ON JOHN FROM STUDENT",
-  "2020_72": "72. 확장성 직접 화일에서 동적 해싱(dynamic\nhashing) 기법에 관한 설명 중 가장 적절하지\n않은 것은?\n① 버킷 분할이 일어날 때, 기존 버킷에 저장할지\n새로 할당된 버킷에 저장할지 결정하는 방법은\n버킷에 있는 다른 레코드들에 의존해야 한다.\n② 각 버킷은 메인 메모리에 거주하는 인덱스로 지\n시되기 때문에 물리적 버킷 주소는 실제로 그리\n중요하지 않다.\n③ 버킷 분할이 계속해서 일어나면 인덱스는 N개의\n이진 트리 집합으로 된 포리스트(forest)로 된다.\n④ 트리 경로를 따라가는 과정에 가상 메모리 기법\n에서 일어나는 페이지 부재(page fault) 현상이\n발생할 수 있다.\n- 16",
   "2020_73": "73. 다음 E-R 모델을 관계 모델로 매핑하여 데이터\n베이스를 구축할 경우 DEPARTMENT, EMPLOYEE 테\n이블의 생성문에 반영할 내용에 대한 설명 중\n가장 적절하지 않은 것은? (단, 개체와 관계 사\n이의 이중선은 전체 참여, 단일선은 부분 참여,\n밑줄 친 속성은 해당 개체에서 고유함을 의미한\n다.)\n① 1:N 관계를 반영하기 위하여 EMPLOYEE 테이블\n에 외래키 DNO를 추가한다.\n② 1:N 관계를 반영한 EMPLOYEE 테이블의 외래키\nDNO에 대해서는 NULL값을 허용할 수 있다.\n③ 1:1 MANAGES 관계 반영의 경우 DEPARTMENT 테이\n블에 외래키 ENO를 추가하는 것이 EMPLOYEE 테\n이블에 외래키 DNO를 추가하는 것보다 더 좋다.\n④ EMPLOYEE 테이블에서 ENO를 기본키로 설정할 경\n우, Email은 대체키로 UNIQUE 제약을 설정한다.",
   "2020_74": "74. GIS 시스템 구성 요소 중에서 래스터(raster)에\n대한 설명으로 가장 적절한 것은?\n① 지리 데이터를 일컫는 용어로, 2차원 셀 혹은 3\n차원 복셀(voxel)들의 연속된 격자이다.\n② GIS 관련 인력을 일컫는 용어로, 지도 제작자,\n지리 조사관, GIS 사용자를 통칭한다.\n③ 플로터, 스캐너, 3차원 프린터 등 GIS 시스템을\n구성하는 하드웨어 장치를 일컫는다.\n④ GIS 객체를 표현하기 위한 점, 선, 폴리곤 등의\n이산 객체와 이들을 포함하는 MBR(minimum\nbounding rectangle)을 일컫는다.",
   "2020_75": "75. 분산 데이터베이스에서 릴레이션 R의 단편(fragment)은\nπ(σ(R))로 명세될 수 있다. 다음 중 수직 단편을\nL C\n표현한 경우로 옳은 것은? (단, ATTRS(R)은 R의 애트\n리뷰트의 집합, L은 애트리뷰트 리스트, C는 R의 모든\n투플이 선택되는 조건식을 의미한다.)\n① C = TRUE and L = ATTRS(R)\n② C = TRUE and L ≠ ATTRS(R)\n③ C ≠ TRUE and L = ATTRS(R)\n④ C ≠ TRUE and L ≠ ATTRS(R)\n6 -",
-  "2021_51": "51. 국제 데이터 품질 표준인 ISO 8000에서 데이터의\n품질 기준을 크게 유효성과 활용성으로 구분하고\n있다. 다음 중 활용성에 해당하는 것은?\n① 사실성 ② 필수성\n③ 정합성 ④ 충분성",
-  "2021_52": "52. 다음 ER 모델에서 1:1 관계 타입 MANAGES의 속성\nStartDate에 대한 설명으로 가장 거리가 먼 것은?\n① StartDate를 EMPLOYEE 엔티티 타입의 속성으로\n이동시킬 수 있다.\n② StartDate를 DEPARTMENT 엔티티 타입의 속성으\n로 이동시킬 수 있다.\n③ StartDate를 MANAGES 관계 타입의 속성으로 그대\n로 유지하여도 된다.\n④ StartDate를 EMPLYOEE와 DEPARTMENT 양쪽 모두에\n유지해야 한다.",
-  "2021_53": "53. 릴레이션 스키마 S=(A, B, C, D, E, F, G)에서\n다음과 같은 함수적 종속성(functional dependency)\n이 존재한다고 가정하자. 릴레이션 S에서 후보\n키로서 옳지 않은 것은?\nA → ABCDEFG, BD → E, CE → A\n① A ② BD\n③ CE ④ BCD\n- 14",
   "2021_54": "54. SQL에서 사용되는 COUNT 함수에 대한 다음 설명\n중 옳은 것으로 묶인 것은?\n가. 중복되는 값이 있는 속성의 경우, COUNT(속\n성명)의 결과와 COUNT(DISTINCT 속성명)의\n결과는 동일하다.\n나. 중복되는 값이 없는 속성의 경우, COUNT(*)의\n결과와 COUNT(속성명)의 결과는 상이하다.\n다. COUNT(*)의 처리 대상은 투플의 집합이고,\n그 결과는 투플의 수이다.\n라. COUNT(*)의 결과에 중복되는 투플은 포함된다.\n① 가, 나 ② 가, 다\n③ 나, 다 ④ 다, 라",
   "2021_55": "55. SQL 뷰(view)에 대한 설명 중 옳은 것으로만 짝\n지어진 것은?\n가. 뷰에 대한 투플의 삽입은 시스템에 의해 거부\n될 수 있다.\n나. 원본과의 불일치 문제로 인해 뷰 생성 시\nGROUP BY절을 사용할 수 없다.\n다. 집계(aggregation)함수에 의해 생성된 뷰의\n경우 일반적으로 갱신을 허용하지 않는다.\n라. 실체화된 뷰(materialized view)를 생성할 경\n우에는 CREATE VIEW 구문을 사용하고, 그렇지\n않은 뷰를 생성할 경우에는 CREATE TABLE 구\n문을 사용한다.\n① 가, 나 ② 가, 다\n③ 나, 라 ④ 다, 라",
   "2021_56": "56. 조인 연산은 질의 처리에서 가장 많은 비용이 소\n요되는 연산 중 하나이다. 다음 중 조인 연산을\n구현하는 방법과 가장 거리가 먼 것은?\n① k-최근접 이웃 조인(k-nearest neighbor join)\n② 중첩 루프 조인(nested loop join)\n③ 정렬-합병 조인(sort-merge join)\n④ 분할-해시 조인(partition-hash join)\n4 -",
-  "2021_57": "57. 객체 데이터 모델(object data model)에서 사용\n하는 OID(Object IDentifier)에 대한 설명으로\n가장 적절하지 않은 것은?\n① OID는 객체마다 유일한 값을 가지고 있으므로\n하나의 시스템 내에서 OID가 동일한 객체는 있을\n수 없다.\n② OID는 객체가 생성될 때 시스템에 의해 생성되고\n일단 생성된 뒤에는 어떠한 경우에도 변경되지\n않는다.\n③ OID는 관계 데이터 모델에서 사용하는 기본 키와\n본질적으로 동일한 성질을 가지고 있다.\n④ OID는 객체가 제거될 때만 삭제되며 이렇게 삭\n제된 OID는 다시 재사용할 수 없다.",
-  "2021_58": "58. 다음과 같은 5-원(way) B-트리가 있다고 할 때,\n새로운 키 값 30을 삽입했을 때의 설명으로 가장\n적절하지 않은 것은?\n① 삽입의 결과로 트리의 높이가 증가한다.\n② 삽입의 결과로 루트의 공간 사용율이 1/2 미만이\n된다.\n③ 삽입 과정에서 노드의 분할이 발생한다.\n④ 삽입 과정에서 노드의 병합이 발생한다.",
-  "2021_59": "59. 세 개의 릴레이션 학생(학번, 이름, 학년, 학\n과), 과목(과목번호, 과목이름, 학점, 학과),\n등록(학번, 과목번호, 성적)에서 “모든 과목에\n수강하고 있는 학생의 학번과 이름을 검색하\n라”는 질의를 효율적인 관계 대수 명령어로 작\n성할 때 사용되는 연산으로 가장 적절하지 않은\n것은? (단, 밑줄 속성은 릴레이션의 기본키를\n표시한다.)\n① 조인 ② 차집합\n③ 디비전 ④ 프로젝션\n- 15",
   "2021_60": "60. 학생(학번, 이름, 학과) 릴레이션에 수학과 학생\n이 60명, 화학과 학생이 40명, 물리과 학생이\n30명, 학과가 정해지지 않은(NULL) 학생이 10명\n으로 구성되어 있을 때, 각각의 실행 결과 투플\n수로 옳은 것은? (단, 밑줄 속성은 기본키를 표\n시한다.)\n가. SELECT 학과 FROM 학생;\n나. SELECT DISTINCT 학과 FROM 학생;\n다. SELECT COUNT(*) FROM 학생 GROUP BY 학과;\n① 가 130, 나 3, 다 3\n② 가 130, 나 4, 다 4\n③ 가 140, 나 3, 다 3\n④ 가 140, 나 4, 다 4",
   "2021_61": "61. 다음 릴레이션 R과 S에 대해 결과 릴레이션 RS가\n얻어지도록 하는 관계 대수 연산으로 옳은 것은?\nR S RS\nA B C B C D A B C\na1 b1 c1 b1 c1 d1 a1 b1 c1\na2 b1 c1 b1 c1 d2 a2 b1 c1\na3 b1 c2 b2 c3 d3 a4 b2 c3\na4 b2 c3\n① R⋈ S (natural join)\nN\n② R⟖c=cS (right outer join)\n③ R⋉S (semi join)\n④ R⋃+S (outer union)",
   "2021_62": "62. 다음과 같은 특징을 가지는 NoSQL 데이터베이스\n유형으로 가장 적절한 것은?\nŸ 관계 데이터 모델과 비슷하게 데이터는 물론\n데이터 간의 관계를 표현하는데 적합하다.\nŸ 다른 NoSQL 모델과 달리 트랜잭션을 통해 ACID를\n지원하며 클러스터 환경에는 적합하지 않다.\nŸ 연관 데이터를 추천해주거나 소셜 네트워크에\n서 친구 찾기 질의를 효율적으로 수행하는데\n적합하다.\n① 그래프 기반(graph-based) 데이터베이스\n② 컬럼 기반(column-based) 데이터베이스\n③ 문서 기반(document-based) 데이터베이스\n④ 키-값(key-value) 데이터베이스\n5 -",
-  "2021_63": "63. 다음과 같은 EMPLOYEE 릴레이션이 있다고 하자.\nEMPLOYEE\nENO ENAME MANAGER\n1001 KIM 1003\n1002 PARK 1006\n1003 LEE 1006\n1004 CHO 1002\n1005 CHOI 1006\n1006 YOO ∧\nEMPLOYEE 릴레이션에 대해 다음과 같은 질의문을 사\n용하여 자체 조인(self join)을 실행했을 때, 실행\n결과로 나타나지 않는 것은?\nSELECT E.ENAME, M.ENAME\nFROM EMPLOYEE E, EMPLOYEE M\nWHERE E.MANAGER = M.ENO;\nE.ENAME M.ENAME\n① KIM LEE\n② PARK KIM\n③ CHO PARK\n④ CHOI YOO",
-  "2021_64": "64. 동시성 제어를 하지 않고 다수의 트랜잭션을 동\n시에 수행하면 문제가 발생할 수 있다. 다음과\n같이 트랜잭션 T1이 홍길동의 잔액을 100,000원\n증가시킨 후에 트랜잭션 T2는 모든 계좌의 잔액\n에 대한 평균값을 검색하였다. 그 이후 어떤 이\n유로 T1이 철회되는 경우 발생하게 되는 문제점\n으로 가장 적절한 것은?\nT1 T2\nUPDATE account\nSET balance = balance + 100000\nWHERE name = ‘홍길동’;\nSELECT AVG(balance)\nFROM account;\nROLLBACK;\nCOMMIT;\n① 오손 데이터 읽기(dirty read)\n② 갱신 손실(lost update)\n③ 반복할 수 없는 읽기(unrepeatable read)\n④ 모순성(inconsistency)\n- 16",
-  "2021_65": "65. 다음의 두 릴레이션 직원(EMP), 부서(DEPT)의\nCREATE TABLE 문에 포함될 참조무결성 조치에\n대한 설명으로 옳지 않은 것은? (단,\nSuper_ENO는 상사 직원번호, E_DNO는 소속부\n서, Mgr_ENO는 부서 관리자의 직원번호를 나\n타내고, 밑줄은 기본키를 표시한다.)\nEMP(ENO, Name, Super_ENO, E_DNO)\n참조무결성제약 및 조치:\nFOREIGN KEY (Super_ENO) REFERENCES EMP(ENO)\nON DELETE SET NULL ON UPDATE CASCADE\nFOREIGN KEY (E_DNO) REFERENCES DEPT(DNO)\nON DELETE SET DEFAULT ON UPDATE CASCADE\nDEPT(DNO, Dname, Mgr_ENO)\n참조무결성제약 및 조치:\nFOREIGN KEY (Mgr_ENO) REFERENCES EMP(ENO)\nON DELETE SET DEFAULT ON UPDATE CASCADE\n① 직원의 소속 부서가 삭제되면 해당 직원은 디폴\n트 부서로 배치된다.\n② 상사 직원이 삭제되면 해당 직원은 디폴트 상사\n에게 배치된다.\n③ 부서번호(DNO)가 변경되면 해당 부서 소속 직원\n의 소속 부서번호도 동일하게 갱신된다.\n④ 관리자 직원이 삭제되면 삭제된 직원이 관리했\n던 부서의 관리자는 디폴트 관리자로 배치된다.",
   "2021_66": "66. 다음은 확장 가능 해싱(extendible hashing) 기법이\n가지는 디렉토리와 버켓 구조를 나타낸다. 그림에\n서 전역 깊이(global depth)인 (가)와 지역 깊이\n(local depth)인 (나)에 들어가는 숫자로 올바르\n게 짝지어진 것은?\n① (가) 3, (나) 2 ② (가) 4, (나) 2\n③ (가) 3, (나) 1 ④ (가) 4, (나) 1\n6 -",
-  "2021_67": "67. 사원 정보를 저장하는 릴레이션 EMPLOYEE와 부양\n가족 정보를 저장하는 릴레이션 DEPENDENT가 다음\n과 같이 정의되었다고 할 때, “부양가족이 없는\n사원의 이름을 검색하라”라는 SQL 질의의 ㉮,\n㉯, ㉰에 들어갈 내용으로 가장 적절한 것은?\nCREATE TABLE EMPLOYEE\n(NAME VARCHAR(30) NOT NULL,\nSSN CHAR(9) NOT NULL,\nADDR VARCHAR(30),\nPHONE CAHR(10),\nPRIMARY KEY (SSN));\nCREATE TABLE DEPENDENT\n(ESSN CHAR(9) NOT NULL,\nDEPNAME VARCHAR(30) NOT NULL,\nAGE INT,\nPRIMARY KEY (ESSN, DEPNAME),\nFOREIGN KEY (ESSN) REFERENCES EMPLOYEE (SSN));\nSELECT NAME\nFROM EMPLOYEE\nWHERE ㉮ (SELECT ㉯ FROM DEPENDENT WHERE ㉰) ;\n㉮ ㉯ ㉰\n① NOT EXISTS * SSN=ESSN\n② NOT IN * NAME=DEPNAME\n③ NOT IN ESSN SSN=ESSN\n④ NOT EXISTS ESSN NAME=DEPNAME",
-  "2021_68": "68. 다음 릴레이션 R과 S에 대해 <보기>의 4개 관계\n연산을 수행했을 때 4개 결과 릴레이션의 카디널\n리티(cardinality)의 합으로 옳은 것은?\nR S\nA B C C D\n10 a 1 1 x\n20 b 2 2 y\n30 c 3 4 z\n40 d 2\n50 e 5\n<보기>\nR⋈c<cS (theta join)\nR⋈ S (natural join)\nN\nR⟕c=cS (left outer join)\nR⟖c=cS (right outer join)\n① 15 ② 17 ③ 19 ④ 21\n- 17",
   "2021_69": "69. 대출을 위한 신용 등급 판단을 위해 다음 데이\n터에 대해 나이브 베이지안 분류기를 적용할 경우\n가장 작은 값은?\nTID 집소유 결혼 연봉 신용\n1 예 미혼 125K 우수\n2 아니오 기혼 100K 우수\n3 아니오 미혼 70K 우수\n4 예 기혼 120K 우수\n5 아니오 이혼 95K 불량\n6 아니오 기혼 60K 우수\n7 예 이혼 220K 우수\n8 아니오 미혼 85K 불량\n9 아니오 기혼 75K 우수\n10 아니오 미혼 90K 불량\n① P(집소유=아니오|우수)\n② P(집소유=예|우수)\n③ P(결혼=미혼|우수)\n④ P(결혼=미혼|불량)",
   "2021_70": "70. 모바일 데이터베이스에서 모바일 데이터의 갱신에\n대한 설명 중 옳은 것으로 묶인 것은?\n가. 모바일 호스트가 다른 컴퓨터에 의해 갱신될\n수 있는 데이터를 판독 전용 사본으로 캐시\n하고 있다면, 이렇게 캐시된 데이터는 일관\n성을 유지하고 있다.\n나. 모바일 호스트가 연결되어 있으면 무효로 된\n캐시 항목들을 알려주는 무효 보고서\n(invalidation report)를 전송받을 수 있다.\n다. 모바일 호스트가 단절되어 있어서 무효 보고\n서를 받지 못하는 경우 재연결시 전체 캐시\n를 무효로 할 수 있는데, 이 경우 소요되는\n비용은 무시할 정도로 적다.\n라. 유선 분산 시스템에서는 분할이 장애 모드로\n간주되지만 모바일 컴퓨팅에서는 단절로 인\n한 분할이 정상 작동 모드의 일부가 되므로\n일관성이 손상될 위험이 있더라도 분할 상태\n에서 데이터 접근을 허용할 필요가 있다.\n① 가, 나 ② 가, 다\n③ 나, 라 ④ 다, 라\n7 -",
-  "2021_71": "71. 트랜잭션 관리에서 다음과 같이 3개의 트랜잭션에\n대해 검사시점(checkpoint) 회복 기법이 사용될\n때, 시스템이 장애가 발생한 후 트랜잭션들의\nREDO 연산과 UNDO 연산을 수행하는 설명으로 옳\n지 않은 것은?\nŸ 검사시점 C1이 정상적으로 수행되었고 검사시\n점 C2가 수행될 때 장애가 발생했다.\nŸ 트랜잭션 T1은 C1 이전에 시작해서 C1 이전에\n완료되었다.\nŸ 트랜잭션 T2는 C1 이전에 시작해서 C2 이전에\n완료되었다.\nŸ 트랜잭션 T3는 C1 이전에 시작해서 C2일 때\n수행 중이었다.\n① T1은 회복 작업에 관련될 필요가 없다.\n② T2는 처음부터 끝까지 REDO를 수행한다.\n③ T3는 처음부터 끝까지 UNDO를 수행한다.\n④ 회복 작업이 완료될 때까지 시스템은 새로운 트\n랜잭션을 받아들일 수 없다.",
-  "2021_72": "72. 릴레이션의 키에 대한 설명 중 맞는 것을 모두\n고른 것으로 가장 적절한 것은?\n가. 모든 릴레이션에는 최소한 하나의 수퍼키와\n후보키가 존재한다.\n나. 릴레이션에서 외래키는 널(NULL) 값을 갖지\n않을 수도 있다.\n다. 하나의 릴레이션에서 후보키의 개수는 수퍼\n키 개수보다 많을 수 없다.\n라. 하나의 릴레이션에서 외래키는 여러 개가\n존재할 수 있다.\n마. 데이터베이스 시스템은 참조된 속성\n(referenced attribute)이 기본키인 경우\n에만 참조무결성 제약조건을 지원한다고\n할 수 있다.\n① 가, 나, 다, 라\n② 나, 다, 라\n③ 나, 다, 라, 마\n④ 가, 나, 다, 라, 마\n- 18",
   "2021_73": "73. 다음은 두 문서의 용어 벡터(term vector)이다. 이\n두 벡터 간 코사인 유사도(cosine similarity)의 계산\n결과로 올바른 것은?\nDocID 사과 감 체리 포도 키위 망고 딸기 배\nDoc1 3 1 0 3 1 2 1 0\nDoc2 1 1 2 1 0 2 4 3\n① 15 ② 0.5 ③   ④ 13",
   "2021_74": "74. 릴레이션 R을 릴레이션 R 과 R 로 분해할 때 바람\n1 2\n직한 분해(decomposition)에 대한 설명으로 가장\n적절하지 않은 것은? (단, R ∩R 는 R 과 R 의 공\n1 2 1 2\n통 속성을 의미한다.)\n① 손실없는 분해(lossless decomposition)가 되어야\n한다.\n② 함수적 종속성(functional dependency) R ∩R →\n1 2\nR 과 R ∩R → R 를 모두 만족하여야 한다.\n1 1 2 2\n③ R ∩R 가 R 의 수퍼키가 된다.\n1 2 1\n④ R의 함수 종속성은 분해 후에도 가급적 보존되\n어야 한다.",
   "2021_75": "75. 연관 규칙 생성을 위한 Apriori 알고리즘을 사용\n하여 {A,B,C,D}(간략히 ABCD라고 함)가 빈발 항\n목집합(frequent itemset)임을 알았다. 그런데,\nABCD에서 만든 규칙 BCD→A가 최소신뢰도 조건을\n만족하지 않아 연관규칙이 될 수 없다면, 이 사\n실로부터 더 이상 고려할 필요가 없는 규칙들로\n만 짝지어진 것은?\n① BD→AC, AB→CD ② AB→CD, A→BCD\n③ BD→AC, D→ABC ④ A→BCD, D→ABC\n8 -",
-  "2022_51": "51. 데이터베이스 구축 방법론 v4.0의 DB구축 공정에서\n다음의 태스크들이 진행되는 세그먼트에 해당하는\n것은?\n- 메타데이터 입력항목 협의\n- 한자 및 다국어 지원협의\n- 표준안수립 및 작업지침 작성\n① 현황조사\n② 구축대상선정\n③ 계획수립\n④ 실행계획",
-  "2022_52": "52. 다음은 관계 데이터 모델에서의 주요 제약조건\n네 가지를 나타낸다. 릴레이션에 대한 투플 삽입\n연산이 발생할 경우 위배될 수 있는 제약조건들\n을 모두 나열한 것은?\n가. 도메인 제약조건(domain constraint)\n나. 키 제약조건(key constraint)\n다. 엔티티 무결성 제약조건(entity integrity\nconstraint)\n라. 참조 무결성 제약조건(referential integrity\nconstraint)\n① 가, 나\n② 가, 다, 라\n③ 나, 다, 라\n④ 가, 나, 다, 라",
-  "2022_53": "53. 다음 설명 중 개체-관계 모델의 약한 엔티티 타\n입(weak entity type)에 대한 설명이 옳지 않은\n것은?\n① 강한 엔티티 타입이 소유 엔티티 타입이 될 수\n있다.\n② 약한 엔티티 타입은 키를 형성하기에 충분한 애\n트리뷰트들을 갖지 못한 엔티티 타입이다.\n③ 약한 엔티티 타입의 엔티티들을 식별하기 위해\n강한 엔티티 타입의 애트리뷰트들 중 임의의\n하나와 결합해야 한다.\n④ 약한 엔티티 타입이 존재하려면 소유 엔티티 타입이\n있어야 한다.\n- 1",
   "2022_54": "54. 다음과 같은 이벤트참여 릴레이션이 있다고 하자.\n이벤트참여\n고객아이디 이벤트번호 당첨여부 고객이름 등급\nC001 E001 Y Kim GOLD\nC001 E005 N Kim GOLD\nC001 E008 Y Kim GOLD\nC002 E002 N Lee VIP\nC002 E005 N Lee VIP\nC003 E003 Y Park SILVER\nC003 E006 N Park SILVER\n이 릴레이션의 기본 키는 (고객아이디, 이벤트번호)\n이다. 이벤트참여 릴레이션에 존재하는 함수적 종속\n(functional dependency) 관계를 표현한 것 중 옳지\n않은 것은?\n① 고객아이디 → 고객이름\n② 고객아이디 → 당첨여부\n③ {고객아이디, 이벤트번호} → 고객이름\n④ {고객아이디, 이벤트번호} → 당첨여부",
   "2022_55": "55. 다음의 릴레이션 address와 이에 대한 함수적 종\n속들이 다음과 같이 정의되었다. 이것의 정규형\n과 관련된 설명 중에서 옳지 않은 것은?\naddress (street, city, state, zipcode)\n함수적 종속: street → (city, state)\nzipcode → city\n(city, state) → zipcode\n① street는 후보키이다.\n② 릴레이션 address는 제2 정규형이다.\n③ 릴레이션 address에 대한 제3 정규형은\nR1=(street, city, state), R2=(city, state, zipcode)\n이다.\n④ 릴레이션 address에 대한 BCNF 정규형은\nR1 = (street, city), R2 = (city, state),\nR3 = (city, state, zipcode) 이다.\n12 -",
-  "2022_56": "56. 다음과 같은 고객 릴레이션과 주문 릴레이션이 있\n다고 하자.\n고객\n고객아이디 고객이름 나이\nC001 Kim 23\nC002 Park 35\nC003 Lee 27\n주문\n주문번호 주문고객 주문제품\n1001 C002 피자\n1002 C001 치킨\n고객 릴레이션의 기본키는 고객아이디이고, 주문 릴\n레이션의 주문고객은 고객 릴레이션의 고객아이디를\n참조하는 외래 키이다. 다음 중 참조 무결성 제약조\n건을 위반하는 경우로만 모두 고른 것은? (단, 삭제\n연산시 NO ACTION을 적용한다.)\n가. 주문 릴레이션에 주문번호 ‘1003’인 투플을 삽\n입하면서 주문고객으로 ‘C004’를 입력\n나. 주문 릴레이션에 주문번호 ‘1003’인 투플을 삽\n입하면서 주문고객으로 NULL을 입력\n다. 고객 릴레이션에서 고객아이디가 ‘C001’인 투\n플을 삭제\n라. 고객 릴레이션에서 고객아이디가 ‘C003’인 투\n플을 삭제\n① 가, 다 ② 가, 라\n③ 나, 다 ④ 나, 라",
-  "2022_57": "57. 다음에 주어진 릴레이션 Employee와 Department\n에 대해 각 SQL문을 수행한 결과로 생성되는 레\n코드의 개수가 옳지 않은 것은?\nEmployee\nempno ename job mgr deptno\n7839 KING PRESIDENT NULL NULL\n7698 BLAKE MANAGER 7839 30\n7782 CLARK MANAGER 7839 10\n7566 JONES MANAGER 7839 20\nDepartment\ndeptno dname\n10 ACCOUNTING\n20 RESEARCH\n30 SALES\n40 OPERATIONS\n- 1\nSELECT *\n① FROM Employee as E INNER JOIN Department 3\nas D ON E.deptno = D.deptno;\nSELECT *\n② FROM Employee as E LEFT OUTER JOIN 3\nDepartment as D ON E.deptno = D.deptno;\nSELECT *\n③ FROM Employee as E RIGHT JOIN Department 4\nas D ON E.deptno = D.deptno;\nSELECT *\n④ FROM Employee as E FULL JOIN Department 5\nas D ON E.deptno = D.deptno;",
   "2022_58": "58. 아래의 country 테이블과 city 테이블에 대한 SQL\n질의가 수행될 때, 생성되는 결과 테이블의 차수\n(degree)와 카디널리티(cardinality)로서 옳은 것은?\ncountry\nid country_name country_name_eng country_code\n1 Deutschland Germany DEU\n2 Srbija Serbia SRB\n3 Hrvatska Croatia HRV\n4 United States of America United States of America USA\n5 Polska Poland POL\n6 España Spain ESP\n7 Rossiya Russia RUS\ncity\nid city_name lat long country_id\n1 Berlin 52.520008 13.404954 1\n2 Belgrade 44.787197 20.457273 2\n3 Zagreb 45.815399 15.966568 3\n4 New York 40.730610 -73.935242 4\n5 Los Angles 34.052235 -118.243 4\n6 Warsaw 52.237049 21.017532 5\nSELECT country.country_name, COUNT(city.lat)\nFROM city INNER JOIN country\nON city.country_id = country.id\nGROUP BY country.country_name\nHAVING COUNT(city.lat) <= 1;\n① 차수: 1, 카디널리티: 4\n② 차수: 1, 카디널리티: 5\n③ 차수: 2, 카디널리티: 4\n④ 차수: 2, 카디널리티: 5\n13 -",
-  "2022_59": "59. 다음의 릴레이션 R에 대해 릴레이션 C1, C2, C3\n으로 디비전(division) 연산을 수행한 결과 릴레\n이션의 카디널리티(cardinality)의 최소값과 최\n대값을 올바르게 나열한 것은?\nR C1 C2 C3\nA B B B B\n100 C413 C413 C312 C312\n100 E412 C413 C413\n200 C123 E412\n300 C312\n300 C324\n300 C413\n400 C312\n400 C324\n400 C413\n400 E412\n500 C312\n① 1, 2 ② 1, 3\n③ 1, 4 ④ 2, 3",
-  "2022_60": "60. 어떤 스포츠클럽의 개체-관계 모델에서 회원(MEMBER)\n개체와 로커(LOCKER) 개체 간에 1:1 관계가 성립한다.\n회원에게는 로커가 필수적으로 배정되지만, 로커는\n회원이 배정되지 않을 수도 있다. 이 개체-관계 모델\n의 두 개체는 각각 회원 테이블과 로커 테이블로 매\n핑이 되고, 회원 테이블의 기본키는 MID, 로커 테이\n블의 기본키는 LID이다. 두 테이블을 정의하기 위한\nSQL DDL문에 대한 설명으로 가장 적절한 것은?\n가. CREATE TABLE MEMBER 정의문 안에 LID를 외래\n키로 정의한다.\n나. CREATE TABLE LOCKER 정의문 안에 MID를 외래\n키로 정의한다.\n다. 두 개체의 1:1 관계를 표현하기 위해 외래키\n로 정의된 속성에 대한 열 제약조건을 NULL로\n정의한다.\n라. 두 개체의 1:1 관계를 표현하기 위해 외래키\n로 정의된 속성에 대한 열 제약조건을 NOT\nNULL로 정의한다.\n① 가, 다 ② 가, 라\n③ 나, 다 ④ 나, 라\n- 1",
   "2022_61": "61. 다음과 같은 등록 데이터를 가지고 있는 ENROL 테\n이블이 있다고 하자. 여기서, SNO, CNO, GRADE는\n각각 학번, 과목번호, 성적을 의미한다.\nENROL\nSNO CNO GRADE\n1001 C001 95\n1001 M001 80\n1002 E001 85\n1003 M001 90\n1004 E001 95\n1004 M001 75\n1004 C001 70\n1005 M002 80\n위 테이블에 대해 다음과 같은 SQL문을 실행했을 때\n의 실행 결과 중 3번째 행으로 옳은 것은?\nSELECT CNO, SNO FROM ENROL ORDER BY CNO DESC, GRADE ASC;\nCNO SNO CNO SNO\n① M001 1004 ② M001 1001\n③ E001 1004 ④ C001 1004",
   "2022_62": "62. 파일 조직의 유형인 비순서 히프파일(heap file)에 대\n한 평균 검색 비용(시간)을 알아보고자 한다. 레코드가\n500,000개, 각 레코드의 길이가 100 바이트, 블록의 크\n기가 4,096 바이트, 한 블록을 읽는데 걸리는 시간은 10\nms 인 매개변수가 주어진 경우, 주어진 특정 레코드를\n찾기 위해 평균적으로 걸리는 시간에 가장 가까운 것은?\n① 121,951 ms ② 125,000 ms\n③ 62,500 ms ④ 31,250 ms",
   "2022_63": "63. 다음은 검사시점 회복(checkpoint recovery) 기법\n에서 진행되는 주요 작업들을 설명한 것이다. 적\n용 순서가 시간 순으로 옳게 나열된 것은?\n가. REDO-list에 있는 트랜잭션에 대해 REDO 연산을\n수행한다.\n나. <T, Commit> 로그 레코드를 만나면 트랜잭션 T를\nUNDO-list에서 삭제하고 REDO-list에 첨가한다.\n다. 변경된 데이터 버퍼 블록을 전부 디스크로 출\n력시킨다.\n라. UNDO-list에 있는 모든 트랜잭션들에 대해\nUNDO 연산을 수행한다.\n① 나, 가, 라, 다 ② 나, 라, 가, 다\n③ 다, 나, 가, 라 ④ 다, 나, 라, 가\n14 -",
-  "2022_64": "64. 다음과 같은 STUDENT 릴레이션과 ENROL 릴레이션이\n있다고 하자.\nSTUDENT\nSNO SNAME AGE\nS001 Kim 20\nS002 Park 22\nS003 Lee 21\nS004 Hong 23\nENROL\nENO SNO COURSE\nE001 S001 자료구조\nE002 S001 알고리즘\nE003 S002 자료구조\nE004 S003 알고리즘\nE005 S003 프로그래밍\nE006 S003 데이터베이스\n다음과 같은 실행 결과가 나오는 SQL 질의문으로 옳\n은 것은?\nSNAME COURSE\nKim 자료구조\nKim 알고리즘\nPark 자료구조\nLee 알고리즘\nLee 프로그래밍\nLee 데이터베이스\nHong NULL\n① SELECT STUDENT.SNAME, ENROL.COURSE\nFROM ENROL INNER JOIN STUDENT\nON ENROL.SNO = STUDENT.SNO;\n② SELECT STUDENT.SNAME, ENROL.COURSE\nFROM STUDENT LEFT OUTER JOIN ENROL\nON STUDENT.SNO = ENROL.SNO;\n③ SELECT STUDENT.SNAME, ENROL.COURSE\nFROM ENROL LEFT OUTER JOIN STUDENT\nON ENROL.SNO = STUDENT.SNO;\n④ SELECT STUDENT.SNAME, ENROL.COURSE\nFROM STUDENT RIGHT OUTER JOIN ENROL\nON STUDENT.SNO = ENROL.SNO;\n- 1",
   "2022_65": "65. 데이터베이스 보안 기법 중 필수 접근 제어\n(mandatory access control) 기법에 대한 설명으\n로 옳지 않은 것은?\n① 각 데이터 객체에 적정 비밀 등급을 부여하고\n각 사용자도 허가 등급을 지정하여 데이터 객\n체가 적절한 허가 등급을 가진 사용자에 의해\n서만 접근되도록 한다.\n② 통상적인 보안 등급은 TS(극비), S(비밀), C(대\n외비), U(일반)으로 나누는데 이들 간의 순서는\nTS > S > C > U 가 된다.\n③ 데이터 객체 j를 갱신하기 위해서는 사용자 i의\n허가 등급이 데이터 객체 j의 비밀 등급보다 같\n거나 높아야 한다.\n④ 이 필수 접근 제어 기법을 다단계 보안 기법\n(multilevel security scheme)이라고도 한다.",
   "2022_66": "66. 다음은 데이터베이스 회복(recovery) 기법의 지\n연 갱신(deferred update)과 즉시 갱신\n(immediate update)에 대한 설명이다. 다음 설명\n중에서 옳은 것을 모두 고른 것은?\n가. 지연 갱신에서는 완료(commit) 이전에 실패한\n트랜잭션의 경우 UNDO가 필요하지 않다.\n나. 즉시 갱신은 완료 이후 UNDO와 REDO가 필요하\n지 않기 때문에 NO-UNDO/NO-REDO 알고리즘으\n로 알려져 있다.\n다. 즉시 갱신에서는 완료 이전에 실패한 트랜잭\n션의 경우 UNDO를 수행해야 한다.\n라. 지연 갱신에서는 완료된 트랜잭션에 대해서도\n로그를 사용하여 REDO를 수행해야 할 수 있다.\n① 다, 라 ② 나, 라\n③ 나, 다, 라 ④ 가, 다, 라",
   "2022_67": "67. 다음의 구매 데이터로부터 연관규칙 Apriori 알고\n리즘을 통해 도출할 수 있는 연관규칙 중에서 신\n뢰도(confidence)값이 가장 큰 것은?\n고객ID 구매항목\n1 {A, B, C}\n2 {D, A, E}\n3 {A, B, F, G}\n4 {F, B, E}\n5 {A, C, E}\n6 {C, E, H}\n① A → B ② A → C\n③ B → A ④ B → C\n15 -",
-  "2022_68": "68. 뷰(view)는 기본 릴레이션이나 이미 정의된 뷰를 사용\n하여 정의된다. 아래 그림은 뷰의 갱신가능성의 수준에\n따른 뷰들의 유형간 포함 관계를 도식화한 것이다. 갱\n신 가능성을 기준으로 볼 때 (ㄱ), (ㄴ), (ㄷ)에 각각\n(가), (나), (다)의 내용을 가장 가깝게 연결한 것은?\n(가) 사용자가 정의할 수 있는 모든 뷰\n(나) 상용 관계 DBMS들이 갱신을 허용하는 뷰\n(다) 이론적으로 갱신이 가능한 뷰\n① (ㄱ)과 (가), (ㄴ)과 (다), (ㄷ)과 (나)\n② (ㄱ)과 (다), (ㄴ)과 (가), (ㄷ)과 (나)\n③ (ㄱ)과 (나), (ㄴ)과 (다), (ㄷ)과 (가)\n④ (ㄱ)과 (가), (ㄴ)과 (나), (ㄷ)과 (다)",
-  "2022_69": "69. 데이터 웨어하우스가 일반 데이터베이스와 다른 특\n징에 대한 설명 중 옳지 않은 것은?\n① 주제 지향적(subject-oriented) 내용 : 일반 데이\n터베이스가 업무 처리 중심의 데이터로 구성된 반\n면 데이터 웨어하우스는 의사 결정이 필요한 주제\n를 중심으로 데이터를 구성한다.\n② 통합된(integrated) 내용 : 데이터 웨어하우스는 여\n러 데이터베이스에서 필요한 데이터를 추출하여 의\n사 결정에 필요한 분석 및 비교 작업을 지원한다.\n③ 시간에 따라 변화하지 않는(time-invariant) 내용 :\n일반 데이터베이스는 현재와 과거 데이터를 함께\n유지하지만 데이터 웨어하우스는 현재 시점의 데\n이터만을 유지한다.\n④ 비소멸성(nonvolatile) 내용 : 일반 데이터베이스\n에 저장된 데이터는 삽입, 삭제, 갱신 연산이 자\n주 발생하지만 데이터 웨어하우스는 검색 작업만\n수행되는 읽기 전용의 데이터를 유지한다.",
-  "2022_70": "70. 의사결정트리(decision tree) 구축 과정에서 어떤\n노드 N에 클래스 0인 레코드가 1개, 클래스 1인\n레코드가 5개 해당한다고 하자. 이 노드에 대한\n불순도(impurity)를 표현하는 Gini 값으로 가장\n적절한 것은?\n① 0.0 ② 0.278\n③ 0.5 ④ 0.650\n- 1",
   "2022_71": "71. 다음은 정보 검색, 텍스트 마이닝에서 문서 집합\n과 용어에 대한 TFIDF의 개념을 설명한다. 만일,\n문서 집합 D에 다음과 같이 d1, d2의 두 문서만\n존재한다고 할 때, 용어 “this”에 대한 TFIDF\n값이 옳은 것은?\n- TF는 term frequency의 약어로, 해당 용어가 주어\n진 문서에 얼마나 많이 나타나는지를 나타낸다.\n- IDF는 inverse document frequency의 약어로,\n해당 용어가 문서 집합에 얼마나 많이 나타나는\n지에 대한 역수를 나타낸다.\n- TFIDF는 문서 집합에서 특정 단어가 주어진 문\n서 내에서 얼마나 중요한 것인지를 나타내는 통\n계적 수치이다.\n문서 d1 문서 d2\n용어 출현 횟수 용어 출현 횟수\nthis 1 this 2\nis 1 is 1\na 2 another 1\nsample 1 example 1\n① TFIDF(“this”, d1, D) = 0,\nTFIDF(“this”, d2, D) = 0\n② TFIDF(“this”, d1, D) = 0.1,\nTFIDF(“this”, d2, D) = 0.2\n③ TFIDF(“this”, d1, D) = 0.3,\nTFIDF(“this”, d2, D) = 0.3\n④ TFIDF(“this”, d1, D) = 0.2,\nTFIDF(“this”, d2, D) = 0.4",
-  "2022_72": "",
-  "2022_73": "73.935242 4\n5 Los Angles 34.052235 -118.243 4\n6 Warsaw 52.237049 21.017532 5\nSELECT country.country_name, COUNT(city.lat)\nFROM city INNER JOIN country\nON city.country_id = country.id\nGROUP BY country.country_name\nHAVING COUNT(city.lat) <= 1;\n① 차수: 1, 카디널리티: 4\n② 차수: 1, 카디널리티: 5\n③ 차수: 2, 카디널리티: 4\n④ 차수: 2, 카디널리티: 5\n13 -",
-  "2022_74": "74. 다음은 스팸(Spam) 메일을 인식하기 위해 구축한\n예측모델로부터 얻어진 혼돈행렬(confusion\nmatrix)이다. 이 혼돈행렬로부터 구할 수 있는\n성능척도 값이 옳지 않은 것은?\n예측 클래스\nSpam Non-Spam\nSpam TP = 45 FN = 20\n정답 클래스\nNon-Spam FP = 5 TN = 30\n\n① 정밀도(precision) =\n\n\n\n② 재현율(recall) =\n\n\n\n③ 특이도(specificity) =\n\n\n\n④ 정확도(accuracy) =\n\n\n- 1",
+  "2022_72": "72. 다음 설명 중에서 NoSQL의 특징이나 장점과 가장 거\n리가 먼 것은?\n① NoSQL 시스템은 노드 추가를 통해 저장 공간과 처리\n능력을 증가시킬 수 있어 높은 확장성을 제공한다.\n② NoSQL 시스템은 데이터를 여러 노드에 복제하여\n저장함으로써 고장 허용(fault tolerance) 기능을\n제공한다.\n③ NoSQL 시스템은 파일 레코드에 대한 샤딩\n(sharding)을 사용하여 부하분산을 이룬다.\n④ NoSQL 시스템은 데이터를 여러 노드에 복제 저장\n함으로써 읽기(조회)와 쓰기(갱신) 성능을 개선한\n다.\n16 -",
   "2022_75": "75. 다음은 분산 데이터베이스에서의 투명성(transparency)\n에 대한 설명이다. 다음 투명성에 대한 설명 중\n에서 가장 적절하지 않은 것은?\n① 이름부여 투명성(naming transparency)은 분산\n데이터베이스가 어떻게 설계되는지와 어느 사\n이트에서 트랜잭션이 실행되는지를 사용자에게\n가려주는 것을 의미한다.\n② 분산 투명성(distribution transparency) 또는\n네트워크 투명성(network transparency)은 사\n용자에게 네트워크의 세부 사항과 분산 시스템\n내에서 데이터 저장 장소의 위치를 가려주는\n것을 의미한다.\n③ 위치 투명성(location transparency)은 어떤 작\n업을 수행하기 위해 사용된 명령은 데이터의 위\n치와 명령이 입력된 시스템의 위치와 무관해야\n함을 의미한다.\n④ 중복 투명성(replication transparency)은 높은\n가용성, 성능, 신뢰도를 위해 데이터 사본들이\n여러 사이트에 중복될 수 있음을 의미하며, 중\n복된 사본의 존재를 사용자에게 가려준다.\n17 -",
-  "2023_51": "51. ISO 8000의 데이터 품질 기준 관련하여 다음 괄\n호안에 적합한 용어는?\n( ) 오류는 데이터가 표준 코드 값 또는 표준\n도메인 값에 위배될 경우 발생한다.\n① 충분성 ② 사실성\n③ 적합성 ④ 필수성",
-  "2023_52": "52. 고정 길이 레코드 방식을 사용할 때, 레코드의\n길이가 300 바이트, 블록의 크기가 4096 바이트,\n블록 헤더의 길이가 12 바이트라고 가정한다. 다\n음 중 15개의 레코드를 저장하는 상황을 잘 표현\n한 것은?\n① 첫 번째 블록에는 196 바이트가 남는다.\n② 두 번째 블록에는 3,484 바이트가 남는다.\n③ 두 번째 블록에는 3,494 바이트가 남는다.\n④ 두 번째 블록에는 3,784 바이트가 남는다.",
-  "2023_53": "53. 다음 ERD(Entity Relationship Diagram)에서\n수퍼키(superkey)에 해당되지 않는 것은? (단,\nRegistration과 Vehicle_id는 각각 후보키이다.)\n① (State, Year, Model)\n② (Vehicle_id, Number)\n③ (Registration, State)\n④ (Registration, Vehicle_id, Year)",
-  "2023_54": "54. 릴레이션 R과 S에 대하여 |R| = 7, |S| = 6이다.\n다음 릴레이션 연산결과의 상한값 중 가장 작은\n값은?\n① |R∪S| ② |R∩S|\n③ |R-S| ④ |R×S|\n- 11",
   "2023_55": "55. ER 모델의 약한 개체(weak entity)에 대한 설명\n으로 옳지 않은 것은?\n① 자기 자신의 키 속성을 가지지 않는 개체 타입\n을 약한 개체 타입이라고 한다.\n② 약한 개체를 강한 개체와 연결시키는 관계 타입\n을 식별 관계라고 부른다.\n③ 약한 개체가 식별 관계에 대해 전체 참여 제약\n을 가질 필요는 없다.\n④ 모든 존재 종속(existence dependency)이 약한\n개체 타입이 될 필요는 없다.",
   "2023_56": "56. 다음 ER 다이어그램을 관계 모델로 변환할 경우\n릴레이션의 개수로 가장 적절한 것은? (단, ER\n다이어그램의 이중선은 전체 참여를, 이중타원은\n다치 속성을, 밑줄을 친 속성은 키 속성을 의미\n한다.)\n① 2 ② 3\n③ 4 ④ 5",
   "2023_57": "57. 다음 뷰(view)의 변경 연산에 대해 적절하게 설\n명된 것을 모두 나열한 것은?\n가. 두 개 이상의 테이블이 관련되어 정의된 뷰는\n변경할 수 없다.\n나. DISTINCT, GROUP BY가 사용되어 정의된 뷰는\n변경할 수 없다.\n다. 기본 테이블의 기본 키를 구성하는 속성이 포함\n되어있지 않은 뷰는 변경할 수 없다.\n라. 뷰의 열이 상수나 산술 연산자 또는 함수가 사용\n된 산술식으로 만들어진 뷰는 변경할 수 없다.\n① 가, 다, 라 ② 나, 다, 라\n③ 가, 나, 라 ④ 가, 나, 다, 라\n1 -",
-  "2023_58": "58. 속성 X, Y, Z를 포함하는 릴레이션 R(X, Y, Z)에\n존재하는 함수 종속(functional dependency)에서\n항상 성립하는 추론 규칙으로 옳지 않은 것은?\n① X ⊇ Y 이면 X → Y\n② X → YZ 이면 X → Y 이고 X → Z\n③ X → Y 이면 임의의 Z에 대해 XZ → YZ\n④ XZ → YZ 이면 임의의 Z에 대해 X → Y",
-  "2023_59": "59. 다음 릴레이션 A(P, Q, R)와 B(Q, R, S)에 대해\n결과 릴레이션 C(P, Q, R, S)가 나오도록 하는\n관계 대수 연산으로 옳은 것은?\nA B C\nP Q R S\np1 q1 r1 s1\nP Q R\np1 q1 r1 s2\nQ R S\np1 q1 r1\np2 q1 r1 s1\nq1 r1 s1\np2 q1 r1\np2 q1 r1 s2\nq1 r1 s2\np3 q1 r2\np3 q1 r2 NULL\nq2 r3 s3\np4 q2 r3\np4 q2 r3 s3\n① A ⋈ B (자연 조인) ② A ⋈+ B (외부 조인)\nN\n③ A ⋉ B (세미 조인) ④ A ⋃+ B (외부 합집합)",
-  "2023_60": "60. EMPLOYEE 테이블의 Dno 열에 대해 다음과 같은\n참조 무결성이 선언되었다고 할 때, 이와 관련된\n설명으로 옳은 것은?\nCONSTRAINT EmpDeptFK\nFOREIGN KEY(Dno) REFERENCES DEPARTMENT(Dnumber)\nON DELETE SET DEFAULT\nON UPDATE CASCADE\n① EMPLOYEE 테이블의 Dno 값이 삭제되면 DEPARTMENT\n의 Dnumber 값은 디폴트 값으로 설정된다.\n② EMPLOYEE 테이블의 Dno 값이 갱신되면 DEPARTMENT\n의 Dnumber 값도 그 값으로 갱신된다.\n③ DEPARTMENT의 Dnumber 값이 삭제되면 EMPLOYEE\n테이블의 Dno 값은 NULL 값으로 설정된다.\n④ DEPARTMENT의 Dnumber 값이 갱신되면 EMPLOYEE\n테이블의 Dno 값도 그 값으로 갱신된다.\n- 12",
   "2023_61": "61. 다음과 같은 함수 종속을 가진 릴레이션 R을\nBCNF로 정규화한 결과로 옳은 것은? (단, 아래\n지문에서 밑줄친 열은 기본키, 이탤릭체는 외래\n키를 의미한다.)\nR(A, B, C, D)\n함수종속: A→(B, C, D), B→(A, C, D), D→C\n① R1(A, B, D), R2(D, C)\n② R1(A, B, C), R2(C, D)\n③ R1(A, B, C), R2(B, D)\n④ R1(A, C, D), R2(B, A)",
   "2023_62": "62. 다음 Sailors, Boats, Reserves 3개의 릴레이션에\n서 질의 “color가 'red'인 Boat와 'green'인\nBoat를 모두 reserve한 Sailor의 sname을 검색하\n라.”를 SQL로 나타낸 문장으로 옳은 것은? (단,\nSailors, Boats, Reserves 릴레이션 각각의 기\n본 키는 sid, bid, (sid, bid)이다.)\nSailors(sid, sname, rating, age)\nBoats(bid, bname, color)\nReserves(sid, bid, day)\n① SELECT S.sname\nFROM Sailors S, Reserves R, Boats B\nWHERE S.sid = R.sid AND R.bid = B.bid AND\n(B.color = 'red' OR B.color = 'green');\n② SELECT S.sname\nFROM Sailors S, Reserves R, Boats B\nWHERE S.sid = R.sid AND R.bid = B.bid AND\n(B.color = 'red' AND B.color = 'green');\n③ SELECT S.sname\nFROM Sailors S, Reserves R1, Boats B1,\nReserves R2, Boats B2\nWHERE S.sid = R1.sid AND R1.bid = B1.bid\nAND S.sid = R2.sid AND R2.bid = B2.bid AND\nB1.color = 'red' AND B2.color = 'green';\n④ SELECT S.sname\nFROM Sailors S, Reserves R, Boats B\nWHERE S.sid = R.sid AND R.bid = B.bid AND\nB.color = 'red'\nUNION\nSELECT S2.sname\nFROM Sailors S2, Boats B2, Reserves R2\nWHERE S2.sid = R2.sid AND R2.bid = B2.bid\nAND B2.color = 'green';\n2 -",
-  "2023_63": "63. 다음 STUDENT(학생)와 ENROLL(수강) 릴레이션에서\n“Cno가 ‘C413’인 과목을 수강한 학생의 Sname,\nDept와 수강의 Grade를 검색하라.”는 질의를 SQL\n로 나타낸 문장으로 옳은 것은? (단, STUDENT와\nENROLL 릴레이션 각각의 기본 키는 Sno, (Sno,\nCno)이다.)\nSTUDENT(Sno, Sname, Year, Dept)\nENROLL(Sno, Cno, Grade)\n① SELECT Sname, Dept, Grade\nFROM STUDENT JOIN ENROLL WITH(Sno)\nWHERE ENROLL.Cno = 'C413';\n② SELECT Sname, Dept, Grade\nFROM STUDENT NATURAL JOIN ENROLL USING(Sno)\nWHERE ENROLL.Cno = 'C413';\n③ SELECT Sname, Dept, Grade\nFROM STUDENT NATURAL JOIN ENROLL ON\n(STUDENT.Sno = ENROLL.Sno)\nWHERE ENROLL.Cno = 'C413‘;\n④ SELECT Sname, Dept, Grade\nFROM STUDENT JOIN ENROLL ON (STUDENT.Sno =\nENROLL.Sno)\nWHERE ENROLL.Cno = 'C413';",
-  "2023_64": "64. 다음 그림은 트랜잭션 T1~T5에 대해 각각의 수행\n시간을 표기하였다. 트랜잭션 수행 중 체크 포인\n트를 실시하였고, 그 이후 시스템이 다운되었다.\n시스템이 재가동될 때 수행되는 회복 기능으로\n가장 적절한 것은?\n① T2, T4 트랜잭션은 재수행한다.\n② T2, T4 트랜잭션은 취소한다.\n③ T3, T4, T5 트랜잭션은 재수행한다.\n④ T3, T4, T5 트랜잭션은 취소한다.\n- 13",
   "2023_65": "65. 다음은 릴레이션 EMPLOYEE와 DEPENDENT를 생성\n하는 데이터 정의문이다. 두 릴레이션에 대해\n“자신의 부양가족과 이름이 같은 직원의 이름\n(Name)을 출력하라”를 처리하는 SQL 질의를 모\n두 나열한 것은?\nCREATE TABLE EMPLOYEE (\nName VARCHAR(15) NOT NULL,\nSsn CHAR(9) NOT NULL,\nPRIMARY KEY (Ssn) );\nCREATE TABLE DEPENDENT (\nEssn CHAR(9) NOT NULL,\nName VARCHAR(15) NOT NULL,\nPRIMARY KEY(Essn, Name),\nFOREIGN KEY(Essn) REFERENCES EMPLOYEE(Ssn) );\n가.SELECT E.Name\nFROM EMPLOYEE AS E\nWHERE E.Ssn IN (SELECT Essn FROM DEPENDENT AS D\nWHERE E.Name=D.Name );\n나.SELECT E.Name\nFROM EMPLOYEE AS E\nWHERE EXISTS (SELECT * FROM DEPENDENT AS D\nWHERE E.Ssn=D.Essn AND E.Name=D.Name );\n다. SELECT E.Name\nFROM EMPLOYEE AS E, DEPENDENT AS D\nWHERE E.Ssn=D.Essn AND E.Name=D.Name;\n① 가, 나 ② 가, 다\n③ 가, 다 ④ 가, 나, 다",
   "2023_66": "66. 다음 그림은 트랜잭션의 동시성 제어에서 격리\n성(isolation)을 나타내는 예로써, 트랜잭션\nT1, T2가 ➀~➄ 순서대로 수행할 때 생길 수 있\n는 현상으로 가장 적절한 것은?\nT1 T2\n➀ SELECT 도시, COUNT(*)\nFROM 고객\nGROUP BY 도시;\n➁ INSERT INTO 고객\n(고객번호, 이름, 도시, 나이)\nVALUES (3, ‘김민재’,\n‘통영’, 27);\n➂ COMMIT;\n➃ SELECT 나이, COUNT(*)\nFROM 고객\nGROUP BY 나이;\n➄ COMMIT;\n① 오손 데이터 읽기(dirty read)\n② 유령 데이터 읽기(phantom read)\n③ 연쇄 데이터 읽기(cascading read)\n④ 직렬 데이터 읽기(serializable read)\n3 -",
-  "2023_67": "67. 동시성 제어(concurrency control)의 로킹\n(locking) 단위에 대한 다음 설명 중 옳은 것\n을 모두 나열한 것은?\n가. 로킹 단위가 작아지면 동시성(병행) 수준은\n낮아진다.\n나. 데이터베이스, 파일, 레코드 등은 로킹 단위\n가 될 수 있다.\n다. 로킹 단위가 작아지면 일반적으로 로킹 오버\n헤드가 증가한다.\n라. 한꺼번에 로킹할 수 있는 데이터의 크기를\n로킹 단위라 한다.\n① 가, 다 ② 가, 나, 라\n③ 나, 다, 라 ④ 가, 나, 다, 라",
-  "2023_68": "68. 로킹 규약 중에서 strict 2단계 로킹 규약(strict\n2PLP)에 해당하는 설명으로 가장 적절한 것은?\n① 데이터 항목에 대해 read나 write 연산을 하려\n면 반드시 lock을 걸고 트랜잭션 실행을 종료하\n기 전에 unlock을 수행\n② 로크를 걸기만 하는 확장 단계와 로크를 풀기만\n하는 축소 단계로 구성\n③ 로킹이 2단계일 뿐 아니라 모든 독점 로크는 그\n트랜잭션이 완료될 때까지 unlock하지 않고 그\n대로 유지\n④ 로킹이 2단계일 뿐 아니라 모든 로크는 그 트랜잭\n션이 완료될 때까지 unlock하지 않고 그대로 유지",
-  "2023_69": "69. 대표적인 분산 파일 시스템인 HDFS(Hadoop\nDistributed File System)는 여러 노드(node)\n로 구성되어 있다. 다음의 (가), (나)에 들어\n갈 노드 이름으로 가장 옳은 것은?\n⦁(가)는 메타정보를 관리하며 데이터 블록들이\n어느 (나)에 있는지를 유지한다.\n⦁(나)는 실제 데이터 블록을 저장하고 클라이언\n트에 이를 제공한다.\n⦁Secondary (가)는 primary (가)가 고장(fail)일\n때를 대비하는 백업 노드이다.\n① (가) master node, (나) data node\n② (가) name node, (나) data node\n③ (가) master node, (나) slave node\n④ (가) name node, (나) slave node\n- 14",
   "2023_70": "70. 다음 SQL 구문은 테이블 STUDENT에 대한 SELECT\n와 UPDATE 권한을 admuser에게 부여하는 기능을\n한다. 그런데 이때 권한을 부여받은 admuser가\n다른 사용자에게 SELECT나 UPDATE 권한을 다시\n부여할 수 있도록 하기 위해서 (가)에 들어갈\n구문으로 가장 옳은 것은?\nGRANT SELECT, UPDATE ON STUDENT TO admuser (가);\n① WITH OPTION GRANT ② WITH OPTION REGRANT\n③ WITH GRANT OPTION ④ WITH REGRANT OPTION",
   "2023_71": "71. 분산 데이터베이스 시스템에서 분산 투명성에 대\n한 설명으로 적절하지 않은 것은?\n① 데이터의 실제 저장 위치를 알 필요 없이 데이\n터베이스의 논리적 이름만으로 데이터에 접근할\n수 있는 위치 투명성(location transparency)을\n보장해야 한다.\n② 분산 데이터베이스와 관련된 트랜잭션들이 동시\n에 수행되더라도 항상 일관성을 유지하는 장애\n투명성(failure transparency)을 보장해야 한다.\n③ 동일한 데이터가 여러 지역에 중복해서 저장되\n는 경우 사용자가 중복을 인식하지 못하게 하는\n중복 투명성(replication transparency)을 보장\n해야 한다.\n④ 하나의 릴레이션을 더 작은 조각(단편)으로 나누\n고 각 조각을 별개의 릴레이션으로 처리할 때 완\n전성, 회복성, 분리성을 보장하는 단편화 투명성\n(fragmentation transparency)을 보장해야 한다.",
   "2023_72": "72. NoSQL 시스템의 특징을 표현하는 CAP 이론에 대\n한 설명으로 가장 적절하지 않은 것은?\n① 복제본을 가지는 분산 시스템의 요구사항을 설\n명한다.\n② 일관성(consistency), 가용성(availability), 분할\n감내(partition tolerance) 성질을 의미한다.\n③ NoSQL 시스템에서는 CAP의 세 가지 성질을 모두\n보장할 것을 요구한다.\n④ NoSQL 시스템에서는 보통 일관성의 완화된 형태\n인 궁극적 일관성(eventual consistency)을 수\n용한다.\n4 -",
-  "2023_73": "73. 멀티미디어 데이터에 대한 다양한 유형의 검색\n질의를 처리하기 위한 기법 중 “수학 함수로\n저장된 데이터와 질의 조건으로 주어진 데이터\n간의 유사도를 수학 함수로 계산하여 유사도가\n높은 데이터를 검색한다.”는 어떤 기법을 설명\n한 것인가?\n① 랭킹 기법(ranking technique)\n② 인덱스 기법(index technique)\n③ 매칭 기법(matching technique)\n④ 필터링 기법(filtering technique)",
-  "2023_74": "74. 다음 (가)부터 (라)는 관계형 데이터베이스와\nNoSQL의 몇 가지 측면을 기술해 놓은 것이다. 이\n들 중 관계형 데이터베이스보다 비교적 NoSQL에\n가까운 측면을 기술한 것을 모두 선택한 것으로\n가장 적절한 것은?\n(가) 스키마: 스키마가 없거나 변경이 자유롭다.\n(나) 확장성: 클러스터 환경에 적합하다.\n(다) 검색기능: 단순한 데이터 검색 기능을 제공한다.\n(라) 트랜잭션: 일관성 유지를 보장하기 어렵다.\n① 가, 라 ② 가, 나, 라\n③ 나, 다, 라 ④ 가, 나, 다, 라",
-  "2023_75": "75. 다음은 k-Means 군집화(k-Means clustering) 알\n고리즘에 대한 설명이다. 옳은 것을 모두 나열\n한 것은?\n(가) 초기 중심점 선택에 따라 군집 결과가 달라\n질 수 있다.\n(나) 군집 모양이 구형(원형)이 아닐 경우에 다른\n방법보다 잘 동작한다.\n(다) 이상치(outlier)를 포함하고 있는 경우 잘\n동작하지 않는다.\n① 가, 나 ② 가, 다\n③ 나, 다 ④ 가, 나, 다\n- 15\n5 -",
   "2024_51": "51. 다음은 빅데이터 시스템의 NoSQL 데이터 모델\n중 하나를 설명한다. 이 데이터 모델의 명칭으로\n가장 올바른 것은?\n· JSON(JavaScript Object Notation)을 기반으로\n하여 복잡한 구조의 객체를 데이터로 저장한다.\n· 대표적인 제품으로는 MongoDB가 있다.\n① 문서 기반 데이터 모델(document based data model)\n② 객체 지향 데이터 모델(object-oriented data model)\n③ 구조 기반 데이터 모델(structure based data model)\n④ 자바 기반 데이터 모델(Java based data model)",
   "2024_52": "52. 다음에 주어진 관계 대수(relational algebra) 연산의\n결과에서 결과 테이블의 카디널리티(cardinality)가\n가장 큰 것과 가장 작은 것의 합으로 옳은 것은?\nR S\nA B B C\n1 10 10 a\n1 30 20 b\n2 10 30 c\n2 30\n2 20\n3 30\nR÷(∏ (S))\nB\nR⋈ S\nN\nR⋈ S\nR.B<S.B\nσ (R)\nB=10\n① 6 ② 7\n③ 8 ④ 11",
   "2024_53": "53. 릴레이션 R과 S의 속성 A를 통한 이원 조인\n(two-way join)의 구현 방법 중에서 릴레이션 R과\nS가 조인 속성 A에 대해 오름차순으로 정렬되어\n있을 경우에만 적용 가능한 방법은?\n① 중첩 루프 ② 인덱스 검사\n③ 해시 검사 ④ 정렬 합병\n- 10",
@@ -1027,10 +974,7 @@
   "2024_72": "72. 다음은 Apache Spark에서 사용하는 데이터 구조에\n대한 설명이다. 다음 설명에서 ㉮에 들어갈 용어로\n가장 올바른 것은?\n관계형 데이터베이스가 데이터 표현을 위한 추상화\n로 릴레이션을 사용하는 것처럼 Apache Spark은\n㉮라 불리는 데이터 표현 방식을 사용한다. Spark\n에서 연산자는 하나 이상의 ㉮를 입력으로 받아 출\n력으로 ㉮를 반환하는 방식으로 계산을 수행한다.\n① HDFS(Hadoop Distributed File System)\n② HDFS(Hadoop Duplicated File System)\n③ RDD(Resilient Distributed Dataset)\n④ RDD(Reproducible Duplicated Dataset)\n4 -",
   "2024_73": "73. 다음 데이터가 순서대로 삽입되어 만들어진 차수\n가 3인 B-트리에 대한 설명으로 옳지 않은 것은?\n17, 20, 5, 15, 7, 18, 16, 19\n① 루트 노드의 키 값은 16이다.\n② 리프 노드의 개수는 4개이다.\n③ 전체 노드의 개수는 7개이다.\n④ 루트 노드의 레벨이 1이라고 할 때, 트리의 높\n이는 3이다.",
   "2024_74": "74. WAL(Write-Ahead Logging) 기법은 두 가지 로그\n엔트리를 사용한다. 먼저 항목의 AFIM(After\nImage)을 기록하는데 이는 트랜잭션의 (가)에 대\n비하기 위함이며, 항목의 BFIM(Before Image)을\n기록하는데 이는 트랜잭션의 (나)에 대비하기 위\n함이다. 이때, (가)와 (나)에 들어갈 용어로 가장\n올바른 것은?\n① (가) VOLATILE (나) PERSISTENT\n② (가) PERSISTENT (나) VOLATILE\n③ (가) REDO (나) UNDO\n④ (가) UNDO (나) REDO",
-  "2024_75": "75. 다음 조건에서 k-Means 군집화를 수행한다고 할\n때, 유사도(점과 점 사이의 거리) 계산 횟수로 가\n장 가까운 것은?\n· 군집 대상인 점의 개수 = 100개\n· 군집의 개수 k = 5\n· k-Means 알고리즘의 반복(loop) 횟수 = 5\n· 주의: 각 군집의 중심(centroid)은 항시 군집 대\n상인 100개의 점 중에서 선택한다.\n① 125 ② 1025 ③ 1495 ④ 2375\n- 15\n5 -",
-  "2025_51": "51. 릴레이션R과함수적종속성(functional dependency)을\n기준으로 결정한 후보키(candidatekey)로가장적절한\n것은?\n(릴레이션)\nR(A,B, C,D, E,F)\n(함수적종속성)\nA→B,C→A,C→D,(A, F)→E\n① AF ② CF\n③ AC ④ AFC",
-  "2025_52": "52.다음은릴레이션R(A, B, C, D)와해당릴레이션에서\n성립하는 함수적 종속성이다. 릴레이션R을두개의\n릴레이션 R1, R2로 분해한 후, 공통속성을이용하여\n다시 조인했을 때 원래 릴레이션을 복구할 수 없는\n분해는 어느 것인가?\n①(함수적종속성) (A, B)→D, B→C, C→D\n(분해된릴레이션) R1(A, B, C, D), R2(C, D)\n②(함수적종속성) A→B, B→C, C→D\n(분해된릴레이션) R1(A, B, C), R2(C,D)\n③(함수적종속성) (A, B) →C, A→C\n(분해된릴레이션) R1(A, C), R2(A, B)\n④(함수적종속성) (A, B) →C, C →D, C →A\n(분해된릴레이션) R1(A, B), R2(A, C, D)",
-  "2025_53": "53. 다음과 같이 릴레이션 R과 S가 있다. R과 S를\n완전 외부 조인(full outer join)한 결과로 나올 수\n없는 투플(tuple)은?\n(단,널(NULL)값은‘-’으로표시한다.)\n릴레이션 R 릴레이션 S\nA B C B C D\na1 b1 c1 b1 c1 d1\na2 b1 c2 b1 c2 d2\na3 b1 c2 b1 c2 d3\na4 b2 c3 b3 c3 d3\nA B C D\n① a1 b1 c1 d1\n② - b1 c2 d2\n③ a4 b2 c3 -\n④ - b3 c3 d3\n- 1",
+  "2024_75": "75. 다음 조건에서 k-Means 군집화를 수행한다고 할\n때, 유사도(점과 점 사이의 거리) 계산 횟수로 가\n장 가까운 것은?\n· 군집 대상인 점의 개수 = 100개\n· 군집의 개수 k = 5\n· k-Means 알고리즘의 반복(loop) 횟수 = 5\n· 주의: 각 군집의 중심(centroid)은 항시 군집 대\n상인 100개의 점 중에서 선택한다.\n① 125 ② 1025 ③ 1495 ④ 2375\n- 15",
   "2025_54": "54. 릴레이션 R과 R에 포함된 함수적 종속성(functional\ndependency)이 다음과 같이 주어졌다고 하자.\nR(EmpID, DeptID, ProjID, EmpName,\n릴레이션\nDeptName)\nEmpID → EmpName\n함수적\nDeptID → DeptName\n종속성\n(EmpID, ProjID) → DeptID\n이때R을제2정규형(2NF)이만족하도록정규화한다면\n총 몇 개의 릴레이션이 생성되는가?\n① 1 ② 2 ③ 3 ④ 4",
   "2025_55": "55. 다음과 같은 ER 스키마를 관계 모델의 릴레이션\n으로 사상할 때 가장 적절하지 않은 것은?\nE1 E2\nPK1 A1 PK2 A2 FK1\n① K1 K2 K1\nE1 E2\nPK1 A1 FK2 PK2 A2\n② K1 K2 K2\nE1 E2\nPK1 A1 PK2 A2\n③ K1 K2\nE1_E2\nPK1 A1 PK2 A2\n④ K1 K2",
   "2025_56": "56. 릴레이션R(StudentID, CourseID, Grade, Semester)이\n다음조건을만족한다고가정할 때, R의최대가능한\n투플 개수로 옳은 것은?\n(단, 릴레이션R에서(StudentID, CourseID, Semester)\n가 기본키(primary key)이다.)\nStudentID 도메인 크기: 1000 (총 1000명 학생)\nCourseID 도메인 크기: 50 (총 50개 강좌)\nSemester 도메인 크기: 8 (총 8학기)\nGrade 도메인 크기: 5 (A, B, C, D, F)\n① 2,000,000 ② 400,000\n③ 50,000 ④ 8,000\n12 -",
@@ -1039,8 +983,6 @@
   "2025_59": "59. 프로야구선수(일련번호,이름,소속팀,연봉)릴레이션에\nL소속팀선수가10명,H소속팀선수가40명,K소속팀\n선수가30명, 소속팀이정해지지않은선수가20명으로\n구성되어있을 때, 가, 나, 다의 실행 결과 카디날\n리티(cardinality)로 옳은 것은?\n가. SELECT 소속팀 FROM 선수;\n나. SELECT DISTINCT 소속팀 FROM 선수;\n다. SELECT 소속팀, COUNT(*) FROM 선수\nGROUP BY 소속팀 HAVING COUNT(*) >= 20 ;\n① 가: 80 나: 3 다: 2\n② 가: 80 나: 3 다: 3\n③ 가: 100 나: 4 다: 3\n④ 가: 100 나: 4 다: 4",
   "2025_60": "60. 세 개의릴레이션이다음과같다.\n배(배번호,배이름, 색깔),\n항해사(항해사 번호, 이름, 등급),\n예약(항해사 번호, 배 번호, 예약일)\n각각의 기본 키는 밑줄 친 속성이라고 하자.\n“모든 배를 예약 받은 항해사의 항해사 번호를\n검색하라.”는 질의를관계대수로나타낼때포함되어야\n할연산자를 모두 고른 것으로 가장 적절한 것은?\n(단, 배가 몇 척인지 알 수 없다.)\n가. 합집합 나. 곱집합\n다. 차집합 라. 프로젝트\n① 가, 나, 다 ② 가, 나, 라\n③ 가, 다, 라 ④ 나, 다, 라",
   "2025_61": "61. 관계대수연산의완전집합{σ, ∏, ∪, ρ, -, ×}중에서\n디비전(division) 연산의 표현을 위해 필요한 연산만을\n모아 놓은 것으로 옳은 것은?\n① σ, ∏, - ② σ, ∪, ρ, -, ×\n③ ∏, -, × ④ ∏, ∪, -, ×\n13 -",
-  "2025_62": "62. 다음 SQL 정의문은 직원 EMPLOYEE(ENO, Name,\nSuper_ENO, DNO) 릴레이션을 정의한 것이다. 이와\n관련된설명으로옳지않은것은?\n(단, DEPARTMENT는 부서 릴레이션, ENO는 직원\n번호,Name은이름,Super_ENO는상사직원번호, DNO\n는부서번호를의미한다.)\nCREATETABLEEMPLOYEE\n(ENOINTNOTNULL,\nNameVARCHAR(15)NOTNULL,\nSuper_ENOINT,\nDNOINTNOTNULLDEFAULT1,\nPRIMARYKEY(ENO),\nCONSTRAINTEMPSUPERFKFOREIGNKEY\n(Super_ENO)REFERENCESEMPLOYEE(ENO)\nONDELETESETNULLONUPDATECASCADE,\nCONSTRAINTEMPDEPTFKFOREIGNKEY(DNO)\nREFERENCESDEPARTMENT(DNO)\nONDELETESETDEFAULT\nONUPDATECASCADE);\n① 100번 직원의 상사인 200번 직원이 삭제되면\n100번 직원의 상사 값은 NULL이 된다.\n② 100번 직원이 속한 부서가 부서 릴레이션에서\n삭제되면 100번 직원도 연쇄적으로 삭제된다.\n③ 100번 직원이 속한 부서번호가 부서 릴레이션에\n서 5에서 6으로 변경되면 직원 릴레이션에서\n100번 직원의 부서번호도 5에서 6으로 변경된다.\n④ 100번 직원의 상사의 직원번호가 직원 릴레이션에\n서 200번에서300번으로 변경되면 100번직원투플\n의상사번호도 300번으로 변경된다.",
-  "2025_63": "63. 다음 데이터가 순서대로 삽입되어 만들어진 차수가\n3인 B+-트리에 대해 적절하게 설명된 것을 모두\n나열한 것으로 옳은 것은?\n(단, B+-트리가생성될때첫노드는최대3개키값을\n저장한다. 이후리프노드는최소2개, 최대3개키값을\n저장하고, 루트노드와내부노드는최소1개, 최대2개키\n값을저장한다.키값a의왼쪽서브트리에있는노드들의\n모든키값들은a보다작거나같다. 노드에키의개수가\n짝수 m일때, 중간 키값은 m/2 번째 값으로 한다.)\n69, 15, 110, 90, 20, 120, 40, 125\n가. 전체 노드의 개수는 7개이다.\n나. 루트 노드의 키 값은 69이다.\n다. 가장왼쪽에있는리프노드에들어갈키값은15,40이다.\n라. 루트노드의레벨이1이라고할때,트리의높이는3이다.\n① 가, 다 ② 가, 나, 라\n③ 나, 다, 라 ④ 가, 나, 다, 라\n- 1",
   "2025_64": "64. 다음 확장성 해싱(extendible hashing) 파일에서 d는\n전역 깊이(global depth)를 나타내고 p는 지역 깊이\n(local depth)를 나타낸다고 하자. 모조키 (a), (b), (c)를\n차례로 삭제한 후, 변경된 확장성 해싱 파일에 대한\n설명으로옳지않은것은?\n(단,각버킷에는최대4개의모조키값이들어갈수있다.)\n① 지역 깊이의 합은 8이다.\n② 전역 깊이는 2로 변경된다.\n③ 3개의 모조키를 포함한 버킷이 존재한다.\n④ 디렉터리가오름차순으로정렬될때,가장아래버킷에는\n모조키 110100 한 개만 포함한다.",
   "2025_65": "65. 다음과 같은 student 릴레이션이 있다고 하자.\ns_id(학번) year(학년) dept(학과)\n1001 1 전기공학과\n1002 3 전자공학과\n1003 2 전기공학과\n1004 1 컴퓨터공학과\n1005 2 전기공학과\n1006 4 전자공학과\n1007 1 컴퓨터공학과\n이 릴레이션에 대해 전기공학과 3명, 전자공학과 2명,\n컴퓨터공학과2명으로인원을계산하는뷰를정의하려고\n할때, 다음중가장적절하게정의된뷰는?\n① CREATEVIEWsize(year,t_size)\nASSELECTyear,count(*)FROMstudent;\n② CREATEVIEWsize(year,t_size)\nASSELECTyear,count(*)FROMstudentGROUPBYyear;\n③ CREATEVIEWsize(dept,t_size)\nASSELECTdept,count(*)FROMstudent;\n④ CREATEVIEWsize(dept,t_size)\nASSELECTdept,count(*)FROMstudentGROUPBYdept;\n14 -",
   "2025_66": "66. 다중단위로킹(multiple granularity locking)기법에서\nIX(Intension eXclusive)와 SIX(Shared and\nIntension eXclusive) 로크에 대한 양립성 행렬 중\n(가)~(라)에들어갈표현으로옳은 것은?\n현재 어떤 레벨에\n걸려 있는 로크\nIX SIX\n요청 중인 IX (가) (나)\n로크 SIX (다) (라)\n(가) (나) (다) (라)\n① 허용 허용 허용 허용\n② 허용 허용 허용 대기\n③ 허용 허용 대기 대기\n④ 허용 대기 대기 대기",
@@ -1049,9 +991,6 @@
   "2025_69": "69. 어떤 데이터셋에서 클래스 C1과 C2의 사전 확률이\n각각 0.5, 0.5이고, 특정 특성 X가 클래스 C1에서\n발생할 확률이 0.6, 클래스 C2에서 발생할 확률이\n0.4라고 하자. 이때 베이즈 정리(Bayes theorem)로\n계산한P(C1|X)값으로옳은것은?\n① 0.24 ② 0.3 ③ 0.4 ④ 0.6\n- 1",
   "2025_70": "70. 다음은 트랜잭션들이 병행 수행되던 도중 시스템\n장애(system crash)가 발생한 후의 로그 기록이다.\n로그는 즉시 변경(immediate update) 방법을 사\n용하며, <T, D, v1, v2>는 <트랜잭션 이름, 데\n이터, 변경 전 값, 변경 후 값>을 의미한다. 복구\n후 데이터 값 중 틀린 것은?\n<start, T1>\n<T1, A, 10, 15>\n<start, T2>\n<T2, B, 5, 7>\n<commit, T1>\n<checkpoint>\n<start, T3>\n<T3, C, 8, 9>\n<T2, A, 15, 20>\n<T3, D, 12, 14>\n<commit, T3>\n*system crash*\n① A : 15 ② B : 5\n③ C : 8 ④ D : 14",
   "2025_71": "71. 다음과같이XMLDTD를정의하였다고할때, 파싱\n오류가발생하는XML문장으로가장적절한것은?\n<!ELEMENT x (a, (b | c), d)*>\n<!ELEMENT a (#PCDATA)>\n<!ELEMENT b (#PCDATA)>\n<!ELEMENT c (#PCDATA)>\n<!ELEMENT d (#PCDATA)>\n① <x> ② <x>\n</x> <a />\n<d />\n</x>\n③ <x> ④ <x>\n<a /> <a />\n<b /> <b />\n<d /> <d />\n</x> <a />\n<c />\n<d />\n</x>\n15 -",
-  "2025_72": "72. 다음에서 JDBC를 이용한 데이터베이스 프로그램의\n작성순서를올바르게나열한것으로가장적절한것은?\n가. SQLExecute를 이용하여 SQL 문장을 실행\n나. 질의 스트링에 있는 매개변수를 SQL/CLI 함수\nSQLBindParameter를 이용하여 프로그램 변수에\n연결\n다. 환경변수를 설정\n라. 질의결과가리턴되면SQLBindCol 함수를이용하여\n질의결과의각열을C프로그램변수에연결\n마. SQL/CLI 함수 SQLPrepare를 이용하여 SQL\n문장을 준비\n① 마 - 가 - 다 - 나 - 라\n② 마 - 라 - 가 - 다 - 나\n③ 다 - 마 - 라 - 가 - 나\n④ 다 - 마 - 나 - 가 – 라",
-  "2025_73": "73. 다음 박스 안의 ‘가’ ~ ‘마’ 중, 데이터베이스가\n유지해야할 중요한 성질들 중에서 NoSQL과 관련이\n있는 성질만을 모아놓은것으로 가장 적절한 것은?\n가. 원자성(atomicity) 나. 일관성(consistency)\n다. 분할 감내성(partition tolerance)\n라. 격리성(isolation) 마. 가용성(availability)\n① 가, 나, 라 ② 가, 나, 다, 라\n③ 나, 다, 마 ④ 나, 다, 라, 마",
-  "2025_74": "74. 이진 분류를 위한 의사결정 트리(decision tree)\n구축에서불순도(impurity)와분류오류에대한 설명\n으로 옳지 않은 것은?\n① 두 클래스를 구분하는 현재 노드에서 각 클래스의\n해당 개수가 0개, 6개라면 Gini Index는 0이다.\n② 두 클래스를 구분하는 현재 노드에서 각 클래스의\n해당 개수가 1개, 5개라면 Gini Index의 값은 0\n보다 크다.\n③ 두 클래스를 구분하는 현재 노드에서 각 클래스의\n해당 개수가 3개, 3개라면 분류 오류(classification\nerror) 비율은 0.5이다.\n④ 두 클래스를구분하는현재노드에서각클래스의\n해당개수가3개, 3개라면Gini Index는1이다.\n- 1",
   "2025_75": "75. 데이터 저장 및 교환을 위한 다양한 데이터 포맷이\n존재하며, 각각의 형식은 특정한 구조와 특징을\n가진다. 다음 중 대표적인 데이터 저장 형식과 이에\n대한 설명으로 가장 적합하지 않은 것은?\n① Key-Value Store: 키(Key)와 값(Value) 형태로\n데이터를 저장하며, 고속 검색이 가능한 구조이다.\n일반적으로 NoSQL 데이터베이스에서 많이 사용\n된다.\n② JSON(JavaScript Object Notation): 속성-이름\n쌍으로 데이터를 저장하며, 트리 구조를 가지며\nXML과 유사한 역할을 한다. 문자열 기반의\n데이터 표현 방식이며, 네트워크 통신에서 자주\n사용된다.\n③ XML(eXtensible Markup Language): 태그를 사\n용하여 계층적 구조의 데이터를 표현하며, 문서\n형식의 데이터 저장과 교환에 주로 사용된다.\n④ CSV(Comma-Separated Values): 쉼표(,) 또는\n탭(Tab)으로 데이터를 구분하여 저장하며, 행\n(row)과 열(column) 구조를 갖는다. 정형 데이터\n저장에 적합하며, 중첩 구조를 표현할 수 있다.\n16 -",
   "2026_51": "51. 다음은 JDBC 환경에서 자바 응용 프로그램이\n데이터베이스에 연결되어 SQL을 수행하는 과정의\n일부를 나열한 것이다. 그 처리 순서가 올바른 것은?\n가. 요청된 SQL 문을 DBMS가 실행한다.\n나. 등록된 드라이버 중 적합한 드라이버를 선택하여\n연결을 위임한다.\n다. 자바 응용 프로그램이 getConnection()을 호출한다.\n라. 드라이버가 DBMS와 네트워크 소켓 연결을 설정\n한다.\n마. Statement 또는 PreparedStatement 객체를 생성\n한다.\n① 나 → 다 → 라 → 마 → 가\n② 다 → 라 → 가 → 나 → 마\n③ 다 → 나 → 라 → 마 → 가\n④ 다 → 라 → 마 → 나 → 가",
   "2026_52": "52. 참조하는 테이블을 EMP라고 하고, 참조되는 테이\n블을 DEPT라고 할 때 참조 무결성 제약조건을\n보장하기 위해 사용하는 ‘ON DELETE RESTRICT’에\n대한 설명으로 가장 적절한 것은?\n① DEPT 테이블에서 어떤 투플이 삭제되어 참조\n무결성 제약조건을 위배하는 경우가 발생하면,\n삭제된 기본키 값을 참조하는 EMP 테이블의\n외래키에 널 값을 채운다.\n② DEPT 테이블에서 어떤 투플이 삭제되어 참조\n무결성 제약조건을 위배하는 경우가 발생하면,\nEMP 테이블에서 이 값을 참조하는 모든 투플도\n연쇄적으로 삭제된다.\n③ DEPT 테이블에서 어떤 투플이 삭제되면 EMP\n테이블에서 이 값을 참조하는 모든 투플의 애트\n리뷰트가, 디폴트 값이 명시된 경우 디폴트 값을\n갖는다.\n④ DEPT 테이블에서 어떤 투플을 삭제하려는데,\n이 투플의 기본키 값을 참조하고 있는 투플이\nEMP 테이블에 존재하면 삭제 연산을 거절한다.\n- 12",
@@ -1062,7 +1001,6 @@
   "2026_57": "57. 다음 중 소속부서는 같으면서, 부서대표전화번호가\n다른 행을 출력하는 SQL문은? 단, 테이블 Emp\n(empid, empname, email, deptcode, deptphone)는\n사원(사원번호, 이름, 이메일, 소속부서, 부서대표\n전화번호)을 의미한다.\nSELECT E1.deptcode, E1.deptphone\nFROM Emp AS E1\nWHERE E1.deptcode IN\n① (SELECT E2.deptcode\nFROM Emp AS E2\nWHERE E1.deptcode = E2.deptcode\nAND E1.deptphone <> E2.deptphone);\nSELECT E1.deptcode, E1.deptphone\nFROM Emp AS E1, Emp AS E2\nWHERE E1.deptcode = E2.deptcode\n② AND E1.deptcode IN\n(SELECT E2.deptcode\nFROM Emp AS E2\nWHERE E2.deptphone <> E2.deptphone);\nSELECT Emp.deptcode, Emp.deptphone\nFROM Emp\nWHERE Emp.deptcode IN\n③\n(SELECT Emp.deptcode\nFROM Emp\nWHERE Emp.deptphone <> Emp.deptphone);\nSELECT E1.deptcode, E1.deptphone\nFROM Emp AS E1\nWHERE NOT EXISTS\n④ (SELECT E2.deptcode\nFROM Emp AS E2\nWHERE E1.deptcode = E2.deptcode\nAND E1.deptphone <> E2.deptphone);\n- 13",
   "2026_58": "58. 다음은 DBMS의 기능과 SQL 문의 관계에 대한 설명\n이다. <보기>에서 옳은 것을 모두 나열한 것은?\n<보기>\n가. 데이터 정의 기능은 데이터베이스의 스키마를 정\n의하며 SQL의 CREATE, ALTER, DROP 문을 이\n용하여 수행된다.\n나. 데이터 조작 기능은 데이터의 검색, 삽입, 수정, 삭제\n를 수행하며 SQL의 SELECT, INSERT, UPDATE,\nTRUNCATE 문이 포함된다.\n다. 데이터 제어 기능은 사용자 권한을 관리하고 접\n근 권한을 부여하거나 취소하며 SQL의 GRANT,\nREVOKE 문이 포함된다\n라. 데이터 조작 기능은 데이터베이스의 저장 구조를\n정의하는 기능이며 SQL의 CREATE TABLE 문으로\n수행된다.\n① 가, 나 ② 가, 다\n③ 가, 나, 다 ④ 나, 다, 라",
   "2026_59": "59. 다음은 인터넷서점의 관계 데이터베이스 테이블의\n상태를 나타낸다.\n도서 도서번호 도서명 출판사 가격\nB1 데이터베이스 남산 25000\nB2 운영체제 종로 30000\nB3 알고리즘 남산 28000\nB4 컴퓨터구조 을지 32000\nB5 인공지능 종로 35000\n주문 주문번호 회원번호 도서번호 주문액\nO1 M1 B1 25000\n내역\nO2 M2 B2 30000\nO3 M1 B3 28000\nO4 M3 B2 32000\nO5 M2 B3 28000\n다음 SQL 문의 실행 결과로 가장 적절한 것은?\nSELECT D.도서명\nFROM 도서 D\nWHERE D.가격 > (\nSELECT AVG(가격)\nFROM 도서\nWHERE 출판사 = D.출판사\n)\nAND D.가격 >= ALL (\nSELECT 주문액\nFROM 주문내역\nWHERE 회원번호 = ‘M1’\n);\n① 알고리즘, 인공지능\n② 운영체제, 알고리즘\n③ 알고리즘, 컴퓨터구조, 인공지능\n④ 컴퓨터구조, 인공지능\n3 -",
-  "2026_60": "60. Emp 테이블에 deptno=10인 직원이 5명, deptno=20인\n직원이 3명 존재할 경우에, 다음 SQL 표준 트리거\n(trigger) 정의문에서 실제로 트리거 액션이 실행\n되는 행(row)의 수는?\nCREATE TRIGGER trg_sal_audit\nAFTER UPDATE OF sal ON Emp\nREFERENCING OLD ROW AS O, NEW ROW AS N\nFOR EACH ROW\nWHEN (N.sal > O.sal AND N.deptno = 10)\nINSERT INTO sal_audit\nVALUES (N.empno, O.sal, N.sal, CURRENT_TIMESTAMP);\nUPDATE Emp\nSET sal = sal * 1.1\nWHERE deptno IN (10, 20);\n① 8건 ② 5건\n③ 3건 ④ 0건",
   "2026_61": "61. 다음 두 테이블에 대해 주어진 SQL 문을 적용한\n결과로 옳은 것은?\nR S\nA B A C\n1 a 1 c1\n2 b 2 c2\n3 c 3 c2\n5 x 1 c5\n5 c4\n2 c1\n1 c3\n3 c4\n5 c3\n3 c5\nSELECT B\nFROM R\nWHERE NOT EXISTS\n(SELECT *\nFROM S\nWHERE A = R.A\nAND C = ‘c3’);\n① B ② B\na a\nb x\n③ B ④ B\nb c\nc x\n- 14",
   "2026_62": "62. 다음은 데이터베이스 객체인 저장 프로시저와\n트리거에 대한 설명이다. 옳은 것을 모두 고른 것은?\n가. 트리거는 매개변수를 통해 외부로부터 값을 전\n달받을 수 있으며, 수행 결과를 리턴값으로 반환\n할 수 있다.\n나. 저장 프로시저는 매개변수를 통해 외부와 데이터를\n주고받을 수 있다.\n다. 저장 프로시저는 내부에 COMMIT이나 ROLLBACK\n같은 트랜잭션 제어어를 사용할 수 없으나, 트리\n거는 자유롭게 사용할 수 있다.\n라. 저장 프로시저는 사용자의 명시적 호출에 의해\n실행되고, 트리거는 데이터 변경 이벤트 발생 시\nDBMS에 의해 자동적으로 실행된다.\n① 가, 다 ② 나, 라\n③ 가, 다, 라 ④ 가, 나, 다, 라",
   "2026_63": "63. 다음은 반(역)정규화 적용 유형에 대한 설명이다.\n옳은 것을 모두 고른 것은?\n가. 특정 컬럼의 크기가 너무 커서 디스크 I/O가 과다\n하게 발생하는 경우, 해당 컬럼을 별도의 테이블\n로 분리하는 것을 수평 분할이라 한다.\n나. 테이블 병합은 조인 비용을 줄이기 위해 여러 테이\n블을 하나의 테이블로 통합하는 반정규화 방법이다.\n다. 부분 테이블 분할은 데이터 접근 빈도에 따라 테이블을\n여러 개로 나누어 성능을 개선하는 정규화 기법이다.\n라. 접근 경로의 단축을 위해 부모 테이블의 컬럼을\n자식 테이블에 중복시킬 수 있다.\n① 가, 나 ② 나, 라\n③ 가, 나, 다 ④ 나, 다, 라",
@@ -1077,13 +1015,13 @@
   "2026_72": "72. 데이터 마이닝을 통해 획득 가능한 정보의 유형으로\n연관성, 순차, 분류, 군집, 예보 등을 들 수 있다.\n다음 보기의 예시 중 군집(cluster)에 해당하는\n것은?\n① 집을 구매한 사람들을 살펴보니 65%가 2주 이내에\n새로운 냉장고를 구매하였다.\n② 슈퍼마켓 구매 패턴을 연구한 결과, 콘칩을 구매한\n고객의 65%가 콜라도 같이 구매한 것으로 나타\n났다.\n③ 신용카드 회사에서는 고객 이탈을 우려하여, 관\n리자에게 이탈 가능성이 높은 고객을 찾을 수\n있는 모델을 제시해 준다.\n④ 은행 카드 사용자로부터 유사 그룹들을 찾는다거\n나, 하나의 데이터베이스를 고객의 인구통계학적\n정보와 개인 투자 유형을 기반으로 나누었다.",
   "2026_73": "73. CAP 정리는 모든 분산 데이터 저장소가 네트워크\n분할 또는 장애발생시 일관성(Consistency), 가용성\n(Availability), 분할 감내(Partition Tolerance) 등 세 개의\n특성 중 두 개만 동시에 보장할 수 있다는 것이다.\n네트워크가 두 개의 파티션으로 분할된 후 각 파티션에\n한 개씩의 노드가 있다고 가정할 때, 다음 설명에\n들어가는 ㉠, ㉡의 내용으로 옳은 것은?\n- ㉠을 보장하려면 네트워크가 분할된 후에도 시스\n템이 예상대로 계속 작동해야 하므로 각 파티션에\n속한 두 노드는 서로 다른 값을 읽을 수 있게 된\n다.\n- ㉡을 보장하려면 두 개의 파티션 중에서 한 파티\n션은 사용할 수 없는 것처럼 작동해야 한다.\n㉠ ㉡\n① 가용성 + 분할감내 일관성 + 분할감내\n② 가용성 + 분할감내 일관성 + 가용성\n③ 일관성 + 가용성 일관성 + 분할감내\n④ 일관성 + 가용성 가용성 + 분할감내\n6 -",
   "2026_74": "74. 다음은 MapReduce 방식으로 어떤 기능을 구현하는\n방법을 설명한 것이다. 이 설명에 해당하는 기능은?\n- Map 함수는 각 문서를 파싱하여 (단어, 문서번\n호) 쌍의 시퀀스를 출력한다.\n- Reduce 함수는 주어진 단어에 대한 모든 쌍을\n받아들여 문서번호에 의해 정렬하고 (단어, 리스\n트(문서번호)) 쌍을 출력한다.\n① 분산 grep (distributed grep)\n② 웹-링크 그래프 (Web-Link graph)\n③ 단어 빈도수 (word count)\n④ 역 인덱스 (inverted index)",
-  "2026_75": "75. 다음과 같은 ER 스키마를 관계 모델의 릴레이션\n으로 사상할 때 가장 적절한 것은?\nE1E2\nPK1 A1 K A2\n①\nE1 E2\nPK1 A1 K A2\n②\nE1 E2\nPK1 A1 PK1 K A2\n③\nE1 R E2\nPK1 A1 PK1 K K A2\n④\n- 17\n7 -"
+  "2026_75": "75. 다음과 같은 ER 스키마를 관계 모델의 릴레이션\n으로 사상할 때 가장 적절한 것은?\nE1E2\nPK1 A1 K A2\n①\nE1 E2\nPK1 A1 K A2\n②\nE1 E2\nPK1 A1 PK1 K A2\n③\nE1 R E2\nPK1 A1 PK1 K K A2\n④\n- 17"
 };
     const topicMapping = [
   {
     "concept": "SQL 쿼리 구문 (DDL/DML/DCL)",
     "category": "DB언어",
-    "count": 84,
+    "count": 64,
     "years": [
       2015,
       2016,
@@ -1113,10 +1051,6 @@
       },
       {
         "year": 2026,
-        "num": 60
-      },
-      {
-        "year": 2026,
         "num": 59
       },
       {
@@ -1141,15 +1075,7 @@
       },
       {
         "year": 2025,
-        "num": 72
-      },
-      {
-        "year": 2025,
         "num": 70
-      },
-      {
-        "year": 2025,
-        "num": 62
       },
       {
         "year": 2025,
@@ -1197,23 +1123,11 @@
       },
       {
         "year": 2023,
-        "num": 63
-      },
-      {
-        "year": 2023,
         "num": 62
       },
       {
         "year": 2023,
-        "num": 60
-      },
-      {
-        "year": 2023,
         "num": 57
-      },
-      {
-        "year": 2022,
-        "num": 73
       },
       {
         "year": 2022,
@@ -1221,39 +1135,11 @@
       },
       {
         "year": 2022,
-        "num": 64
-      },
-      {
-        "year": 2022,
         "num": 61
       },
       {
         "year": 2022,
-        "num": 60
-      },
-      {
-        "year": 2022,
         "num": 58
-      },
-      {
-        "year": 2022,
-        "num": 57
-      },
-      {
-        "year": 2021,
-        "num": 67
-      },
-      {
-        "year": 2021,
-        "num": 65
-      },
-      {
-        "year": 2021,
-        "num": 64
-      },
-      {
-        "year": 2021,
-        "num": 63
       },
       {
         "year": 2021,
@@ -1265,23 +1151,7 @@
       },
       {
         "year": 2020,
-        "num": 71
-      },
-      {
-        "year": 2020,
         "num": 63
-      },
-      {
-        "year": 2020,
-        "num": 62
-      },
-      {
-        "year": 2020,
-        "num": 59
-      },
-      {
-        "year": 2020,
-        "num": 57
       },
       {
         "year": 2020,
@@ -1417,18 +1287,6 @@
       },
       {
         "year": 2015,
-        "num": 68
-      },
-      {
-        "year": 2015,
-        "num": 66
-      },
-      {
-        "year": 2015,
-        "num": 65
-      },
-      {
-        "year": 2015,
         "num": 59
       },
       {
@@ -1446,7 +1304,7 @@
   {
     "concept": "관계대수 및 순수 관계 연산자",
     "category": "DB언어",
-    "count": 44,
+    "count": 36,
     "years": [
       2015,
       2016,
@@ -1455,8 +1313,6 @@
       2019,
       2020,
       2021,
-      2022,
-      2023,
       2024,
       2025,
       2026
@@ -1491,14 +1347,6 @@
         "num": 58
       },
       {
-        "year": 2025,
-        "num": 53
-      },
-      {
-        "year": 2025,
-        "num": 52
-      },
-      {
         "year": 2024,
         "num": 67
       },
@@ -1511,24 +1359,8 @@
         "num": 52
       },
       {
-        "year": 2023,
-        "num": 59
-      },
-      {
-        "year": 2022,
-        "num": 59
-      },
-      {
-        "year": 2021,
-        "num": 63
-      },
-      {
         "year": 2021,
         "num": 61
-      },
-      {
-        "year": 2021,
-        "num": 59
       },
       {
         "year": 2021,
@@ -1545,14 +1377,6 @@
       {
         "year": 2020,
         "num": 56
-      },
-      {
-        "year": 2020,
-        "num": 52
-      },
-      {
-        "year": 2020,
-        "num": 51
       },
       {
         "year": 2019,
@@ -1649,14 +1473,13 @@
   {
     "concept": "트랜잭션 ACID 특성 및 상태 전이",
     "category": "DBMS 기술",
-    "count": 42,
+    "count": 31,
     "years": [
       2015,
       2016,
       2017,
       2018,
       2019,
-      2020,
       2021,
       2022,
       2023,
@@ -1679,10 +1502,6 @@
       },
       {
         "year": 2025,
-        "num": 73
-      },
-      {
-        "year": 2025,
         "num": 70
       },
       {
@@ -1695,10 +1514,6 @@
       },
       {
         "year": 2023,
-        "num": 74
-      },
-      {
-        "year": 2023,
         "num": 72
       },
       {
@@ -1707,15 +1522,7 @@
       },
       {
         "year": 2023,
-        "num": 68
-      },
-      {
-        "year": 2023,
         "num": 66
-      },
-      {
-        "year": 2023,
-        "num": 64
       },
       {
         "year": 2022,
@@ -1731,31 +1538,11 @@
       },
       {
         "year": 2021,
-        "num": 71
-      },
-      {
-        "year": 2021,
         "num": 70
       },
       {
         "year": 2021,
-        "num": 64
-      },
-      {
-        "year": 2021,
         "num": 62
-      },
-      {
-        "year": 2020,
-        "num": 64
-      },
-      {
-        "year": 2020,
-        "num": 59
-      },
-      {
-        "year": 2020,
-        "num": 53
       },
       {
         "year": 2019,
@@ -1815,14 +1602,6 @@
       },
       {
         "year": 2015,
-        "num": 72
-      },
-      {
-        "year": 2015,
-        "num": 66
-      },
-      {
-        "year": 2015,
         "num": 59
       },
       {
@@ -1844,16 +1623,14 @@
   {
     "concept": "인덱스 및 B-Tree 구조 특징",
     "category": "DB개념 및 설계",
-    "count": 20,
+    "count": 18,
     "years": [
       2015,
       2016,
       2017,
       2018,
       2019,
-      2020,
       2021,
-      2023,
       2024,
       2025,
       2026
@@ -1884,16 +1661,8 @@
         "num": 53
       },
       {
-        "year": 2023,
-        "num": 73
-      },
-      {
         "year": 2021,
         "num": 66
-      },
-      {
-        "year": 2020,
-        "num": 72
       },
       {
         "year": 2019,
@@ -1950,13 +1719,12 @@
   {
     "concept": "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)",
     "category": "DB개념 및 설계",
-    "count": 19,
+    "count": 15,
     "years": [
       2015,
       2016,
       2018,
       2019,
-      2020,
       2021,
       2022,
       2023,
@@ -1990,24 +1758,12 @@
         "num": 61
       },
       {
-        "year": 2023,
-        "num": 58
-      },
-      {
         "year": 2022,
         "num": 55
       },
       {
         "year": 2021,
         "num": 74
-      },
-      {
-        "year": 2020,
-        "num": 65
-      },
-      {
-        "year": 2020,
-        "num": 58
       },
       {
         "year": 2019,
@@ -2036,10 +1792,6 @@
       {
         "year": 2015,
         "num": 75
-      },
-      {
-        "year": 2015,
-        "num": 51
       }
     ],
     "core_concept": "릴레이션 스키마 분해를 통해 중복을 제거하고 이상 현상을 방지하는 정밀 설계 기법",
@@ -2052,15 +1804,13 @@
   {
     "concept": "ER 데이터 모델링 및 식별/비식별 관계",
     "category": "DB개념 및 설계",
-    "count": 15,
+    "count": 11,
     "years": [
-      2015,
       2016,
       2017,
       2018,
       2019,
       2020,
-      2022,
       2023,
       2024,
       2026
@@ -2081,14 +1831,6 @@
       {
         "year": 2023,
         "num": 55
-      },
-      {
-        "year": 2022,
-        "num": 60
-      },
-      {
-        "year": 2022,
-        "num": 53
       },
       {
         "year": 2020,
@@ -2117,14 +1859,6 @@
       {
         "year": 2016,
         "num": 74
-      },
-      {
-        "year": 2015,
-        "num": 71
-      },
-      {
-        "year": 2015,
-        "num": 52
       }
     ],
     "core_concept": "개념적 설계 단계의 엔티티, 속성, 관계 표현법 및 물리 스키마 맵핑 규칙",
@@ -2137,13 +1871,12 @@
   {
     "concept": "동시성 제어 및 2단계 잠금 규약 (2PL)",
     "category": "DBMS 기술",
-    "count": 13,
+    "count": 10,
     "years": [
       2015,
       2016,
       2018,
       2019,
-      2021,
       2023,
       2024,
       2025,
@@ -2164,19 +1897,7 @@
       },
       {
         "year": 2023,
-        "num": 68
-      },
-      {
-        "year": 2023,
-        "num": 67
-      },
-      {
-        "year": 2023,
         "num": 66
-      },
-      {
-        "year": 2021,
-        "num": 64
       },
       {
         "year": 2019,
@@ -2219,6 +1940,7 @@
       2017,
       2020,
       2021,
+      2022,
       2023,
       2024,
       2025,
@@ -2242,16 +1964,16 @@
         "num": 72
       },
       {
+        "year": 2022,
+        "num": 72
+      },
+      {
         "year": 2021,
         "num": 62
       },
       {
         "year": 2020,
         "num": 67
-      },
-      {
-        "year": 2020,
-        "num": 64
       },
       {
         "year": 2017,
@@ -2272,13 +1994,10 @@
   {
     "concept": "DBMS 회복 기법 (REDO / UNDO)",
     "category": "DBMS 기술",
-    "count": 8,
+    "count": 5,
     "years": [
-      2015,
       2017,
       2019,
-      2020,
-      2021,
       2022,
       2024
     ],
@@ -2296,24 +2015,12 @@
         "num": 63
       },
       {
-        "year": 2021,
-        "num": 71
-      },
-      {
-        "year": 2020,
-        "num": 53
-      },
-      {
         "year": 2019,
         "num": 74
       },
       {
         "year": 2017,
         "num": 63
-      },
-      {
-        "year": 2015,
-        "num": 72
       }
     ],
     "core_concept": "트랜잭션 장애 발생 시 데이터베이스를 일관된 이전 상태로 복구하는 기술",
@@ -2361,9 +2068,8 @@
   {
     "concept": "빅데이터 분산 플랫폼 (Hadoop/MapReduce)",
     "category": "빅데이터 및 AI데이터",
-    "count": 4,
+    "count": 3,
     "years": [
-      2023,
       2024,
       2025,
       2026
@@ -2380,10 +2086,6 @@
       {
         "year": 2024,
         "num": 72
-      },
-      {
-        "year": 2023,
-        "num": 69
       }
     ],
     "core_concept": "저가형 범용 서버를 이용해 대용량 빅데이터를 분산 저장하고 병렬 처리하는 에코시스템",
@@ -2396,7 +2098,7 @@
   {
     "concept": "[기타]",
     "category": "기타",
-    "count": 91,
+    "count": 63,
     "years": [
       2015,
       2016,
@@ -2406,7 +2108,6 @@
       2020,
       2021,
       2022,
-      2023,
       2024,
       2025,
       2026
@@ -2426,10 +2127,6 @@
       },
       {
         "year": 2025,
-        "num": 74
-      },
-      {
-        "year": 2025,
         "num": 71
       },
       {
@@ -2446,10 +2143,6 @@
       },
       {
         "year": 2025,
-        "num": 63
-      },
-      {
-        "year": 2025,
         "num": 57
       },
       {
@@ -2459,10 +2152,6 @@
       {
         "year": 2025,
         "num": 55
-      },
-      {
-        "year": 2025,
-        "num": 51
       },
       {
         "year": 2024,
@@ -2493,44 +2182,8 @@
         "num": 62
       },
       {
-        "year": 2023,
-        "num": 75
-      },
-      {
-        "year": 2023,
-        "num": 54
-      },
-      {
-        "year": 2023,
-        "num": 53
-      },
-      {
-        "year": 2023,
-        "num": 52
-      },
-      {
-        "year": 2023,
-        "num": 51
-      },
-      {
-        "year": 2022,
-        "num": 74
-      },
-      {
-        "year": 2022,
-        "num": 72
-      },
-      {
         "year": 2022,
         "num": 71
-      },
-      {
-        "year": 2022,
-        "num": 70
-      },
-      {
-        "year": 2022,
-        "num": 68
       },
       {
         "year": 2022,
@@ -2546,19 +2199,7 @@
       },
       {
         "year": 2022,
-        "num": 56
-      },
-      {
-        "year": 2022,
         "num": 54
-      },
-      {
-        "year": 2022,
-        "num": 52
-      },
-      {
-        "year": 2022,
-        "num": 51
       },
       {
         "year": 2021,
@@ -2570,39 +2211,11 @@
       },
       {
         "year": 2021,
-        "num": 72
-      },
-      {
-        "year": 2021,
         "num": 69
       },
       {
         "year": 2021,
-        "num": 68
-      },
-      {
-        "year": 2021,
-        "num": 58
-      },
-      {
-        "year": 2021,
-        "num": 57
-      },
-      {
-        "year": 2021,
         "num": 54
-      },
-      {
-        "year": 2021,
-        "num": 53
-      },
-      {
-        "year": 2021,
-        "num": 52
-      },
-      {
-        "year": 2021,
-        "num": 51
       },
       {
         "year": 2020,
@@ -2610,19 +2223,11 @@
       },
       {
         "year": 2020,
-        "num": 70
-      },
-      {
-        "year": 2020,
         "num": 69
       },
       {
         "year": 2020,
         "num": 68
-      },
-      {
-        "year": 2020,
-        "num": 66
       },
       {
         "year": 2020,
@@ -2758,29 +2363,13 @@
       },
       {
         "year": 2015,
-        "num": 62
-      },
-      {
-        "year": 2015,
-        "num": 61
-      },
-      {
-        "year": 2015,
         "num": 60
-      },
-      {
-        "year": 2015,
-        "num": 57
-      },
-      {
-        "year": 2015,
-        "num": 56
       }
     ],
     "core_concept": "기출문제 중 기존 세부 개념으로 정의되지 않은 기타 문항들입니다.",
     "features": "기타 분류된 문제 리스트를 검토하여 누락된 개념이나 특이 문제 유형을 점검합니다.",
     "scope": "기타",
-    "rep_question": "75. 다음과 같은 ER 스키마를 관계 모델의 릴레이션\n으로 사상할 때 가장 적절한 것은?\nE1E2\nPK1 A1 K A2\n①\nE1 E2\nPK1 A1 K A2\n②\nE1 E2\nPK1 A1 PK1 K A2\n③\nE1 R E2\nPK1 A1 PK1 K K A2\n④\n- 17\n7 -",
+    "rep_question": "75. 다음과 같은 ER 스키마를 관계 모델의 릴레이션\n으로 사상할 때 가장 적절한 것은?\nE1E2\nPK1 A1 K A2\n①\nE1 E2\nPK1 A1 K A2\n②\nE1 E2\nPK1 A1 PK1 K A2\n③\nE1 R E2\nPK1 A1 PK1 K K A2\n④\n- 17",
     "rep_year": 2026,
     "rep_num": 75
   }
@@ -2836,29 +2425,6 @@
                 </button>
                 <div class="accordion-content" style="max-height: 0px;">
                     <div class="accordion-inner">
-                        <div class="memo-section">
-                            <div class="memo-header">
-                                <div class="memo-title">📝 나만의 학습 노트 (공부 코멘트)</div>
-                                <div class="memo-date" id="memo-date-${idx}">최근 수정일시 없음</div>
-                            </div>
-                            
-                            <div id="memo-view-mode-${idx}">
-                                <div class="memo-content-box" id="memo-display-${idx}"></div>
-                                <div class="memo-btn-group" style="margin-top: 0.5rem;">
-                                    <button class="memo-btn" onclick="enableMemoEdit(${idx})">노트 작성/수정</button>
-                                    <button class="memo-btn delete" id="memo-delete-btn-${idx}" onclick="deleteMemo(${idx}, '${item.concept}')" style="display: none;">노트 삭제</button>
-                                </div>
-                            </div>
-                            
-                            <div id="memo-edit-mode-${idx}" style="display: none;">
-                                <textarea class="memo-textarea" id="memo-input-${idx}" placeholder="이 개념에 대해 암기해야 할 사항이나 팁을 기록해보세요..."></textarea>
-                                <div class="memo-btn-group" style="margin-top: 0.5rem;">
-                                    <button class="memo-btn save" onclick="saveMemo(${idx}, '${item.concept}')">저장</button>
-                                    <button class="memo-btn" onclick="cancelMemoEdit(${idx})">취소</button>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="section-title">출제 기출문제 선택 (클릭 시 하단에 문제 전환)</div>
                         <div class="year-grid">
                             ${yearButtonsHtml}
@@ -2882,8 +2448,7 @@
                 </div>
             `;
             container.appendChild(accItem);
-            loadMemo(idx, item.concept);
-        });
+            });
     }
 
     function hideImageContainer(idx) {
@@ -2891,283 +2456,6 @@
         if (container) {
             container.style.display = 'none';
         }
-    }
-
-    let isServerConnected = false;
-    let serverMemos = {};
-    const API_URL = 'http://127.0.0.1:5000/api/db/memos';
-
-    async function initMemos() {
-        const badge = document.getElementById('storage-badge');
-        try {
-            const response = await fetch(API_URL, {
-                method: 'GET',
-                mode: 'cors'
-            });
-            if (response.ok) {
-                serverMemos = await response.json();
-                isServerConnected = true;
-                
-                badge.className = 'badge accent';
-                badge.style.background = 'rgba(16, 185, 129, 0.12)';
-                badge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
-                badge.style.color = '#10b981';
-                badge.innerHTML = '● 파일 저장 모드 (Active)';
-                badge.title = '공부 코멘트가 e:\jolly-carson\data\db_memos.json 파일에 영구 보존됩니다.';
-                
-                checkMigration();
-            } else {
-                throw new Error("API response error");
-            }
-        } catch (e) {
-            isServerConnected = false;
-            badge.className = 'badge';
-            badge.style.background = 'rgba(239, 68, 68, 0.12)';
-            badge.style.borderColor = 'rgba(239, 68, 68, 0.25)';
-            badge.style.color = '#f87171';
-            badge.innerHTML = '● 브라우저 저장 모드 (Offline)';
-            badge.title = 'Flask 서버가 꺼진 상태입니다. 복구를 위해 임시로 브라우저 LocalStorage에 저장됩니다.';
-        }
-        
-        topicMapping.forEach((item, idx) => {
-            loadMemo(idx, item.concept);
-        });
-    }
-
-    function checkMigration() {
-        const localKeys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('db_memo_')) {
-                localKeys.push(key);
-            }
-        }
-        
-        if (localKeys.length > 0) {
-            const banner = document.getElementById('migration-banner');
-            const countEl = document.getElementById('migration-count');
-            if (banner && countEl) {
-                countEl.textContent = localKeys.length;
-                banner.style.display = 'block';
-            }
-        }
-    }
-
-    async function migrateMemos() {
-        const localKeys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('db_memo_')) {
-                localKeys.push(key);
-            }
-        }
-        
-        if (localKeys.length === 0) return;
-        
-        if (!confirm(`브라우저에 임시 저장된 공부 노트 ${localKeys.length}개를 서버 파일로 통합하시겠습니까? (이전 완료 시 브라우저 내의 데이터는 정리됩니다.)`)) {
-            return;
-        }
-        
-        let successCount = 0;
-        const banner = document.getElementById('migration-banner');
-        
-        for (const key of localKeys) {
-            const conceptName = key.replace('db_memo_', '');
-            try {
-                const dataStr = localStorage.getItem(key);
-                if (dataStr) {
-                    const data = JSON.parse(dataStr);
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            concept: conceptName,
-                            text: data.text,
-                            updatedAt: data.updatedAt,
-                            action: 'save'
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        localStorage.removeItem(key);
-                        serverMemos[conceptName] = {
-                            text: data.text,
-                            updatedAt: data.updatedAt
-                        };
-                        successCount++;
-                    }
-                }
-            } catch (err) {
-                console.error(`마이그레이션 오류 (${conceptName}):`, err);
-            }
-        }
-        
-        alert(`공부 코멘트 ${successCount}개가 성공적으로 서버 파일(db_memos.json)에 병합되었습니다.`);
-        banner.style.display = 'none';
-        
-        renderTopics();
-    }
-
-    function loadMemo(idx, conceptName) {
-        const displayEl = document.getElementById(`memo-display-${idx}`);
-        const dateEl = document.getElementById(`memo-date-${idx}`);
-        const deleteBtn = document.getElementById(`memo-delete-btn-${idx}`);
-        const inputEl = document.getElementById(`memo-input-${idx}`);
-        
-        let memoData = null;
-        
-        if (isServerConnected) {
-            if (serverMemos && serverMemos[conceptName]) {
-                memoData = serverMemos[conceptName];
-            }
-        } else {
-            const key = `db_memo_${conceptName}`;
-            const dataStr = localStorage.getItem(key);
-            if (dataStr) {
-                try {
-                    memoData = JSON.parse(dataStr);
-                } catch (e) {
-                    localStorage.removeItem(key);
-                }
-            }
-        }
-        
-        if (displayEl && dateEl && deleteBtn && inputEl) {
-            if (memoData) {
-                displayEl.innerHTML = '';
-                displayEl.textContent = memoData.text;
-                dateEl.textContent = `최근 수정: ${memoData.updatedAt}`;
-                deleteBtn.style.display = 'inline-block';
-                inputEl.value = memoData.text;
-            } else {
-                displayEl.innerHTML = `<span class="memo-placeholder">등록된 공부 메모가 없습니다. 나만의 학습 팁을 적어 수험 공부 효율을 높여보세요!</span>`;
-                dateEl.textContent = '최근 수정일시 없음';
-                deleteBtn.style.display = 'none';
-                inputEl.value = '';
-            }
-        }
-    }
-
-    function enableMemoEdit(idx) {
-        document.getElementById(`memo-view-mode-${idx}`).style.display = 'none';
-        document.getElementById(`memo-edit-mode-${idx}`).style.display = 'block';
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            content.style.maxHeight = content.scrollHeight + 'px';
-        }, 50);
-    }
-
-    function cancelMemoEdit(idx) {
-        document.getElementById(`memo-view-mode-${idx}`).style.display = 'block';
-        document.getElementById(`memo-edit-mode-${idx}`).style.display = 'none';
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            content.style.maxHeight = content.scrollHeight + 'px';
-        }, 50);
-    }
-
-    async function saveMemo(idx, conceptName) {
-        const text = document.getElementById(`memo-input-${idx}`).value.trim();
-        if (!text) {
-            alert("공부 메모 내용을 입력해주세요.");
-            return;
-        }
-        
-        const now = new Date();
-        const formattedDate = now.getFullYear() + '-' + 
-            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-            String(now.getDate()).padStart(2, '0') + ' ' + 
-            String(now.getHours()).padStart(2, '0') + ':' + 
-            String(now.getMinutes()).padStart(2, '0') + ':' + 
-            String(now.getSeconds()).padStart(2, '0');
-            
-        if (isServerConnected) {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        concept: conceptName,
-                        text: text,
-                        updatedAt: formattedDate,
-                        action: 'save'
-                    })
-                });
-                
-                if (response.ok) {
-                    serverMemos[conceptName] = {
-                        text: text,
-                        updatedAt: formattedDate
-                    };
-                } else {
-                    const errData = await response.json();
-                    throw new Error(errData.message || "서버 파일 저장에 실패했습니다.");
-                }
-            } catch (err) {
-                alert(`[오류] 서버 파일 저장 실패: ${err.message}. 임시로 브라우저에 저장합니다.`);
-                localStorage.setItem(`db_memo_${conceptName}`, JSON.stringify({ text, updatedAt: formattedDate }));
-            }
-        } else {
-            localStorage.setItem(`db_memo_${conceptName}`, JSON.stringify({ text, updatedAt: formattedDate }));
-        }
-        
-        document.getElementById(`memo-view-mode-${idx}`).style.display = 'block';
-        document.getElementById(`memo-edit-mode-${idx}`).style.display = 'none';
-        loadMemo(idx, conceptName);
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            const newHeight = content.scrollHeight;
-            content.style.maxHeight = newHeight + 'px';
-        }, 50);
-    }
-
-    async function deleteMemo(idx, conceptName) {
-        if (!confirm("작성하신 공부 노트를 완전히 삭제하시겠습니까?")) {
-            return;
-        }
-        
-        if (isServerConnected) {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        concept: conceptName,
-                        action: 'delete'
-                    })
-                });
-                
-                if (response.ok) {
-                    if (serverMemos[conceptName]) {
-                        delete serverMemos[conceptName];
-                    }
-                } else {
-                    const errData = await response.json();
-                    throw new Error(errData.message || "서버 파일 삭제에 실패했습니다.");
-                }
-            } catch (err) {
-                alert(`[오류] 서버 파일 삭제 실패: ${err.message}.`);
-                return;
-            }
-        } else {
-            const key = `db_memo_${conceptName}`;
-            localStorage.removeItem(key);
-        }
-        
-        loadMemo(idx, conceptName);
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            const newHeight = content.scrollHeight;
-            content.style.maxHeight = newHeight + 'px';
-        }, 50);
     }
 
     function filterCategory(category) {
@@ -3343,8 +2631,7 @@
     };
 
     renderTopics();
-    initMemos();
-</script>
+    </script>
 
 <!-- 세부 토픽 목록 팝업 모달 -->
 <div id="topic-modal" class="modal-overlay" onclick="closeTopicModal(event)">

@@ -359,118 +359,6 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 3px;
         }
-
-        .memo-section {
-            background: rgba(139, 92, 246, 0.02);
-            border: 1px dashed rgba(139, 92, 246, 0.15);
-            border-radius: 8px;
-            padding: 1.2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .memo-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
-            padding-bottom: 0.4rem;
-        }
-
-        .memo-title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #c084fc;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .memo-date {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .memo-content-box {
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: #d1d5db;
-            white-space: pre-wrap;
-            min-height: 24px;
-        }
-
-        .memo-placeholder {
-            color: var(--text-muted);
-            font-style: italic;
-            font-size: 0.85rem;
-        }
-
-        .memo-textarea {
-            width: 100%;
-            min-height: 150px;
-            background: #090d16;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            color: var(--text-primary);
-            padding: 0.8rem 1rem;
-            font-family: inherit;
-            font-size: 0.92rem;
-            line-height: 1.6;
-            resize: vertical;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .memo-textarea:focus {
-            border-color: var(--accent-violet);
-            box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
-        }
-
-        .memo-btn-group {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-        }
-
-        .memo-btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 0.3rem 0.7rem;
-            border-radius: 4px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .memo-btn:hover {
-            color: #ffffff;
-            border-color: var(--text-muted);
-        }
-
-        .memo-btn.save {
-            background: var(--accent-gradient);
-            border: none;
-            color: #ffffff;
-        }
-
-        .memo-btn.save:hover {
-            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
-        }
-
-        .memo-btn.delete {
-            color: #f87171;
-            border-color: rgba(248, 113, 113, 0.2);
-        }
-
-        .memo-btn.delete:hover {
-            background: rgba(248, 113, 113, 0.05);
-            border-color: #f87171;
-        }
-
         /* 뱃지 호버 효과 */
         a.badge {
             transition: all 0.2s ease;
@@ -675,16 +563,6 @@
                 font-size: 0.85rem;
                 max-height: 300px;
             }
-
-            .memo-section {
-                padding: 0.9rem;
-            }
-
-            .memo-textarea {
-                font-size: 0.85rem;
-                min-height: 100px;
-            }
-
             .modal-card {
                 width: 95%;
                 max-height: 90%;
@@ -710,11 +588,115 @@
                 font-size: 0.85rem;
             }
         }
+    
+        /* [설계 의도] 시안A: 모드 토글 스위치 및 최적화된 내비게이션 스타일 */
+        .navigation-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+        .mode-switch-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.5rem 1.2rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+        }
+        .mode-label {
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: color 0.25s ease;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.08);
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: #ffffff;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        input:checked + .slider {
+            background: var(--accent-gradient);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+        
+        .badge.accent {
+            background: rgba(139, 92, 246, 0.12) !important;
+            border-color: rgba(139, 92, 246, 0.25) !important;
+            color: #ffffff !important;
+        }
+
     </style>
 </head>
 <body>
 
+
+
+<div class="container">
+    <header>
+        <h1>보안 기출 정밀 분석 대시보드</h1>
+        <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
+        
+                <div class="navigation-container">
+            <div class="mode-switch-wrapper">
+                <span class="mode-label" id="label-freq">🔥 빈출 개념순</span>
+                <label class="switch">
+                    <input type="checkbox" id="dashboard-mode-toggle" onchange="toggleDashboardMode(this)">
+                    <span class="slider round"></span>
+                </label>
+                <span class="mode-label" id="label-official">📋 공식 범위순</span>
+            </div>
+            
+            <div class="meta-badges" id="dynamic-nav-badges">
+                <a href="#" class="badge home-badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
+                <a href="se_frequent_concepts.html" class="badge subject-badge" data-freq="se_frequent_concepts.html" data-official="se_official_scopes.html" style="text-decoration: none;">소프트웨어공학</a>
+                <a href="pm_frequent_concepts.html" class="badge subject-badge" data-freq="pm_frequent_concepts.html" data-official="pm_official_scopes.html" style="text-decoration: none;">프로젝트 관리</a>
+                <a href="db_frequent_concepts.html" class="badge subject-badge" data-freq="db_frequent_concepts.html" data-official="db_official_scopes.html" style="text-decoration: none;">데이터베이스</a>
+                <a href="sa_frequent_concepts.html" class="badge subject-badge" data-freq="sa_frequent_concepts.html" data-official="sa_official_scopes.html" style="text-decoration: none;">시스템 아키텍처</a>
+                <a href="sc_frequent_concepts.html" class="badge subject-badge" data-freq="sc_frequent_concepts.html" data-official="sc_official_scopes.html" style="text-decoration: none;">보안</a>
+            </div>
+        </div>
+        
+        <div class="meta-badges">
+            <span class="badge">기출 범위: 2015년 ~ 2026년</span>
+            <span class="badge accent">총 분석 데이터: 240 문항</span>
+            <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 검출된 세부 토픽 목록 팝업 열기">
+                검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
+            </span>
+            </div>
+    </header>
+
+    <div id="accordion-container" class="accordion-list"></div>
+
+
+    
 <script>
+
     // [설계 의도] 로컬 오프라인 실행(file:///)과 웹 서버 호스팅(http://) 환경 양쪽 모두에서 퀴즈 대시보드 홈으로 매끄럽게 이동하도록 분기 처리합니다.
     function goToHome(event) {
         event.preventDefault();
@@ -724,81 +706,92 @@
             window.location.href = '/';
         }
     }
-</script>
 
-<div class="container">
-    <header>
-        <h1>보안 기출 정밀 분석 대시보드</h1>
-        <p class="subtitle">12개년 기출 전수 조사 기반 3회 이상 빈출 세부 토픽 분석 엔진</p>
+    // [설계 의도] 학습 모드 변경에 따라 과목 뱃지의 링크 목적지를 실시간 동적 갱신하고 즉시 이동 처리합니다.
+    function toggleDashboardMode(toggleEl) {
+        const isOfficial = toggleEl.checked;
         
-        <div class="meta-badges" style="margin-bottom: 1.5rem;">
-            <a href="#" class="badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
-            <a href="se_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">소프트웨어공학</a>
-            <a href="sa_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">시스템 아키텍처</a>
-            <a href="db_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">데이터베이스</a>
-            <a href="pm_frequent_concepts.html" class="badge" style="text-decoration: none; color: var(--text-secondary);">프로젝트 관리</a>
-            <a href="sc_frequent_concepts.html" class="badge accent" style="text-decoration: none;">보안</a>
-        </div>
+        // 라벨 색상 하이라이트 전환
+        document.getElementById('label-freq').style.color = isOfficial ? 'var(--text-secondary)' : '#ffffff';
+        document.getElementById('label-official').style.color = isOfficial ? '#ffffff' : 'var(--text-secondary)';
         
-        <div class="meta-badges">
-            <span class="badge">기출 범위: 2015년 ~ 2026년</span>
-            <span class="badge accent">총 분석 데이터: 240 문항</span>
-            <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 검출된 세부 토픽 목록 팝업 열기">
-                검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
-            </span>
-            <span id="storage-badge" class="badge" style="cursor: help;">저장소 로딩 중...</span>
-        </div>
-    </header>
+        // 과목별 이동 경로 실시간 매핑
+        const badges = document.querySelectorAll('.subject-badge');
+        const isLocal = window.location.protocol === 'file:';
+        
+        badges.forEach(badge => {
+            const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
+            if (isLocal) {
+                badge.href = target;
+            } else {
+                badge.href = '/reports/' + target;
+            }
+        });
 
-    <div id="migration-banner" style="display: none; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.3); padding: 1.2rem; border-radius: 10px; margin-bottom: 2rem; text-align: center; backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        <div style="font-size: 0.95rem; font-weight: 600; color: #ffffff; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-            <span>💡 이전 브라우저(LocalStorage)에 작성된 공부 코멘트 <span id="migration-count" style="color: #c084fc; font-weight: 700;">0</span>개가 발견되었습니다.</span>
-        </div>
-        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.8rem;">
-            이 코멘트들을 서버 파일 저장소(`data/sc_memos.json`)로 안전하게 가져와서 영구 보존할 수 있습니다.
-        </div>
-        <button onclick="migrateMemos()" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.4rem 1.2rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);">
-            파일 서버로 코멘트 동기화하기
-        </button>
-    </div>
+        // 사용자의 현재 보고 있는 과목에 매칭되는 대시보드로 즉각 리다이렉트
+        const currentPath = window.location.pathname;
+        let targetRedirect = "";
+        badges.forEach(badge => {
+            const freqPath = badge.getAttribute('data-freq');
+            const officialPath = badge.getAttribute('data-official');
+            if (currentPath.includes(freqPath) && isOfficial) {
+                targetRedirect = officialPath;
+            } else if (currentPath.includes(officialPath) && !isOfficial) {
+                targetRedirect = freqPath;
+            }
+        });
 
-    <div class="filter-section">
-        <button class="filter-btn active" onclick="filterCategory('전체')">전체</button>
-        <button class="filter-btn" onclick="filterCategory('공통 보안 기술')">공통 보안 기술</button>
-        <button class="filter-btn" onclick="filterCategory('네트워크 및 시스템 보안')">네트워크 및 시스템 보안</button>
-        <button class="filter-btn" onclick="filterCategory('응용 및 신기술 보안')">응용 및 신기술 보안</button>
-        <button class="filter-btn" onclick="filterCategory('개발 및 운영 보안')">개발 및 운영 보안</button>
-        <button class="filter-btn" onclick="filterCategory('정보보호 법규 및 개인정보보호')">정보보호 법규 및 개인정보보호</button>
-    </div>
+        if (targetRedirect) {
+            if (isLocal) {
+                window.location.href = targetRedirect;
+            } else {
+                window.location.href = '/reports/' + targetRedirect;
+            }
+        }
+    }
 
-    <div class="accordion-list" id="accordion-container">
-        <!-- Javascript will inject accordion elements here -->
-    </div>
-</div>
+    // [설계 의도] 페이지 로드 시 현재 페이지 파일명에 매핑되는 모드 스위치 상태 및 배지 컬러를 활성화합니다.
+    function initDashboardNav() {
+        const toggle = document.getElementById('dashboard-mode-toggle');
+        const currentPath = window.location.pathname;
+        const isOfficialPage = currentPath.includes('official_scopes');
+        
+        if (toggle) {
+            toggle.checked = isOfficialPage;
+            // 라벨 색상 하이라이트 초기화
+            document.getElementById('label-freq').style.color = isOfficialPage ? 'var(--text-secondary)' : '#ffffff';
+            document.getElementById('label-official').style.color = isOfficialPage ? '#ffffff' : 'var(--text-secondary)';
+        }
 
-<script>
+        const badges = document.querySelectorAll('.subject-badge');
+        const isLocal = window.location.protocol === 'file:';
+        
+        badges.forEach(badge => {
+            const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
+            if (isLocal) {
+                badge.href = target;
+            } else {
+                badge.href = '/reports/' + target;
+            }
+
+            // 활성화 배지 하이라이트 (현재 페이지 파일명이 target을 포함하는 경우)
+            if (currentPath.includes(target)) {
+                badge.classList.add('accent');
+                badge.style.color = '#ffffff';
+                badge.style.background = 'rgba(139, 92, 246, 0.12)';
+                badge.style.borderColor = 'rgba(139, 92, 246, 0.25)';
+            } else {
+                badge.classList.remove('accent');
+            }
+        });
+    }
+
+    // DOMContentLoaded 시점에 즉시 내비게이션 초기화 적용
+    document.addEventListener('DOMContentLoaded', initDashboardNav);
+
     const examDatabase = {
-  "2015_101": "101. 개인정보보호법상 암호화하여야 하는 개인정보\n대상이 아닌 것은?\n① 비밀번호 ② 고유식별번호\n③ 바이오정보 ④ 신용카드정보",
-  "2015_102": "102. S/MIME(Secure/Multipurpose Internet Mail Ext-\nension)에 대한 설명 중 틀린 것은?\n① 네트워크계층에서의 보안을 제공한다.\n② 평문메시지에 공개키 암호방식을 적용하여 보안성을\n제공한다.\n③ 이진값으로 암호화된 본문이나 서명 부분은 모두\nMIME으로 변환되어 전송한다.\n④ 세션키를 분배하기 위하여 Diffie-Hellman 방식과\nRSA 공개키 방식을 사용한다.",
-  "2015_103": "103. SSL(Secure Socket Layer)에 관한 설명 중 틀린\n것은?\n① SSL 레코드 프로토콜은 기밀성과 메시지 무결성,\n부인 방지 서비스를 제공한다.\n② SSL 레코드 프로토콜은 단편화, 압축, 메시지\n인증 코드 계산, 암호화의 순서로 수행된다.\n③ SSL은 TCP를 이용하여 신뢰할 수 있는 종단-대-\n종단 보안 서비스를 제공하기 위해 설계되었다.\n④ 경고(Alert) 프로토콜은 SSL 관련 경고를 전달\n하기 위해 사용된다.",
-  "2015_104": "104. 국내 정보보호관리체계(ISMS) 인증기준 중 정보\n보호 대책에 해당되지 않는 것은?\n① 정보보호 조직\n② 정보보호 교육\n③ 침해사고 관리\n④ 법적 요구사항 준수 검토\n- 24",
   "2015_105": "105. 정보보호관리체계에 대한 설명 중 가장 거리가\n먼 것은?\n① 취약성은 자산의 잠재적 속성으로서 위협의 이용\n대상으로 정의된다.\n② 관리체계 인증기준과 기업 내 현재의 보호대책\n적용 현황과의 수준 차이를 파악하기 위해 위협\n분석을 수행한다.\n③ 정보보호관리체계 구축을 위한 수행조직은 프로\n젝트팀으로 구성될 수 있으며 우선적으로 관리\n체계 도입 배경과 경영진을 이해시키고 설득할\n수 있는 자료 등을 준비한다.\n④ 정보보호대책이란 위험에 대응하여 자산을 보호하기\n위한 관리적, 물리적, 기술적 대책으로 정의된다.",
-  "2015_106": "106. 개인정보처리자가 개인정보의 수집 시 정보주체의\n동의를 받지 않아도 되는 경우로 가장 적절한\n것은?\n① 개인정보취급 방침에 명시한 경우\n② 경제적, 기술적인 사유로 통상적인 동의를 받는\n것이 뚜렷하게 곤란한 경우\n③ 법률에 특별한 규정이 있거나 법령상 의무를\n준수하기 위하여 불가피한 경우\n④ 요금 부과를 위해 필요한 경우",
-  "2015_107": "107. 해시 함수(hash function)의 특성에 대한 설명\n으로 틀린 것은?\n① 임의의 크기를 갖는 메시지에 고정된 길이의 해시\n값을 생성한다.\n② 해시 값을 계산하기 쉽다.\n③ 해시 값에 대한 해시 함수의 입력 메시지를 찾는\n것이 불가능하다는 것은 해시 함수의 충돌방지\n특성이다.\n④ 해시 알고리즘으로 MD5, SHA-1, SHA-2가 있다.\n4 -",
-  "2015_108": "108. 포렌식을 통해 획득한 증거는 법적인 효력을\n가져야할 필요가 있다. 포렌식의 기본원칙에\n대한 설명 중 가장 거리가 먼 것은?\n① 재현의 원칙 : 증거를 복구하는 과정에서 똑같은\n환경에서 같은 결과가 나오도록 재현할 수 있어야 함.\n② 신속성의 원칙 : 시스템 안의 디스크 또는 메모리\n정보가 휘발되기 전에 빠르게 획득하여야 함.\n③ 정당성의 원칙 : 모든 증거는 적법한 절차를\n거쳐서 획득하여야 함.\n④ 무결성의 원칙 : 증거의 이송/분석/보관/법정 제출\n이라는 일련의 과정에 대한 추적이 가능해야 함.",
-  "2015_109": "109. “소프트웨어 개발 보안 가이드(2013.11)”에서\n제시한 안전한 코딩 기법 중, 프로그램 입력값에\n대한 검증 누락 또는 부적절한 검증, 데이터의\n잘못된 형식지정으로 인해 발생할 수 있는 공격을\n예방하기 위한 기법과 가장 거리가 먼 것은?\n① 외부의 입력을 자원(파일, 소켓 등) 식별자로\n사용하는 경우, 적절한 검증을 거치도록 한다.\n② 쿠키의 만료시간은 세션이 지속되는 시간과 관련\n하여 최소한으로 설정하고 영속적인 쿠키에는 사용자\n권한 등급, 세션 ID가 포함되지 않도록 한다.\n③ HTML 태그를 허용하는 게시판에서는 지원가능한\n태그리스트를 선정한 후 해당 태그만 허용한다.\n④ 사용자 입력값을 자동 연결할 사이트 주소로 사용\n하는 경우에는 입력된 값이 화이트 리스트에\n존재하는지 확인하도록 한다.",
-  "2015_110": "110. 위험분석 방법 중 정성적 분석방법이 아닌 것은?\n① 델파이법 ② 시나리오법\n③ 확률분포법 ④ 순위결정법\n- 25",
-  "2015_111": "111. 스마트폰 애플리케이션과 관련하여 악성 애플리\n케이션이 유통되지 않도록 마켓에서 판매되는\n애플리케이션에 대한 보안성 검증을 강화하면서\n애플리케이션 개발자의 신원 확인/인증을 강화\n하기 위해 사용된 기술은?\n① repackaging\n② decompile\n③ code signing\n④ mobile trusted module",
-  "2015_112": "112. 다음은 C 프로그램의 일부분이다. 진하게 표시\n된 부분에는 어떤 보안 약점이 존재하는가?\nint main()\n{\nchar* rPort = getenv(“rPort”);\nstruct sockaddr_in serv_addr;\nint sockfd = 0;\n...\nserv_addr.sin_port = htons(atoi(rPort));\nif (connect(sockfd, &serv_addr, sizeof(serv_addr)) < 0) {\nexit(1);\n}\nreturn 0;\n}\n① 부적절한 인가\n② 포맷 스트링 삽입\n③ 경로 조작 및 자원 삽입\n④ 시스템 데이터 정보 노출",
-  "2015_113": "113. 모바일 단말기를 통해 외부에서 업무를 처리하\n는 모바일 오피스 환경에서 BYOD(Bring Your Own\nDevice) 서비스 제공을 위한 보안 강화 기술과\n가장 관련된 것은? (2개 선택)\n① NAC(Network Access Control)\n② proof carrying code\n③ MDM(Mobile Device Management)\n④ SecureMSM(Mobile Station Modem)\n5 -",
-  "2015_114": "114. 스마트카드를 이용하여 동적 데이터 인증 과정을\n수행하기 위해 스마트카드 단말기에 배포되어야\n하는 것은?\n① 인증기관(CA)의 공개키\n② 스마트카드의 개인키\n③ 응용 프로그램 데이터와 스마트카드 공개키에\n대해 발행자의 개인키를 이용하여 서명한 값\n④ 발행자의 공개키에 대해 인증기관(CA)의 개인키를\n이용하여 서명한 값",
-  "2015_115": "115. 위장 공격(masquerade attack)을 통해 발생 가능한\n인증(authentication) 보안 위협을 방지하기 위한\n암호 기술과 가장 거리가 먼 것은?\n① 공개키 암호 ② 일방향 해시 함수\n③ 메시지 인증 코드 ④ 디지털 서명",
-  "2015_116": "116. 다음 보기의 설명을 통해 기업에서 설치해야하는\n정보보호 시스템을 올바르게 짝지은 것은?\nIP주소 및 port 번호를 기반으로 외부에서 유입\n되는 트래픽을 사전에 차단하기를 원하며, 기업\n외부에서 내부망으로 접근하여 업무를 수행할\n경우 암호통신을 통한 통신내용 보호를 원한다.\n① 침입차단시스템 - VPN\n② 웹방화벽 - 침입탐지시스템\n③ 침입차단시스템 - 안티바이러스\n④ 안티바이러스 - VPN",
-  "2015_117": "117. 패킷의 헤더 뿐만 아니라 메시지 수준에서 모니\n터링 및 차단이 가능하도록 하기를 원할 때\n활용할 수 있는 침입차단시스템 유형으로 가장\n적절한 것은?\n① 어플리케이션 프록시\n② 패킷 필터링 라우터\n③ 상태검사 패킷필터\n④ 회로레벨 게이트웨이\n- 26",
-  "2015_118": "118. 개인정보보호인증(PIPL) 기준 중 인증 신청 기관이\n중소기업인 경우, 필수 적용되는 기준과 가장\n거리가 먼 것은?\n① 개인정보보호 관리계획 수립을 통해 명확한 방침\n및 방향 제시를 보증하여야 하며, 이에 대해 개인\n정보보호 책임자의 검토와 승인을 거쳐야 한다.\n② 개인정보보호 활동을 수행하고 관리하는 구성원들에\n대한 책임, 역할 및 권한을 정의하여야 한다.\n③ 개인정보처리자는 개인정보를 취급하는 업무(서비스)에\n대하여 적합한 위험관리 계획을 수립하고, 위험관리\n계획에 따라 보호대책을 수립하여야 한다.\n④ 식별된 개인정보 자산에 영향을 줄 수 있는 모든\n위협과 취약성, 위험을 개인정보의 흐름에 따라\n식별하고 분류하여야 하며, 이 개인정보 자산의\n가치와 위험을 고려하여 잠재적 손실에 대한\n영향을 식별·분석하여야 한다.",
-  "2015_119": "119. 최근 최고경영층의 정보보호에 대한 역할과\n책임을 강조하는 정보보호 거버넌스의 중요성이\n인식되고 있다. 관련 국제표준인 ISO/IEC 27014\n에서 명시하고 있는 정보보호 거버넌스의 원칙과\n가장 거리가 먼 것은?\n① 현업부서를 포함하는 전사적 보안 구현\n② 효율적 보안운영을 위한 계획 수립\n③ 긍정적 보안문화 형성\n④ 정보보호 투자에 대한 방향 설정",
-  "2015_120": "120. 2013년에 개정된 국제표준 ISO/IEC 27001에서\nISMS 구현을 위해 요구하는 일곱 가지 사항과\n가장 거리가 먼 것은?\n① 조직의 보안환경 분석\n② 최고경영층의 리더십\n③ 컴플라이언스 관리\n④ 위험관리\n6 -",
-  "2016_101": "101)h로\n가정하고 고장 발생 시각의 단위는 시[hour]임)\n고장 발생 시각 수리 시간\na 23h a′- a 0.7h\nb 45h b′- b 1.5h\nc 75h c′- c 0.8h\nd 100h d′- d 1.0h\n① 약 90% ② 약 93% ③ 약 96% ④ 약 99%\n9 -",
+  "2016_101": "101. UNIX 시스템의 패스워드 암호화에 활용되는 것으로\n다음 내용에 대한 설명으로 가장 적절한 것은?\n사용자의 패스워드에 덧붙여져서 암호 함수의 입\n력을 정해진 길이로 만들기 위해 활용된다. 이를\n통해 패스워드의 길이가 늘어나고, 동일한 패스워\n드를 사용하는 사용자의 암호화 된 값이 다른 값을\n갖게 되는 효과가 있다.\n① 솔트(salt)\n② 키(key)\n③ 해쉬값(hash value)\n④ 사전(dictionary)",
   "2016_102": "102. 다음 중「개인정보 보호법」에서 규정하고 있지\n않은 것은?\n① 개인정보의 수집 제한\n② 개인정보의 목적 외 이용·제공 제한\n③ 개인정보 이용내역의 통지\n④ 개인정보영향평가",
   "2016_103": "103. 다음과 같은 네트워크 구축 요구사항을 충족하기\n위한 것으로 가장 거리가 먼 것은?\n우리 기업의 네트워크를 내부망과 외부망으로 구분\n하고 외부에 공개해야 하는 웹서비스는 구분된\n네트워크에서 운영하고자 한다. 또한 외부망에서\n내부망으로 암호터널을 이용하여 안전한 통신을\n제공하고자 한다.\n① 방화벽(Firewall)\n② 중간지점(DMZ)\n③ 가상사설망(VPN)\n④ 안티바이러스(Anti-Virus)\n- 24",
   "2016_104": "104. “소프트웨어 개발 보안 가이드(2013.11)”에서\n보안 약점은 7개의 유형으로 분류하여 정의하고\n있다. 다음 중 ‘입력데이터 검증 및 표현’ 유형에\n해당하는 보안약점과 가장 거리가 먼 것은?\n① 부적절한 인가\n② 경로 조작 및 자원 삽입\n③ XPath 삽입\n④ 정수형 오버플로우",
@@ -806,9 +799,9 @@
   "2016_106": "106. 정보보호 위험관리에서 정성적(Qualitative)\n위험분석이 갖는 특징으로 틀린 것은?\n① 손실크기를 화폐가치로 측정할 수 없어 위험을\n기술변수로 표현하는 경우 주관적이며, 근거가\n제공되지 않지만 시간, 노력, 비용이 적게 든다.\n② 델파이법, 시나리오법, 순위결정법, 질문서법\n등이 해당된다.\n③ 위험의 우선순위 파악이 용이하다는 장점이\n있다.\n④ 많은 데이터의 입력과 복잡한 계산이 필요하다는\n단점이 있다.\n4 -",
   "2016_107": "107. 다음은 위험관리 국제표준 ISO/IEC 13335의 위험\n처리 절차이다. (가) ~ (라)에 해당되는 위험\n처리 방법으로 올바르게 짝지어진 것은?\n① (가)위험 회피, (나)위험 감소, (다)위험 전가,\n(라)위험 수용\n② (가)위험 수용, (나)위험 감소, (다)위험 전가,\n(라)위험 회피\n③ (가)위험 감소, (나)위험 회피, (다)위험 전가,\n(라)위험 수용\n④ (가)위험 수용, (나)위험 회피, (다)위험 전가,\n(라)위험 감소",
   "2016_108": "108. 데이터베이스에 대한 감사에서 수집하는 정보로\n적절하지 않은 것은?\n① 데이터베이스 서버의 설정 및 운영과 관련된 정보 변경\n② 데이터베이스 암호화 키\n③ 객체 생성 및 변경 내역\n④ 주요 데이터의 조회 및 이동 내역",
-  "2016_109": "109. 다음과 같은 네트워크 보안관리 요구사항에서\n제시하고 있는 기능을 수행하기 위한 네트워크\n장비로 가장 적절한 것은?\n내부망의 컴퓨터가 사용하는 IP 주소와 port 번호를\n외부망에서 알아낼 수 없도록 하고, 특히 외부망\n에서 스니퍼를 통해서 패킷을 수집해서 보더라도\n내부망의 어떤 IP 주소 및 port 번호와 통신하는지\n알아내지 못하게 하고 싶다.\n- 25\n① IDS\n② Anti-Virus\n③ NAT\n④ Honeypot",
+  "2016_109": "109. 다음과 같은 네트워크 보안관리 요구사항에서\n제시하고 있는 기능을 수행하기 위한 네트워크\n장비로 가장 적절한 것은?\n내부망의 컴퓨터가 사용하는 IP 주소와 port 번호를\n외부망에서 알아낼 수 없도록 하고, 특히 외부망\n에서 스니퍼를 통해서 패킷을 수집해서 보더라도\n내부망의 어떤 IP 주소 및 port 번호와 통신하는지\n알아내지 못하게 하고 싶다.\n- 25",
   "2016_110": "110. OWASP TOP 10 애플리케이션 보안 위험(2013)에\n대한 설명으로 가장 적절하지 않은 것은?\n① 인젝션은 신뢰할 수 없는 데이터가 명령어나 질\n의문의 일부분으로서 인터프리터에 보내질 때\n발생한다.\n② 크로스 사이트 스크립팅(XSS)은 로그온 된 피해\n자의 취약한 웹 애플리케이션에 피해자의 세션\n쿠키와 기타 다른 인증정보를 자동으로 포함하여\n위조된 HTTP 요청을 강제로 보내도록 하는 것이다.\n③ 취약한 직접 객체 참조는 개발자가 파일, 디렉\n토리, 데이터베이스 키와 같은 내부 구현 객체\n를 참조하는 것을 노출시킬 때 발생한다.\n④ 인증 및 세션 관리 취약점은 공격자가 로그인을\n하지 않은 상태로 서비스에 접근하거나, 다른\n사용자 ID로 가장할 수 있는 방법을 제공한다.",
-  "2016_111": "111. 시스템 또는 네트워크에 손상을 입히는 악성",
+  "2016_111": "111. 시스템 또는 네트워크에 손상을 입히는 악성\n소프트웨어에 대한 다음 설명으로 가장 적절한\n것은?\n① 트랩도어(Trap Doors)는 세션 하이제킹의\n기본이 되는 기술로 IP 주소를 속여서 공격\n하는 기법이다.\n② 논리 폭탄(Logic Bomb)은 특정한 조건이 만족\n되면 특정형태의 공격을 하는 기법이다.\n③ 트로이목마(Trojan Horses)는 자기 복제 능력이\n있으며 다른 파일을 감염시키는 기법이다.\n④ 웜(Worms)은 인증절차 없이 시스템에 접근하기\n위한 방법을 미리 설정해 놓는 기법이다.",
   "2016_112": "112. 개인정보의 기술적·관리적 보호조치 기준과 관련\n하여 암호화 방식이 다른 것은?\n① 비밀번호\n② 신용카드번호\n③ 계좌번호\n④ 주민등록번호\n5 -",
   "2016_113": "113. DRM의 요소 기술에 관한 설명 중 가장 거리가\n먼 것은?\n① 메타데이터는 저자, 저작권자, 발행일 등 저작권\n관리를 위해 필요한 데이터 구조 및 정보이다.\n② 권리 표현 언어는 DOI, MPEG-21 DII 등이 있다.\n③ 패키징은 시큐어 콘테이너를 구성하는 과정을\n의미한다.\n④ DRM에서 인증은 사용자 인증, 디바이스 인증\n그리고 이 둘을 결합한 방식으로 나뉜다.",
   "2016_114": "114. 다음 중 분석대상 네트워크에 현재 열려 있는\n포트를 확인하여 어떤 서비스가 운영 중인지를\n파악하기 위한 것으로 가장 적절한 것은?\n① iptable\n② snort\n③ nmap\n④ tripwire",
@@ -817,8 +810,8 @@
   "2016_117": "117. ISO/IEC 27014에서 명시하고 있는 정보보호 거버\n넌스 프로세스에 대한 설명 중 가장 거리가 먼\n것은?\n① Evaluate: 정보보호 활동의 조직 목표 지원 여\n부를 확인하기 위해 현재의 정보보호 수준을 평\n가해야 한다.\n② Direct: 최고경영층은 정보보호 목표 및 전략에\n대한 방향을 제시해야 한다.\n③ Monitor: 정보보호 활동의 모니터링을 위해서는\n비즈니스 관점의 성과척도를 적용해야 한다.\n④ Assure: 최고경영층은 정보보호 활동의 적절성을\n외부 이해관계자들에게 보고해야 한다.",
   "2016_118": "118. 다음 중 커버로스(Kerberos)에 대한 설명으로\n가장 거리가 먼 것은?\n① 커버로스는 키분배센터(KDC: Key Distribution\nCenter) 기반의 키 관리를 수행한다.\n② 커버로스는 타임스탬프를 이용하여 재전송 공격을\n방지한다.\n③ 커버로스는 RFC 표준으로 키분배뿐만 아니라 사\n용자 인증을 제공한다.\n④ 커버로스를 이용하여 사용자는 키분배 센터로\n부터 상대방의 공개키를 안전하게 수신한다.",
   "2016_119": "119. 다음 설명과 관련성이 가장 많은 프로토콜은?\n- 동일 LAN 상에서 동작하는 컴퓨터들 간에 공격\n발생이 가능함\n- MITM(Man-in-the-Middle) 형태의 공격 발생이\n가능함\n- IP 주소를 MAC 주소로 대응시키기 위해 사용됨\n① ARP\n② RIP\n③ TCP\n④ ICMP\n6 -",
-  "2016_120": "120. 정보보호 관리과정 중 다음과 같은 요구사항에\n해당하는 것은?\n- 정보보호 관리체계를 운영하는 과정에서 상시적인\n모니터링을 수행\n- 정기적인 내부감사를 통해 정책 준수 상황을 확인\n- 정보보호 관리체계를 재검토\n- 관리 체계 개선\n① 정보보호 정책 수립 및 범위설정\n② 경영진 책임 및 조직구성\n③ 정보보호대책 구현\n④ 사후관리\n- 27\n7 -",
-  "2017_101": "101)\n④ SELECT STUDENTID\nFROM ENROLL E\nWHERE E.COURSEID=100 AND E.COURSEID=101",
+  "2016_120": "120. 정보보호 관리과정 중 다음과 같은 요구사항에\n해당하는 것은?\n- 정보보호 관리체계를 운영하는 과정에서 상시적인\n모니터링을 수행\n- 정기적인 내부감사를 통해 정책 준수 상황을 확인\n- 정보보호 관리체계를 재검토\n- 관리 체계 개선\n① 정보보호 정책 수립 및 범위설정\n② 경영진 책임 및 조직구성\n③ 정보보호대책 구현\n④ 사후관리\n- 27",
+  "2017_101": "101. 일회용 비밀번호(OTP: One-Time Password)에 대한\n설명으로 가장 적절한 것은?\n① 벨 연구소(Bell Lab.)에서 개발한 S/KEY 방식은\n유닉스 계열 운영체제의 인증에 사용된다.\n② 생성되어 한번 사용된 인증 값이 노출되는 경우\n재사용이 가능하다.\n③ 이벤트 동기화 방식은 OTP를 생성하기 위해 입력\n값으로 시각을 사용하는 방식이다.\n④ 도전-응답(challenge-response) 방식은 OTP를 생성\n하기 위해 카운트 값을 동일하게 증가시켜 입력\n하는 방식이다.",
   "2017_102": "102. VPN을 구축하기 위해 사용하는 터널링 프로토콜에\n대한 설명으로 가장 적절하지 않은 것은?\n① IPSec은 IP 망에서 안전하게 정보를 전송하는 표\n준화된 3계층 프로토콜로 전송모드와 터널모드가\n있다.\n② Layer2 터널링은 링크 계층에서 구현된 프로토콜로\n비용면에서는 효율적이지만, 터널 종단에서만 인\n증을 제공하므로 다른 계층의 프로토콜과 함께\n사용되는 것이 일반적이다.\n③ PPTP(Point to Point Tunneling Protocol)는 Mic-\nrosoft사가 제안한 방식으로 이동 중인 사용자가\n기업의 home server에 다이얼 업 접속을 하고자\n할 때 사용하는 방식이다.\n④ SSL은 원격 다이얼 업 사용자가 터널링을 통해\n공중망으로 사설망에 연결될 수 있는 기능을\n제공한다.",
   "2017_103": "103. DRM 시스템을 위한 핵심 요소 기술과 가장\n거리가 먼 것은?\n① DOI(Digital Object Identifier)\n② XrML\n③ MPEG\n④ Finger Print Watermarking\n- 21",
   "2017_104": "104. 다음의 개인정보 비식별 조치 방법(’개인정보 비식별\n조치 가이드라인’)은 어떤 것에 해당 하는가?\n홍길동, 35세, 서울 거주, 한국대학 재학\n→ 홍OO, 35세, 서울 거주, OO대학 재학\n① 가명처리(pseudonymization)\n② 데이터 마스킹(data masking)\n③ 데이터 범주화(data suppression)\n④ 총계처리(aggregation)",
@@ -878,83 +871,45 @@
   "2019_118": "118. 아래의 블록 암호 운용 모드 중 평문 블록의 변\n경이 해당 블록의 암호문만 변경시킬 뿐 다른\n블록의 암호문에는 전혀 영향을 미치지 않는 모\n드는 모두 몇 개인가?\n- ECB(Electronic CodeBook)\n- CBC(Cipher Block Chaining)\n- CFB(Cipher FeedBack)\n- OFB(Output FeedBack)\n- CTR(CounTeR)\n① 1개 ② 2개 ③ 3개 ④ 4개",
   "2019_119": "119. 다음 중 블록체인의 각 블록들을 연결해 주고\n트랜잭션의 위·변조를 막기 위해 활용될 수 있\n는 암호기술로 가장 적절한 것은?\n① AES ② DES ③ SHA ④ RSA",
   "2019_120": "120. SSL(Secure Socket Layer) 프로토콜에 대한 설명\n으로 가장 거리가 먼 것은?\n① 네트워크 계층에 적용되며 패킷 단위의 데이터\n암호화 기능을 제공한다.\n② 서버 인증, 클라이언트 인증, 암호화 세션 기능을\n제공한다.\n③ SSL이 적용된 웹 애플리케션의 URL은 http://\n대신에 https://를 사용한다.\n④ 웹 서비스, 이메일 및 다른 애플리케이션에서도\n사용될 수 있다.\n3 -",
-  "2020_101": "101. 다음 설명에 해당하는 SSL 프로토콜으로 가장 적\n절한 것은?\n상위 계층으로부터 오는 메시지를 전달하며, 메시\n지는 단편화되거나 선택적으로 압축된다. MAC은\n협의된 해시 알고리즘을 사용하여 압축된 메시지\n를 추가한다. 압축된 단편화와 MAC은 협의된 암호\n화 알고리즘을 사용하여 암호화된다.\n① Record 프로토콜\n② Alert 프로토콜\n③ ChangeCipherSpec 프로토콜\n④ Handshake 프로토콜",
-  "2020_102": "102. 다음에서 설명하는 보호대책을 통해 방어하고자\n하는 공격 유형으로 가장 적절한 것은?\n방어 기법 1. 주소공간 배치에 대한 난수화 설정\n으로 공격자가 메모리 내 특정 정보의 위치를 추\n정하지 못하게 한다.\n방어 기법 2. 프로그램 내 스택에서의 명령어 실행\n기능을 제한해야 한다.\n방어 기법 3. 스택가드(stack guard) 기능을 활성화\n하여 스택을 보호하는 것이 필요하다.\n① 버퍼 오버플로우(buffer overflow) 공격\n② 레이스 컨디션(race condition) 악용\n③ SQL 인젝션(injection)\n④ 환경변수 취약점 공격",
-  "2020_103": "103. 위험 평가 방법 중 정량적 분석법에 대한 설명으로\n가장 적절하지 않은 것은?\n① 많은 데이터의 입력이 필요하며 복잡한 계산을\n필요로 한다.\n② 금액으로 산정하기 어려운 정보의 평가에 용이하게\n사용된다.\n③ 정보보호 대책의 비용을 정당화하고 위험 분석의\n결과를 이해하기 쉽다.\n④ 과거자료 접근법, 수학공식 접근법, 확률분포 추정법\n등이 이에 포함된다.\n- 21",
   "2020_104": "104. 보안시스템의 개발 원칙에 대한 설명 중 가장 적절\n하지 않은 것은?\n① Complete mediation : 모든 접근 시도는 접근 통\n제 메카니즘에 의해 점검되어야 한다.\n② Fail-safe default : 시스템의 보안성 유지가 안\n된다면, 시스템 운영을 중단하는 것이 좋다.\n③ Least privilege : 시스템을 사용하는 모든 이용\n자는 업무(task)를 수행하는데 필요한 최소의 권\n한만이 주어져야 하고 주어진 권한도 시간에 따라\n달라진다.\n④ Open design : 보안 메카니즘은 비밀로 유지하지\n않고 공개하는 것이 좋다.",
   "2020_105": "105. 다음에서 설명하는 웹 서비스의 주요 구성 요소로\n가장 적절한 것은?\n(가) 웹 서버에서 생성된 난수 값을 클라이언트\n컴퓨터에 저장하여 다음 접속 시 해당 클라\n이언트 컴퓨터를 식별한다.\n(나) 다수 개의 웹 클라이언트들이 동일한 정보를\n요청하는 것에 대비하여 로컬 네트워크 서\n버에 첫 번째 요청된 웹페이지의 내용을 저\n장한다.\n① (가) 웹 방화벽 (나) 웹 로그\n② (가) 웹 로그 (나) 웹 캐시\n③ (가) 쿠키 (나) 웹 방화벽\n④ (가) 쿠키 (나) 웹 캐시",
   "2020_106": "106. 포맷 스트링(format string) 취약점에 대한 설명\n으로 가장 적절하지 않은 것은?\n① printf 함수가 가지고 있는 선택적 매개변수(opt\nional argument)의 특성은 취약점이 될 수 있다.\n② 소프트웨어의 사용자가 포맷 스트링을 지정할 수\n있는 것을 불허하여 취약점 이용에 대처할 수 있다.\n③ 포맷 스트링 %n을 이용하여 메모리의 특정 위치(주\n소)에 값을 지정할 수 있다.\n④ 포맷 스트링 취약점을 이용하여 악성코드를 실행\n하는 것은 불가능하다.\n1 -",
-  "2020_107": "107. 클라우드 책임공유 모델(cloud shared responsibility\nmodel)에 따라, SaaS(Software as a Service)를\n사용하는 고객의 보안 책임으로 가장 적절한 것은?\n① 물리 기반 환경에 대한 보안(physical infrastru\n-cture security)\n② 가상화 기반 환경에 대한 보안(virtualized infr\n-astructure security)\n③ 운영체제 시스템에 대한 보안(operating system\nsecurity)\n④ 데이터 접근에 대한 보안(data access security)",
-  "2020_108": "108. 개인 식별이 가능한 데이터를 직접적으로 식별할\n수 없는 다른 값으로 대체하는 가명처리(pseudon\n-ymization) 방법으로 가장 적절하지 않은 것\n은?\n① 암호화(encryption)\n② 라운딩(rounding)\n③ 교환 방법(swapping)\n④ 휴리스틱 가명화(heuristic pseudonymization)",
-  "2020_109": "109. 포렌식 과정에서 수집된 디지털 증거가 법적\n효력을 가지고 증거 능력을 인정받기 위한\n원칙 중 다음에서 설명하는 것으로 가장 적절한\n것은?\n증거 획득 후 이송/분석/보관/법정 제출 등 일련의\n과정이 명확해야 하며, 이러한 과정에 대한 추적이\n가능해야 한다.\n① 재현의 원칙 ② 무결성의 원칙\n③ 정당성의 원칙 ④ 연계 보관성의 원칙",
-  "2020_110": "110. 다음 중 TCP 고유의 취약점을 이용한 TCP 세션\n하이재킹(session hijacking) 공격에 대한 보안\n대책으로 가장 적절하지 않은 것은?\n① ACK storm 탐지\n② 비동기화 상태 탐지\n③ 다이렉트 브로드캐스트 방지\n④ 패킷의 유실과 재전송 증가 탐지\n- 22",
   "2020_111": "111. 다음 중 공개키 기반 구조(PKI: Public Key Infrastru\n-cture)에 대한 설명으로 가장 적절하지 않은 것은?\n① 공개키 인증서를 위해 X.509 표준 인증서 형식을\n사용한다.\n② PKI는 인증, 기밀성, 부인방지와 메시지의 무결성을\n제공한다.\n③ PKI 전반에 사용되는 정책과 절차를 생성하는\n기관은 PAA(Policy Approving Authority)다.\n④ 공개키 기반 구조에서 공개키 인증서는 CA(Certi\n-ficate Authority)의 공개키를 이용하여 전자\n서명을 생성한다.",
   "2020_112": "112. 다음 중 IPSec(Internet Protocol Security)에\n대한 설명 중 가장 적절하지 않은 것은?\n① AH와 ESP 모두 메시지 무결성을 제공한다.\n② AH는 메시지에 대한 기밀성을 제공하지만, ESP는\n기밀성을 제공하지 않는다.\n③ IPSec을 이용하여 재전송 공격 방지 기능을 제공\n할 수 있다.\n④ IPSec 운영 모드는 터널모드와 전송모드로 나뉜다.",
   "2020_113": "113. 다음 설명에 해당하는 것으로 가장 적절한 것은?\n도메인을 탈취하거나 DNS(Domain Name System) 등의 주\n소를 변조하여 사용자들로 하여금 진짜 사이트로\n오인 접속하도록 유도한 뒤에 개인 정보를 탈취하는 행\n위이다.\n① 스미싱(smishing) ② 파밍(pharming)\n③ 큐싱(qshing) ④ 스니핑(sniffing)",
   "2020_114": "114. 리눅스 환경에서 traceroute 명령이 활용하는 IP\n헤더 필드 및 ICMP 메시지의 종류로 가장 적절\n하게 짝지어진 것은?\n① TTL – ICMP time exceeded\n② SYN flag – ICMP echo request\n③ Fragment offset – ICMP redirect\n④ Header checksum – ICMP destination unreachable\n2 -",
-  "2020_115": "115. 리눅스 시스템의 계정과 권한 체계에 대한 설명\n으로 가장 적절한 것은?\n① 일반 사용자는 UID(UserID)를 0번부터 부여 받는다.\n② 사용자의 패스워드를 암호화하여 /etc/passwd 파일에\n저장하고 있다.\n③ 파일 실행 시 RUID(Real UID)와 EUID(Effective\nUID)는 항상 동일하다.\n④ 파일의 접근권한이 4755인 경우 이 파일을 실행하는\n동안에 파일 소유자 권한을 획득할 수 있다.",
-  "2020_116": "116. 다음 중 해시 함수에 대한 설명으로 가장 적절한\n것은?\n① 임의의 길이의 원본 메시지에 대해 가변 길이의\n해시 값을 생성한다.\n② 동일한 원본 메시지에 대해서는 같은 해시 값을\n생성한다.\n③ 해시 함수의 역함수를 만들어 해시 값으로부터\n원본 메시지를 복원할 수 있다.\n④ 원본 메시지의 한 비트가 변경되면 그에 대응하여\n거의 같은 해시 값을 출력하도록 설계한다.",
-  "2020_117": "117. 블록 암호 시스템의 운영 모드에 대한 설명으로\n가장 적절한 것은?\n① CFB 모드는 각 블록을 이전 암호문과 XOR 연산\n후에 암호화를 수행한다.\n② CBC 모드는 각 블록이 독립적으로 동작하므로 한\n블록에서 에러가 발생하더라도 다른 블록에 영향을\n주지 않는다.\n③ ECB 모드는 한 블록에서 발생한 에러가 다음\n블록들에 영향을 주며, 블록 암호화 과정에서\n병렬처리가 불가능하다는 단점이 있다.\n④ CTR 모드는 블록을 암호화할 때마다 1씩 증가하는\n카운터를 암호화한 후에 XOR 연산으로 암호문을\n생성한다.\n- 23",
   "2020_118": "118. 다음 설명에 해당하는 것으로 가장 적절한 것은?\n데이터의 불법복제를 방지하고 소유자의 저작권과\n소유권을 보호하기 위해 디지털 콘텐츠에 사용자만이\n알 수 있는 아이디(ID) 또는 정보 등의 부호를\n삽입하거나, 영상·음성 등의 신호에 특정한 코드나\n유형 등을 삽입하는 기술이다. 사용자가 소프트웨어를\n사용하거나 이미지를 보는데 전혀 지장을 주지\n않으면서도 원본의 출처나 복제 경로를 찾아내는데\n효과적이다.\n① Digital envelope ② Digital watermark\n③ Digital forensic ④ Digital wallet",
   "2020_119": "119. 전자서명(digital signature)이란 서명한 사람의\n신분을 증명하는 방식으로, 특정 사용자를 인증\n하기 위해 사용한다. 다음 중 전자서명에 대한\n설명으로 가장 적절한 것은?\n① 전자서명은 부인방지 기능을 제공하지 않는다.\n② 비대칭키 암호 시스템을 사용하여 전자서명\n서비스를 제공할 수 있다.\n③ 서명용 공개키를 이용하여 누구든지 서명문을 생성\n할 수 있으므로 위조가 가능하다.\n④ DSA(Digital Signature Algorithm)는 AES(Advanced\nEncryption Standard) 알고리즘을 기반으로 전자\n서명을 생성한다.",
   "2020_120": "120. 대칭키 암호방식과 공개키 암호방식의 장점을\n조합한 하이브리드 암호 시스템에 대한 설명으로\n가장 적절하지 않은 것은?\n① 암호화 과정에서는 공개키 암호방식보다 상대적\n으로 빠른 대칭키 암호방식을 이용하여 메시지를\n암호화 한다.\n② 복호화 과정에서는 세션키를 먼저 복호화한 후\n메시지를 복호화한다.\n③ 메시지 암호화에 사용한 세션키는 송신자의 공개키를\n이용하여 암호화한다.\n④ 생성된 암호문은 세션키에 대한 암호 부분과 메시\n지에 대한 암호 부분으로 구성된다.\n3 -",
-  "2021_101": "101. 다음에서 설명하는 것으로 가장 적절한 것은?\n장치나 시스템 구조를 분석하여 원리를 발견하는 과\n정을 의미하며, 이미 만든 프로그램의 동작원리를 이\n해하여 유사한 프로그램을 만드는 데 사용하기도 하\n고 프로그램의 보안 문제, 동작 문제, 오류 등을 제\n거/검토하는데 사용하기도 한다.\n① 백도어(backdoor)\n② 포맷 스트링(format string)\n③ 문맥교환(context switching)\n④ 리버스 엔지니어링(reverse engineering)",
-  "2021_102": "102. OTP(One-Time Password)는 고정된 비밀번호 대신\n일회용으로 생성되는 패스워드를 사용하는 사용자\n인증 방식이다. 다음 설명에 해당하는 OTP 생성\n방식으로 가장 적절한 것은?\n서버에서 난수 생성 등을 통해 임의의 수를 생성하고\n클라이언트에 임의의 수를 전송하게 된다.\n클라이언트는 전송받은 임의의 수를 사용하여 OTP를\n생성하여 사용한다.\n① S/KEY 방식\n② 시간 동기화 방식\n③ 도전-응답 방식\n④ 이벤트 동기화 방식",
-  "2021_103": "103. 다음 중 전자서명에 대한 설명으로 가장 적절하지\n않은 것은?\n① 서명자가 서명한 후에 원본 메시지와 전자서명의\n내용을 수정할 수 없다.\n② 개인키를 가진 사용자만이 생성할 수 있는 정보로\n서명자를 인증할 수 있다.\n③ 개인키를 아는 사용자만이 생성할 수 있는 정보\n이므로 부인 방지 기능을 제공한다.\n④ 디지털 정보이므로 한 문서의 전자서명을 복사하여\n다른 문서의 서명으로 사용할 수 있다.\n- 23",
   "2021_104": "104. 타원곡선 암호기술(ECC : Elliptic Curve Crypto-\ngraphy)에 대한 설명으로 가장 적절하지 않은 것은?\n① 타원곡선 암호기술은 소인수분해 문제에 기반을\n둔다.\n② 타원곡선 암호기술은 키 교환, 전자서명에 사용\n될 수 있다.\n③ 타원곡선 암호기술은 다른 공개키 알고리즘에 비해\n계산량이 적다는 장점을 갖는다.\n④ 타원곡선 암호기술은 비교적 짧은 키 길이를 이용\n하여 RSA와 동일한 수준의 보안을 제공한다.",
   "2021_105": "105. 다음 중 무선 통신 암호화 기술에 대한 설명으로\n가장 적절하지 않은 것은?\n① WPA2는 CCMP 알고리즘을 사용하여 암호화한다.\n② WPA2는 Access Point에 접속하는 단말기마다 지\n정된 암호화 키를 재사용한다.\n③ WPA-EAP는 사용자가 입력하는 아이디, 패스워드\n를 사용하는 사용자 인증 방식이다.\n④ WPA-EAP는 사용자별 무선랜 연결 세션마다 지정\n된 암호화 키를 재사용한다.",
   "2021_106": "106. SHA-2를 대체하기 위해서 발표한 해시함수인 SHA-3에\n대한 설명으로 가장 적절하지 않은 것은?\n① SHA-3의 입력되는 데이터의 크기는 2128-1로 제한\n된다.\n② SHA-1, SHA-2와는 전혀 다른 스펀지 구조가 사용\n되고 있다.\n③ 출력 비트열의 길이에 따라 SHA3-224, SHA3-256,\nSHA3-384, SHA3-512의 4종류가 있다.\n④ SHA-3는 해시값 생성 뿐만 아니라 의사난수 생성기,\n스트림 암호 등의 기능에도 활용할 수 있다.",
   "2021_107": "107. 다음 중 데이터베이스 보안 요구사항으로 가장\n적절하지 않은 것은?\n① 데이터에 대한 허용 값을 통제함으로써, 변경 데\n이터의 논리적 일관성을 보장한다.\n② 중요 데이터에 대한 기밀성을 보호하고, 인가된\n사용자만 접근을 허용해야 한다.\n③ 사용자가 통계 집합적 데이터로부터 개별적인 데\n이터 항목에 대한 정보를 추적할 수 있어야 한다.\n④ 트랜잭션의 병행처리시 데이터에 대한 논리적 일관\n성이 보장되어야 한다.\n3 -",
-  "2021_108": "108. 다음 iptables의 규칙을 사용하여 방어 가능한\n네트워크 공격으로 가장 적절한 것은?\n$iptables –A INPUT –p icmp --icmp-type\necho-request –j DROP\n① Ping of Death\n② HTTP Get Flooding\n③ ARP Spoofing\n④ DNS Amplification",
-  "2021_109": "109. 모바일 운영체제의 보안 위협에 대한 설명으로\n가장 적절하지 않은 것은?\n① iOS는 기본적으로 유닉스에 바탕을 두고 있으나,\n원격지에서 iOS를 구동하는 단말기에 명령어 입력\n이 가능한 응용 프로그램을 허용하지 않는다.\n② iOS와 안드로이드 모두 샌드박스(sandbox)를 활\n용하고 있으나, 안드로이드가 iOS에 비해 상대적\n으로 애플리케이션 간 통신과 데이터 전달이 자\n유롭다.\n③ 안드로이드는 모든 앱에 대해서 코드 서명(code\nsignature)을 등록하도록 하고 있으며, CA를 통해\n각 응용 프로그램을 서명하여 배포한다.\n④ 안드로이드는 설치된 모든 응용 프로그램이 일반\n사용자 권한으로 실행되며, 사용자의 데이터에\n접근할 때 모든 사항을 응용 프로그램 사양에 명\n시한다.",
-  "2021_110": "110. 보안 취약점을 점검하는데 사용하는 도구에 대한\n설명으로 가장 적절하지 않은 것은?\n① netstat : 대부분의 운영체제에 기본으로 탑재된\n도구이며, 네트워크 상태를 확인하기 위해 사용\n한다.\n② tcpdump : 네트워크 패킷 출력 도구로 특정 구간\n의 장비들 사이에서 네트워크 통신이 되는지 확\n인하기 위해 사용한다.\n③ nmap : 포트 스캔 뿐만 아니라 대상 시스템의 운\n영체제나 네트워크 장치 정보 등을 수집할 수 있\n는 보안 스캐너이다.\n④ WireShark : 네트워크 패킷 생성 및 재전송 도구로\n네트워크 침해사고 분석 중 확보한 패킷 파일을 시\n뮬레이션 하기 위해 사용한다.\n- 24",
   "2021_111": "111. TCP 세션 하이재킹 공격을 탐지하는 방법으로 가장\n적절하지 않은 것은?\n① 서버와 시퀀스 넘버를 주기적으로 체크하여 비동\n기화 상태에 빠지는지 탐지한다.\n② 공격자가 중간에 끼어 작동하므로 패킷의 유실\n및 재전송이 증가하는지 탐지한다.\n③ SYN 패킷의 비율이 급격히 늘어나는 현상인 SYN\nStorm이 발생하는지 탐지한다.\n④ 세션을 빼앗기거나 공격에 실패하는 경우 세션이\n리셋되므로 예상치 못한 접속의 리셋을 탐지한다.",
   "2021_112": "112. 다음 중 블록체인 기술의 특성으로 가장 적절하지\n않은 것은?\n① 암호기술을 적용하여 인증 및 검증 가능한 트랜잭\n션을 보장한다.\n② 블록체인 플랫폼에 참여하는 노드들의 합의를 통해\n신뢰를 형성한다.\n③ 블록체인에 기록된 민감 정보들은 선택적 비공개\n가 가능하며 일부 수정이 가능하다.\n④ 스마트 계약은 블록체인 트랜잭션 데이터베이스에\n포함되어 트랜잭션과 함께 실행되는 비즈니스 규\n약이다.",
   "2021_113": "113. 다음 SW 개발과정에서 발생할 수 있는 취약점 설명에\n대한 내용으로 가장 적절한 것은?\n악성 스크립트가 포함된 URL을 공격자가 클라이언트에게\n노출시켜 클릭을 유도하고, 쿠키 정보를 탈취하거나\n피싱 사이트, 불법 광고 사이트로 이동하게 만든다.\n① Stored XSS ② Reflective XSS\n③ SQL Injection ④ Command Injection",
   "2021_114": "114. 다음 중 개인정보 비식별화 방법(조치)으로 가장\n적절하지 않은 것은?\n① 데이터 합성(data synthesis)\n② 데이터 삭제(data reduction)\n③ 데이터 범주화(data suppression)\n④ 총계처리(aggregation)\n4 -",
-  "2021_115": "115. HTTP 프록시 서버를 이용하는 브라우저가 HTTPS를\n적용하는 상황에 대한 설명으로 가장 적절한 것은?\n가. 브라우저는 CONNECT 메서드를 사용하여 HTTP\n프록시 서버에게 요청을 전달한다.\n나. 브라우저는 GET/PUT/POST 등의 메서드를 사용\n하여 HTTP 프록시 서버에게 요청을 전달한다.\n다. 브라우저와 HTTP 프록시 서버 사이 구간, 그리고\nHTTP 프록시 서버와 목적지 웹서버 사이 구간\n각각에 별도의 SSL/TLS 핸드셰이크가 수행된다.\n라. 브라우저와 목적지 웹서버 사이에 SSL/TLS 핸\n드셰이크가 수행되며, HTTP 프록시 서버는 TCP\n를 통해 이들을 중계한다.\n① 가, 나 ② 가, 라\n③ 나, 다 ④ 다, 라",
-  "2021_116": "116. 다음의 SW를 대상으로 한 공격방식에 대한 설명으로\n가장 적절한 것은?\n많은 사람들로부터 눈치채지 못할 정도의 적은 금액\n을 빼내는 컴퓨터 사기수법의 하나이며, 쉬운 예로\n는 은행 등 금융기관의 금리계산 프로그램 개발자가\n프로그램을 수정하여 원래는 버려져야 할 이자의 끝\n수를 자기 계정으로 보내도록 하는 수법이다.\n① 데이터 디들링(data diddling)\n② 살라미 공격(salami attack)\n③ 이블 트윈 공격(evil twin attack)\n④ 익스플로잇 공격(exploit attack)",
-  "2021_117": "117. 패스워드 기반 암호(PBE : Password Based Encryption)\n방식에 대한 설명으로 가장 적절하지 않은 것은?\n① PBE는 Java의 java.crypto 패키지에 내장되어 있\n으며, PGP에서 키를 관리할 때도 사용되고 있다.\n② 키를 암호화하는데 사용하는 키(KEK : Key Encryp\ntion Key)와 메시지를 암호화하는데 사용하는 키\n(CEK : Contents Encryption Key)가 필요하다.\n③ KEK를 생성하는데 솔트(salt) 값을 이용하면 중간자\n공격(man-in-the-middle attack)을 방지할 수 있다.\n④ KEK를 생성하기 위해 패스워드와 의사난수 생성기로\n만들어진 솔트(salt)를 입력으로 사용한다.\n- 25",
   "2021_118": "118.‘개인정보보호법’ 및 ‘개인정보의 안전성 확보\n조치 기준’에 따라 개인정보처리자가 주민등록\n번호, 비밀번호, 바이오정보 등을 저장할 때 적\n용할 암호화 알고리즘으로 가장 적절한 것은?\n주민등록번호 비밀번호 바이오정보\n① SHA-256 AES-256 SHA-256\n② SHA-256 SHA-256 AES-256\n③ AES-256 SHA-256 AES-256\n④ AES-256 AES-256 SHA-256",
   "2021_119": "119. 다음의 C 코드가 갖는 문제점으로 가장 적절하지\n않은 것은?\nint CheckLogin()\n{\nchar* _username = (char*) malloc(32);\nchar username[32];\nscanf(\"%s\", _username);\nstrcpy(username, _username);\n...\n}\n① 스택 오버플로우(stack overflow)\n② 힙 오버플로우(heap overflow)\n③ 메모리 접근 위반(memory access violation)\n④ 정수 오버플로우(integer overflow)",
   "2021_120": "120.‘개인정보 보호법’에서 정하고 있는 개인정보\n보호 원칙에 관한 규정으로 가장 적절하지 않은 것은?\n① 개인정보처리자는 정보주체의 사생활 침해를 최\n소화하는 방법으로 개인정보를 처리하여야 한다.\n② 개인정보처리자는 개인정보 처리방침 등 개인정보\n의 처리에 관한 사항은 비공개하여야 하며, 열람\n청구권 등 정보주체의 권리를 보장하여야 한다.\n③ 개인정보처리자는 개인정보의 처리 목적에 필요한\n범위에서 개인정보의 정확성, 완전성 및 최신성이\n보장되도록 하여야 한다.\n④ 개인정보처리자는 개인정보를 익명 또는 가명으로\n처리하여도 개인정보 수집목적을 달성할 수 있는 경우\n익명처리가 가능한 경우에는 익명에 의하여 처리하고,\n익명처리로 목적을 달성할 수 없는 경우에는 가명에\n의하여 처리될 수 있도록 하여야 한다.\n5 -",
-  "2022_101": "101. 다음 중 전자서명(Digital signature)의 역할로\n가장 적절하지 않은 것은?\n① 메시지 송신자 인증\n② 메시지 무결성 검증\n③ 메시지 기밀성 검증\n④ 부인 방지",
-  "2022_102": "102. AES(Advanced Encryption Standard)에 대한 설\n명으로 가장 적절하지 않은 것은?\n① 입력 블록의 크기는 128 비트 고정이고, 키 길\n이는 128, 192, 256 비트 3가지 중 하나를 선택\n할 수 있다.\n② DES에서 사용한 Feistel 구조가 아닌 SPN\n(Substitution–Permutation Network) 구조를\n사용한다.\n③ SubBytes 연산에서는 4 바이트의 값을 비트 연\n산을 이용하여 새로운 4 바이트 값으로 변환하\n는 과정을 수행한다.\n④ 복수 라운드로 구성되어 있으며, 각 라운드는\nSubBytes, ShiftRows, MixColumns, AddRoundKey\n라는 4개의 서브 함수로 구성된다.",
-  "2022_103": "103. 다음 중 접근통제에 대한 설명으로 가장 적절한\n것은?\n① 임의적 접근통제는 관리자가 부여한 사용자와\n정보객체의 보안등급으로 정보의 접근 허가여\n부를 결정한다.\n② 역할 기반 접근통제는 권한관리를 사용자와 정\n보 객체간의 관계가 아닌 기업 환경에서의 역할\n과 정보 객체 간의 관계로 설정하여 관리한다.\n③ ACL(Access Control List) 기반의 접근통제는\n객체에 접근통제 정보를 저장하는 방식으로,\n주체의 수가 많아져도 효율적인 관리가 가능하\n다는 장점이 있다.\n④ 강제적 접근통제는 정보 객체의 사용을 요청하\n는 사용자의 신원에 근거하여 접근 허가를 결정\n하는 방식이다.\n- 2",
   "2022_104": "104. 메시지 인증 코드(MAC)는 메시지의 인증에 사용\n되는 작은 크기의 정보이다. 다음 중 메시지 인\n증 코드에 대한 설명으로 가장 적절한 것은?\n① 메시지 인증 코드는 두 사용자만이 공유한 키를\n사용하기 때문에 부인 방지가 가능하다.\n② 블록 암호와 CBC 블록암호 모드를 사용하여 메\n시지 인증 코드를 구현할 수 있다.\n③ 메시지 인증 코드를 사용하면 메시지에 대한 기\n밀성과 무결성을 모두 제공한다.\n④ 메시지 인증 코드는 키에 의존하는 양방향 해시\n함수이다.",
   "2022_105": "105. 다음 설명에 해당하는 공격으로 가장 적절한 것은?\n공격자 AP(Access Point)는 정상적인 AP보다 강력\n한 전파를 발생시켜 무선랜 이용자가 공격자 AP에\n접속하도록 유도한 후, 무선랜 이용자의 정보를 중\n간에서 획득하는 공격\n① Evil Twin AP 공격 ② Hacktivism AP 공격\n③ Proxy AP 공격 ④ AP to AP 공격",
   "2022_106": "106. TCP SYN FLOODING 공격이 성공하기 위해서는 서\n버의 TCB 큐에 연결요청이 쌓여서 더 이상의 연\n결요청을 받지 못하는 상황이 되어야 한다. 아\n래 설명 중 TCB 큐에 연결정보를 제거(Dequeue)\n시키는 상황으로 가장 적절하지 않은 것은?\n① 클라이언트가 3-way handshake 과정을 종료함\n② TCB 큐의 레코드가 정해진 기준시간 보다 더 길\n게 머무름\n③ 공격자가 SYN 패킷을 보낼 때 랜덤하게 생성한\n근원지 IP 주소를 사용함\n④ TCB 큐의 레코드에 해당하는 연결에 대해 RST\n패킷이 도착함\n21 -",
-  "2022_107": "107. 방화벽의 패킷 필터링 규칙이 다음과 같을 때\n적용되는 규칙에 대한 설명으로 가장 적절하지\n않은 것은?\nNo From Service To Action\n1 Internal 80 External Allow\n2 Any 80 192.168.1.10 Allow\n3 192.168.1.11 25 10.10.10.21 Allow\n4 192.168.1.11 110 10.10.10.21 Deny\n5 192.168.1.11 143 10.10.10.21 Allow\n6 10.10.10.21 25 192.168.1.11 Allow\n7 External 25 Internal Deny\n...\n① 내부와 외부에서 웹 서버(192.168.1.10)에 접근\n하는 것을 허용한다.\n② 외부의 모든 시스템에서 내부 시스템으로 SMTP\n패킷을 보내지 못하도록 설정한다.\n③ 내부 메일 서버(192.168.1.11)에서 외부 메일\n서버(10.10.10.21)로 가는 IMAP 접근을 금지한다.\n④ 내부 메일 서버(192.168.1.11)에서 외부 메일\n서버(10.10.10.21)로 가는 SMTP 패킷을 허용한다.",
-  "2022_108": "108. 다음 중 네트워크 기반 공격 기술에 대한 설명으로\n가장 적절한 것은?\n① Smurf 공격: 공격자가 송신자 IP 주소를 존재하\n지 않거나 다른 시스템의 IP 주소로 위장하여\n목적 시스템으로 패킷을 연속해서 보내는 공격\n기법이다.\n② SYN Flooding 공격: 공격자가 공격 대상의 IP\n주소로 위장하여 패킷을 브로드캐스트 주소로\n전송하는 공격이다.\n③ ARP Redirect 공격: TCP/IP의 구조적인 허점을\n이용한 공격으로, 신뢰관계에 있는 두 개의 호\n스트 중 하나를 마비시킨 후 IP 주소를 속이는\n공격이다.\n④ Switch Jamming 공격: 위조된 MAC 주소를 지속\n적으로 보내 스위치의 주소 테이블을 가득 채운\n후 스니핑을 진행하는 공격이다.\n- 2",
   "2022_109": "109. 리눅스 시스템의 기본 방화벽인 iptables에서\n192.168.20.22 으로부터 들어오는 패킷들을 차\n단하는 정책으로 가장 적절한 명령어는?\n① # iptables –A INPUT 192.168.20.22 –j DROP\n② # iptables –I INPUT 192.168.20.22 –j LOG\n③ # iptables –A INPUT 192.168.20.22 –j ACCEPT\n④ # iptables –A INPUT 192.168.20.22 –j RETURN",
   "2022_110": "110. 다음 중 ARP Poisoning 공격을 방지하는 방법으로\n가장 적절하지 않은 것은?\n① ARP request 및 ARP reply를 이용하여 MAC 주소\n를 현행화하지 못하도록 한다.\n② 외부 PC가 로컬 네트워크에 접근하지 못하도록\n한다.\n③ 정적 ARP table을 사용하도록 세팅한다.\n④ 컴퓨터의 MAC 주소를 주기적으로 변경해 준다.",
   "2022_111": "111. 악성 프로그램은 컴퓨터, 서버, 클라이언트 및\n컴퓨터 네트워크에 악영향을 끼칠 수 있는 소프\n트웨어이다. 다음 중 악성 프로그램과 그 특징\n에 대한 설명으로 가장 적절하지 않은 것은?\n① 트로이 목마(Trojan horse)는 정상적인 기능을\n하는 프로그램 속에 숨어 정보를 빼내거나 원\n격으로 제어 받도록 하는 악성 프로그램이다.\n② 스파이웨어(Spyware)는 사용자의 정보를 빼내서\n전송하는 악성 프로그램이다.\n③ 드로퍼(Dropper)는 다른 프로그램을 감염시키지\n는 않지만 네트워크를 통해 자기 복제를 하며\n전파된다.\n④ 펍(PUP)은 사용자의 동의를 얻어 설치되었으나\n프로그램과는 상관없이 시스템의 성능 저하 또\n는 사용자의 결제를 유도하기도 한다.",
   "2022_112": "112. 다음 중 공격자가 리눅스 시스템을 원격에서 공\n격하지 못하도록 root 계정으로 원격 접속을 금\n지하고자 할 때 파일 내용을 수정해야 하는 것\n으로 가장 적절한 것은?\n① /etc/passwd, /etc/crontab\n② /etc/pam.d/login, /etc/shadow\n③ /etc/passwd, /etc/securetty\n④ /etc/pam.d/login, /etc/securetty\n22 -",
-  "2022_113": "113. 위험관리(Risk management) 과정을 순서대로 나\n열한 것으로 가장 적절한 것은?\n가. 위험 모니터링 및 통제\n나. 위험 식별\n다. 위험 분석\n라. 위험 대응 계획\n① (다) - (가) - (나) - (라)\n② (나) - (다) - (라) - (가)\n③ (나) - (다) - (가) - (라)\n④ (다) - (나) - (라) - (가)",
-  "2022_114": "114. 가명정보의 안전한 관리를 위한 기술적 보호조\n치로 가장 적절하지 않은 것은?\n① 개인정보처리자는 추가정보와 가명정보를 반드\n시 물리적으로 분리하여 별도로 저장·관리해\n야 한다.\n② 추가정보가 가명정보와 불법적으로 결합되어 재\n식별에 악용되지 않도록 접근권한을 최소화하고\n접근통제를 강화해야 한다.\n③ 개인정보처리자는 가명정보의 처리목적, 가명처\n리한 개인정보 항목, 가명정보의 이용내역, 제3\n자 제공 시 제공받는 자를 작성하여 보관하여야\n한다.\n④ 개인정보처리자는 가명정보 또는 추가정보에 접\n근할 수 있는 담당자를 가명정보 처리 업무 목\n적 달성에 필요한 최소한의 인원으로 엄격하게\n통제하여야 한다.",
-  "2022_115": "115. 다음 설명에 해당하는 레지스터로 가장 적절한\n것은?\n스택 오버플로우 공격을 실행하는데 있어서 활용되\n는 정보를 보유하고 있는 CPU의 레지스터로서, 해\n당 레지스터는 현재 실행 중인 스택에서 argument\n및 지역변수의 위치를 참조하기 위한 기준 주소값\n을 가지고 있다.\n① EAX ② ESP\n③ EDX ④ EBP\n- 2",
   "2022_116": "116. 딥페이크(Deepfake)에 대한 설명으로 가장 적절\n하지 않은 것은?\n① 딥페이크는 인공지능 기술을 이용하여 진위 여\n부를 구별하기 어려운 가짜 이미지나 영상물을\n제작하는 기술이다.\n② 딥페이크를 이용한 가짜뉴스, 불법 성인용 콘텐\n츠 제작으로 인한 피해를 감소시키기 위해 법적\n단속이 강화되고 있다.\n③ 딥페이크는 영화제작 분야에서 활용되는 등 부\n작용 없이 사회, 정치 분야에 도움이 되고 있\n다.\n④ 딥페이크 기술이 스캔들의 진위여부에도 영향을\n미치는 등 사회적 파급력이 커지고 있다.",
   "2022_117": "117. 블록체인(Blockchain)은 P2P 방식을 기반으로\n생성된 체인 형태의 연결고리 기반 분산 데이터\n저장 환경이다. 다음 중 블록체인에 대한 설명\n으로 가장 적절하지 않은 것은?\n① 블록체인의 블록 내 헤더에는 해시 값과 거래별\n트랜잭션의 원본 값이 저장된다.\n② 블록체인 기반 시스템은 거래기록이 구성원들에\n게 공개되기 때문에 거래의 투명성을 보장한다.\n③ 블록체인은 참여한 구성원이 네트워크를 통해\n서로 데이터를 검증함으로써 임의적인 조작이\n어렵도록 설계되었다.\n④ 퍼블릭 블록체인(Public Blockchain)은 모든 구\n성원들이 참여 가능하나, 비교적 네트워크 확\n장이 어렵고 거래 속도가 느리다.",
   "2022_118": "118. 다음 중 클라우드 보안 위협에 대한 설명으로\n가장 적절하지 않은 것은?\n① 고객 정보에 대해 제3자 위탁 저장방식을 활용\n할 경우 클라우드 사업자 내부의 관리 부주의로\n인한 정보 유출의 위협이 있다.\n② 여러 고객사의 정보가 클라우드에 집중됨에 따라\nDDoS, APT 공격 등 다양한 공격의 목표가 될 수\n있다.\n③ 논리적 자원을 물리적으로 통합 및 재분배하여\n사용함에 따라 가상화 문제가 발생된다.\n④ 인프라 서비스(IaaS) 이용시 효과적인 자원의 분리\n가 이뤄지지 않을 경우 클라우드 서버 내부의 가상\n머신 간 도청 및 해킹 피해가 발생할 수 있다.\n23 -",
-  "2022_119": "119. 다음 설명에 해당하는 것으로 가장 적절한 것은?\n- 내부 정보보호를 목적으로 하는 보안 솔루션으로\n중요 자료가 외부로 유출되는 것을 탐지하여 통\n제하는 기술이다.\n- 솔루션 종류에 따라 내용 기반 통제를 통해 중요\n정보를 식별하고 정보 유출을 통제할 수 있으며,\n이밖에도 블루투스 통신, 테더링 등의 통신채널\n에 대한 차단 기능을 제공한다.\n① 디지털 권리 관리(Digital Rights Management)\n② 정보 유출 방지 솔루션(Data Leakage Prevention)\n③ 디지털 워터마킹(Digital Watermarking)\n④ 전자서명(Digital Signature)",
-  "2022_120": "120. 다음 중 VPN 관련 프로토콜에 대한 설명으로 가\n장 적절하지 않은 것은?\n① L2F(Layer 2 Forwarding)는 CISCO사에서 개발한\n터널링 프로토콜로 데이터 링크 계층에서 캡슐화\n를 지원한다.\n② IPSec은 IP망에서 안전한 전송을 위해 표준화된\n3계층 터널링 프로토콜이다.\n③ L2TP는 L2F 기반으로 PPTP와의 호환성을 고려하\n여 만들어진 터널링 프로토콜이다.\n④ PPTP는 링크 계층의 PPP 프로토콜에 보안기능을\n추가하여 만든 것이고, 네트워크 계층에 적용되\n는 프로토콜이다.\n- 2\n24 -",
-  "2023_101": "101. 다음 중 암호시스템에 대한 부채널(side channel)\n공격 유형으로 가장 거리가 먼 것은?\n① 전력 분석 공격(power analysis attack): 암호\n시스템이 작업을 수행하는 동안 장비의 전력 사\n용량의 변화를 토대로 분석하는 기법\n② 선택 암호문 공격(chosen ciphertext attack):\n암호 장비에 접근하여 임의의 암호문에 대한 복\n호화나 임의의 평문에 대한 암호문을 분석하는\n기법\n③ 타이밍 공격(timing attack): 암호시스템이 작\n업을 수행하는 동안 계산에 걸리는 시간을 토대\n로 암호를 유추하는 기법\n④ 전자기 분석 공격(electromagnetic attack): 암\n호 장비에서 발생되는 전자파를 분석해서 암호\n키나 평문을 추출하는 기법",
-  "2023_102": "102. 다음 중 (가) 특정 서비스와 (나) 해당 서비스\n에 암호기술을 적용하여 보안성을 강화한 기술\n로 가장 올바르게 짝지어진 것은?\n① (가) WWW (나) ssh\n② (가) telnet (나) https\n③ (가) 전자우편 (나) PGP\n④ (가) 전자결제 (나) S/MIME",
-  "2023_103": "103. 다음 중 공개 키 암호 RSA에 대한 설명으로 가\n장 적절하지 않은 것은?\n① RSA는 디지털 서명에 사용할 수 있다.\n② 큰 수의 소인수 분해를 고속으로 할 수 있더라\n도 RSA 해독이 불가능하다.\n③ RSA의 공개키 (E, N)를 사용해 평문을 E회 곱셈\n하여 그 결과를 N으로 나눈 나머지를 암호문으\n로 사용한다.\n④ RSA의 개인키 (D, N)를 사용해 암호문을 D회 곱\n셈하여 그 결과를 N으로 나누어 평문을 획득할\n수 있다.\n- 19",
   "2023_104": "104. VPN(Virtual Private Network) Tunneling Protocol\n에 대한 설명으로 가장 적절하지 않은 것은?\n① IPSec VPN은 IP망에서 안전한 데이터를 전송하\n는 프로토콜로, 터널모드는 IP 페이로드를 암호\n화하여 IP 헤더로 캡슐화하며, 전송모드는 IP\n패킷을 모두 암호화하여 전송한다.\n② SSL VPN은 Application 보호를 위해 사용하는\n보안 프로토콜로 데이터 암호화와 인증을 통해\n송수신 경로의 안전성을 보장한다.\n③ L2TP 프로토콜은 PPTP와 L2F의 장점을 통합한\n것으로, 주로 Remote Dial-Up User가 공중망에\n서 터널링을 통하여 사설망에 연결하는 기능을\n제공한다.\n④ L2F는 Cisco 사에서 개발한 터널링 프로토콜로\n데이터 링크 계층에서 캡슐화를 지원한다.",
   "2023_105": "105. 다음 중 서비스 거부 공격에 대한 설명으로 가\n장 적절하지 않은 것은?\n① TearDrop 공격은 IP 패킷의 시퀀스 넘버가 서로\n중첩되도록 조작하여 수신측의 IP 패킷 재조합\n시 오류를 발생시키는 공격이다.\n② TCP SYN 플러딩 공격은 TCP의 연결 과정인 3-Way\nHandshaking의 문제점을 악용한 공격이다.\n③ Smurf 공격은 브로드캐스팅 방식으로 동작할 수\n있는 ICMP 프로토콜의 특성을 악용한 공격이다.\n④ Bonk 공격은 패킷을 전송할 때 IP 주소와 목적지\nIP 주소 값을 동일하게 작성하여 공격 대상에게\n보내는 공격이다.",
   "2023_106": "106. 다음 설명에 해당하는 공격으로 가장 적절한 것은?\n블루투스 장치의 펌웨어 취약점을 이용하여 장치\n내에 저장된 데이터에 대한 접근을 허용하는 공격\n① Blueprinting ② BlueSnarfing\n③ BlueBorne ④ Bluejacking\n9 -",
-  "2023_107": "107. 다음 중 블록체인에서 하드포크(hard fork)와\n비교하여 소프트포크(soft fork)의 특징을 가장\n적절하게 설명하고 있는 것은?\n① 프로토콜 상의 변경은 후방 호환성(backward-\ncompatible)을 지원하며, 모든 클라이언트를\n새로운 버전으로 업그레이드할 필요는 없다.\n② 프로토콜 상의 변경은 후방 호환성(backward-\ncompatible)을 지원하며, 모든 클라이언트를\n반드시 새로운 버전으로 업그레이드해야 한다.\n③ 프로토콜 상의 변경은 후방 호환성(backward-\ncompatible)을 지원하지 않으며, 모든 클라이언트\n를 새로운 버전으로 업그레이드할 필요는 없다.\n④ 프로토콜 상의 변경은 후방 호환성(backward-\ncompatible)을 지원하지 않으며, 모든 클라이언트\n를 반드시 새로운 버전으로 업그레이드해야 한다.",
-  "2023_108": "108. 다음 중 관계형 데이터베이스 상의 대규모 데이터\n에서 개인정보의 추출을 방지하기 위한 비식별화\n기법과 가장 거리가 먼 것은?\n① k-익명성 (k-anonymity)\n② m-군집화 (m-clustering)\n③ t-근접성 (t-closeness)\n④ ℓ-다양성 (ℓ-diversity)",
-  "2023_109": "109. 다음 중 (가)에 공통적으로 들어갈 용어로 가장\n적절한 것은?\n(가)은/는 컴퓨터 파일 시스템에서 사용되는 용어로, 파\n일에 할당된 디스크 클러스터들이 끝나는 위치와 파일의\n실제 데이터가 끝나는 위치 사이의 빈 공간을 말한다.\n(가)에는 이전에 삭제된 파일의 내용이 남아 있을 수 있\n으며, 이러한 내용은 다른 사람이 파일을 복구하거나 삭\n제된 파일의 내용을 악용하여 비밀 정보를 탈취하는 등\n의 보안 위협이 될 수 있다. 따라서 파일 삭제 시에는\n파일의 모든 영역을 완전히 제거해야 한다.\n① 저널(journal)\n② 메타데이터(metadata)\n③ 파일 슬랙(file slack)\n④ 파일 지시자(file descriptor)\n- 20",
   "2023_110": "110. 다음 중 실행파일에 대해 리버스 엔지니어링을\n수행하고자 할 때 활용가능한 도구로 가장 적합\n한 것은?\n① OllyDBG ② Wireshark\n③ OpenVAS ④ Snort",
   "2023_111": "111. 다음 중 웹서버의 보안을 강화하기 위한 조치로\n가장 적절하지 않은 것은?\n① IIS의 WebDAV 서비스는 인터넷 상에서 원격 사\n용자들간에 파일을 공동으로 사용하게 하므로\n비활성화하도록 설정한다.\n② 웹 서버를 실행시키는 운영체제의 사용자에게\n충분한 서비스를 제공하기 위하여 최대한 많은\n권한을 허용한다.\n③ 웹 브라우저가 웹 서버로 디렉토리의 정보를 요\n청했을 때 디렉토리를 검색해 파일 목록을 보여\n주는 기능은 불가능하도록 설정한다.\n④ 파일 업로드 및 다운로드 시 허용 가능한 최대\n크기를 설정한다.",
   "2023_112": "112. 인공지능에 수많은 쿼리를 수행한 후 산출된 결\n과를 분석하여 인공지능에서 사용된 데이터를\n추출하는 공격으로 가장 적절한 것은?\n① Poisoning Attack ② Inversion Attack\n③ Evasion Attack ④ Replay Attack",
   "2023_113": "113. 다음 중 DRM(Digital Rights Management)에 관\n한 설명 중 가장 적절하지 않은 것은?\n① 디지털 자산을 보호하는 기술이며, 대표적으로\n문서를 암호화하는 기술이 포함된다.\n② 기업 내에서 생성되는 문서의 생명주기에 많이\n사용되므로 Enterprise DRM이라고도 불린다.\n③ 인가된 사용자만 접근할 수 있도록 문서를 암호\n화하거나 접근 통제를 적용한다.\n④ 사용자별로는 권한 관리가 가능하나 프로세스별\n로는 권한관리 기능을 제공하지 않는다.",
   "2023_114": "114. 다음 중 웹 취약점 진단을 위한 도구와 가장 거\n리가 먼 것은?\n① Burp Suite ② Hydra\n③ Paros ④ WebScarab\n0 -",
-  "2023_115": "115. 다음 중 디지털 포렌식 원칙에 대한 설명으로\n적절한 것을 모두 고른 것은?\n가. 신속성의 원칙 - 디지털 포렌식의 전 과정은 지\n체없이 신속하게 진행되어야 한다.\n나. 재현의 원칙 - 수집된 증거가 위변조 되지 않았\n음을 증명해야 한다.\n다. 무결성의 원칙 - 디지털 증거의 획득은 같은 조\n건에서 항상 같은 결과가 나와야 한다.\n라. 연계보관성의 원칙 - 증거물 획득, 이송, 분석,\n보관, 법정 제출의 각 단계에서 담당자 및 책임\n자를 명확히 해야 한다.\n마. 정당성의 원칙 – 입수된 디지털 증거는 적법절차\n를 거쳐 얻어져야 한다. 단, 수사관이 동행하면\n위법하게 수집된 증거라도 적법하게 인정된다.\n① 가, 라 ② 나, 다, 라\n③ 가, 나, 다, 라 ④ 가, 나, 다, 라, 마",
-  "2023_116": "116. 정보보안 모델의 규칙 중 최고등급 비밀 (Top\nSecret) 취급 가능자가 비밀 등급 (Secret) 파일\n에 쓰기금지를 명시한 것으로 가장 적절한 것은?\n① 단순보안규칙(Simple Security Rule)\n② 스타보안규칙(*-Security Rule)\n③ 강한 스타보안규칙(Strong *-Security Rule)\n④ 단순 무결성규칙(Simple Integrity Rule)",
-  "2023_117": "117. 다음 중 스니핑 공격에 대한 설명으로 가장 적\n절하지 않은 것은?\n① 스위치 재밍(Switch Jamming) 공격은 위조된\nMAC 주소를 지속적으로 네트워크에 흘려보내\n스위치의 주소 테이블을 오버플로우 시키는 공\n격이다.\n② ARP Redirect 공격은 위조된 ARP 응답을 브로드\n캐스트 방식으로 보내서 네트워크상의 다른 호\n스트들이 공격자 호스트를 라우터로 믿게 하는\n공격이다.\n③ ARP 스니핑 공격은 네트워크 계층에서 통신하는\n서버와 클라이언트의 IP 주소를 공격자의 IP 주\n소로 속이는 공격이다.\n④ ARP를 이용한 스니핑 공격 탐지 방법은 위조된\nARP Request를 보내서 ARP Response를 탐지한다.\n- 21",
   "2023_118": "118. 다음 중 애플리케이션 취약성을 이용한 공격과\n가장 거리가 먼 것은?\n① 버퍼 오버플로우 공격\n② SQL 인젝션 공격\n③ 레인보우 테이블 공격\n④ 원격 코드 실행 공격",
   "2023_119": "119. '개인정보 보호법'에서 정하고 있는 개인정보\n보호 원칙에 관한 규정으로 가장 적절하지 않은\n것은?\n① 개인정보처리자는 개인정보의 처리 방법 및 종\n류 등에 따라 정보주체의 권리가 침해받을 가능\n성과 그 위험 정도를 고려하여 개인정보를 안전\n하게 관리하여야 한다.\n② 개인정보처리자는 개인정보의 처리 목적을 명확\n하게 하지 않아도 그 목적에 필요한 경우 최소\n한의 개인정보만을 적법하게 수집하여야 한다.\n③ 개인정보처리자는 이 법 및 관계 법령에서 규정하\n고 있는 책임과 의무를 준수하고 실천함으로써 정\n보주체의 신뢰를 얻기 위하여 노력하여야 한다.\n④ 개인정보처리자는 개인정보의 처리 목적에 필요\n한 범위에서 개인정보의 정확성, 완전성 및 최\n신성이 보장되도록 하여야 한다.",
   "2023_120": "120. 다음 중 정보보호 위험관리 절차에 대한 설명으\n로 가장 적절하지 않은 것은?\n① 현황 및 흐름분석 : 관리체계 전 영역에 대한 정\n보서비스 및 개인정보 처리 현황을 분석하고 업무\n절차와 흐름을 파악하여 문서화하며 이를 주기적\n으로 검토하여 최신성을 유지한다.\n② 위험평가 : 조직의 대내외 환경분석을 통해 유\n형별 위협정보를 수집하고 조직에 적합한 위험\n평가 방법을 선정하여 관리체계 영역에 대한 위\n험을 평가한다.\n③ 정보자산 식별 : 조직의 업무 특성에 따라 관리\n체계 범위 내 일부 중요 정보자산만을 식별하고\n중요도를 산정한다.\n④ 보호대책 선정 : 위험 평가 결과에 따라 식별된\n위험을 처리하기 위하여 조직에 적합한 보호대\n책을 선정하고, 보호대책의 우선순위와 일정·\n담당자·예산 등을 포함한 이행계획을 수립하여\n야 한다.\n1 -",
@@ -978,9 +933,6 @@
   "2024_118": "118. 다음 중 인증 방식에 대한 설명으로 가장 적절\n하지 않은 것은?\n① 사용자가 알고있는 정보에 의존하는 지식 기반\n인증방식은 관리 비용이 상대적으로 저렴하지만\n공격자에 의한 추측 가능성의 위험이 있다.\n② 사용자가 가지고 있는 인증 수단을 이용하는 소\n유 기반 인증 방식은 복제 가능성이 있고 분\n실·파손·고장 등이 발생하는 경우 인증이 불\n가능하다는 단점이 있다.\n③ 지문, 망막, 홍채 등을 이용하는 생체 인증방식은\n생체 템플릿이라고 불리는 자신의 생체 정보를\n데이터베이스 등에 등록 없이 인증이 가능하다.\n④ 지식, 소유, 존재 및 행위에 의한 인증 수단 중\n2가지의 인증 수단을 결합하여 사용하는 인증\n방식을 이중(Two-factor) 인증이라 한다.",
   "2024_119": "119. 다음 중 정상적인 네트워크 접근을 공격시도로\n오인하여 가용성이 침해받는 경우에 해당하는\n것으로 가장 적절한 것은?\n① True-Positive ② True-Negative\n③ False-Positive ④ False-Negative",
   "2024_120": "120. 다음 중 블록체인을 대상으로 한 보안 공격 유\n형으로 가장 적절하지 않은 것은?\n① 이중 지불 공격(Double Spending Attack)\n② 허위 정보 전파 공격(Eclipse Attack)\n③ 재진입 공격(Reentrancy Attack)\n④ 스머프 공격(Smurf Attack)\n1 -",
-  "2025_101": "101. 공개키암호시스템에대한설명으로가장적절하지\n않은것은?\n① RSA는 소인수 분해 문제의 어려움에 기반하는\n암호시스템으로 암호방식의 안전성은 소수 p, q에\n의존한다.\n② ElGamal 암호시스템은 이산대수 문제의 어려\n움을 이용하여 만든 암호 방식으로 평문과 암\n호문의 길이가 동일하다.\n③ 공개키 암호 방식에서는 공개키와 개인키가\n존재하며, 공개키는누구나 알수있지만 개인키는\n소유자만이 알 수 있어야 한다.\n④ ECC 암호시스템은 RSA 알고리즘보다 적은\n비트수를가지고 동일한 암호 강도를 보장할 수\n있다.",
-  "2025_102": "102. 암호학적 해시함수에대한설명으로가장적절하지\n않은 것은?\n① 암호학적 해시 함수를 이용하면 메시지의\n무결성뿐만 아니라 기밀성을 보장할 수 있다.\n② 암호학적 해시 함수를 이용하여 계산한 해시값으\n로부터 원래의 입력값인 메시지를 구하는 것은\n계산상 불가능해야 한다.\n③ 충돌 저항성을 만족하는 암호학적 해시 함수는\n동일한해시값을갖는서로다른두개의메시지를\n구하는 것이 계산상 불가능하다.\n④ 암호학적 해시 함수는 특정 메시지와 그 메시지의\n해시값이 주어지더라도, 같은 해시값을 갖는 다른\n메시지를 생성하는 것이 어려워야 한다.",
-  "2025_103": "103. 다음 설명에 해당하는 필터링 방식으로 가장\n적절한 것은?\n특정 IP 또는 IP 대역에 대하여 비정상적인 시도가\n감지되었을 경우, 가상의 쓰레기 인터페이스(Null\ninterface)로 보내도록 함으로써 패킷 통신이 되지\n않도록 하는 방법이다.\n① Ingress 필터링\n② Egress 필터링\n③ Blackhole 필터링\n④ Unicast RPF(Reverse Path Forwarding) 필터링\n- 2",
   "2025_104": "104. 다음 그림과 같이 암호화를 수행하는 블록 암호\n시스템의 운용 모드에 대한 설명으로 가장 적절\n하지 않은 것은?\n① 암호화/복호화를 수행하는 과정에서 병렬처리가\n가능하므로 고속 구현이 가능하다.\n② 초기 벡터(IV) 값은 송·수신자 사이에 미리\n약속되어 있어야 하지만 공개된 값을 사용해도\n무방하다.\n③ 암호문 블록 1개가 손상되는 경우, 복호화 수행 시\n평문 블록에 미치는 영향은2개의 블록에 그친다.\n④ 이전 단계에서 암호화한 결과로 출력된 암호화\n블록에대해서는이번단계평문블록과XOR한후\n암호화 과정을 수행한다.",
   "2025_105": "105. 다음 중 SSL/TLS의 핸드셰이크 프로토콜에서\n이루어지는 작업과 가장 거리가 먼 것은?\n① 클라이언트 인증\n② 서버 인증\n③ HTTP 전송데이터에대한MAC계산및암호화\n④ 암호 알고리즘 협상",
   "2025_106": "106. DNS 스푸핑에 대한 설명으로 가장 적절하지 않은\n것은?\n① DNS 질의/응답에 사용하는 UDP 프로토콜의\n비연결 취약성을 이용한 공격이다.\n② 공격자는DNS스푸핑을수행하기위해공격대상이\n보내는 메시지를 스니핑해야 한다.\n③ 공격대상에게 전달되는 DNS 질의 메시지를\n조작하거나 DNS 서버의 캐시 정보를 삭제하는\n방법을 이용한다.\n④ 공격이 성공하는 경우, 공격대상은 정상적인\nURL로 접속하지만 실제로는 공격자가 만든 가짜\n사이트로 접속하게 된다.\n20 -",
@@ -992,10 +944,6 @@
   "2025_112": "112. 다음 중 데이터베이스 암호화 기술에 대한 설명\n으로 가장 적절하지 않은 것은?\n① Plug-In 방식은 DB 서버에 암복호화 모듈이 설\n치되는 방식으로, 구축 시 응용 프로그램의 수\n정을 최소화할 수 있다.\n② API 방식은 DB 서버에 영향을 주지 않아 DB 서\n버의 성능 저하는 적은 편이지만, 구축 시 응용\n프로그램 전체 또는 일부의 수정이 필요하다.\n③ Plug-In 방식은 암복호화 모듈이 라이브러리\n형태로 각 애플리케이션 서버에 설치되고, 응용\n프로그램에서 해당 암복호화 모듈을 호출하는\n방식이다.\n④ API 방식과 Plug-In 방식의 장점을 혼용한 하이\n브리드 방식에서는 대용량 트랜잭션 처리에\nPlug-In 방식을 사용하고, 성능 저하가 발생할\n수 있는 부분은 API 방식을 사용한다.",
   "2025_113": "113. 다음과 같은 웹 애플리케이션 취약점에 대한 설명\n으로 가장 적절한 것은?\n웹 애플리케이션을 사용해서 다른 최종 사용자의 클라\n이언트에서임의의스크립트가실행되는취약점이다.\n① Directory Indexing\n② XPath Injection\n③ Cross-Site Request Forgery(CSRF)\n④ Cross Site Scripting(XSS)",
   "2025_114": "114. 블록체인은참여자들이수행하는모든트랜잭션들을\n모은 장부라고 할 수 있다. 다음 중 블록체인의\n특성에대한설명으로가장적절하지않은것은?\n① 블록체인은 분산시스템이다.\n② 블록체인상의 트랜잭션 유효성에 대한 검증은\n어떤 참여자라도 수행할 수 있다.\n③ 블록체인상의 트랜잭션에 대한 취소는 해당\n트랜잭션의 삭제를 통해 이루어진다.\n④ 블록체인을 보호하기 위해 공개키 암호, 해시함수\n등과 같은 기술을 사용할 수 있다.\n21 -",
-  "2025_115": "115. 웹 애플리케이션 개발 과정에서 입력 데이터에\n대한 검증을 소홀히하여 발생할 수 있는 보안\n취약점과 가장 거리가 먼 것은?\n① 포맷 스트링 삽입\n② 신뢰되지 않은 URL주소로 자동 접속 연결\n③ 경쟁 조건\n④ 메모리 버퍼 오버플로우",
-  "2025_116": "116. 다음 중 자바 바이트코드에 대한 정적 분석을\n통해 XSS, HTTP 응답 분할, 경로 탐사(path\ntraversal), 프로그램 코드 상의 비밀번호, 널 포\n인터 역참조 등의 보안 취약점을 진단해주는 공개\nSW 도구로 가장 적절한 것은?\n① ModSecurity ② OpenVAS\n③ OllyDbg ④ SpotBugs",
-  "2025_117": "117. 다음 중 개인정보 영향평가 시 경우 고려해야 할\n사항으로 가장 적절하지 않은 것은?\n① 개인정보의 보유기간\n② 처리하는 개인정보의 수\n③ 개인정보의 제3자 제공여부\n④ 정보주체의 권리를 해할 가능성 및 그 위험정\n도",
-  "2025_118": "118. 「개인정보보호법」제17조 제2항에 따라 개인정보\n처리자가 개인정보의 제3자 제공과 관련 정보주\n체의 동의를 받을 때 정보주체에게 알려야 하는\n사항으로 가장 적절하지 않은 것은?\n① 개인정보를 제공받는 자의 개인정보 이용 목적\n② 정보제공 시 사용하는 보안조치\n③ 제공하는 개인정보의 항목\n④ 개인정보를 제공받는 자\n- 2",
   "2025_119": "119. 다음 중 OECD 개인정보보호 원칙으로 가장 적절\n하지 않은 것은?\n① 수집 제한의 원칙 : 개인정보는 적법하고 공정한\n방법을 통해 수집되어야 한다.\n② 정보 정확성의 원칙 : 이용 목적상 필요한 범위\n내에서 개인정보의 정확성, 완전성, 최신성이 확보\n되어야 한다.\n③ 안전성 확보의 원칙 : 개인정보의 침해, 누설, 도용\n등을 방지하기 위한 물리적·조직적·기술적 안전\n조치를 확보해야 한다.\n④ 비공개의 원칙 : 개인정보의 처리 및 보호를 위\n한 정책과 관리자의 정보는 비공개하여야 한다.",
   "2025_120": "120. 다음 중 가명정보의 기술적 보호조치에 대한 설\n명으로 가장 적절하지 않은 것은?\n① 추가정보와 가명정보는 분리하여 보관하는 것을\n원칙으로 하고, 불가피한 사유로 물리적인 분리\n가 어려운 경우 DB 테이블 분리 등 논리적으로\n분리하는 것도 가능하다.\n② 가명정보처리자는 추가정보의 분리 보관, 접근권한\n관리, 접근통제 및 접속기록의 보관/점검 등의\n기술적 보호조치를 취한다.\n③ 추가정보의 활용 목적달성 및 불필요한 경우에는\n추가정보를파기할 수있으며파기에대한 기록을\n작성하고 보관한다.\n④ 개인정보처리자는 가명정보 또는 추가정보에\n접근할 수 있는 담당자를 업무목적 달성에\n필요한 적정 인원으로 지정하며, 접근권한은\n업무에 상관없이 균등 부여한다.\n22 -",
   "2026_101": "101. 다음은 SQL Injection 공격을 예방하기 위한 시큐어\n코딩 기법에 대한 설명이다. SQL Injection 공격을\n예방하기 위해 권장되는 방법을 모두 고른 것으로\n가장 적절한 것은?\n<보기>\nㄱ. Parameterized Query는 SQL 질의문과 사용자 입력\n데이터를 분리하여 처리함으로써 사용자 입력이\nSQL 구문으로 해석되는 것을 방지하는 방법이다.\nㄴ. Stored Procedure는 데이터베이스 내부에 정의된\n프로시저를 사용하여 SQL 문을 실행하는 방식으로,\n입력값을 파라미터로 처리하면 SQL Injection 공격을\n줄일 수 있다.\nㄷ. Dynamic SQL은 프로그램에서 SQL 문을 문자열\n형태로 조합하여 실행하는 방식으로 SQL Injection\n공격을 예방하는 대표적인 방법이다.\nㄹ. 입력값 검증(Input Validation)은 사용자 입력값의\n형식, 길이, 범위 등을 검사하여 악성 입력이 시스템에\n전달되는 것을 차단하는 보안 기법이다.\n① ㄱ, ㄴ ② ㄱ, ㄴ, ㄹ\n③ ㄱ, ㄷ ④ ㄱ, ㄴ, ㄷ, ㄹ",
@@ -1017,13 +965,13 @@
   "2026_117": "117. 다음 중에서 웹 응용 프로그램에 대한 DoS 공격\n유형에 대한 설명으로 가장 적절하지 않은 것은?\n① 동적 HTTP Reply 공격은 웹 페이지 응답 메시지를\n지속적으로 요구하는 공격이다.\n② Slow HTTP Header DoS 공격은 서버로 전달할\nHTTP 메시지의 헤더 정보를 비정상적으로 조작해\n웹 서버가 헤더 정보를 완전히 수신할 때까지\n연결을 유지하도록 하는 공격이다.\n③ Slow HTTP POST 공격은 사용자가 웹 서버에\n아이디, 패스워드, 게시글 등을 전송할 때\nPOST 메소드를 이용하여 서버와의 커넥션을\n오래 유지해 웹서버가 정상적인 사용자 접속을\n받아들일 수 없게 하는 공격이다.\n④ HTTP GET Flooding 공격은 GET 메소드를 통해\n특정 페이지를 무한대로 요구하는 공격이다.",
   "2026_118": "118. 다음 중 블록체인 네트워크에서 이클립스 공격\n(Eclipse Attack)에 대한 설명으로 가장 적절한\n것은?\n① 공격자가 네트워크 해시 파워의 과반수를 확보\n하여 블록 생성과 체인 선택을 좌우하고, 특정\n거래를 되돌리거나 이중지불을 수행할 수 있게\n하는 합의(Consensus) 공격이다.\n② 공격자가 다수의 가짜 노드를 생성해 네트워크\n참여자를 압도함으로써, 투표 기반 합의에서\n다수결을 장악하거나 네트워크 신뢰 모델을 붕\n괴시키는 공격이다.\n③ 공격자가 특정 노드의 피어 연결을 의도적으로\n편향 또는 고립시켜 해당 노드가 공격자가 통제\n하는 피어들과만 연결되도록 만들고, 블록 및\n트랜잭션 전파 정보를 왜곡하여 피해 노드의 체인\n인식, 거래 전파, 검증 판단에 영향을 주는 네\n트워크 계층 공격이다.\n④ 생략\n4 -",
   "2026_119": "119. 다음은 방화벽에 대한 설명이다. 이 중 가장\n적절하지 않은 설명은?\n① 상태 기반 방화벽(Stateful Firewall)은 연결 상태\n정보를 추적하여 패킷을 필터링한다.\n② 애플리케이션 방화벽은 HTTP, FTP 등 응용계층\n트래픽을 제어할 수 있다.\n③ 패킷 필터링 방화벽은 데이터의 내용(payload)을\n깊이 분석하여 공격을 탐지한다.\n④ 방화벽은 네트워크 경계에서 접근제어 정책을\n적용한다.",
-  "2026_120": "120. 다음은 네트워크 보안 기술 및 대표적인 네트워크\n공격 유형에 대한 설명이다. 이 중 가장 적절하지\n않은 설명은?\n① 네트워크 세그멘테이션(Network Segmentation)은\n네트워크를 여러 보안 영역으로 논리적 또는\n물리적으로 분리하여 공격 확산을 방지하고\n보안 정책 적용을 용이하게 하는 보안 기법이다.\n② TLS(Transport Layer Security)는 통신 데이터의\n기밀성과 무결성 기능 대신에 안전한 네트워크\n라우팅 기능을 제공하기 위한 보안 프로토콜이다.\n③ DNSSEC(Domain Name System Security Extensions)는\nDNS 응답 데이터의 무결성(integrity)과 출처 인증\n(authentication of origin)을 제공하기 위한 보안\n기술이다.\n④ Smurf Attack은 네트워크 자원을 소모시켜 정상\n적인 서비스를 제공하지 못하게 하는 서비스 거부\n공격(DoS) 유형에 해당한다.\n- 25\n5 -"
+  "2026_120": "120. 다음은 네트워크 보안 기술 및 대표적인 네트워크\n공격 유형에 대한 설명이다. 이 중 가장 적절하지\n않은 설명은?\n① 네트워크 세그멘테이션(Network Segmentation)은\n네트워크를 여러 보안 영역으로 논리적 또는\n물리적으로 분리하여 공격 확산을 방지하고\n보안 정책 적용을 용이하게 하는 보안 기법이다.\n② TLS(Transport Layer Security)는 통신 데이터의\n기밀성과 무결성 기능 대신에 안전한 네트워크\n라우팅 기능을 제공하기 위한 보안 프로토콜이다.\n③ DNSSEC(Domain Name System Security Extensions)는\nDNS 응답 데이터의 무결성(integrity)과 출처 인증\n(authentication of origin)을 제공하기 위한 보안\n기술이다.\n④ Smurf Attack은 네트워크 자원을 소모시켜 정상\n적인 서비스를 제공하지 못하게 하는 서비스 거부\n공격(DoS) 유형에 해당한다.\n- 25"
 };
     const topicMapping = [
   {
     "concept": "대표적 웹 보안 취약점 공격 기법 (SQLi/XSS/CSRF)",
     "category": "네트워크 및 시스템 보안",
-    "count": 32,
+    "count": 27,
     "years": [
       2016,
       2017,
@@ -1063,14 +1011,6 @@
       },
       {
         "year": 2025,
-        "num": 116
-      },
-      {
-        "year": 2025,
-        "num": 115
-      },
-      {
-        "year": 2025,
         "num": 113
       },
       {
@@ -1098,20 +1038,8 @@
         "num": 113
       },
       {
-        "year": 2021,
-        "num": 110
-      },
-      {
-        "year": 2020,
-        "num": 110
-      },
-      {
         "year": 2020,
         "num": 106
-      },
-      {
-        "year": 2020,
-        "num": 102
       },
       {
         "year": 2019,
@@ -1176,16 +1104,14 @@
   {
     "concept": "대칭키 및 비대칭키 암호화 알고리즘 비교 (AES/RSA/ECC)",
     "category": "공통 보안 기술",
-    "count": 28,
+    "count": 21,
     "years": [
-      2015,
       2016,
       2018,
       2019,
       2020,
       2021,
       2022,
-      2023,
       2024,
       2025,
       2026
@@ -1208,10 +1134,6 @@
         "num": 104
       },
       {
-        "year": 2025,
-        "num": 101
-      },
-      {
         "year": 2024,
         "num": 117
       },
@@ -1224,16 +1146,8 @@
         "num": 106
       },
       {
-        "year": 2023,
-        "num": 103
-      },
-      {
         "year": 2022,
         "num": 104
-      },
-      {
-        "year": 2022,
-        "num": 102
       },
       {
         "year": 2021,
@@ -1254,10 +1168,6 @@
       {
         "year": 2020,
         "num": 119
-      },
-      {
-        "year": 2020,
-        "num": 117
       },
       {
         "year": 2020,
@@ -1290,18 +1200,6 @@
       {
         "year": 2016,
         "num": 118
-      },
-      {
-        "year": 2015,
-        "num": 115
-      },
-      {
-        "year": 2015,
-        "num": 114
-      },
-      {
-        "year": 2015,
-        "num": 102
       }
     ],
     "core_concept": "키의 형태에 따른 데이터 기밀성 보장 알고리즘 특징 및 연산 효율 대조",
@@ -1314,15 +1212,13 @@
   {
     "concept": "개인정보보호법 고유식별정보 및 가명조치 기술",
     "category": "정보보호 법규 및 개인정보보호",
-    "count": 27,
+    "count": 20,
     "years": [
-      2015,
       2016,
       2017,
       2018,
       2019,
       2021,
-      2022,
       2023,
       2024,
       2025,
@@ -1344,14 +1240,6 @@
       {
         "year": 2025,
         "num": 119
-      },
-      {
-        "year": 2025,
-        "num": 118
-      },
-      {
-        "year": 2025,
-        "num": 117
       },
       {
         "year": 2024,
@@ -1370,14 +1258,6 @@
         "num": 119
       },
       {
-        "year": 2023,
-        "num": 108
-      },
-      {
-        "year": 2022,
-        "num": 114
-      },
-      {
         "year": 2021,
         "num": 120
       },
@@ -1424,18 +1304,6 @@
       {
         "year": 2016,
         "num": 102
-      },
-      {
-        "year": 2015,
-        "num": 118
-      },
-      {
-        "year": 2015,
-        "num": 106
-      },
-      {
-        "year": 2015,
-        "num": 101
       }
     ],
     "core_concept": "개인정보 오남용 방지를 위한 법적 준수사항 및 데이터 비식별 처리 기법",
@@ -1448,15 +1316,12 @@
   {
     "concept": "전송 계층 보안 암호 프로토콜 (SSL/TLS / IPsec)",
     "category": "공통 보안 기술",
-    "count": 16,
+    "count": 10,
     "years": [
-      2015,
       2016,
       2017,
       2019,
       2020,
-      2021,
-      2022,
       2023,
       2024,
       2025,
@@ -1488,24 +1353,8 @@
         "num": 104
       },
       {
-        "year": 2023,
-        "num": 102
-      },
-      {
-        "year": 2022,
-        "num": 120
-      },
-      {
-        "year": 2021,
-        "num": 115
-      },
-      {
         "year": 2020,
         "num": 112
-      },
-      {
-        "year": 2020,
-        "num": 101
       },
       {
         "year": 2019,
@@ -1518,32 +1367,22 @@
       {
         "year": 2016,
         "num": 103
-      },
-      {
-        "year": 2015,
-        "num": 116
-      },
-      {
-        "year": 2015,
-        "num": 103
       }
     ],
     "core_concept": "네트워크 통신망을 지나는 패킷의 위변조 방지 및 암호화 전송 표준 프로토콜",
     "features": "TLS 레코드 및 핸드셰이크 프로토콜의 단계별 동작 원리, 그리고 IPsec의 두 가지 모드(전송 모드: 페이로드만 암호화, 터널 모드: 헤더 포함 전체 암호화) 차이를 대조 질문합니다.",
     "scope": "공통 보안 기술 -> 암호학 -> 전송 프로토콜",
-    "rep_question": "120. 다음은 네트워크 보안 기술 및 대표적인 네트워크\n공격 유형에 대한 설명이다. 이 중 가장 적절하지\n않은 설명은?\n① 네트워크 세그멘테이션(Network Segmentation)은\n네트워크를 여러 보안 영역으로 논리적 또는\n물리적으로 분리하여 공격 확산을 방지하고\n보안 정책 적용을 용이하게 하는 보안 기법이다.\n② TLS(Transport Layer Security)는 통신 데이터의\n기밀성과 무결성 기능 대신에 안전한 네트워크\n라우팅 기능을 제공하기 위한 보안 프로토콜이다.\n③ DNSSEC(Domain Name System Security Extensions)는\nDNS 응답 데이터의 무결성(integrity)과 출처 인증\n(authentication of origin)을 제공하기 위한 보안\n기술이다.\n④ Smurf Attack은 네트워크 자원을 소모시켜 정상\n적인 서비스를 제공하지 못하게 하는 서비스 거부\n공격(DoS) 유형에 해당한다.\n- 25\n5 -",
+    "rep_question": "120. 다음은 네트워크 보안 기술 및 대표적인 네트워크\n공격 유형에 대한 설명이다. 이 중 가장 적절하지\n않은 설명은?\n① 네트워크 세그멘테이션(Network Segmentation)은\n네트워크를 여러 보안 영역으로 논리적 또는\n물리적으로 분리하여 공격 확산을 방지하고\n보안 정책 적용을 용이하게 하는 보안 기법이다.\n② TLS(Transport Layer Security)는 통신 데이터의\n기밀성과 무결성 기능 대신에 안전한 네트워크\n라우팅 기능을 제공하기 위한 보안 프로토콜이다.\n③ DNSSEC(Domain Name System Security Extensions)는\nDNS 응답 데이터의 무결성(integrity)과 출처 인증\n(authentication of origin)을 제공하기 위한 보안\n기술이다.\n④ Smurf Attack은 네트워크 자원을 소모시켜 정상\n적인 서비스를 제공하지 못하게 하는 서비스 거부\n공격(DoS) 유형에 해당한다.\n- 25",
     "rep_year": 2026,
     "rep_num": 120
   },
   {
     "concept": "암호학적 해시 함수 및 충돌 저항성 (SHA/MD5)",
     "category": "공통 보안 기술",
-    "count": 11,
+    "count": 7,
     "years": [
-      2015,
       2017,
       2018,
-      2020,
       2021,
       2024,
       2025
@@ -1552,10 +1391,6 @@
       {
         "year": 2025,
         "num": 114
-      },
-      {
-        "year": 2025,
-        "num": 102
       },
       {
         "year": 2024,
@@ -1574,24 +1409,12 @@
         "num": 106
       },
       {
-        "year": 2020,
-        "num": 116
-      },
-      {
         "year": 2018,
         "num": 107
       },
       {
         "year": 2017,
         "num": 105
-      },
-      {
-        "year": 2015,
-        "num": 115
-      },
-      {
-        "year": 2015,
-        "num": 107
       }
     ],
     "core_concept": "일방향성을 가진 고정 길이 메시지 다이제스트 산출 기술",
@@ -1600,162 +1423,6 @@
     "rep_question": "114. 블록체인은참여자들이수행하는모든트랜잭션들을\n모은 장부라고 할 수 있다. 다음 중 블록체인의\n특성에대한설명으로가장적절하지않은것은?\n① 블록체인은 분산시스템이다.\n② 블록체인상의 트랜잭션 유효성에 대한 검증은\n어떤 참여자라도 수행할 수 있다.\n③ 블록체인상의 트랜잭션에 대한 취소는 해당\n트랜잭션의 삭제를 통해 이루어진다.\n④ 블록체인을 보호하기 위해 공개키 암호, 해시함수\n등과 같은 기술을 사용할 수 있다.\n21 -",
     "rep_year": 2025,
     "rep_num": 114
-  },
-  {
-    "concept": "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)",
-    "category": "네트워크 및 시스템 보안",
-    "count": 10,
-    "years": [
-      2015,
-      2016,
-      2018,
-      2020,
-      2022,
-      2024,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 119
-      },
-      {
-        "year": 2024,
-        "num": 112
-      },
-      {
-        "year": 2022,
-        "num": 109
-      },
-      {
-        "year": 2022,
-        "num": 107
-      },
-      {
-        "year": 2020,
-        "num": 105
-      },
-      {
-        "year": 2018,
-        "num": 116
-      },
-      {
-        "year": 2016,
-        "num": 109
-      },
-      {
-        "year": 2016,
-        "num": 103
-      },
-      {
-        "year": 2015,
-        "num": 117
-      },
-      {
-        "year": 2015,
-        "num": 116
-      }
-    ],
-    "core_concept": "비인가 패킷 흐름을 탐지/차단하여 사설망을 보호하는 게이트웨이 보안 시스템",
-    "features": "방화벽(IP/Port 제어), IDS(오용/이상 탐지 및 모니터링), IPS(인라인 실시간 위협 차단)의 장비 배치 및 탐지 수준 차이를 구분하는 문제가 빈출됩니다.",
-    "scope": "네트워크 및 시스템 보안 -> 네트워크 보안",
-    "rep_question": "119. 다음은 방화벽에 대한 설명이다. 이 중 가장\n적절하지 않은 설명은?\n① 상태 기반 방화벽(Stateful Firewall)은 연결 상태\n정보를 추적하여 패킷을 필터링한다.\n② 애플리케이션 방화벽은 HTTP, FTP 등 응용계층\n트래픽을 제어할 수 있다.\n③ 패킷 필터링 방화벽은 데이터의 내용(payload)을\n깊이 분석하여 공격을 탐지한다.\n④ 방화벽은 네트워크 경계에서 접근제어 정책을\n적용한다.",
-    "rep_year": 2026,
-    "rep_num": 119
-  },
-  {
-    "concept": "SW 개발보안 시큐어 코딩 및 7대 취약 영역",
-    "category": "개발 및 운영 보안",
-    "count": 7,
-    "years": [
-      2016,
-      2017,
-      2021,
-      2025,
-      2026
-    ],
-    "questions": [
-      {
-        "year": 2026,
-        "num": 109
-      },
-      {
-        "year": 2026,
-        "num": 104
-      },
-      {
-        "year": 2025,
-        "num": 116
-      },
-      {
-        "year": 2021,
-        "num": 110
-      },
-      {
-        "year": 2017,
-        "num": 108
-      },
-      {
-        "year": 2016,
-        "num": 105
-      },
-      {
-        "year": 2016,
-        "num": 104
-      }
-    ],
-    "core_concept": "SW 설계/구현 단계부터 보안 취약점을 예방하기 위해 준수하는 개발 가이드",
-    "features": "행정안전부 시큐어코딩 7대 취약 영역(입력데이터 검증 및 표현, 보안기능, 시간 및 상태, 에러 처리, 코드오류, 캡슐화, API 오용)의 세부 명세와 소스코드 분석이 단골 출제됩니다.",
-    "scope": "개발 및 운영 보안 -> 소프트웨어 개발 보안",
-    "rep_question": "109. 다음 중 스트림 암호(Stream Cipher)의 일반적인\n특성에 대한 설명으로 가장 적절하지 않은 것은?\n① 스트림 암호는 일반적으로 평문(plaintext)과 키 스트림\n(key stream)을 XOR 연산하여 암호문(ciphertext)을\n생성한다.\n② 스트림 암호는 보통 블록 암호보다 지연(latency)이\n낮고 실시간 통신 환경에서 효율적으로 사용될\n수 있다.\n③ 동일한 키와 초기값(IV)을 의사난수 생성기(PRNG)에\n입력하여 생성된 키 스트림을 서로 다른 여러\n메시지에 재사용할 경우 보안 취약점이 발생할\n수 있다.\n④ 스트림 암호는 전송 중 암호문 내 하나의 비트\n에서 오류가 발생하면, 복호화 과정에서 해당\n위치 이후의 모든 평문 데이터에 오류가 전파되는\n특성을 갖는다.\n2 -",
-    "rep_year": 2026,
-    "rep_num": 109
-  },
-  {
-    "concept": "정보보호 관리체계 ISMS-P 인증 기준",
-    "category": "정보보호 법규 및 개인정보보호",
-    "count": 7,
-    "years": [
-      2015,
-      2017,
-      2018
-    ],
-    "questions": [
-      {
-        "year": 2018,
-        "num": 117
-      },
-      {
-        "year": 2018,
-        "num": 108
-      },
-      {
-        "year": 2017,
-        "num": 117
-      },
-      {
-        "year": 2017,
-        "num": 112
-      },
-      {
-        "year": 2015,
-        "num": 120
-      },
-      {
-        "year": 2015,
-        "num": 105
-      },
-      {
-        "year": 2015,
-        "num": 104
-      }
-    ],
-    "core_concept": "종합 정보보호 및 개인정보보호 관리체계의 적합성을 평가하는 국가 공인 인증제도",
-    "features": "3대 영역인 관리체계 수립/운영(16개), 보호대책 요구사항(64개), 개인정보 처리 단계별 요구사항(22개)의 하위 통제 항목 구별과 인증 의무 대상자 요건이 기출됩니다.",
-    "scope": "정보보호 법규 및 개인정보보호 -> 정보보호 인증",
-    "rep_question": "117. 정보보호 관리체계 인증 등에 관한 고시(과기정\n통부고시 제2017-7호)의 [별표 7] 정보보호 관리\n체계 인증기준 중 물리적 보안 통제분야의 통제\n사항과 가장 거리가 먼 것은?\n① 개발과 운영환경 분리 ② 출입통제\n③ 시스템 배치 및 관리 ④ 개인업무 환경보안\n- 22",
-    "rep_year": 2018,
-    "rep_num": 117
   },
   {
     "concept": "보안 공격 유형 및 대응 (DDoS/APT/Ransomware)",
@@ -1806,13 +1473,57 @@
     "rep_num": 109
   },
   {
+    "concept": "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)",
+    "category": "네트워크 및 시스템 보안",
+    "count": 6,
+    "years": [
+      2016,
+      2018,
+      2020,
+      2022,
+      2024,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 119
+      },
+      {
+        "year": 2024,
+        "num": 112
+      },
+      {
+        "year": 2022,
+        "num": 109
+      },
+      {
+        "year": 2020,
+        "num": 105
+      },
+      {
+        "year": 2018,
+        "num": 116
+      },
+      {
+        "year": 2016,
+        "num": 103
+      }
+    ],
+    "core_concept": "비인가 패킷 흐름을 탐지/차단하여 사설망을 보호하는 게이트웨이 보안 시스템",
+    "features": "방화벽(IP/Port 제어), IDS(오용/이상 탐지 및 모니터링), IPS(인라인 실시간 위협 차단)의 장비 배치 및 탐지 수준 차이를 구분하는 문제가 빈출됩니다.",
+    "scope": "네트워크 및 시스템 보안 -> 네트워크 보안",
+    "rep_question": "119. 다음은 방화벽에 대한 설명이다. 이 중 가장\n적절하지 않은 설명은?\n① 상태 기반 방화벽(Stateful Firewall)은 연결 상태\n정보를 추적하여 패킷을 필터링한다.\n② 애플리케이션 방화벽은 HTTP, FTP 등 응용계층\n트래픽을 제어할 수 있다.\n③ 패킷 필터링 방화벽은 데이터의 내용(payload)을\n깊이 분석하여 공격을 탐지한다.\n④ 방화벽은 네트워크 경계에서 접근제어 정책을\n적용한다.",
+    "rep_year": 2026,
+    "rep_num": 119
+  },
+  {
     "concept": "콘텐츠 저작권 통제 기술 (DRM / 워터마크)",
     "category": "응용 및 신기술 보안",
-    "count": 6,
+    "count": 5,
     "years": [
       2017,
       2018,
-      2022,
       2023,
       2024,
       2025
@@ -1831,10 +1542,6 @@
         "num": 113
       },
       {
-        "year": 2022,
-        "num": 119
-      },
-      {
         "year": 2018,
         "num": 103
       },
@@ -1849,6 +1556,82 @@
     "rep_question": "108. 다음 설명에 대한 보안 기술로 가장 적절한 것은?\n과거의 IP 관리 시스템에서 발전한 솔루션으로,\nMAC 주소를 기반으로 접근 제어 및 인증을 수행\n하여 임의의 사용자가 접속하는 것을 차단한다.\n① VPN (Virtual Private Network)\n② VLAN (Virtual Local Area Network)\n③ DRM (Digital Right Management)\n④ NAC (Network Access Control)",
     "rep_year": 2025,
     "rep_num": 108
+  },
+  {
+    "concept": "SW 개발보안 시큐어 코딩 및 7대 취약 영역",
+    "category": "개발 및 운영 보안",
+    "count": 5,
+    "years": [
+      2016,
+      2017,
+      2026
+    ],
+    "questions": [
+      {
+        "year": 2026,
+        "num": 109
+      },
+      {
+        "year": 2026,
+        "num": 104
+      },
+      {
+        "year": 2017,
+        "num": 108
+      },
+      {
+        "year": 2016,
+        "num": 105
+      },
+      {
+        "year": 2016,
+        "num": 104
+      }
+    ],
+    "core_concept": "SW 설계/구현 단계부터 보안 취약점을 예방하기 위해 준수하는 개발 가이드",
+    "features": "행정안전부 시큐어코딩 7대 취약 영역(입력데이터 검증 및 표현, 보안기능, 시간 및 상태, 에러 처리, 코드오류, 캡슐화, API 오용)의 세부 명세와 소스코드 분석이 단골 출제됩니다.",
+    "scope": "개발 및 운영 보안 -> 소프트웨어 개발 보안",
+    "rep_question": "109. 다음 중 스트림 암호(Stream Cipher)의 일반적인\n특성에 대한 설명으로 가장 적절하지 않은 것은?\n① 스트림 암호는 일반적으로 평문(plaintext)과 키 스트림\n(key stream)을 XOR 연산하여 암호문(ciphertext)을\n생성한다.\n② 스트림 암호는 보통 블록 암호보다 지연(latency)이\n낮고 실시간 통신 환경에서 효율적으로 사용될\n수 있다.\n③ 동일한 키와 초기값(IV)을 의사난수 생성기(PRNG)에\n입력하여 생성된 키 스트림을 서로 다른 여러\n메시지에 재사용할 경우 보안 취약점이 발생할\n수 있다.\n④ 스트림 암호는 전송 중 암호문 내 하나의 비트\n에서 오류가 발생하면, 복호화 과정에서 해당\n위치 이후의 모든 평문 데이터에 오류가 전파되는\n특성을 갖는다.\n2 -",
+    "rep_year": 2026,
+    "rep_num": 109
+  },
+  {
+    "concept": "정보보호 관리체계 ISMS-P 인증 기준",
+    "category": "정보보호 법규 및 개인정보보호",
+    "count": 5,
+    "years": [
+      2015,
+      2017,
+      2018
+    ],
+    "questions": [
+      {
+        "year": 2018,
+        "num": 117
+      },
+      {
+        "year": 2018,
+        "num": 108
+      },
+      {
+        "year": 2017,
+        "num": 117
+      },
+      {
+        "year": 2017,
+        "num": 112
+      },
+      {
+        "year": 2015,
+        "num": 105
+      }
+    ],
+    "core_concept": "종합 정보보호 및 개인정보보호 관리체계의 적합성을 평가하는 국가 공인 인증제도",
+    "features": "3대 영역인 관리체계 수립/운영(16개), 보호대책 요구사항(64개), 개인정보 처리 단계별 요구사항(22개)의 하위 통제 항목 구별과 인증 의무 대상자 요건이 기출됩니다.",
+    "scope": "정보보호 법규 및 개인정보보호 -> 정보보호 인증",
+    "rep_question": "117. 정보보호 관리체계 인증 등에 관한 고시(과기정\n통부고시 제2017-7호)의 [별표 7] 정보보호 관리\n체계 인증기준 중 물리적 보안 통제분야의 통제\n사항과 가장 거리가 먼 것은?\n① 개발과 운영환경 분리 ② 출입통제\n③ 시스템 배치 및 관리 ④ 개인업무 환경보안\n- 22",
+    "rep_year": 2018,
+    "rep_num": 117
   },
   {
     "concept": "인증 프레임워크 OAuth 2.0 프로토콜",
@@ -1886,40 +1669,10 @@
     "rep_num": 104
   },
   {
-    "concept": "클라우드 보안인증제도 (CSAP) 운영 기준",
-    "category": "응용 및 신기술 보안",
-    "count": 3,
-    "years": [
-      2015,
-      2018
-    ],
-    "questions": [
-      {
-        "year": 2018,
-        "num": 117
-      },
-      {
-        "year": 2015,
-        "num": 105
-      },
-      {
-        "year": 2015,
-        "num": 104
-      }
-    ],
-    "core_concept": "공공기관에 클라우드 서비스를 제공하는 민간 사업자의 보안성 평가 인증 표준",
-    "features": "CSAP 등급제(상/중/하)에 따른 데이터 물리적 분리(망분리) 의무 요건 및 시나리오별 적합 등급 선정 조항을 확인하는 문제가 기출됩니다.",
-    "scope": "응용 및 신기술 보안 -> 클라우드 보안인증",
-    "rep_question": "117. 정보보호 관리체계 인증 등에 관한 고시(과기정\n통부고시 제2017-7호)의 [별표 7] 정보보호 관리\n체계 인증기준 중 물리적 보안 통제분야의 통제\n사항과 가장 거리가 먼 것은?\n① 개발과 운영환경 분리 ② 출입통제\n③ 시스템 배치 및 관리 ④ 개인업무 환경보안\n- 22",
-    "rep_year": 2018,
-    "rep_num": 117
-  },
-  {
     "concept": "[기타]",
     "category": "기타",
-    "count": 110,
+    "count": 80,
     "years": [
-      2015,
       2016,
       2017,
       2018,
@@ -1982,10 +1735,6 @@
         "num": 106
       },
       {
-        "year": 2025,
-        "num": 103
-      },
-      {
         "year": 2024,
         "num": 120
       },
@@ -2031,18 +1780,6 @@
       },
       {
         "year": 2023,
-        "num": 117
-      },
-      {
-        "year": 2023,
-        "num": 116
-      },
-      {
-        "year": 2023,
-        "num": 115
-      },
-      {
-        "year": 2023,
         "num": 112
       },
       {
@@ -2052,38 +1789,18 @@
       {
         "year": 2023,
         "num": 110
-      },
-      {
-        "year": 2023,
-        "num": 109
-      },
-      {
-        "year": 2023,
-        "num": 107
       },
       {
         "year": 2023,
         "num": 105
       },
       {
-        "year": 2023,
-        "num": 101
-      },
-      {
         "year": 2022,
         "num": 117
       },
       {
         "year": 2022,
         "num": 116
-      },
-      {
-        "year": 2022,
-        "num": 115
-      },
-      {
-        "year": 2022,
-        "num": 113
       },
       {
         "year": 2022,
@@ -2096,10 +1813,6 @@
       {
         "year": 2022,
         "num": 110
-      },
-      {
-        "year": 2022,
-        "num": 108
       },
       {
         "year": 2022,
@@ -2110,24 +1823,8 @@
         "num": 105
       },
       {
-        "year": 2022,
-        "num": 103
-      },
-      {
-        "year": 2022,
-        "num": 101
-      },
-      {
         "year": 2021,
         "num": 119
-      },
-      {
-        "year": 2021,
-        "num": 117
-      },
-      {
-        "year": 2021,
-        "num": 116
       },
       {
         "year": 2021,
@@ -2139,14 +1836,6 @@
       },
       {
         "year": 2021,
-        "num": 109
-      },
-      {
-        "year": 2021,
-        "num": 108
-      },
-      {
-        "year": 2021,
         "num": 107
       },
       {
@@ -2154,24 +1843,8 @@
         "num": 105
       },
       {
-        "year": 2021,
-        "num": 103
-      },
-      {
-        "year": 2021,
-        "num": 102
-      },
-      {
-        "year": 2021,
-        "num": 101
-      },
-      {
         "year": 2020,
         "num": 118
-      },
-      {
-        "year": 2020,
-        "num": 115
       },
       {
         "year": 2020,
@@ -2179,23 +1852,7 @@
       },
       {
         "year": 2020,
-        "num": 109
-      },
-      {
-        "year": 2020,
-        "num": 108
-      },
-      {
-        "year": 2020,
-        "num": 107
-      },
-      {
-        "year": 2020,
         "num": 104
-      },
-      {
-        "year": 2020,
-        "num": 103
       },
       {
         "year": 2019,
@@ -2331,6 +1988,10 @@
       },
       {
         "year": 2016,
+        "num": 109
+      },
+      {
+        "year": 2016,
         "num": 108
       },
       {
@@ -2344,34 +2005,6 @@
       {
         "year": 2016,
         "num": 101
-      },
-      {
-        "year": 2015,
-        "num": 119
-      },
-      {
-        "year": 2015,
-        "num": 113
-      },
-      {
-        "year": 2015,
-        "num": 112
-      },
-      {
-        "year": 2015,
-        "num": 111
-      },
-      {
-        "year": 2015,
-        "num": 110
-      },
-      {
-        "year": 2015,
-        "num": 109
-      },
-      {
-        "year": 2015,
-        "num": 108
       }
     ],
     "core_concept": "기출문제 중 기존 세부 개념으로 정의되지 않은 기타 문항들입니다.",
@@ -2433,29 +2066,6 @@
                 </button>
                 <div class="accordion-content" style="max-height: 0px;">
                     <div class="accordion-inner">
-                        <div class="memo-section">
-                            <div class="memo-header">
-                                <div class="memo-title">📝 나만의 학습 노트 (공부 코멘트)</div>
-                                <div class="memo-date" id="memo-date-${idx}">최근 수정일시 없음</div>
-                            </div>
-                            
-                            <div id="memo-view-mode-${idx}">
-                                <div class="memo-content-box" id="memo-display-${idx}"></div>
-                                <div class="memo-btn-group" style="margin-top: 0.5rem;">
-                                    <button class="memo-btn" onclick="enableMemoEdit(${idx})">노트 작성/수정</button>
-                                    <button class="memo-btn delete" id="memo-delete-btn-${idx}" onclick="deleteMemo(${idx}, '${item.concept}')" style="display: none;">노트 삭제</button>
-                                </div>
-                            </div>
-                            
-                            <div id="memo-edit-mode-${idx}" style="display: none;">
-                                <textarea class="memo-textarea" id="memo-input-${idx}" placeholder="이 개념에 대해 암기해야 할 사항이나 팁을 기록해보세요..."></textarea>
-                                <div class="memo-btn-group" style="margin-top: 0.5rem;">
-                                    <button class="memo-btn save" onclick="saveMemo(${idx}, '${item.concept}')">저장</button>
-                                    <button class="memo-btn" onclick="cancelMemoEdit(${idx})">취소</button>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="section-title">출제 기출문제 선택 (클릭 시 하단에 문제 전환)</div>
                         <div class="year-grid">
                             ${yearButtonsHtml}
@@ -2479,8 +2089,7 @@
                 </div>
             `;
             container.appendChild(accItem);
-            loadMemo(idx, item.concept);
-        });
+            });
     }
 
     function hideImageContainer(idx) {
@@ -2488,283 +2097,6 @@
         if (container) {
             container.style.display = 'none';
         }
-    }
-
-    let isServerConnected = false;
-    let serverMemos = {};
-    const API_URL = 'http://127.0.0.1:5000/api/sc/memos';
-
-    async function initMemos() {
-        const badge = document.getElementById('storage-badge');
-        try {
-            const response = await fetch(API_URL, {
-                method: 'GET',
-                mode: 'cors'
-            });
-            if (response.ok) {
-                serverMemos = await response.json();
-                isServerConnected = true;
-                
-                badge.className = 'badge accent';
-                badge.style.background = 'rgba(16, 185, 129, 0.12)';
-                badge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
-                badge.style.color = '#10b981';
-                badge.innerHTML = '● 파일 저장 모드 (Active)';
-                badge.title = '공부 코멘트가 e:\jolly-carson\data\sc_memos.json 파일에 영구 보존됩니다.';
-                
-                checkMigration();
-            } else {
-                throw new Error("API response error");
-            }
-        } catch (e) {
-            isServerConnected = false;
-            badge.className = 'badge';
-            badge.style.background = 'rgba(239, 68, 68, 0.12)';
-            badge.style.borderColor = 'rgba(239, 68, 68, 0.25)';
-            badge.style.color = '#f87171';
-            badge.innerHTML = '● 브라우저 저장 모드 (Offline)';
-            badge.title = 'Flask 서버가 꺼진 상태입니다. 복구를 위해 임시로 브라우저 LocalStorage에 저장됩니다.';
-        }
-        
-        topicMapping.forEach((item, idx) => {
-            loadMemo(idx, item.concept);
-        });
-    }
-
-    function checkMigration() {
-        const localKeys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('sc_memo_')) {
-                localKeys.push(key);
-            }
-        }
-        
-        if (localKeys.length > 0) {
-            const banner = document.getElementById('migration-banner');
-            const countEl = document.getElementById('migration-count');
-            if (banner && countEl) {
-                countEl.textContent = localKeys.length;
-                banner.style.display = 'block';
-            }
-        }
-    }
-
-    async function migrateMemos() {
-        const localKeys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('sc_memo_')) {
-                localKeys.push(key);
-            }
-        }
-        
-        if (localKeys.length === 0) return;
-        
-        if (!confirm(`브라우저에 임시 저장된 공부 노트 ${localKeys.length}개를 서버 파일로 통합하시겠습니까? (이전 완료 시 브라우저 내의 데이터는 정리됩니다.)`)) {
-            return;
-        }
-        
-        let successCount = 0;
-        const banner = document.getElementById('migration-banner');
-        
-        for (const key of localKeys) {
-            const conceptName = key.replace('sc_memo_', '');
-            try {
-                const dataStr = localStorage.getItem(key);
-                if (dataStr) {
-                    const data = JSON.parse(dataStr);
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            concept: conceptName,
-                            text: data.text,
-                            updatedAt: data.updatedAt,
-                            action: 'save'
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        localStorage.removeItem(key);
-                        serverMemos[conceptName] = {
-                            text: data.text,
-                            updatedAt: data.updatedAt
-                        };
-                        successCount++;
-                    }
-                }
-            } catch (err) {
-                console.error(`마이그레이션 오류 (${conceptName}):`, err);
-            }
-        }
-        
-        alert(`공부 코멘트 ${successCount}개가 성공적으로 서버 파일(sc_memos.json)에 병합되었습니다.`);
-        banner.style.display = 'none';
-        
-        renderTopics();
-    }
-
-    function loadMemo(idx, conceptName) {
-        const displayEl = document.getElementById(`memo-display-${idx}`);
-        const dateEl = document.getElementById(`memo-date-${idx}`);
-        const deleteBtn = document.getElementById(`memo-delete-btn-${idx}`);
-        const inputEl = document.getElementById(`memo-input-${idx}`);
-        
-        let memoData = null;
-        
-        if (isServerConnected) {
-            if (serverMemos && serverMemos[conceptName]) {
-                memoData = serverMemos[conceptName];
-            }
-        } else {
-            const key = `sc_memo_${conceptName}`;
-            const dataStr = localStorage.getItem(key);
-            if (dataStr) {
-                try {
-                    memoData = JSON.parse(dataStr);
-                } catch (e) {
-                    localStorage.removeItem(key);
-                }
-            }
-        }
-        
-        if (displayEl && dateEl && deleteBtn && inputEl) {
-            if (memoData) {
-                displayEl.innerHTML = '';
-                displayEl.textContent = memoData.text;
-                dateEl.textContent = `최근 수정: ${memoData.updatedAt}`;
-                deleteBtn.style.display = 'inline-block';
-                inputEl.value = memoData.text;
-            } else {
-                displayEl.innerHTML = `<span class="memo-placeholder">등록된 공부 메모가 없습니다. 나만의 학습 팁을 적어 수험 공부 효율을 높여보세요!</span>`;
-                dateEl.textContent = '최근 수정일시 없음';
-                deleteBtn.style.display = 'none';
-                inputEl.value = '';
-            }
-        }
-    }
-
-    function enableMemoEdit(idx) {
-        document.getElementById(`memo-view-mode-${idx}`).style.display = 'none';
-        document.getElementById(`memo-edit-mode-${idx}`).style.display = 'block';
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            content.style.maxHeight = content.scrollHeight + 'px';
-        }, 50);
-    }
-
-    function cancelMemoEdit(idx) {
-        document.getElementById(`memo-view-mode-${idx}`).style.display = 'block';
-        document.getElementById(`memo-edit-mode-${idx}`).style.display = 'none';
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            content.style.maxHeight = content.scrollHeight + 'px';
-        }, 50);
-    }
-
-    async function saveMemo(idx, conceptName) {
-        const text = document.getElementById(`memo-input-${idx}`).value.trim();
-        if (!text) {
-            alert("공부 메모 내용을 입력해주세요.");
-            return;
-        }
-        
-        const now = new Date();
-        const formattedDate = now.getFullYear() + '-' + 
-            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-            String(now.getDate()).padStart(2, '0') + ' ' + 
-            String(now.getHours()).padStart(2, '0') + ':' + 
-            String(now.getMinutes()).padStart(2, '0') + ':' + 
-            String(now.getSeconds()).padStart(2, '0');
-            
-        if (isServerConnected) {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        concept: conceptName,
-                        text: text,
-                        updatedAt: formattedDate,
-                        action: 'save'
-                    })
-                });
-                
-                if (response.ok) {
-                    serverMemos[conceptName] = {
-                        text: text,
-                        updatedAt: formattedDate
-                    };
-                } else {
-                    const errData = await response.json();
-                    throw new Error(errData.message || "서버 파일 저장에 실패했습니다.");
-                }
-            } catch (err) {
-                alert(`[오류] 서버 파일 저장 실패: ${err.message}. 임시로 브라우저에 저장합니다.`);
-                localStorage.setItem(`sc_memo_${conceptName}`, JSON.stringify({ text, updatedAt: formattedDate }));
-            }
-        } else {
-            localStorage.setItem(`sc_memo_${conceptName}`, JSON.stringify({ text, updatedAt: formattedDate }));
-        }
-        
-        document.getElementById(`memo-view-mode-${idx}`).style.display = 'block';
-        document.getElementById(`memo-edit-mode-${idx}`).style.display = 'none';
-        loadMemo(idx, conceptName);
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            const newHeight = content.scrollHeight;
-            content.style.maxHeight = newHeight + 'px';
-        }, 50);
-    }
-
-    async function deleteMemo(idx, conceptName) {
-        if (!confirm("작성하신 공부 노트를 완전히 삭제하시겠습니까?")) {
-            return;
-        }
-        
-        if (isServerConnected) {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        concept: conceptName,
-                        action: 'delete'
-                    })
-                });
-                
-                if (response.ok) {
-                    if (serverMemos[conceptName]) {
-                        delete serverMemos[conceptName];
-                    }
-                } else {
-                    const errData = await response.json();
-                    throw new Error(errData.message || "서버 파일 삭제에 실패했습니다.");
-                }
-            } catch (err) {
-                alert(`[오류] 서버 파일 삭제 실패: ${err.message}.`);
-                return;
-            }
-        } else {
-            const key = `sc_memo_${conceptName}`;
-            localStorage.removeItem(key);
-        }
-        
-        loadMemo(idx, conceptName);
-        
-        const content = document.getElementById(`accordion-${idx}`).querySelector('.accordion-content');
-        content.style.maxHeight = 'none';
-        setTimeout(() => {
-            const newHeight = content.scrollHeight;
-            content.style.maxHeight = newHeight + 'px';
-        }, 50);
     }
 
     function filterCategory(category) {
@@ -2940,8 +2272,7 @@
     };
 
     renderTopics();
-    initMemos();
-</script>
+    </script>
 
 <!-- 세부 토픽 목록 팝업 모달 -->
 <div id="topic-modal" class="modal-overlay" onclick="closeTopicModal(event)">
