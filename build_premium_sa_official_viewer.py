@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 """
 [초프리미엄 시스템 아키텍처 공식 범위(SA.txt) 기출문제 뷰어 자동 빌더]
 - 목적: 2015년~2026년 기출 PDF에서 시스템 아키텍처 전체 문항(76~100번, 2015년은 76~90번)을 읽어와서 
@@ -7,14 +11,15 @@
 """
 
 import os
+from build_utils import get_output_paths, update_shared_db
 import sys
 import re
 import json
-import pdfplumber
-import fitz
+# import pdfplumber
+# import fitz
 
 # 공통 이미지 크롭 모듈 임포트
-import image_cropper
+# import image_cropper
 
 FORCE_CROP = "--force" in sys.argv or "--force-crop" in sys.argv
 
@@ -45,23 +50,23 @@ CONCEPT_KEYWORDS = {
     "1-b. 정보기술 아키텍처(EA)": ["ea", "it 아키텍처", "정보기술아키텍처", "enterprise architecture", "자카만", "zachman", "togaf", "feaf", "참조모델", "drm", "prm", "trm", "srm", "sprm"],
 
     # 2. 아키텍처 설계 및 구축
-    "2-a. 컴퓨터 구조론": ["논리회로", "명령어", "주소", "cpu", "gpu", "파이프라이닝", "pipelining", "기억장치", "캐시", "cache", "입출력", "병렬처리", "해자드", "멀티코어", "인터럽트"],
-    "2-b. 하드웨어": ["서버", "server", "스토리지", "storage", "nas", "san", "das", "백업장치", "ups", "무정전", "항온항습기"],
-    "2-c. 아키텍처 설계": ["n-tier", "raid", "이중화", "부하분산", "load balancing", "가상화", "virtualization", "최적화", "고가용성", "active-active", "active-standby", "용량산정", "용량 산정", "백업", "재해복구", "drp", "rto", "rpo", "clustering", "클러스터링"],
-    "2-d. 클라우드 기반 아키텍처, 전자정부 공통 기반, 서버리스": ["클라우드 기반", "전자정부 공통", "서버리스", "serverless", "fiss", "g-cloud", "egovframe"],
-    "2-e. 공개SW(오픈소스)": ["공개sw", "공개 소프트웨어", "오픈소스", "open source", "라이선스", "gpl", "apache", "mit"],
+    "2-a. 컴퓨터 구조론 : 디지털 논리회로, 명령어, 주소, CPU/GPU, 파이프라이닝, 기억장치, 입출력장치, 병렬처리 등": ["논리회로", "명령어", "주소", "cpu", "gpu", "파이프라이닝", "pipelining", "기억장치", "캐시", "cache", "입출력", "병렬처리", "해자드", "멀티코어", "인터럽트"],
+    "2-b. 하드웨어 : 서버, 스토리지, NAS, 백업장치, UPS, 항온항습기 등": ["서버", "server", "스토리지", "storage", "nas", "san", "das", "백업장치", "ups", "무정전", "항온항습기"],
+    "2-c. 아키텍처 설계 : N-Tier, RAID, 이중화, 부하분산, 가상화, 최적화, 고가용성, 용량산정, 백업/복구, 재해복구 등": ["n-tier", "raid", "이중화", "부하분산", "load balancing", "가상화", "virtualization", "최적화", "고가용성", "active-active", "active-standby", "용량산정", "용량 산정", "백업", "재해복구", "drp", "rto", "rpo", "clustering", "클러스터링"],
+    "2-d. 클라우드 기반 아키텍처, 전자정부 공통 기반, 서버리스 등": ["클라우드 기반", "전자정부 공통", "서버리스", "serverless", "fiss", "g-cloud", "egovframe"],
+    "2-e. 공개SW(오픈소스) : 솔루션, 라이선스 정책 등": ["공개sw", "공개 소프트웨어", "오픈소스", "open source", "라이선스", "gpl", "apache", "mit"],
     "2-f. 성능시험, 이중화 시험": ["성능시험", "성능 시험", "이중화 시험", "부하 시험", "스트레스 시험", "stress test", "load test", "tps", "응답시간", "response time"],
 
     # 3. 데이터 통신 및 네트워크 설계
-    "3-a. 데이터 통신이론 및 프로토콜": ["데이터 통신", "데이터 전송", "osi", "네트워크 프로토콜", "ipv4", "ipv6", "lan", "wan", "무선lan", "인터네트워킹", "스토리지 전송", "네트워크 관리", "snmp", "tcp", "udp", "ip 주소", "서브넷", "arp", "icmp"],
-    "3-b. 네트워크 장비": ["라우터", "router", "스위치", "switch", "허브", "hub", "브리지", "bridge", "백본", "backbone", "l2 스위치", "l3 스위치", "l4 스위치", "l7 스위치"],
-    "3-c. 네트워크 설계": ["주소 설계", "네트워크 분할", "가상화", "네트워크 이중화", "스위칭", "라우팅 프로토콜", "ospf", "bgp", "rip", "vlan", "stp", "mstp", "vrrp", "hsrp"],
-    "3-d. 근거리 통신 기술": ["nfc", "zigbee", "직비", "beacon", "비콘", "bluetooth", "블루투스", "uwb", "rfid"],
-    "3-e. 저전력 장거리 통신 기술": ["저전력 장거리", "sigfox", "lora", "로라", "nb-iot", "lpwan"],
-    "3-f. 기타 데이터 통신 기술": ["wifi", "hsdpa", "wpan", "bcn", "adn", "cdn", "nfv", "sdn"],
+    "3-a. 데이터 통신이론, 데이터 전송 방식 및 기술, OSI 참조 모델, 네트워크 프로토콜, IPv4/IPv6, LAN, WAN, 무선LAN, 인터네트워킹, 스토리지 전송 프로토콜, 네트워크 관리 등": ["데이터 통신", "데이터 전송", "osi", "네트워크 프로토콜", "ipv4", "ipv6", "lan", "wan", "무선lan", "인터네트워킹", "스토리지 전송", "네트워크 관리", "snmp", "tcp", "udp", "ip 주소", "서브넷", "arp", "icmp"],
+    "3-b. 네트워크 장비 : 라우터, 스위치, 허브, 브리지, 백본 등": ["라우터", "router", "스위치", "switch", "허브", "hub", "브리지", "bridge", "백본", "backbone", "l2 스위치", "l3 스위치", "l4 스위치", "l7 스위치"],
+    "3-c. 네트워크 설계 : 주소, 네트워크 분할, 가상화, 이중화, 스위칭, 라우팅 프로토콜 등": ["주소 설계", "네트워크 분할", "가상화", "네트워크 이중화", "스위칭", "라우팅 프로토콜", "ospf", "bgp", "rip", "vlan", "stp", "mstp", "vrrp", "hsrp"],
+    "3-d. 근거리 통신 기술 : NFC, Zigbee, Beacon, Bluetooth 등": ["nfc", "zigbee", "직비", "beacon", "비콘", "bluetooth", "블루투스", "uwb", "rfid"],
+    "3-e. 저전력 장거리 통신 기술 : Sigfox, LoRa, NB-IoT 등": ["저전력 장거리", "sigfox", "lora", "로라", "nb-iot", "lpwan"],
+    "3-f. 기타 데이터 통신 기술 : WiFi, HSDPA, WPAN, BcN, ADN, CDN, NFV, SDN": ["wifi", "hsdpa", "wpan", "bcn", "adn", "cdn", "nfv", "sdn"],
 
     # 4. 기타 신기술
-    "4-a. 클라우드 컴퓨팅 및 신기술": ["클라우드 컴퓨팅", "cloud computing", "iaas", "paas", "saas", "빅데이터 플랫폼", "hadoop", "spark", "사물인터넷", "iot", "ai", "머신러닝", "딥러닝", "블록체인", "blockchain", "메타버스", "스마트카", "vr", "ar", "3d프린팅", "드론", "스마트시티"]
+    "4-a. 클라우드 컴퓨팅, 빅데이터 플랫폼, 사물인터넷, AI, 머신러닝, 블록체인, 메타버스, 스마트카, VR/AR, 3D프린팅, 드론, 스마트시티 등": ["클라우드 컴퓨팅", "cloud computing", "iaas", "paas", "saas", "빅데이터 플랫폼", "hadoop", "spark", "사물인터넷", "iot", "ai", "머신러닝", "딥러닝", "블록체인", "blockchain", "메타버스", "스마트카", "vr", "ar", "3d프린팅", "드론", "스마트시티"]
 }
 
 # 공식 세부 설명 메타데이터 정의
@@ -69,31 +74,43 @@ CONCEPT_METADATA = {
     "1-a. IT 및 정보화 관련 표준, 국내외 표준화 동향": {"core_concept": "IT 표준 및 표준화 동향", "features": "국내외 IT 표준(ISO, IEEE 등) 및 최신 표준화 동향을 묻습니다.", "scope": "공통기술"},
     "1-b. 정보기술 아키텍처(EA)": {"core_concept": "EA 참조 모델 및 프레임워크", "features": "EA의 구성 요소(BA, DA, TA, SA), 참조모델(TRM, SPB 등) 및 Zachman/TOGAF 프레임워크를 질문합니다.", "scope": "공통기술"},
 
-    "2-a. 컴퓨터 구조론": {"core_concept": "컴퓨터 구조 및 하드웨어 제어", "features": "디지털 논리회로, CPU 연산, 캐시 매핑, 파이프라인 해자드, 병렬 처리 연산을 다룹니다.", "scope": "아키텍처 설계 및 구축"},
-    "2-b. 하드웨어": {"core_concept": "서버 및 백업 인프라 하드웨어", "features": "서버 스펙 분석, NAS/SAN 스토리지 설계, UPS 전력 계산 및 항온항습 용량 평가를 질문합니다.", "scope": "아키텍처 설계 및 구축"},
-    "2-c. 아키텍처 설계": {"core_concept": "고가용성 이중화 및 재해복구 설계", "features": "RAID 레벨 구성, 로드밸런싱 알고리즘, 이중화 구조, DR 센터 유형 및 가상화(하이퍼바이저/컨테이너) 설계를 중점 질문합니다.", "scope": "아키텍처 설계 및 구축"},
-    "2-d. 클라우드 기반 아키텍처, 전자정부 공통 기반, 서버리스": {"core_concept": "클라우드 인프라 및 서버리스 아키텍처", "features": "서버리스 가용성 보장, 전자정부 프레임워크 기반 연계 및 G-Cloud 구조를 다룹니다.", "scope": "아키텍처 설계 및 구축"},
-    "2-e. 공개SW(오픈소스)": {"core_concept": "오픈소스 생태계 라이선스 의무 사항", "features": "GPL, Apache, MIT 라이선스의 법적 의무 사항 및 소스코드 공개 범위를 질문합니다.", "scope": "아키텍처 설계 및 구축"},
+    "2-a. 컴퓨터 구조론 : 디지털 논리회로, 명령어, 주소, CPU/GPU, 파이프라이닝, 기억장치, 입출력장치, 병렬처리 등": {"core_concept": "컴퓨터 구조 및 하드웨어 제어", "features": "디지털 논리회로, CPU 연산, 캐시 매핑, 파이프라인 해자드, 병렬 처리 연산을 다룹니다.", "scope": "아키텍처 설계 및 구축"},
+    "2-b. 하드웨어 : 서버, 스토리지, NAS, 백업장치, UPS, 항온항습기 등": {"core_concept": "서버 및 백업 인프라 하드웨어", "features": "서버 스펙 분석, NAS/SAN 스토리지 설계, UPS 전력 계산 및 항온항습 용량 평가를 질문합니다.", "scope": "아키텍처 설계 및 구축"},
+    "2-c. 아키텍처 설계 : N-Tier, RAID, 이중화, 부하분산, 가상화, 최적화, 고가용성, 용량산정, 백업/복구, 재해복구 등": {"core_concept": "고가용성 이중화 및 재해복구 설계", "features": "RAID 레벨 구성, 로드밸런싱 알고리즘, 이중화 구조, DR 센터 유형 및 가상화(하이퍼바이저/컨테이너) 설계를 중점 질문합니다.", "scope": "아키텍처 설계 및 구축"},
+    "2-d. 클라우드 기반 아키텍처, 전자정부 공통 기반, 서버리스 등": {"core_concept": "클라우드 인프라 및 서버리스 아키텍처", "features": "서버리스 가용성 보장, 전자정부 프레임워크 기반 연계 및 G-Cloud 구조를 다룹니다.", "scope": "아키텍처 설계 및 구축"},
+    "2-e. 공개SW(오픈소스) : 솔루션, 라이선스 정책 등": {"core_concept": "오픈소스 생태계 라이선스 의무 사항", "features": "GPL, Apache, MIT 라이선스의 법적 의무 사항 및 소스코드 공개 범위를 질문합니다.", "scope": "아키텍처 설계 및 구축"},
     "2-f. 성능시험, 이중화 시험": {"core_concept": "시스템 성능 튜닝 및 시험 방안", "features": "성능 지표(TPS, 응답시간, 자원사용율) 분석 및 부하/이중화 장애 전환(Failover) 시험 요건을 검증합니다.", "scope": "아키텍처 설계 및 구축"},
 
-    "3-a. 데이터 통신이론 및 프로토콜": {"core_concept": "네트워크 통신 이론 및 TCP/IP", "features": "OSI 7계층 기능, IPv4/IPv6 헤더 비교, 서브네팅 연산, TCP 흐름 제어, SNMP 관리 방식을 검증합니다.", "scope": "데이터 통신 및 네트워크 설계"},
-    "3-b. 네트워크 장비": {"core_concept": "네트워크 중계 장비 아키텍처", "features": "라우터, L2/L3/L4/L7 스위치의 차이점 및 스위치 로드밸런싱 구성을 평가합니다.", "scope": "데이터 통신 및 네트워크 설계"},
-    "3-c. 네트워크 설계": {"core_concept": "가상화 및 고신뢰 네트워크 설계", "features": "IP 주소 설계, VLAN 구성, 라우팅 프로토콜(OSPF/BGP) 연산, 루핑 방지(STP/MSTP) 방안을 질문합니다.", "scope": "데이터 통신 및 네트워크 설계"},
-    "3-d. 근거리 통신 기술": {"core_concept": "센서망 및 근거리 통신 프로토콜", "features": "NFC 규격, Zigbee 토폴로지, BLE 비콘 설계 및 RFID 주파수대 특징을 질문합니다.", "scope": "데이터 통신 및 네트워크 설계"},
-    "3-e. 저전력 장거리 통신 기술": {"core_concept": "LPWAN IoT 무선 기술", "features": "LoRaWAN 아키텍처, Sigfox 특징 및 NB-IoT의 주파수 대역 배치 기법을 검증합니다.", "scope": "데이터 통신 및 네트워크 설계"},
-    "3-f. 기타 데이터 통신 기술": {"core_concept": "최신 네트워크 인프라 기술", "features": "CDN 설계, SDN/NFV 가상화 원리 및 WPAN 규격을 다룹니다.", "scope": "데이터 통신 및 네트워크 설계"},
+    "3-a. 데이터 통신이론, 데이터 전송 방식 및 기술, OSI 참조 모델, 네트워크 프로토콜, IPv4/IPv6, LAN, WAN, 무선LAN, 인터네트워킹, 스토리지 전송 프로토콜, 네트워크 관리 등": {"core_concept": "네트워크 통신 이론 및 TCP/IP", "features": "OSI 7계층 기능, IPv4/IPv6 헤더 비교, 서브네팅 연산, TCP 흐름 제어, SNMP 관리 방식을 검증합니다.", "scope": "데이터 통신 및 네트워크 설계"},
+    "3-b. 네트워크 장비 : 라우터, 스위치, 허브, 브리지, 백본 등": {"core_concept": "네트워크 중계 장비 아키텍처", "features": "라우터, L2/L3/L4/L7 스위치의 차이점 및 스위치 로드밸런싱 구성을 평가합니다.", "scope": "데이터 통신 및 네트워크 설계"},
+    "3-c. 네트워크 설계 : 주소, 네트워크 분할, 가상화, 이중화, 스위칭, 라우팅 프로토콜 등": {"core_concept": "가상화 및 고신뢰 네트워크 설계", "features": "IP 주소 설계, VLAN 구성, 라우팅 프로토콜(OSPF/BGP) 연산, 루핑 방지(STP/MSTP) 방안을 질문합니다.", "scope": "데이터 통신 및 네트워크 설계"},
+    "3-d. 근거리 통신 기술 : NFC, Zigbee, Beacon, Bluetooth 등": {"core_concept": "센서망 및 근거리 통신 프로토콜", "features": "NFC 규격, Zigbee 토폴로지, BLE 비콘 설계 및 RFID 주파수대 특징을 질문합니다.", "scope": "데이터 통신 및 네트워크 설계"},
+    "3-e. 저전력 장거리 통신 기술 : Sigfox, LoRa, NB-IoT 등": {"core_concept": "LPWAN IoT 무선 기술", "features": "LoRaWAN 아키텍처, Sigfox 특징 및 NB-IoT의 주파수 대역 배치 기법을 검증합니다.", "scope": "데이터 통신 및 네트워크 설계"},
+    "3-f. 기타 데이터 통신 기술 : WiFi, HSDPA, WPAN, BcN, ADN, CDN, NFV, SDN": {"core_concept": "최신 네트워크 인프라 기술", "features": "CDN 설계, SDN/NFV 가상화 원리 및 WPAN 규격을 다룹니다.", "scope": "데이터 통신 및 네트워크 설계"},
 
-    "4-a. 클라우드 컴퓨팅 및 신기술": {"core_concept": "신기술 아키텍처 및 플랫폼", "features": "빅데이터 하둡 에코시스템, IoT 플랫폼 아키텍처, 인공지능 머신러닝 인프라 구성 및 블록체인 합의 알고리즘을 질문합니다.", "scope": "기타 신기술"}
+    "4-a. 클라우드 컴퓨팅, 빅데이터 플랫폼, 사물인터넷, AI, 머신러닝, 블록체인, 메타버스, 스마트카, VR/AR, 3D프린팅, 드론, 스마트시티 등": {"core_concept": "신기술 아키텍처 및 플랫폼", "features": "빅데이터 하둡 에코시스템, IoT 플랫폼 아키텍처, 인공지능 머신러닝 인프라 구성 및 블록체인 합의 알고리즘을 질문합니다.", "scope": "기타 신기술"}
 }
 
 # 4대 대단원 매핑
 TOPIC_CATEGORIES = {
-    "4-j. 오픈소스 개념 및 활용방법": "4. 개발방법론, sw 구조 및 공개sw",
+    "1-a. IT 및 정보화 관련 표준, 국내외 표준화 동향": "1. 공통기술",
+    "1-b. 정보기술 아키텍처(EA)": "1. 공통기술",
     
-    "5-a. SW Product 품질": "5. SW 품질 및 비용산정",
-    "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)": "5. SW 품질 및 비용산정",
-    "5-c. ISO/IEC 12207, ISO/IEC 25000, ISO/IEC 5055 등 SW품질 관련 표준": "5. SW 품질 및 비용산정",
-    "5-d. SW 대가산정(기능점수 등)": "5. SW 품질 및 비용산정"
+    "2-a. 컴퓨터 구조론 : 디지털 논리회로, 명령어, 주소, CPU/GPU, 파이프라이닝, 기억장치, 입출력장치, 병렬처리 등": "2. 아키텍처 설계 및 구축",
+    "2-b. 하드웨어 : 서버, 스토리지, NAS, 백업장치, UPS, 항온항습기 등": "2. 아키텍처 설계 및 구축",
+    "2-c. 아키텍처 설계 : N-Tier, RAID, 이중화, 부하분산, 가상화, 최적화, 고가용성, 용량산정, 백업/복구, 재해복구 등": "2. 아키텍처 설계 및 구축",
+    "2-d. 클라우드 기반 아키텍처, 전자정부 공통 기반, 서버리스 등": "2. 아키텍처 설계 및 구축",
+    "2-e. 공개SW(오픈소스) : 솔루션, 라이선스 정책 등": "2. 아키텍처 설계 및 구축",
+    "2-f. 성능시험, 이중화 시험": "2. 아키텍처 설계 및 구축",
+    
+    "3-a. 데이터 통신이론, 데이터 전송 방식 및 기술, OSI 참조 모델, 네트워크 프로토콜, IPv4/IPv6, LAN, WAN, 무선LAN, 인터네트워킹, 스토리지 전송 프로토콜, 네트워크 관리 등": "3. 데이터 통신 및 네트워크 설계",
+    "3-b. 네트워크 장비 : 라우터, 스위치, 허브, 브리지, 백본 등": "3. 데이터 통신 및 네트워크 설계",
+    "3-c. 네트워크 설계 : 주소, 네트워크 분할, 가상화, 이중화, 스위칭, 라우팅 프로토콜 등": "3. 데이터 통신 및 네트워크 설계",
+    "3-d. 근거리 통신 기술 : NFC, Zigbee, Beacon, Bluetooth 등": "3. 데이터 통신 및 네트워크 설계",
+    "3-e. 저전력 장거리 통신 기술 : Sigfox, LoRa, NB-IoT 등": "3. 데이터 통신 및 네트워크 설계",
+    "3-f. 기타 데이터 통신 기술 : WiFi, HSDPA, WPAN, BcN, ADN, CDN, NFV, SDN": "3. 데이터 통신 및 네트워크 설계",
+    
+    "4-a. 클라우드 컴퓨팅, 빅데이터 플랫폼, 사물인터넷, AI, 머신러닝, 블록체인, 메타버스, 스마트카, VR/AR, 3D프린팅, 드론, 스마트시티 등": "4. 기타 신기술"
 }
 
 def crop_question_images(pdf_path, year, output_dir):
@@ -175,87 +192,105 @@ def parse_questions(sa_text):
         questions.append({"num": num, "body": q_body})
     return questions
 
+def load_exam_database_dict(subject_code):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
+    
+    # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조
+    if not os.path.exists(js_path):
+        js_path = os.path.join(base_dir, "reports", "exam_database.js")
+        
+    if not os.path.exists(js_path):
+        return {}
+        
+    with open(js_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    # Greedy 매칭 패턴 ((\{[\s\S]*\}))을 적용하여 지문 내 C++ 클래스 마감 기호(};) 오인식 방지
+    match = re.search(r"const\s+examDatabase\s*=\s*(\{[\s\S]*\});", content)
+    if not match:
+        return {}
+        
+    js_obj_str = match.group(1)
+    try:
+        import json
+        return json.loads(js_obj_str)
+    except Exception as e:
+        # 정규식 파서 폴백 (JSON Decode 실패 시 대응)
+        pairs = re.findall(r'"(\d{4}_\d+)":\s*"(.*?)"(?=,\s*"|\s*\})', js_obj_str, re.DOTALL)
+        parsed = {}
+        for k, v in pairs:
+            parsed[k] = v.replace('\\\\', '\\').replace('\\"', '"').replace('\\n', '\n')
+        return parsed
+
 def run_extraction_and_mapping():
     question_db = {}
     concept_map = {concept: [] for concept in CONCEPT_KEYWORDS}
     concept_map["[기타]"] = []
     
-    print("[1/3] 공식범위 기준 기출문제 PDF 파싱 및 분류 DB 구축 중...")
-    for exam in EXAM_FILES:
-        year = exam["year"]
-        filename = exam["filename"]
-        pdf_path = os.path.join(EXAM_DIR, filename)
+    filename_lower = os.path.basename(__file__).lower()
+    if "_db_" in filename_lower:
+        subject_code = "DB"
+    elif "_pm_" in filename_lower:
+        subject_code = "PM"
+    elif "_se_" in filename_lower:
+        subject_code = "SE"
+    elif "_sa_" in filename_lower:
+        subject_code = "SA"
+    elif "_sc_" in filename_lower:
+        subject_code = "SC"
+    else:
+        subject_code = "UNKNOWN"
         
-        if not os.path.exists(pdf_path):
-            print(f"  [경고] {year}년도 파일을 찾을 수 없습니다: {filename}")
+    exam_db_dict = load_exam_database_dict(subject_code)
+    
+    print(f"[1/3] {subject_code} 과목 기출문제 로딩 및 공식범위 매핑 중...")
+    
+    for year in range(2015, 2027):
+        if subject_code == "DB":
+            q_start, q_end = 51, 75
+        elif subject_code == "PM":
+            q_start, q_end = 1, 25
+        elif subject_code == "SE":
+            q_start, q_end = 26, 50
+        elif subject_code == "SA":
+            q_start, q_end = 76, 100
+        elif subject_code == "SC":
+            q_start, q_end = 101, 120
+        else:
             continue
             
-        try:
-            local_img_dir = r"e:\jolly-carson\reports\images"
-            artifact_img_dir = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\images"
-            unique_positions = crop_question_images(pdf_path, year, local_img_dir)
-            crop_question_images(pdf_path, year, artifact_img_dir)
+        for num in range(q_start, q_end + 1):
+            key = f"{year}_{num}"
+            q_text_clean = exam_db_dict.get(key)
+            if not q_text_clean:
+                continue
+                
+            question_db[key] = q_text_clean
             
-            # [설계 의도] 연도별 시스템 아키텍처(SA) 실제 범위(76~100번 등)를 동적으로 반영하여 루프를 순회합니다.
-            s_range = image_cropper.get_subject_range("SA", year)
-            q_start = s_range["start"]
-            q_end = s_range["end"]
-            
-            with pdfplumber.open(pdf_path) as pdf:
-                for num in range(q_start, q_end + 1):
-                    if num not in unique_positions:
-                        continue
-                    pos = unique_positions[num]
-                    page_idx = pos["page_idx"]
-                    page = pdf.pages[page_idx]
-                    
-                    bbox = pos.get("crop_rect")
-                    if not bbox:
-                        continue
-                        
-                    x0 = max(0, min(bbox[0], page.width))
-                    y0 = max(0, min(bbox[1], page.height))
-                    x1 = max(0, min(bbox[2], page.width))
-                    y1 = max(0, min(bbox[3], page.height))
-                    
-                    if x1 <= x0: x1 = page.width
-                    if y1 <= y0: y1 = page.height
-                    
-                    cropped = page.crop((x0, y0, x1, y1))
-                    q_text = cropped.extract_text() or ""
-                    q_text_clean = q_text.strip()
-                    
-                    if not re.match(rf"^{num}\b", q_text_clean):
-                        q_text_clean = f"{num}. {q_text_clean}"
-                        
-                    key = f"{year}_{num}"
-                    question_db[key] = q_text_clean
-                    
-                    body_lower = q_text_clean.lower()
-                    matched_concepts = []
-                    for concept, keywords in CONCEPT_KEYWORDS.items():
-                        for kw in keywords:
-                            if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
-                                pattern = rf"\b{re.escape(kw.lower())}\b"
-                                if re.search(pattern, body_lower):
-                                    matched_concepts.append(concept)
-                                    break
-                            else:
-                                if kw.lower() in body_lower:
-                                    matched_concepts.append(concept)
-                                    break
-                                    
-                    if not matched_concepts:
-                        matched_concepts.append("[기타]")
-                                
-                    for concept in matched_concepts:
-                        concept_map[concept].append({
-                            "year": year,
-                            "num": num
-                        })
-        except Exception as e:
-            print(f"  [에러] {year}년도 처리 실패: {e}")
-            
+            body_lower = q_text_clean.lower()
+            matched_concepts = []
+            for concept, keywords in CONCEPT_KEYWORDS.items():
+                for kw in keywords:
+                    if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
+                        pattern = rf"(?<![a-zA-Z0-9]){re.escape(kw.lower())}(?![a-zA-Z0-9])"
+                        if re.search(pattern, body_lower):
+                            matched_concepts.append(concept)
+                            break
+                    else:
+                        if kw.lower() in body_lower:
+                            matched_concepts.append(concept)
+                            break
+                            
+            if not matched_concepts:
+                matched_concepts.append("[기타]")
+                            
+            for concept in matched_concepts:
+                concept_map[concept].append({
+                    "year": year,
+                    "num": num
+                })
+                
     return question_db, concept_map
 
 def build_html_content(question_db, concept_map):
@@ -481,6 +516,8 @@ def build_html_content(question_db, concept_map):
         }
 
         .concept-title {
+            user-select: text !important;
+            -webkit-user-select: text !important;
             font-size: 1.2rem;
             font-weight: 700;
             color: #ffffff;
@@ -803,7 +840,9 @@ def build_html_content(question_db, concept_map):
             .filter-section { gap: 0.4rem; margin-bottom: 1.5rem; }
             .filter-btn { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
             .accordion-trigger { padding: 1.2rem 1rem; gap: 0.6rem; }
-            .concept-title { font-size: 1.05rem; }
+            .concept-title {
+            user-select: text !important;
+            -webkit-user-select: text !important; font-size: 1.05rem; }
             .rank-badge { font-size: 1rem; }
             .category-tag, .freq-count-badge { font-size: 0.7rem; padding: 0.1rem 0.35rem; }
             .card-meta-grid { grid-template-columns: 80px 1fr; font-size: 0.82rem; row-gap: 0.4rem; }
@@ -883,6 +922,7 @@ def build_html_content(question_db, concept_map):
         }
 
     </style>
+    <script src="exam_db/sa_db.js?v=20260613"></script>
 </head>
 <body>
 
@@ -915,7 +955,7 @@ def build_html_content(question_db, concept_map):
         
         <div class="meta-badges">
             <span class="badge">기출 범위: 2015년 ~ 2026년</span>
-            <span class="badge accent">총 분석 데이터: 300 문항</span>
+            <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
             <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
                 매핑된 공식 중단원: <span id="topic-count-badge">0</span>개
             </span>
@@ -953,9 +993,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
         });
 
@@ -974,9 +1014,9 @@ def build_html_content(question_db, concept_map):
 
         if (targetRedirect) {
             if (isLocal) {
-                window.location.href = targetRedirect;
+                window.location.href = targetRedirect + '?v=20260613';
             } else {
-                window.location.href = '/reports/' + targetRedirect;
+                window.location.href = '/reports/' + targetRedirect + '?v=20260613';
             }
         }
     }
@@ -1000,9 +1040,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
 
             // 활성화 배지 하이라이트 (현재 페이지 파일명이 target을 포함하는 경우)
@@ -1020,7 +1060,7 @@ def build_html_content(question_db, concept_map):
     // DOMContentLoaded 시점에 즉시 내비게이션 초기화 적용
     document.addEventListener('DOMContentLoaded', initDashboardNav);
 
-    const examDatabase = %DB_JSON%;
+    
     const topicMapping = %MAPPING_JSON%;
     let currentCategory = '전체';
 
@@ -1115,7 +1155,19 @@ def build_html_content(question_db, concept_map):
                 btn.classList.remove('active');
             }
         });
-        renderTopics();
+                if (document.getElementById('total-question-badge')) {
+            const uniqueQuestions = new Set();
+            const mappingsObj = (typeof conceptMappings !== 'undefined') ? conceptMappings : ((typeof topicMapping !== 'undefined') ? topicMapping : []);
+            mappingsObj.forEach(item => {
+                if (item.questions) {
+                    item.questions.forEach(q => {
+                        uniqueQuestions.add(q.year + "_" + q.num);
+                    });
+                }
+            });
+            document.getElementById('total-question-badge').textContent = uniqueQuestions.size;
+        }
+    renderTopics();
     }
 
     function toggleAccordion(index) {
@@ -1276,6 +1328,18 @@ def build_html_content(question_db, concept_map):
         }, 250);
     };
 
+            if (document.getElementById('total-question-badge')) {
+            const uniqueQuestions = new Set();
+            const mappingsObj = (typeof conceptMappings !== 'undefined') ? conceptMappings : ((typeof topicMapping !== 'undefined') ? topicMapping : []);
+            mappingsObj.forEach(item => {
+                if (item.questions) {
+                    item.questions.forEach(q => {
+                        uniqueQuestions.add(q.year + "_" + q.num);
+                    });
+                }
+            });
+            document.getElementById('total-question-badge').textContent = uniqueQuestions.size;
+        }
     renderTopics();
     </script>
 
@@ -1294,26 +1358,25 @@ def build_html_content(question_db, concept_map):
 </body>
 </html>
 """
-    html_content = html_template.replace("%DB_JSON%", db_json).replace("%MAPPING_JSON%", mapping_json)
+    html_content = html_template.replace("%MAPPING_JSON%", mapping_json)
     return html_content
 
 def main():
     question_db, concept_map = run_extraction_and_mapping()
+    update_shared_db(question_db, "SA")
     html_content = build_html_content(question_db, concept_map)
     
-    local_path = r"e:\jolly-carson\reports\sa_official_scopes.html"
+    local_path, artifact_path = get_output_paths("sa_official_scopes.html")
+    
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     with open(local_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    print(f"[2/3] 로컬 reports 폴더 저장 완료: {local_path}")
+    print(f"[로컬] 저장 완료: {local_path}")
     
-    artifact_path = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\sa_official_scopes.html"
     os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
     with open(artifact_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    print(f"[3/3] 아티팩트 디렉토리 저장 완료: {artifact_path}")
-    
-    print("\n[성공] 초프리미엄 공식범위 기출문제 뷰어 빌드가 완료되었습니다!")
+    print(f"[아티팩트] 저장 완료: {artifact_path}")
 
 if __name__ == "__main__":
     main()

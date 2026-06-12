@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 """
 [초프리미엄 데이터베이스 공식 범위(DB.txt) 기출문제 뷰어 자동 빌더]
 - 목적: 2015년~2026년 기출 PDF에서 데이터베이스 전체 문항(51~75번)을 읽어와서 
@@ -7,14 +11,15 @@
 """
 
 import os
+from build_utils import get_output_paths, update_shared_db
 import sys
 import re
 import json
-import pdfplumber
-import fitz
+# import pdfplumber
+# import fitz
 
 # 공통 이미지 크롭 모듈 임포트
-import image_cropper
+# import image_cropper
 
 FORCE_CROP = "--force" in sys.argv or "--force-crop" in sys.argv
 
@@ -95,7 +100,7 @@ CONCEPT_KEYWORDS = {
         "open api", "공공데이터", "오픈 api", "공공데이터 개방"
     ],
     
-    # 5. 빅데이터 및 AI데이터
+    # 5. 빅데이터 및 AI데티어
     "5-a. 빅데이터 관련 기술(저장, 처리, 분석, 시각화)": [
         "빅데이터", "big data", "하둡", "hdfs", "mapreduce", "맵리듀스", "스파크", "spark", "샤딩", "분산 컴퓨팅"
     ],
@@ -236,10 +241,10 @@ TOPIC_CATEGORIES = {
     "4-d. 분산 DBMS, 모바일 DBMS": "4. DB응용",
     "4-e. OPEN API, 공공데이터": "4. DB응용",
     
-    "5-a. 빅데이터 관련 기술(저장, 처리, 분석, 시각화)": "5. 빅데이터 및 AI데이터",
-    "5-b. NoSQL": "5. 빅데이터 및 AI데이터",
-    "5-c. 데이터마이닝, DW": "5. 빅데이터 및 AI데이터",
-    "5-d. AI학습데이터 구축": "5. 빅데이터 및 AI데이터"
+    "5-a. 빅데이터 관련 기술(저장, 처리, 분석, 시각화)": "5. 빅데이터 및 AI데티어",
+    "5-b. NoSQL": "5. 빅데이터 및 AI데티어",
+    "5-c. 데이터마이닝, DW": "5. 빅데이터 및 AI데티어",
+    "5-d. AI학습데이터 구축": "5. 빅데이터 및 AI데티어"
 }
 
 def crop_question_images(pdf_path, year, output_dir):
@@ -250,85 +255,105 @@ def crop_question_images(pdf_path, year, output_dir):
         pdf_path, year, "DB", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
     )
 
+def load_exam_database_dict(subject_code):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
+    
+    # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조
+    if not os.path.exists(js_path):
+        js_path = os.path.join(base_dir, "reports", "exam_database.js")
+        
+    if not os.path.exists(js_path):
+        return {}
+        
+    with open(js_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    # Greedy 매칭 패턴 ((\{[\s\S]*\}))을 적용하여 지문 내 C++ 클래스 마감 기호(};) 오인식 방지
+    match = re.search(r"const\s+examDatabase\s*=\s*(\{[\s\S]*\});", content)
+    if not match:
+        return {}
+        
+    js_obj_str = match.group(1)
+    try:
+        import json
+        return json.loads(js_obj_str)
+    except Exception as e:
+        # 정규식 파서 폴백 (JSON Decode 실패 시 대응)
+        pairs = re.findall(r'"(\d{4}_\d+)":\s*"(.*?)"(?=,\s*"|\s*\})', js_obj_str, re.DOTALL)
+        parsed = {}
+        for k, v in pairs:
+            parsed[k] = v.replace('\\\\', '\\').replace('\\"', '"').replace('\\n', '\n')
+        return parsed
+
 def run_extraction_and_mapping():
     question_db = {}
     concept_map = {concept: [] for concept in CONCEPT_KEYWORDS}
     concept_map["[기타]"] = []
     
-    print("[1/3] 공식범위 기준 DB 기출문제 PDF 파싱 및 분류 DB 구축 중...")
-    for exam in EXAM_FILES:
-        year = exam["year"]
-        filename = exam["filename"]
-        pdf_path = os.path.join(EXAM_DIR, filename)
+    filename_lower = os.path.basename(__file__).lower()
+    if "_db_" in filename_lower:
+        subject_code = "DB"
+    elif "_pm_" in filename_lower:
+        subject_code = "PM"
+    elif "_se_" in filename_lower:
+        subject_code = "SE"
+    elif "_sa_" in filename_lower:
+        subject_code = "SA"
+    elif "_sc_" in filename_lower:
+        subject_code = "SC"
+    else:
+        subject_code = "UNKNOWN"
         
-        if not os.path.exists(pdf_path):
-            print(f"  [경고] {year}년도 파일을 찾을 수 없습니다: {filename}")
+    exam_db_dict = load_exam_database_dict(subject_code)
+    
+    print(f"[1/3] {subject_code} 과목 기출문제 로딩 및 공식범위 매핑 중...")
+    
+    for year in range(2015, 2027):
+        if subject_code == "DB":
+            q_start, q_end = 51, 75
+        elif subject_code == "PM":
+            q_start, q_end = 1, 25
+        elif subject_code == "SE":
+            q_start, q_end = 26, 50
+        elif subject_code == "SA":
+            q_start, q_end = 76, 100
+        elif subject_code == "SC":
+            q_start, q_end = 101, 120
+        else:
             continue
             
-        try:
-            local_img_dir = r"e:\jolly-carson\reports\images"
-            artifact_img_dir = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\images"
-            unique_positions = crop_question_images(pdf_path, year, local_img_dir)
+        for num in range(q_start, q_end + 1):
+            key = f"{year}_{num}"
+            q_text_clean = exam_db_dict.get(key)
+            if not q_text_clean:
+                continue
+                
+            question_db[key] = q_text_clean
             
-            # pdfplumber를 활용한 각 문제 영역 텍스트 직접 추출로 정합성 100% 보장
-            with pdfplumber.open(pdf_path) as pdf:
-                for num in range(51, 76):
-                    if num not in unique_positions:
-                        continue
-                    pos = unique_positions[num]
-                    page_idx = pos["page_idx"]
-                    page = pdf.pages[page_idx]
-                    
-                    bbox = pos.get("crop_rect")
-                    if not bbox:
-                        continue
-                        
-                    # coordinates boundary check
-                    x0 = max(0, min(bbox[0], page.width))
-                    y0 = max(0, min(bbox[1], page.height))
-                    x1 = max(0, min(bbox[2], page.width))
-                    y1 = max(0, min(bbox[3], page.height))
-                    
-                    if x1 <= x0: x1 = page.width
-                    if y1 <= y0: y1 = page.height
-                    
-                    cropped = page.crop((x0, y0, x1, y1))
-                    q_text = cropped.extract_text() or ""
-                    q_text_clean = q_text.strip()
-                    
-                    # 텍스트가 번호로 시작하지 않으면 번호를 보정하여 붙여줍니다.
-                    if not re.match(rf"^{num}\b", q_text_clean):
-                        q_text_clean = f"{num}. {q_text_clean}"
-                        
-                    key = f"{year}_{num}"
-                    question_db[key] = q_text_clean
-                    
-                    # 키워드 매칭 분석
-                    body_lower = q_text_clean.lower()
-                    matched_concepts = []
-                    for concept, keywords in CONCEPT_KEYWORDS.items():
-                        for kw in keywords:
-                            if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
-                                pattern = rf"\b{re.escape(kw.lower())}\b"
-                                if re.search(pattern, body_lower):
-                                    matched_concepts.append(concept)
-                                    break
-                            else:
-                                if kw.lower() in body_lower:
-                                    matched_concepts.append(concept)
-                                    break
-                                    
-                    if not matched_concepts:
-                        matched_concepts.append("[기타]")
-                                    
-                    for concept in matched_concepts:
-                        concept_map[concept].append({
-                            "year": year,
-                            "num": num
-                        })
-        except Exception as e:
-            print(f"  [에러] {year}년도 처리 실패: {e}")
-            
+            body_lower = q_text_clean.lower()
+            matched_concepts = []
+            for concept, keywords in CONCEPT_KEYWORDS.items():
+                for kw in keywords:
+                    if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
+                        pattern = rf"(?<![a-zA-Z0-9]){re.escape(kw.lower())}(?![a-zA-Z0-9])"
+                        if re.search(pattern, body_lower):
+                            matched_concepts.append(concept)
+                            break
+                    else:
+                        if kw.lower() in body_lower:
+                            matched_concepts.append(concept)
+                            break
+                            
+            if not matched_concepts:
+                matched_concepts.append("[기타]")
+                            
+            for concept in matched_concepts:
+                concept_map[concept].append({
+                    "year": year,
+                    "num": num
+                })
+                
     return question_db, concept_map
 
 def build_html_content(question_db, concept_map):
@@ -558,6 +583,8 @@ def build_html_content(question_db, concept_map):
         }
 
         .concept-title {
+            user-select: text !important;
+            -webkit-user-select: text !important;
             font-size: 1.2rem;
             font-weight: 700;
             color: #ffffff;
@@ -925,6 +952,7 @@ def build_html_content(question_db, concept_map):
         }
 
     </style>
+    <script src="exam_db/db_db.js?v=20260613"></script>
 </head>
 <body>
     <div class="container">
@@ -1000,9 +1028,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
         });
 
@@ -1021,9 +1049,9 @@ def build_html_content(question_db, concept_map):
 
         if (targetRedirect) {
             if (isLocal) {
-                window.location.href = targetRedirect;
+                window.location.href = targetRedirect + '?v=20260613';
             } else {
-                window.location.href = '/reports/' + targetRedirect;
+                window.location.href = '/reports/' + targetRedirect + '?v=20260613';
             }
         }
     }
@@ -1047,9 +1075,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
 
             // 활성화 배지 하이라이트 (현재 페이지 파일명이 target을 포함하는 경우)
@@ -1068,7 +1096,7 @@ def build_html_content(question_db, concept_map):
     document.addEventListener('DOMContentLoaded', initDashboardNav);
 
         // Inject mappings & DB from Python
-        const examDatabase = _EXAM_DB_PLACEHOLDER_;
+        
         const conceptMappings = _MAPPING_PLACEHOLDER_;
 
 
@@ -1286,7 +1314,15 @@ def build_html_content(question_db, concept_map):
             document.getElementById('topic-count-badge').textContent = conceptMappings.length;
         }
         if (document.getElementById('total-question-badge')) {
-            document.getElementById('total-question-badge').textContent = Object.keys(examDatabase).length;
+            if (document.getElementById('total-question-badge')) {
+            const uniqueQuestions = new Set();
+            conceptMappings.forEach(item => {
+                item.questions.forEach(q => {
+                    uniqueQuestions.add(q.year + "_" + q.num);
+                });
+            });
+            document.getElementById('total-question-badge').textContent = uniqueQuestions.size;
+        }
         }
         renderAccordions('all');
     </script>
@@ -1307,28 +1343,28 @@ def build_html_content(question_db, concept_map):
 </body>
 </html>
 """
-    final_html = html_template.replace("_EXAM_DB_PLACEHOLDER_", db_json).replace("_MAPPING_PLACEHOLDER_", mapping_json)
+    final_html = html_template.replace("_MAPPING_PLACEHOLDER_", mapping_json)
     
-    # Save output to Reports and Artifacts directory
-    local_output_path = r"e:\jolly-carson\reports\db_official_scopes.html"
-    artifact_output_path = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\db_official_scopes.html"
-    
-    os.makedirs(os.path.dirname(local_output_path), exist_ok=True)
-    os.makedirs(os.path.dirname(artifact_output_path), exist_ok=True)
-    
-    with open(local_output_path, "w", encoding="utf-8") as f:
-        f.write(final_html)
-    print(f"[2/3] 로컬 reports 폴더 저장 완료: {local_output_path}")
-    
-    with open(artifact_output_path, "w", encoding="utf-8") as f:
-        f.write(final_html)
-    print(f"[3/3] 아티팩트 디렉토리 저장 완료: {artifact_output_path}")
+    return final_html
     
     print("\n[성공] 초프리미엄 DB 공식범위 기출문제 뷰어 빌드가 완료되었습니다!")
 
 def build_html():
     question_db, concept_map = run_extraction_and_mapping()
-    build_html_content(question_db, concept_map)
+    update_shared_db(question_db, "DB")
+    html_content = build_html_content(question_db, concept_map)
+    
+    local_path, artifact_path = get_output_paths("db_official_scopes.html")
+    
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    with open(local_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print(f"[로컬] 저장 완료: {local_path}")
+    
+    os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
+    with open(artifact_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print(f"[아티팩트] 저장 완료: {artifact_path}")
 
 if __name__ == "__main__":
     build_html()

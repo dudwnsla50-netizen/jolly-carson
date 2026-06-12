@@ -1,4 +1,8 @@
 {
+    "python.defaultInterpreterPath": "d:\\100.lyj\\anti_workspace\\jolly-carson\\temp_python\\python.exe",
+    "python.analysis.extraPaths": [
+        "d:\\100.lyj\\anti_workspace\\jolly-carson\\temp_python\\Lib\\site-packages"
+    ],
     "python-envs.pythonProjects": [
         {
             "path": "parser.py",

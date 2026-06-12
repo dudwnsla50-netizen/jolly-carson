@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 """
 [초프리미엄 보안(SC) 기출문제 뷰어 자동 빌더]
 - 목적: 2015년~2026년 기출 PDF에서 SC 과목 전체 문항(101~120번)을 추출하고,
@@ -6,14 +10,15 @@
 """
 
 import os
+from build_utils import get_output_paths, update_shared_db
 import sys
 import re
 import json
-import pdfplumber
-import fitz
+# import pdfplumber
+# import fitz
 
 # 공통 이미지 크롭 모듈 임포트
-import image_cropper
+# import image_cropper
 
 FORCE_CROP = "--force" in sys.argv or "--force-crop" in sys.argv
 
@@ -208,85 +213,105 @@ def parse_questions(sc_text):
         questions.append({"num": num, "body": q_body})
     return questions
 
+def load_exam_database_dict(subject_code):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
+    
+    # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조
+    if not os.path.exists(js_path):
+        js_path = os.path.join(base_dir, "reports", "exam_database.js")
+        
+    if not os.path.exists(js_path):
+        return {}
+        
+    with open(js_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    # Greedy 매칭 패턴 ((\{[\s\S]*\}))을 적용하여 지문 내 C++ 클래스 마감 기호(};) 오인식 방지
+    match = re.search(r"const\s+examDatabase\s*=\s*(\{[\s\S]*\});", content)
+    if not match:
+        return {}
+        
+    js_obj_str = match.group(1)
+    try:
+        import json
+        return json.loads(js_obj_str)
+    except Exception as e:
+        # 정규식 파서 폴백 (JSON Decode 실패 시 대응)
+        pairs = re.findall(r'"(\d{4}_\d+)":\s*"(.*?)"(?=,\s*"|\s*\})', js_obj_str, re.DOTALL)
+        parsed = {}
+        for k, v in pairs:
+            parsed[k] = v.replace('\\\\', '\\').replace('\\"', '"').replace('\\n', '\n')
+        return parsed
+
 def run_extraction_and_mapping():
     question_db = {}
     concept_map = {concept: [] for concept in CONCEPT_KEYWORDS}
-    concept_map["[기타]"] = [] # [기타] 카테고리 초기화
+    concept_map["[기타]"] = []
     
-    print("[1/3] SC 기출문제 PDF 파싱 및 전체 문항 DB 구축 중...")
-    for exam in EXAM_FILES:
-        year = exam["year"]
-        filename = exam["filename"]
-        pdf_path = os.path.join(EXAM_DIR, filename)
+    filename_lower = os.path.basename(__file__).lower()
+    if "_db_" in filename_lower:
+        subject_code = "DB"
+    elif "_pm_" in filename_lower:
+        subject_code = "PM"
+    elif "_se_" in filename_lower:
+        subject_code = "SE"
+    elif "_sa_" in filename_lower:
+        subject_code = "SA"
+    elif "_sc_" in filename_lower:
+        subject_code = "SC"
+    else:
+        subject_code = "UNKNOWN"
         
-        if not os.path.exists(pdf_path):
+    exam_db_dict = load_exam_database_dict(subject_code)
+    
+    print(f"[1/3] {subject_code} 과목 기출문제 로딩 및 공식범위 매핑 중...")
+    
+    for year in range(2015, 2027):
+        if subject_code == "DB":
+            q_start, q_end = 51, 75
+        elif subject_code == "PM":
+            q_start, q_end = 1, 25
+        elif subject_code == "SE":
+            q_start, q_end = 26, 50
+        elif subject_code == "SA":
+            q_start, q_end = 76, 100
+        elif subject_code == "SC":
+            q_start, q_end = 101, 120
+        else:
             continue
             
-        try:
-            local_img_dir = r"e:\jolly-carson\reports\images"
-            artifact_img_dir = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\images"
-            unique_positions = crop_question_images(pdf_path, year, local_img_dir)
-            crop_question_images(pdf_path, year, artifact_img_dir)
+        for num in range(q_start, q_end + 1):
+            key = f"{year}_{num}"
+            q_text_clean = exam_db_dict.get(key)
+            if not q_text_clean:
+                continue
+                
+            question_db[key] = q_text_clean
             
-            # pdfplumber를 활용한 각 문제 영역 텍스트 직접 추출로 정합성 100% 보장
-            with pdfplumber.open(pdf_path) as pdf:
-                for num in range(101, 121):
-                    if num not in unique_positions:
-                        continue
-                    pos = unique_positions[num]
-                    page_idx = pos["page_idx"]
-                    page = pdf.pages[page_idx]
-                    
-                    bbox = pos.get("crop_rect")
-                    if not bbox:
-                        continue
-                        
-                    # coordinates boundary check
-                    x0 = max(0, min(bbox[0], page.width))
-                    y0 = max(0, min(bbox[1], page.height))
-                    x1 = max(0, min(bbox[2], page.width))
-                    y1 = max(0, min(bbox[3], page.height))
-                    
-                    if x1 <= x0: x1 = page.width
-                    if y1 <= y0: y1 = page.height
-                    
-                    cropped = page.crop((x0, y0, x1, y1))
-                    q_text = cropped.extract_text() or ""
-                    q_text_clean = q_text.strip()
-                    
-                    # 텍스트가 번호로 시작하지 않으면 번호를 보정하여 붙여줍니다.
-                    if not re.match(rf"^{num}\b", q_text_clean):
-                        q_text_clean = f"{num}. {q_text_clean}"
-                        
-                    key = f"{year}_{num}"
-                    question_db[key] = q_text_clean
-                    
-                    # 키워드 매칭 분석
-                    body_lower = q_text_clean.lower()
-                    matched_concepts = []
-                    for concept, keywords in CONCEPT_KEYWORDS.items():
-                        for kw in keywords:
-                            if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
-                                pattern = rf"\b{re.escape(kw.lower())}\b"
-                                if re.search(pattern, body_lower):
-                                    matched_concepts.append(concept)
-                                    break
-                            else:
-                                if kw.lower() in body_lower:
-                                    matched_concepts.append(concept)
-                                    break
-                                    
-                    if not matched_concepts:
-                        matched_concepts.append("[기타]")
-                                    
-                    for concept in matched_concepts:
-                        concept_map[concept].append({
-                            "year": year,
-                            "num": num
-                        })
-        except Exception as e:
-            print(f"  [에러] {year}년도 처리 실패: {e}")
-            
+            body_lower = q_text_clean.lower()
+            matched_concepts = []
+            for concept, keywords in CONCEPT_KEYWORDS.items():
+                for kw in keywords:
+                    if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
+                        pattern = rf"(?<![a-zA-Z0-9]){re.escape(kw.lower())}(?![a-zA-Z0-9])"
+                        if re.search(pattern, body_lower):
+                            matched_concepts.append(concept)
+                            break
+                    else:
+                        if kw.lower() in body_lower:
+                            matched_concepts.append(concept)
+                            break
+                            
+            if not matched_concepts:
+                matched_concepts.append("[기타]")
+                            
+            for concept in matched_concepts:
+                concept_map[concept].append({
+                    "year": year,
+                    "num": num
+                })
+                
     return question_db, concept_map
 
 def build_html_content(question_db, concept_map):
@@ -332,6 +357,29 @@ def build_html_content(question_db, concept_map):
         })
         
     # [기타]는 항상 정렬의 맨 마지막에 위치하도록 키 조정 (-1로 부여하여 reverse=True일 때 맨 뒤로 가도록 설정)
+        # 3회 미만 출제된 개념들의 기출문제를 [기타] 카테고리로 수집
+    discarded_questions = []
+    for c in sorted_concepts:
+        if c["count"] < 3 and c["concept"] != "[기타]":
+            discarded_questions.extend(c["questions"])
+            
+    # [기타] 카테고리 확보
+    etc_concept = None
+    for c in sorted_concepts:
+        if c["concept"] == "[기타]":
+            etc_concept = c
+            break
+            
+    if etc_concept is not None and discarded_questions:
+        existing = set((q["year"], q["num"]) for q in etc_concept["questions"])
+        for q in discarded_questions:
+            if (q["year"], q["num"]) not in existing:
+                etc_concept["questions"].append(q)
+                existing.add((q["year"], q["num"]))
+        # [기타] 카테고리 갱신
+        etc_concept["count"] = len(etc_concept["questions"])
+        etc_concept["years"] = sorted(list(set([q["year"] for q in etc_concept["questions"]])))
+
     sorted_concepts.sort(key=lambda x: (-1 if x["concept"] == "[기타]" else x["count"]), reverse=True)
     
     # 3회 이상 출제된 세부 토픽만 필터링하되, [기타]는 항상 표시
@@ -512,6 +560,8 @@ def build_html_content(question_db, concept_map):
         }
 
         .concept-title {
+            user-select: text !important;
+            -webkit-user-select: text !important;
             font-size: 1.2rem;
             font-weight: 700;
             color: #ffffff;
@@ -865,6 +915,8 @@ def build_html_content(question_db, concept_map):
             }
 
             .concept-title {
+            user-select: text !important;
+            -webkit-user-select: text !important;
                 font-size: 1.05rem;
             }
 
@@ -994,6 +1046,7 @@ def build_html_content(question_db, concept_map):
         }
 
     </style>
+    <script src="exam_db/sc_db.js?v=20260613"></script>
 </head>
 <body>
 
@@ -1026,7 +1079,7 @@ def build_html_content(question_db, concept_map):
         
         <div class="meta-badges">
             <span class="badge">기출 범위: 2015년 ~ 2026년</span>
-            <span class="badge accent">총 분석 데이터: 240 문항</span>
+            <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
             <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 검출된 세부 토픽 목록 팝업 열기">
                 검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
             </span>
@@ -1064,9 +1117,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
         });
 
@@ -1085,9 +1138,9 @@ def build_html_content(question_db, concept_map):
 
         if (targetRedirect) {
             if (isLocal) {
-                window.location.href = targetRedirect;
+                window.location.href = targetRedirect + '?v=20260613';
             } else {
-                window.location.href = '/reports/' + targetRedirect;
+                window.location.href = '/reports/' + targetRedirect + '?v=20260613';
             }
         }
     }
@@ -1111,9 +1164,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
 
             // 활성화 배지 하이라이트 (현재 페이지 파일명이 target을 포함하는 경우)
@@ -1131,7 +1184,7 @@ def build_html_content(question_db, concept_map):
     // DOMContentLoaded 시점에 즉시 내비게이션 초기화 적용
     document.addEventListener('DOMContentLoaded', initDashboardNav);
 
-    const examDatabase = %DB_JSON%;
+    
     const topicMapping = %MAPPING_JSON%;
     let currentCategory = '전체';
 
@@ -1226,7 +1279,19 @@ def build_html_content(question_db, concept_map):
                 btn.classList.remove('active');
             }
         });
-        renderTopics();
+                if (document.getElementById('total-question-badge')) {
+            const uniqueQuestions = new Set();
+            const mappingsObj = (typeof conceptMappings !== 'undefined') ? conceptMappings : ((typeof topicMapping !== 'undefined') ? topicMapping : []);
+            mappingsObj.forEach(item => {
+                if (item.questions) {
+                    item.questions.forEach(q => {
+                        uniqueQuestions.add(q.year + "_" + q.num);
+                    });
+                }
+            });
+            document.getElementById('total-question-badge').textContent = uniqueQuestions.size;
+        }
+    renderTopics();
     }
 
     function toggleAccordion(index) {
@@ -1389,6 +1454,18 @@ def build_html_content(question_db, concept_map):
         }, 250);
     };
 
+            if (document.getElementById('total-question-badge')) {
+            const uniqueQuestions = new Set();
+            const mappingsObj = (typeof conceptMappings !== 'undefined') ? conceptMappings : ((typeof topicMapping !== 'undefined') ? topicMapping : []);
+            mappingsObj.forEach(item => {
+                if (item.questions) {
+                    item.questions.forEach(q => {
+                        uniqueQuestions.add(q.year + "_" + q.num);
+                    });
+                }
+            });
+            document.getElementById('total-question-badge').textContent = uniqueQuestions.size;
+        }
     renderTopics();
     </script>
 
@@ -1409,26 +1486,25 @@ def build_html_content(question_db, concept_map):
 </body>
 </html>
 """
-    html_content = html_template.replace("%DB_JSON%", db_json).replace("%MAPPING_JSON%", mapping_json)
+    html_content = html_template.replace("%MAPPING_JSON%", mapping_json)
     return html_content
 
 def main():
     question_db, concept_map = run_extraction_and_mapping()
+    update_shared_db(question_db, "SC")
     html_content = build_html_content(question_db, concept_map)
     
-    local_path = r"e:\jolly-carson\reports\sc_frequent_concepts.html"
+    local_path, artifact_path = get_output_paths("sc_frequent_concepts.html")
+    
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     with open(local_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    print(f"[2/3] 로컬 reports 폴더 저장 완료: {local_path}")
+    print(f"[로컬] 저장 완료: {local_path}")
     
-    artifact_path = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\sc_frequent_concepts.html"
     os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
     with open(artifact_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    print(f"[3/3] 아티팩트 디렉토리 저장 완료: {artifact_path}")
-    
-    print("\n[성공] SC 기출문제 뷰어 빌드가 완료되었습니다!")
+    print(f"[아티팩트] 저장 완료: {artifact_path}")
 
 if __name__ == "__main__":
     main()

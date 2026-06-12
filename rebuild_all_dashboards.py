@@ -32,13 +32,19 @@ def main():
     for builder in BUILDERS:
         print(f"\n👉 [{builder}] 빌더 구동 중...")
         try:
-            # subprocess를 이용하여 빌더를 실행합니다.
+            # PYTHONPATH를 현재 디렉토리로 명시
+            import copy
+            env = copy.deepcopy(os.environ)
+            env["PYTHONPATH"] = os.path.dirname(os.path.abspath(__file__))
+
             result = subprocess.run(
                 [sys.executable, builder],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
-                check=True
+                check=True,
+                cwd=os.path.dirname(os.path.abspath(__file__)),
+                env=env
             )
             print(result.stdout)
             print(f"✅ {builder} 빌드 성공")

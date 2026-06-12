@@ -7,12 +7,16 @@ __pycache__/
 build_log.txt
 .vscode/
 
-# 용량이 큰 파일 (GitHub 업로드 제한 방지)
-# PDF 원본 파일들은 용량이 커서 GitHub 업로드 시 지연을 방지하기 위해 제외합니다. (수동 이동 권장)
+# PDF 및 HTML 기출문제 원본 제외 (용량 및 보안 오탐 방지)
 data/past_exams/
+data/past_exam/
 
 # 인증 설정 파일 — 비밀번호 해시 유출 방지
 data/auth.properties
 
 # 에이전트 작업 공간 이미지 (프로젝트 외부 경로이므로 제외)
 C:/Users/DCCIS040000/.gemini/antigravity-ide/brain/7e1fd111-1dc1-495d-82a1-c40573600184/images/
+
+# 가상환경 및 로컬 설치 스크립트 제외
+temp_python/
+get-pip.py

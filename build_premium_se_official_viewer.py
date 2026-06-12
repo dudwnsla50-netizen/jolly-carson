@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 """
 [초프리미엄 소프트웨어공학 공식 범위(SE.txt) 기출문제 뷰어 자동 빌더]
 - 목적: 2015년~2026년 기출 PDF에서 소프트웨어공학 전체 문항(26~50번)을 읽어와서 
@@ -7,18 +11,18 @@
 """
 
 import os
+from build_utils import get_output_paths, update_shared_db
 import sys
 import re
 import json
-import pdfplumber
-import fitz
+# import pdfplumber
+# import fitz
 
 # 공통 이미지 크롭 모듈 임포트
-import image_cropper
+# import image_cropper
 
 FORCE_CROP = "--force" in sys.argv or "--force-crop" in sys.argv
 
-# 한글 윈도우 환경에서 콘솔 출력 깨짐 방지
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -38,24 +42,24 @@ EXAM_FILES = [
     {"year": 2026, "filename": "2026년 감리사 자격검정 필기시험 문제 및 가답안（A형）.pdf"}
 ]
 
-# SE.txt 공식 가이드라인 기반의 31개 중단원 분류 사전 및 키워드 매핑
+# SE.txt 공식 가이드라인 기반의 33개 중단원 분류 사전 및 키워드 매핑
 CONCEPT_KEYWORDS = {
     # 1. 요구사항분석 및 설계
-    "1-a. 요구사항 도출/분석/명세/추적": ["요구사항", "요구 명세", "요구 도출", "요구 분석", "요구 추적", "유스케이스", "use case", "사용사례"],
+    "1-a. 요구사항 도출, 요구사항 분석, 요구사항 명세, 요구사항 추적": ["요구사항", "요구 명세", "요구 도출", "요구 분석", "요구 추적", "유스케이스", "use case", "사용사례"],
     "1-b. 객체지향 개념": ["객체지향", "상속", "캡슐화", "다형성", "추상화", "일반화", "실현", "연관", "합성", "집합", "의존", "overriding", "overloading", "오버라이딩", "오버로딩"],
     "1-c. 설계원리": ["설계 원칙", "설계원칙", "solid", "srp", "ocp", "lsp", "isp", "dip", "리스코프", "의존 역전", "단일 책임", "개방 폐쇄", "인터페이스 분리", "모듈 독립성", "결합도", "응집도", "coupling", "cohesion"],
     "1-d. UML/SysML 모델링": ["uml", "sysml", "다이어그램", "diagram", "클래스 다이어그램", "시퀀스 다이어그램", "상태 다이어그램", "활동 다이어그램", "state machine", "activity diagram", "use case diagram"],
-    "1-e. 아키텍처 스타일": ["아키텍처 스타일", "architecture style", "계층 구조", "layered architecture", "클라이언트 서버", "client-server", "트랜잭션 처리", "mvc", "이벤트 중심", "event-driven", "repository architecture", "monolithic"],
+    "1-e. 아키텍처 스타일(계층구조, 클라이언트 서버, 트랜잭션 처리, mvc, 이벤트 중심 등)": ["아키텍처 스타일", "architecture style", "계층 구조", "layered architecture", "클라이언트 서버", "client-server", "트랜잭션 처리", "mvc", "이벤트 중심", "event-driven", "repository architecture", "monolithic"],
     "1-f. 설계패턴": ["디자인 패턴", "gof", "싱글톤", "singleton", "팩토리", "factory", "빌더", "builder", "어댑터", "adapter", "데코레이터", "decorator", "옵저버", "observer", "상태 패턴", "state pattern", "전략 패턴", "strategy pattern", "템플릿 메서드", "template method", "프록시", "proxy"],
     "1-g. 사용자 인터페이스 설계": ["ui", "사용자 인터페이스", "사용성", "인터랙션", "웹접근성", "ux"],
 
     # 2. 구현 및 테스트
-    "2-a. 프로그래밍언어 및 환경": ["코딩원리", "코딩오류", "코딩 스타일", "uml과 코딩", "java", "c++", "c언어", "파이썬", "컴파일", "코딩 규칙", "misra-c"],
+    "2-a. 프로그래밍언어 및 환경(코딩원리, 코딩오류, 코딩 스타일, uml과 코딩)": ["코딩원리", "코딩오류", "코딩 스타일", "uml과 코딩", "java", "c++", "c언어", "파이썬", "컴파일", "코딩 규칙", "misra-c"],
     "2-b. 코드 자동생성, 로우코드/노코드": ["자동생성", "로우코드", "노코드", "low-code", "no-code"],
     "2-c. 웹접근성, 웹호환성 점검": ["웹접근성", "웹호환성", "점검", "지침", "접근성 표준"],
     "2-d. 단위, 모듈, 연계, 통합, 시스템, 인수 등": ["단위 테스트", "모듈 테스트", "연계 테스트", "통합 테스트", "시스템 테스트", "인수 테스트", "테스트 레벨", "인수조건"],
-    "2-e. 테스팅 방법 및 도구": ["테스팅 방법", "테스트 기법", "화이트박스", "블랙박스", "구문 검증", "분기 검증", "조건 검증", "결정 검증", "경로 검증", "경계값", "동등 분할", "순환 복잡도", "mccabe", "tdd", "테스트 드라이버", "테스트 스텁", "뮤테이션", "concolic", "기호실행"],
-    "2-f. KS X ISO/IEC/IEEE 29119, KS X ISO/IEC 33063 테스트 표준": ["29119", "33063", "테스트 표준"],
+    "2-e. 테스팅 방법 및 도구": ["테스팅 방법", "테스트 기법", "화이트박스", "블랙박스", "구문 검증", "분기 검증", "조건 검증", "결정 검증", "경로 검증", "문장 커버리지", "분기 커버리지", "조건 커버리지", "결정 커버리지", "경로 커버리지", "커버리지", "coverage", "test case", "테스트 케이스", "테스트케이스", "경계값", "동등 분할", "순환 복잡도", "mccabe", "tdd", "테스트 드라이버", "테스트 스텁", "뮤테이션", "concolic", "기호실행"],
+    "2-f. KS X ISO/IEC/IEEE 29119, KS X ISO/IEC 33063 SW테스트 관련 표준": ["29119", "33063", "테스트 표준"],
 
     # 3. 유지관리 및 운영
     "3-a. 유지관리 개념 및 방법": ["유지보수", "유지관리", "개념 및 방법", "3r"],
@@ -65,12 +69,12 @@ CONCEPT_KEYWORDS = {
     "3-e. 아웃소싱": ["아웃소싱", "outsourcing", "위탁"],
 
     # 4. 개발방법론, sw 구조 및 공개sw
-    "4-a. 구조적, 정보공학, 객체지향 방법론": ["구조적 방법론", "정보공학 방법론", "객체지향 방법론"],
+    "4-a. 구조적, 정보공학, 객체지향": ["구조적 방법론", "정보공학 방법론", "객체지향 방법론"],
     "4-b. CBD, Agile, 데브 옵스, aop 등": ["cbd", "agile", "애자일", "스크럼", "scrum", "스프린트", "플래닝 포커", "데브옵스", "devops", "aop", "관점 지향", "횡단 관심"],
-    "4-c. 프로세스 모델": ["폭포수", "프로토타이핑", "점진적", "진화적", "나선형", "spiral", "v 모델", "v-모델", "프로세스 모델", "생명주기 모델"],
+    "4-c. 프로세스 모델 : 폭포수, 프로타이핑, 점진적, 진화적, 나선형, v 모델, 스크럼 등": ["폭포수", "프로토타이핑", "점진적", "진화적", "나선형", "spiral", "v 모델", "v-모델", "프로세스 모델", "생명주기 모델"],
     "4-d. 클린 아키텍처": ["클린 아키텍처", "clean architecture"],
-    "4-e. 웹기반 기술구조, j2ee, 닷넷, 컨테이너 등 개발 플랫폼": ["j2ee", "닷넷", ".net", "컨테이너", "docker", "도커", "쿠버네티스", "개발 플랫폼"],
-    "4-f. 분산컴포넌트 기술, xml 등": ["분산 컴포넌트", "corba", "dcom", "xml", "json"],
+    "4-e. 웹기반 기술주고, j2ee, 닷넷, 컨테이너 등 개발 플랫폼": ["j2ee", "닷넷", ".net", "컨테이너", "docker", "도커", "쿠버네티스", "개발 플랫폼"],
+    "4-f. 분산커포넌트 기술, xml 등": ["분산 컴포넌트", "corba", "dcom", "xml", "json"],
     "4-g. 전자정부표준프레임워크, 스프링 프레임워크": ["전자정부표준프레임워크", "전자정부 표준 프레임워크", "스프링 프레임워크", "spring framework", "스프링 부트"],
     "4-h. SOA, MSA": ["soa", "msa", "서비스 지향", "마이크로서비스", "api 게이트웨이", "서킷 브레이커"],
     "4-i. 웹서비스(SOAP, REST)": ["soap", "rest", "웹서비스", "web service", "wsdl", "uddi"],
@@ -80,27 +84,29 @@ CONCEPT_KEYWORDS = {
     "5-a. SW Product 품질": ["품질 속성", "품질 시나리오", "iso/iec 25010", "iso 25010", "신뢰성", "효율성", "유지보수성", "이식성", "기능성"],
     "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)": ["cmmi", "spice", "sp인증", "sp 인증", "프로세스 품질", "성숙도"],
     "5-c. ISO/IEC 12207, ISO/IEC 25000, ISO/IEC 5055 등 SW품질 관련 표준": ["12207", "25000", "5055", "품질 관련 표준", "품질 표준"],
-    "5-d. SW 대가산정(기능점수 등)": ["기능 점수", "기능점수", "fp", "ilf", "eif", "ei", "eo", "eq", "cocomo", "대가산정", "비용산정", "비용 산정", "대가 산정", "loc", "만먼스", "effort"]
+    "5-d. 품질보증": ["품질보증", "품질 보증", "qa", "품질 감사", "품질 통제"],
+    "5-e. 기능점수산정": ["기능 점수", "기능점수", "fp", "ilf", "eif", "ei", "eo", "eq"],
+    "5-f. 비용산정 모델": ["비용산정", "비용 산정", "대가산정", "대가 산정", "cocomo", "loc", "만먼스", "effort"]
 }
 
 # 공식 세부 설명 메타데이터 정의
 CONCEPT_METADATA = {
     # 1. 요구사항분석 및 설계
-    "1-a. 요구사항 도출/분석/명세/추적": {"core_concept": "요구사항 생명주기 관리", "features": "요구사항 도출 기법, 분석 원리, 명세서 가이드라인, 추적 매트릭스 구성 요소를 검증합니다.", "scope": "요구분석 및 설계"},
+    "1-a. 요구사항 도출, 요구사항 분석, 요구사항 명세, 요구사항 추적": {"core_concept": "요구사항 생명주기 관리", "features": "요구사항 도출 기법, 분석 원리, 명세서 가라인, 추적 매트릭스 구성 요소를 검증합니다.", "scope": "요구분석 및 설계"},
     "1-b. 객체지향 개념": {"core_concept": "객체지향 설계 핵심 원칙", "features": "상속, 다형성, 캡슐화, 추상화 및 5대 의존 관계의 소스 코드 매핑 구조를 검증합니다.", "scope": "요구분석 및 설계"},
     "1-c. 설계원리": {"core_concept": "결합도와 응집도 및 설계 원리", "features": "SOLID 설계 원칙과 강한 응집도/약한 결합도를 달성하기 위한 상세 설계 요소를 질문합니다.", "scope": "요구분석 및 설계"},
     "1-d. UML/SysML 모델링": {"core_concept": "UML 및 SysML 표기법 분석", "features": "다양한 UML 다이어그램(클래스, 시퀀스, 상태, 활동)과 SysML 제약 조건 명세 특징을 검증합니다.", "scope": "요구분석 및 설계"},
-    "1-e. 아키텍처 스타일": {"core_concept": "소프트웨어 아키텍처 패턴", "features": "MVC, Layered, Event-Driven, Repository 등 전통적인 아키텍처 스타일의 구성과 특징을 비교 평가합니다.", "scope": "요구분석 및 설계"},
+    "1-e. 아키텍처 스타일(계층구조, 클라이언트 서버, 트랜잭션 처리, mvc, 이벤트 중심 등)": {"core_concept": "소프트웨어 아키텍처 패턴", "features": "MVC, Layered, Event-Driven, Repository 등 전통적인 아키텍처 스타일의 구성과 특징을 비교 평가합니다.", "scope": "요구분석 및 설계"},
     "1-f. 설계패턴": {"core_concept": "GoF 디자인 패턴 실전 연계", "features": "23대 생성, 구조, 행위 패턴의 자바 소스코드 수준 활용 방안을 질문합니다.", "scope": "요구분석 및 설계"},
     "1-g. 사용자 인터페이스 설계": {"core_concept": "UI/UX 설계 및 사용성 지침", "features": "UI 설계 3대 규칙, 웹 접근성 설계 기준과 사용자 인터랙션 평가 기법을 질문합니다.", "scope": "요구분석 및 설계"},
 
     # 2. 구현 및 테스트
-    "2-a. 프로그래밍언어 및 환경": {"core_concept": "코딩 규칙 및 언어별 컴파일 메커니즘", "features": "MISRA-C 등 코딩 표준 규칙 위배 사례 및 디버깅 지침을 검증합니다.", "scope": "구현 및 테스트"},
+    "2-a. 프로그래밍언어 및 환경(코딩원리, 코딩오류, 코딩 스타일, uml과 코딩)": {"core_concept": "코딩 규칙 및 언어별 컴파일 메커니즘", "features": "MISRA-C 등 코딩 표준 규칙 위배 사례 및 디버깅 지침을 검증합니다.", "scope": "구현 및 테스트"},
     "2-b. 코드 자동생성, 로우코드/노코드": {"core_concept": "현대적 개발 패러다임 플랫폼", "features": "모델 기반 개발(MDD)의 코드 자동 생성 기법 및 로우코드 플랫폼의 아키텍처 특징을 질문합니다.", "scope": "구현 및 테스트"},
     "2-c. 웹접근성, 웹호환성 점검": {"core_concept": "국가 웹 접근성 표준 지침 준수", "features": "대체 텍스트, 키보드 조작 보장 등 24대 웹 접근성 점검 기준을 중점 검증합니다.", "scope": "구현 및 테스트"},
     "2-d. 단위, 모듈, 연계, 통합, 시스템, 인수 등": {"core_concept": "테스트 단계별 수행 범위", "features": "하향식/상향식 통합 테스트(드라이버/스텁), 시스템 성능 테스트 및 알파/베타 인수 조건 분석이 출제됩니다.", "scope": "구현 및 테스트"},
     "2-e. 테스팅 방법 및 도구": {"core_concept": "동적/정적 테스트 설계 기법", "features": "화이트박스(제어 흐름 커버리지, 순환 복잡도)와 블랙박스(경계값, 동등 분할)의 세부 연산을 질문합니다.", "scope": "구현 및 테스트"},
-    "2-f. KS X ISO/IEC/IEEE 29119, KS X ISO/IEC 33063 테스트 표준": {"core_concept": "국제 SW 테스팅 표준", "features": "29119 표준이 규정하는 테스트 프로세스 산출물과 테스트 계획 설계 표준을 검증합니다.", "scope": "구현 및 테스트"},
+    "2-f. KS X ISO/IEC/IEEE 29119, KS X ISO/IEC 33063 SW테스트 관련 표준": {"core_concept": "국제 SW 테스팅 표준", "features": "29119 표준이 규정하는 테스트 프로세스 산출물과 테스트 계획 설계 표준을 검증합니다.", "scope": "구현 및 테스트"},
 
     # 3. 유지관리 및 운영
     "3-a. 유지관리 개념 및 방법": {"core_concept": "유지보수 유형 분류 및 개선 방법", "features": "수정, 예방, 적응, 완전 유지보수의 특징과 3R 진화 활동을 질문합니다.", "scope": "유지관리 및 운영"},
@@ -110,12 +116,12 @@ CONCEPT_METADATA = {
     "3-e. 아웃소싱": {"core_concept": "IT 서비스 위탁 관리 모델", "features": "SLA 기반의 아웃소싱 관리 절차와 위탁 리스크 식별 기준을 평가합니다.", "scope": "유지관리 및 운영"},
 
     # 4. 개발방법론, sw 구조 및 공개sw
-    "4-a. 구조적, 정보공학, 객체지향 방법론": {"core_concept": "정통적 소프트웨어 방법론 특징", "features": "각 방법론의 분석 대상(프로세스, 데이터, 객체)과 고유 산출물 특징을 비교 질문합니다.", "scope": "개발방법론 및 플랫폼"},
+    "4-a. 구조적, 정보공학, 객체지향": {"core_concept": "정통적 소프트웨어 방법론 특징", "features": "각 방법론의 분석 대상(프로세스, 데이터, 객체)과 고유 산출물 특징을 비교 질문합니다.", "scope": "개발방법론 및 플랫폼"},
     "4-b. CBD, Agile, 데브 옵스, aop 등": {"core_concept": "현대적 기민한 개발 아키텍처", "features": "스크럼 프레임워크 5대 회의와 산출물, AOP의 횡단 관심사 삽입 기법(Joinpoint/Advice)을 질문합니다.", "scope": "개발방법론 및 플랫폼"},
-    "4-c. 프로세스 모델": {"core_concept": "SDLC 생명주기 생태계 프로세스", "features": "폭포수, V-모델, 나선형(위험 분석), 점진적 모델의 생명주기 통제 절차를 검증합니다.", "scope": "개발방법론 및 플랫폼"},
+    "4-c. 프로세스 모델 : 폭포수, 프로타이핑, 점진적, 진화적, 나선형, v 모델, 스크럼 등": {"core_concept": "SDLC 생명주기 생태계 프로세스", "features": "폭포수, V-모델, 나선형(위험 분석), 점진적 모델의 생명주기 통제 절차를 검증합니다.", "scope": "개발방법론 및 플랫폼"},
     "4-d. 클린 아키텍처": {"core_concept": "관심사 분리 및 비즈니스 룰 보호", "features": "고수준 도메인 룰(엔티티/유스케이스) 중심의 내부 의존성 통제 규칙을 묻습니다.", "scope": "개발방법론 및 플랫폼"},
-    "4-e. 웹기반 기술구조, j2ee, 닷넷, 컨테이너 등 개발 플랫폼": {"core_concept": "웹 개발 기술 플랫폼 인프라", "features": "Docker 컨테이너 가상화 기술의 경량성 아키텍처 장점 및 Kubernetes 관리 기법을 평가합니다.", "scope": "개발방법론 및 플랫폼"},
-    "4-f. 분산컴포넌트 기술, xml 등": {"core_concept": "분산 환경 메시지 통신 표준", "features": "XML/JSON 구조적 메시지 파싱 및 분산 컴포넌트 간 트랜잭션 보장 방안을 검증합니다.", "scope": "개발방법론 및 플랫폼"},
+    "4-e. 웹기반 기술주고, j2ee, 닷넷, 컨테이너 등 개발 플랫폼": {"core_concept": "웹 개발 기술 플랫폼 인프라", "features": "Docker 컨테이너 가상화 기술의 경량성 아키텍처 장점 및 Kubernetes 관리 기법을 평가합니다.", "scope": "개발방법론 및 플랫폼"},
+    "4-f. 분산커포넌트 기술, xml 등": {"core_concept": "분산 환경 메시지 통신 표준", "features": "XML/JSON 구조적 메시지 파싱 및 분산 컴포넌트 간 트랜잭션 보장 방안을 검증합니다.", "scope": "개발방법론 및 플랫폼"},
     "4-g. 전자정부표준프레임워크, 스프링 프레임워크": {"core_concept": "국내 공공 프레임워크 표준 기술", "features": "Spring Framework의 IoC(제어역전)와 DI(의존성 주입) 원리 및 eGovFrame 구성 요소를 검증합니다.", "scope": "개발방법론 및 플랫폼"},
     "4-h. SOA, MSA": {"core_concept": "마이크로서비스 아키텍처 설계 패턴", "features": "Saga 패턴의 트랜잭션 관리, API Gateway, Circuit Breaker의 가용성 제어 전략을 질문합니다.", "scope": "개발방법론 및 플랫폼"},
     "4-i. 웹서비스(SOAP, REST)": {"core_concept": "웹 서비스 연동 인터페이스 규격", "features": "SOAP(WSDL/XML 기반)과 REST(Stateless/HTTP Resource 기반)의 장단점 대조가 출제됩니다.", "scope": "개발방법론 및 플랫폼"},
@@ -125,25 +131,27 @@ CONCEPT_METADATA = {
     "5-a. SW Product 품질": {"core_concept": "제품 품질 평가 모델", "features": "ISO/IEC 25010 제품 품질 8대 특성과 시나리오 기반 품질속성 측정 방안을 중점 질문합니다.", "scope": "SW 품질 및 비용산정"},
     "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)": {"core_concept": "프로세스 역량 및 성숙도 평가 모델", "features": "CMMI 5단계 성숙도 핵심 프로세스 영역(PA)과 SP인증 등급별 판정 기준을 비교 평가합니다.", "scope": "SW 품질 및 비용산정"},
     "5-c. ISO/IEC 12207, ISO/IEC 25000, ISO/IEC 5055 등 SW품질 관련 표준": {"core_concept": "소프트웨어 국제 품질 표준", "features": "12207의 3가지 생명주기 프로세스(기본/지원/조직) 구조 및 품질 제약 조건 표준을 질문합니다.", "scope": "SW 품질 및 비용산정"},
-    "5-d. SW 대가산정(기능점수 등)": {"core_concept": "소프트웨어 기능 점수 및 LOC 비용 산정", "features": "내부논리파일(ILF)과 외부인터페이스파일(EIF)의 기능점수 가중치 산정법 및 COCOMO II 계산 공식을 출제합니다.", "scope": "SW 품질 및 비용산정"}
+    "5-d. 품질보증": {"core_concept": "품질 보증 및 관리 활동", "features": "품질 보증 계획 수립, QA 조직의 감사 및 품질 지표 설정을 검증합니다.", "scope": "SW 품질 및 비용산정"},
+    "5-e. 기능점수산정": {"core_concept": "기능 점수 표준 산정", "features": "내부논리파일(ILF) 및 외부인터페이스파일(EIF) 가중치와 간이법/상세법 산정 방식을 검증합니다.", "scope": "SW 품질 및 비용산정"},
+    "5-f. 비용산정 모델": {"core_concept": "소프트웨어 비용 예측 기법", "features": "COCOMO 및 Putnam 비용 산정 모델의 특성과 수학적 연산을 질문합니다.", "scope": "SW 품질 및 비용산정"}
 }
 
 # 5대 대단원 매핑
 TOPIC_CATEGORIES = {
-    "1-a. 요구사항 도출/분석/명세/추적": "1. 요구사항분석 및 설계",
+    "1-a. 요구사항 도출, 요구사항 분석, 요구사항 명세, 요구사항 추적": "1. 요구사항분석 및 설계",
     "1-b. 객체지향 개념": "1. 요구사항분석 및 설계",
     "1-c. 설계원리": "1. 요구사항분석 및 설계",
     "1-d. UML/SysML 모델링": "1. 요구사항분석 및 설계",
-    "1-e. 아키텍처 스타일": "1. 요구사항분석 및 설계",
+    "1-e. 아키텍처 스타일(계층구조, 클라이언트 서버, 트랜잭션 처리, mvc, 이벤트 중심 등)": "1. 요구사항분석 및 설계",
     "1-f. 설계패턴": "1. 요구사항분석 및 설계",
     "1-g. 사용자 인터페이스 설계": "1. 요구사항분석 및 설계",
     
-    "2-a. 프로그래밍언어 및 환경": "2. 구현 및 테스트",
+    "2-a. 프로그래밍언어 및 환경(코딩원리, 코딩오류, 코딩 스타일, uml과 코딩)": "2. 구현 및 테스트",
     "2-b. 코드 자동생성, 로우코드/노코드": "2. 구현 및 테스트",
     "2-c. 웹접근성, 웹호환성 점검": "2. 구현 및 테스트",
     "2-d. 단위, 모듈, 연계, 통합, 시스템, 인수 등": "2. 구현 및 테스트",
     "2-e. 테스팅 방법 및 도구": "2. 구현 및 테스트",
-    "2-f. KS X ISO/IEC/IEEE 29119, KS X ISO/IEC 33063 테스트 표준": "2. 구현 및 테스트",
+    "2-f. KS X ISO/IEC/IEEE 29119, KS X ISO/IEC 33063 SW테스트 관련 표준": "2. 구현 및 테스트",
     
     "3-a. 유지관리 개념 및 방법": "3. 유지관리 및 운영",
     "3-b. 형상관리": "3. 유지관리 및 운영",
@@ -151,12 +159,12 @@ TOPIC_CATEGORIES = {
     "3-d. 재사용, 재공학, 역공학, Refactoring": "3. 유지관리 및 운영",
     "3-e. 아웃소싱": "3. 유지관리 및 운영",
     
-    "4-a. 구조적, 정보공학, 객체지향 방법론": "4. 개발방법론, sw 구조 및 공개sw",
+    "4-a. 구조적, 정보공학, 객체지향": "4. 개발방법론, sw 구조 및 공개sw",
     "4-b. CBD, Agile, 데브 옵스, aop 등": "4. 개발방법론, sw 구조 및 공개sw",
-    "4-c. 프로세스 모델": "4. 개발방법론, sw 구조 및 공개sw",
+    "4-c. 프로세스 모델 : 폭포수, 프로타이핑, 점진적, 진화적, 나선형, v 모델, 스크럼 등": "4. 개발방법론, sw 구조 및 공개sw",
     "4-d. 클린 아키텍처": "4. 개발방법론, sw 구조 및 공개sw",
-    "4-e. 웹기반 기술구조, j2ee, 닷넷, 컨테이너 등 개발 플랫폼": "4. 개발방법론, sw 구조 및 공개sw",
-    "4-f. 분산컴포넌트 기술, xml 등": "4. 개발방법론, sw 구조 및 공개sw",
+    "4-e. 웹기반 기술주고, j2ee, 닷넷, 컨테이너 등 개발 플랫폼": "4. 개발방법론, sw 구조 및 공개sw",
+    "4-f. 분산커포넌트 기술, xml 등": "4. 개발방법론, sw 구조 및 공개sw",
     "4-g. 전자정부표준프레임워크, 스프링 프레임워크": "4. 개발방법론, sw 구조 및 공개sw",
     "4-h. SOA, MSA": "4. 개발방법론, sw 구조 및 공개sw",
     "4-i. 웹서비스(SOAP, REST)": "4. 개발방법론, sw 구조 및 공개sw",
@@ -165,7 +173,9 @@ TOPIC_CATEGORIES = {
     "5-a. SW Product 품질": "5. SW 품질 및 비용산정",
     "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)": "5. SW 품질 및 비용산정",
     "5-c. ISO/IEC 12207, ISO/IEC 25000, ISO/IEC 5055 등 SW품질 관련 표준": "5. SW 품질 및 비용산정",
-    "5-d. SW 대가산정(기능점수 등)": "5. SW 품질 및 비용산정"
+    "5-d. 품질보증": "5. SW 품질 및 비용산정",
+    "5-e. 기능점수산정": "5. SW 품질 및 비용산정",
+    "5-f. 비용산정 모델": "5. SW 품질 및 비용산정"
 }
 
 def crop_question_images(pdf_path, year, output_dir):
@@ -245,85 +255,105 @@ def parse_questions(se_text):
         questions.append({"num": num, "body": q_body})
     return questions
 
+def load_exam_database_dict(subject_code):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
+    
+    # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조
+    if not os.path.exists(js_path):
+        js_path = os.path.join(base_dir, "reports", "exam_database.js")
+        
+    if not os.path.exists(js_path):
+        return {}
+        
+    with open(js_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    # Greedy 매칭 패턴 ((\{[\s\S]*\}))을 적용하여 지문 내 C++ 클래스 마감 기호(};) 오인식 방지
+    match = re.search(r"const\s+examDatabase\s*=\s*(\{[\s\S]*\});", content)
+    if not match:
+        return {}
+        
+    js_obj_str = match.group(1)
+    try:
+        import json
+        return json.loads(js_obj_str)
+    except Exception as e:
+        # 정규식 파서 폴백 (JSON Decode 실패 시 대응)
+        pairs = re.findall(r'"(\d{4}_\d+)":\s*"(.*?)"(?=,\s*"|\s*\})', js_obj_str, re.DOTALL)
+        parsed = {}
+        for k, v in pairs:
+            parsed[k] = v.replace('\\\\', '\\').replace('\\"', '"').replace('\\n', '\n')
+        return parsed
+
 def run_extraction_and_mapping():
     question_db = {}
     concept_map = {concept: [] for concept in CONCEPT_KEYWORDS}
     concept_map["[기타]"] = []
     
-    print("[1/3] 공식범위 기준 기출문제 PDF 파싱 및 분류 DB 구축 중...")
-    for exam in EXAM_FILES:
-        year = exam["year"]
-        filename = exam["filename"]
-        pdf_path = os.path.join(EXAM_DIR, filename)
+    filename_lower = os.path.basename(__file__).lower()
+    if "_db_" in filename_lower:
+        subject_code = "DB"
+    elif "_pm_" in filename_lower:
+        subject_code = "PM"
+    elif "_se_" in filename_lower:
+        subject_code = "SE"
+    elif "_sa_" in filename_lower:
+        subject_code = "SA"
+    elif "_sc_" in filename_lower:
+        subject_code = "SC"
+    else:
+        subject_code = "UNKNOWN"
         
-        if not os.path.exists(pdf_path):
-            print(f"  [경고] {year}년도 파일을 찾을 수 없습니다: {filename}")
+    exam_db_dict = load_exam_database_dict(subject_code)
+    
+    print(f"[1/3] {subject_code} 과목 기출문제 로딩 및 공식범위 매핑 중...")
+    
+    for year in range(2015, 2027):
+        if subject_code == "DB":
+            q_start, q_end = 51, 75
+        elif subject_code == "PM":
+            q_start, q_end = 1, 25
+        elif subject_code == "SE":
+            q_start, q_end = 26, 50
+        elif subject_code == "SA":
+            q_start, q_end = 76, 100
+        elif subject_code == "SC":
+            q_start, q_end = 101, 120
+        else:
             continue
             
-        try:
-            local_img_dir = r"e:\jolly-carson\reports\images"
-            artifact_img_dir = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\images"
-            unique_positions = crop_question_images(pdf_path, year, local_img_dir)
-            crop_question_images(pdf_path, year, artifact_img_dir)
+        for num in range(q_start, q_end + 1):
+            key = f"{year}_{num}"
+            q_text_clean = exam_db_dict.get(key)
+            if not q_text_clean:
+                continue
+                
+            question_db[key] = q_text_clean
             
-            # pdfplumber를 활용한 각 문제 영역 텍스트 직접 추출로 정합성 100% 보장
-            with pdfplumber.open(pdf_path) as pdf:
-                for num in range(26, 51):
-                    if num not in unique_positions:
-                        continue
-                    pos = unique_positions[num]
-                    page_idx = pos["page_idx"]
-                    page = pdf.pages[page_idx]
-                    
-                    bbox = pos.get("crop_rect")
-                    if not bbox:
-                        continue
-                        
-                    # coordinates boundary check
-                    x0 = max(0, min(bbox[0], page.width))
-                    y0 = max(0, min(bbox[1], page.height))
-                    x1 = max(0, min(bbox[2], page.width))
-                    y1 = max(0, min(bbox[3], page.height))
-                    
-                    if x1 <= x0: x1 = page.width
-                    if y1 <= y0: y1 = page.height
-                    
-                    cropped = page.crop((x0, y0, x1, y1))
-                    q_text = cropped.extract_text() or ""
-                    q_text_clean = q_text.strip()
-                    
-                    # 텍스트가 번호로 시작하지 않으면 번호를 보정하여 붙여줍니다.
-                    if not re.match(rf"^{num}\b", q_text_clean):
-                        q_text_clean = f"{num}. {q_text_clean}"
-                        
-                    key = f"{year}_{num}"
-                    question_db[key] = q_text_clean
-                    
-                    body_lower = q_text_clean.lower()
-                    matched_concepts = []
-                    for concept, keywords in CONCEPT_KEYWORDS.items():
-                        for kw in keywords:
-                            if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
-                                pattern = rf"\b{re.escape(kw.lower())}\b"
-                                if re.search(pattern, body_lower):
-                                    matched_concepts.append(concept)
-                                    break
-                            else:
-                                if kw.lower() in body_lower:
-                                    matched_concepts.append(concept)
-                                    break
-                                    
-                    if not matched_concepts:
-                        matched_concepts.append("[기타]")
-                                
-                    for concept in matched_concepts:
-                        concept_map[concept].append({
-                            "year": year,
-                            "num": num
-                        })
-        except Exception as e:
-            print(f"  [에러] {year}년도 처리 실패: {e}")
-            
+            body_lower = q_text_clean.lower()
+            matched_concepts = []
+            for concept, keywords in CONCEPT_KEYWORDS.items():
+                for kw in keywords:
+                    if re.match(r"^[a-zA-Z0-9\-\_\/]+$", kw):
+                        pattern = rf"(?<![a-zA-Z0-9]){re.escape(kw.lower())}(?![a-zA-Z0-9])"
+                        if re.search(pattern, body_lower):
+                            matched_concepts.append(concept)
+                            break
+                    else:
+                        if kw.lower() in body_lower:
+                            matched_concepts.append(concept)
+                            break
+                            
+            if not matched_concepts:
+                matched_concepts.append("[기타]")
+                            
+            for concept in matched_concepts:
+                concept_map[concept].append({
+                    "year": year,
+                    "num": num
+                })
+                
     return question_db, concept_map
 
 def build_html_content(question_db, concept_map):
@@ -549,6 +579,8 @@ def build_html_content(question_db, concept_map):
         }
 
         .concept-title {
+            user-select: text !important;
+            -webkit-user-select: text !important;
             font-size: 1.2rem;
             font-weight: 700;
             color: #ffffff;
@@ -871,7 +903,9 @@ def build_html_content(question_db, concept_map):
             .filter-section { gap: 0.4rem; margin-bottom: 1.5rem; }
             .filter-btn { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
             .accordion-trigger { padding: 1.2rem 1rem; gap: 0.6rem; }
-            .concept-title { font-size: 1.05rem; }
+            .concept-title {
+            user-select: text !important;
+            -webkit-user-select: text !important; font-size: 1.05rem; }
             .rank-badge { font-size: 1rem; }
             .category-tag, .freq-count-badge { font-size: 0.7rem; padding: 0.1rem 0.35rem; }
             .card-meta-grid { grid-template-columns: 80px 1fr; font-size: 0.82rem; row-gap: 0.4rem; }
@@ -951,17 +985,16 @@ def build_html_content(question_db, concept_map):
         }
 
     </style>
+    <script src="exam_db/se_db.js?v=20260613"></script>
 </head>
 <body>
-
-
 
 <div class="container">
     <header>
         <h1>소프트웨어공학 공식 범위별 기출 대시보드</h1>
-        <p class="subtitle">공식 시험 가이드라인(SE.txt) 5대 단원 및 31개 중단원 매핑 기출 뷰어</p>
+        <p class="subtitle">공식 시험 가이드라인(SE.txt) 5대 단원 및 33개 중단원 매핑 기출 뷰어</p>
         
-                <div class="navigation-container">
+        <div class="navigation-container">
             <div class="mode-switch-wrapper">
                 <span class="mode-label" id="label-freq">🔥 빈출 개념순</span>
                 <label class="switch">
@@ -983,19 +1016,16 @@ def build_html_content(question_db, concept_map):
         
         <div class="meta-badges">
             <span class="badge">기출 범위: 2015년 ~ 2026년</span>
-            <span class="badge accent">총 분석 데이터: 300 문항</span>
+            <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
             <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
                 매핑된 공식 중단원: <span id="topic-count-badge">0</span>개
             </span>
-            </div>
+        </div>
     </header>
 
     <div id="accordion-container" class="accordion-list"></div>
 
-
-    
 <script>
-
     // [설계 의도] 로컬 오프라인 실행(file:///)과 웹 서버 호스팅(http://) 환경 양쪽 모두에서 퀴즈 대시보드 홈으로 매끄럽게 이동하도록 분기 처리합니다.
     function goToHome(event) {
         event.preventDefault();
@@ -1021,9 +1051,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
         });
 
@@ -1042,9 +1072,9 @@ def build_html_content(question_db, concept_map):
 
         if (targetRedirect) {
             if (isLocal) {
-                window.location.href = targetRedirect;
+                window.location.href = targetRedirect + '?v=20260613';
             } else {
-                window.location.href = '/reports/' + targetRedirect;
+                window.location.href = '/reports/' + targetRedirect + '?v=20260613';
             }
         }
     }
@@ -1068,9 +1098,9 @@ def build_html_content(question_db, concept_map):
         badges.forEach(badge => {
             const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
             if (isLocal) {
-                badge.href = target;
+                badge.href = target + '?v=20260613';
             } else {
-                badge.href = '/reports/' + target;
+                badge.href = '/reports/' + target + '?v=20260613';
             }
 
             // 활성화 배지 하이라이트 (현재 페이지 파일명이 target을 포함하는 경우)
@@ -1088,7 +1118,6 @@ def build_html_content(question_db, concept_map):
     // DOMContentLoaded 시점에 즉시 내비게이션 초기화 적용
     document.addEventListener('DOMContentLoaded', initDashboardNav);
 
-    const examDatabase = %DB_JSON%;
     const topicMapping = %MAPPING_JSON%;
     let currentCategory = '전체';
 
@@ -1164,7 +1193,7 @@ def build_html_content(question_db, concept_map):
                 </div>
             `;
             container.appendChild(accItem);
-            });
+        });
     }
 
     function hideImageContainer(idx) {
@@ -1177,12 +1206,24 @@ def build_html_content(question_db, concept_map):
     function filterCategory(category) {
         currentCategory = category;
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            if (btn.textContent === category || (category === '전체' && btn.textContent === '전체') || (category.includes('요구') && btn.textContent.includes('요구')) || (category.includes('구현') && btn.textContent.includes('구현')) || (category.includes('유지') && btn.textContent.includes('유지')) || (category.includes('개발') && btn.textContent.includes('개발')) || (category.includes('품질') && btn.textContent.includes('품질'))) {
+            if (btn.textContent === category || (category === '전체' && btn.textContent === '전체')) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
             }
         });
+        if (document.getElementById('total-question-badge')) {
+            const uniqueQuestions = new Set();
+            const mappingsObj = topicMapping;
+            mappingsObj.forEach(item => {
+                if (item.questions) {
+                    item.questions.forEach(q => {
+                        uniqueQuestions.add(q.year + "_" + q.num);
+                    });
+                }
+            });
+            document.getElementById('total-question-badge').textContent = uniqueQuestions.size;
+        }
         renderTopics();
     }
 
@@ -1344,8 +1385,20 @@ def build_html_content(question_db, concept_map):
         }, 250);
     };
 
+    if (document.getElementById('total-question-badge')) {
+        const uniqueQuestions = new Set();
+        const mappingsObj = topicMapping;
+        mappingsObj.forEach(item => {
+            if (item.questions) {
+                item.questions.forEach(q => {
+                    uniqueQuestions.add(q.year + "_" + q.num);
+                });
+            }
+        });
+        document.getElementById('total-question-badge').textContent = uniqueQuestions.size;
+    }
     renderTopics();
-    </script>
+</script>
 
 <div id="topic-modal" class="modal-overlay" onclick="closeTopicModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()">
@@ -1362,26 +1415,25 @@ def build_html_content(question_db, concept_map):
 </body>
 </html>
 """
-    html_content = html_template.replace("%DB_JSON%", db_json).replace("%MAPPING_JSON%", mapping_json)
+    html_content = html_template.replace("%MAPPING_JSON%", mapping_json)
     return html_content
 
 def main():
     question_db, concept_map = run_extraction_and_mapping()
+    update_shared_db(question_db, "SE")
     html_content = build_html_content(question_db, concept_map)
     
-    local_path = r"e:\jolly-carson\reports\se_official_scopes.html"
+    local_path, artifact_path = get_output_paths("se_official_scopes.html")
+    
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     with open(local_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    print(f"[2/3] 로컬 reports 폴더 저장 완료: {local_path}")
+    print(f"[로컬] 저장 완료: {local_path}")
     
-    artifact_path = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\se_official_scopes.html"
     os.makedirs(os.path.dirname(artifact_path), exist_ok=True)
     with open(artifact_path, "w", encoding="utf-8") as f:
         f.write(html_content)
-    print(f"[3/3] 아티팩트 디렉토리 저장 완료: {artifact_path}")
-    
-    print("\n[성공] 초프리미엄 공식범위 기출문제 뷰어 빌드가 완료되었습니다!")
+    print(f"[아티팩트] 저장 완료: {artifact_path}")
 
 if __name__ == "__main__":
     main()
