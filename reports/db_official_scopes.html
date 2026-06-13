@@ -550,13 +550,7 @@
         <header>
             <h1>데이터베이스 공식 범위별 기출분석</h1>
             <p class="subtitle">공식 시험 범위 표준 가이드를 기준으로 매핑된 21개 세부 중단원 정밀 대시보드</p>
-            <div class="meta-badges" style="margin-top: 1rem; margin-bottom: 1.2rem;">
-                <span class="badge">기출 범위: 2015년 ~ 2026년</span>
-                <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
-                <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
-                    매핑된 공식 중단원: <span id="topic-count-badge">0</span>개
-                </span>
-            </div>
+            
             <div class="navigation-container">
                 <div class="mode-switch-wrapper">
                     <span class="mode-label" id="label-freq">🔥 빈출 개념순</span>
@@ -575,6 +569,14 @@
                     <a href="sa_frequent_concepts.html" class="badge subject-badge" data-freq="sa_frequent_concepts.html" data-official="sa_official_scopes.html" style="text-decoration: none;">시스템 아키텍처</a>
                     <a href="sc_frequent_concepts.html" class="badge subject-badge" data-freq="sc_frequent_concepts.html" data-official="sc_official_scopes.html" style="text-decoration: none;">보안</a>
                 </div>
+            </div>
+            
+            <div class="meta-badges">
+                <span class="badge">기출 범위: 2015년 ~ 2026년</span>
+                <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
+                <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
+                    매핑된 공식 중단원: <span id="topic-count-badge">0</span>개
+                </span>
             </div>
         </header>
 
