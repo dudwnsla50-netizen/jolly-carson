@@ -20,14 +20,19 @@ def clean_file_colors(js_path):
     with open(js_path, "r", encoding="utf-8") as f:
         content = f.read()
         
-    # 변경 타겟이 되는 블랙 및 어두운 색상 코드 패턴들
-    # color:#000000, color:#191919, color:#0c0c0c, color:black, color: rgb(...)
+    # 변경 타겟이 되는 블랙 및 어두운 색상 코드 패턴들 및 폰트/위치 인라인 스타일
     replacements = [
         (r'color\s*:\s*#000000', 'color:inherit'),
         (r'color\s*:\s*#191919', 'color:inherit'),
         (r'color\s*:\s*#0c0c0c', 'color:inherit'),
         (r'color\s*:\s*black', 'color:inherit'),
-        (r'color\s*:\s*rgb\(\s*0\s*,\s*0\s*,\s*0\s*\)', 'color:inherit')
+        (r'color\s*:\s*rgb\(\s*0\s*,\s*0\s*,\s*0\s*\)', 'color:inherit'),
+        # 인라인 폰트 및 위치 스타일 제거
+        (r'font-family\s*:\s*[^;"]+;?', ''),
+        (r'font-size\s*:\s*[^;"]+;?', ''),
+        (r'top\s*:\s*\d+(\.\d+)?(pt|px|em|rem|%);?', ''),
+        (r'left\s*:\s*\d+(\.\d+)?(pt|px|em|rem|%);?', ''),
+        (r'line-height\s*:\s*\d+(\.\d+)?(pt|px|em|rem|%);?', '')
     ]
     
     modified_content = content

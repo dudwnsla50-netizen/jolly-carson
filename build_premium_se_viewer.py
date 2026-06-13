@@ -852,6 +852,15 @@ def build_html_content(question_db, concept_map):
             max-height: 400px;
             padding-right: 0.5rem;
         }
+        .viewer-body p, .viewer-body span {
+            font-family: inherit !important;
+            font-size: inherit !important;
+            line-height: inherit !important;
+            color: inherit !important;
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+        }
 
         /* 스크롤바 디자인 */
         .viewer-body::-webkit-scrollbar {
