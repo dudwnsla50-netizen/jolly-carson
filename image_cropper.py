@@ -154,6 +154,27 @@ def get_question_positions_and_crop(pdf_path, year, subject_code, local_img_dir,
         if next_pos and next_pos["page_idx"] == page_idx and next_pos["band_idx"] == pos["band_idx"]:
             y_end = next_pos["rect"].y0 - 8
             
+        # [추가] 보기 ④번의 위치를 찾아서 y_end를 보정 (마지막 문제 등의 노이즈 이미지 섞임 방지)
+        q4_y1 = None
+        clip_rect = fitz.Rect(pos["x0"], 0, pos["x1"], height)
+        blocks = page.get_text("blocks", clip=clip_rect)
+        blocks.sort(key=lambda x: x[1])
+        
+        for block in blocks:
+            if block[1] >= y_start:
+                if next_pos and next_pos["page_idx"] == page_idx and next_pos["band_idx"] == pos["band_idx"]:
+                    if block[1] >= next_pos["rect"].y0:
+                        break
+                block_text = block[4].strip()
+                if "④" in block_text:
+                    q4_y1 = block[3]
+                    
+        if q4_y1 is not None:
+            # 보기 ④번 하단에 적절한 마진(+20)을 더한 값이 기존 y_end보다 작으면 경계로 채택
+            q4_y_end = q4_y1 + 20
+            if q4_y_end < y_end:
+                y_end = q4_y_end
+            
         crop_rect = fitz.Rect(pos["x0"], y_start, pos["x1"], y_end)
         
         # 비정상적인 극소 면적 방지
@@ -176,10 +197,12 @@ def get_question_positions_and_crop(pdf_path, year, subject_code, local_img_dir,
             
         # 렌더링 및 디스크 쓰기 수행
         try:
-            pix = page.get_pixmap(clip=crop_rect, matrix=fitz.Matrix(2.2, 2.2))
+            # 사용자의 요청에 따라 이미지 사이즈 및 품질을 50% 줄이기 위해 Matrix 배율을 2.2에서 1.1로 조정
+            pix = page.get_pixmap(clip=crop_rect, matrix=fitz.Matrix(1.1, 1.1))
             pix.save(local_path)
             pix.save(artifact_path)
         except Exception as e:
             print(f"  [경고] {year}년도 {num}번 크롭 이미지 저장 실패: {e}")
             
     return unique_positions
+

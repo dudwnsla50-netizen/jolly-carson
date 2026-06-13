@@ -1048,6 +1048,28 @@ def build_html_content(question_db, concept_map):
             color: #ffffff !important;
         }
 
+    
+        /* [일괄 레이아웃 패치: 스크롤바 제거 및 이미지 50% 축소] */
+        .viewer-body {
+            max-height: none !important;
+            overflow-y: visible !important;
+        }
+        .viewer-img-container img, .question-img {
+            max-width: 50% !important;
+            height: auto !important;
+            display: block !important;
+        }
+        @media (max-width: 768px) {
+            .viewer-body {
+                max-height: none !important;
+                overflow-y: visible !important;
+            }
+            .viewer-img-container img, .question-img {
+                max-width: 50% !important;
+                height: auto !important;
+            }
+        }
+
     </style>
     <script src="exam_db/sa_db.js?v=20260613"></script>
 </head>

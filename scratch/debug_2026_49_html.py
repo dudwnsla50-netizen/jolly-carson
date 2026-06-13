@@ -17,18 +17,18 @@ with open(html_path, "r", encoding="utf-8") as f:
 
 elements = re.findall(r'(<p[^>]*>[\s\S]*?</p>|<img[^>]*>)', content)
 
-found_49 = False
+found_34 = False
 count = 0
 for idx, el in enumerate(elements):
     txt = re.sub(r'<[^>]*>', '', el).strip()
-    if txt.startswith("49."):
-        found_49 = True
-        print(f"--- Found 49. at element index {idx} ---")
+    if txt.startswith("34."):
+        found_34 = True
+        print(f"--- Found 34. at element index {idx} ---")
     
-    if found_49:
+    if found_34:
         print(f"Element {idx}: {el[:200]} ... (Length: {len(el)})")
         count += 1
-        if txt.startswith("50."):
-            print(f"--- Found 50. at element index {idx} ---")
+        if txt.startswith("35."):
+            print(f"--- Found 35. at element index {idx} ---")
         if count > 25:
             break

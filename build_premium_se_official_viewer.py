@@ -756,8 +756,8 @@ def build_html_content(question_db, concept_map):
             line-height: 1.7;
             color: #d1d5db;
             white-space: pre-wrap;
-            overflow-y: auto;
-            max-height: 400px;
+            overflow-y: visible;
+            max-height: none;
             padding-right: 0.5rem;
         }
         .viewer-body p, .viewer-body span {
@@ -768,6 +768,12 @@ def build_html_content(question_db, concept_map):
             position: static !important;
             top: auto !important;
             left: auto !important;
+        }
+        .viewer-body img {
+            max-width: 50% !important;
+            height: auto !important;
+            margin: 0.8rem auto !important;
+            display: block !important;
         }
 
         /* 스크롤바 디자인 */
@@ -994,6 +1000,28 @@ def build_html_content(question_db, concept_map):
             background: rgba(139, 92, 246, 0.12) !important;
             border-color: rgba(139, 92, 246, 0.25) !important;
             color: #ffffff !important;
+        }
+
+    
+        /* [일괄 레이아웃 패치: 스크롤바 제거 및 이미지 50% 축소] */
+        .viewer-body {
+            max-height: none !important;
+            overflow-y: visible !important;
+        }
+        .viewer-img-container img, .question-img {
+            max-width: 50% !important;
+            height: auto !important;
+            display: block !important;
+        }
+        @media (max-width: 768px) {
+            .viewer-body {
+                max-height: none !important;
+                overflow-y: visible !important;
+            }
+            .viewer-img-container img, .question-img {
+                max-width: 50% !important;
+                height: auto !important;
+            }
         }
 
     </style>
