@@ -28,6 +28,26 @@ EXAM_FILES = [
     {"year": 2026, "filename": "2026년 감리사 자격검정 필기시험 문제 및 가답안（A형）.html"}
 ]
 
+LAYOUT_THRESHOLDS = {
+    2015: [130.0, 300.0, 480.0],
+    2016: [180.0, 400.0],
+    2017: [180.0],
+    2018: [180.0],
+    2019: [180.0],
+    2020: [200.0, 450.0, 560.0],
+    2021: [200.0],
+    2022: [140.0, 300.0, 430.0],
+    2023: [200.0],
+    2024: [180.0],
+    2025: [180.0, 380.0, 580.0],
+    2026: [180.0]
+}
+
+def clean_html_tags(html_str):
+    text = re.sub(r'<[^>]+>', '', html_str)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
 def load_db_js(js_path):
     if not os.path.exists(js_path):
         return {}
@@ -39,7 +59,7 @@ def load_db_js(js_path):
     try:
         return json.loads(match.group(1))
     except Exception:
-        # 간단한 파서 폴백
+        # 폴백 파서
         pairs = re.findall(r'"(\d{4}_\d+)":\s*"(.*?)"(?=,\s*"|\s*\})', match.group(1), re.DOTALL)
         parsed = {}
         for k, v in pairs:
@@ -47,15 +67,10 @@ def load_db_js(js_path):
         return parsed
 
 def save_db_js(js_path, db_dict):
-    db_json = json.dumps(db_dict, ensure_ascii=False, indent=2)
-    # C++ 클래스 마감 기호 중복 검출 방지를 위한 greedy 매칭 호환용 선언 작성
-    content = f"const examDatabase = {db_json};\n\nif (typeof module !== 'undefined' && module.exports) {{\n    module.exports = examDatabase;\n}}\n"
     with open(js_path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-def clean_html_tags(text):
-    # 단순 텍스트 내 태그 정리용
-    return re.sub(r'<[^>]*>', '', text).strip()
+        f.write("const examDatabase = ")
+        f.write(json.dumps(db_dict, ensure_ascii=False, indent=2))
+        f.write(";\n")
 
 def extract_images_for_questions(html_path, year):
     if not os.path.exists(html_path):
@@ -65,24 +80,93 @@ def extract_images_for_questions(html_path, year):
     with open(html_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # w:body 자식 엘리먼트 단위로 분석하거나 단순 정규식 라인별 수집
-    # 각 line을 분석하기 쉽게 <p> 또는 <img> 태그 단위로 파싱
-    elements = re.findall(r'(<p[^>]*>[\s\S]*?</p>|<img[^>]*>)', content)
+    # 페이지 단위로 나누어 각 페이지별로 band/top 정렬을 수행 (페이지 간 이미지 섞임 방지)
+    page_chunks = content.split('<div class="page-wrapper"')
+    all_sorted_elements = []
     
-    question_elements = {n: [] for n in range(26, 52)} # 51번(다음 과목 첫문제)까지 수집
+    thresholds = LAYOUT_THRESHOLDS.get(year, [250.0])
+    
+    for page_idx, chunk in enumerate(page_chunks):
+        if page_idx == 0:
+            # 첫 번째 조각은 첫 페이지 이전의 헤더 영역이므로 제외
+            continue
+            
+        elements = re.findall(r'(<p[^>]*>[\s\S]*?</p>|<img[^>]*>)', chunk)
+        positioned_elements = []
+        
+        last_p_left = 0.0
+        last_p_top = 0.0
+        last_p_band = 0
+        
+        for idx, el in enumerate(elements):
+            top = 0.0
+            left = 0.0
+            
+            top_match = re.search(r'top:([\d\.-]+)(?:pt|px)?', el)
+            left_match = re.search(r'left:([\d\.-]+)(?:pt|px)?', el)
+            
+            if top_match:
+                top = float(top_match.group(1))
+            if left_match:
+                left = float(left_match.group(1))
+                
+            final_left = left
+            final_top = top
+            
+            if "<img" in el:
+                matrix_match = re.search(r'transform:matrix\([^,]+,[^,]+,[^,]+,[^,]+,([\d\.-]+),([\d\.-]+)\)', el)
+                if matrix_match:
+                    final_left = left + float(matrix_match.group(1))
+                    final_top = top + float(matrix_match.group(2))
+                    
+                # 이미지 좌표 누락 혹은 음수 렌더링 시 직전 P 태그의 좌표를 상속받아 정렬
+                if not left_match or final_left < 0.0:
+                    final_left = last_p_left
+                    final_top = last_p_top + 0.1
+                    band = last_p_band
+                else:
+                    band = sum(1 for t in thresholds if final_left >= t)
+            else:
+                band = sum(1 for t in thresholds if final_left >= t)
+                last_p_left = final_left
+                last_p_top = final_top
+                last_p_band = band
+                
+            positioned_elements.append({
+                "element": el,
+                "band": band,
+                "top": final_top,
+                "left": final_left
+            })
+            
+        # 해당 페이지 내에서 (band, top) 기준으로 정렬
+        positioned_elements.sort(key=lambda x: (x["band"], x["top"]))
+        for item in positioned_elements:
+            all_sorted_elements.append((item["element"], item["band"]))
+            
+    # 소프트웨어공학의 범위는 26번부터 50번까지임
+    question_elements = {n: [] for n in range(26, 52)}
     current_q = None
+    q_start_band = None
     
-    for el in elements:
-        # 문제 번호 탐색 (예: 26., 45., 51.)
+    for el, band in all_sorted_elements:
         if "<p" in el:
             txt = clean_html_tags(el)
-            # 단어 경계 + 숫자 + 점 패턴 감지
-            match = re.search(r'^(2[6-9]|[3-4][0-9]|5[0-1])\.', txt)
-            if match:
-                current_q = int(match.group(1))
-                
+            # 모든 번호 패턴 감지하여 소프트웨어공학 범위를 벗어나면 수집 중단(None) 처리
+            match_any = re.search(r'^(\d+)\.', txt)
+            if match_any:
+                q_num = int(match_any.group(1))
+                if 26 <= q_num <= 50:
+                    current_q = q_num
+                    q_start_band = band
+                else:
+                    current_q = None
+                    q_start_band = None
+                    
         if current_q is not None:
-            question_elements[current_q].append(el)
+            # 문항이 시작된 단(Band)과 일치하는 요소만 수집하여 다른 단에 있는 타 과목 내용이 섞이는 것을 원천 방지
+            if band == q_start_band:
+                question_elements[current_q].append(el)
             
     # 과목별 HTML 데이터 빌드
     enriched_questions = {}
@@ -91,50 +175,28 @@ def extract_images_for_questions(html_path, year):
         if not q_elements:
             continue
             
-        # 이 문항 내에서 <img> 태그들이 존재하는지 확인
-        imgs = [el for el in q_elements if "<img" in el]
-        if not imgs:
-            continue
-            
-        print(f"  -> {year}년 {num}번 문항 이미지 {len(imgs)}개 감지")
-        
-        # 보기 번호별 이미지 분배 및 지문 매핑
-        # HTML 텍스트의 흐름을 분석하여 지문과 보기에 적절히 이미지를 결합합니다.
+        # 일관성을 위해 이미지가 없는 텍스트 문제도 모두 HTML로 변환하여 덮어쓰고, 기존 오염 데이터를 확실하게 정화함
         body_parts = []
-        current_state = "body" # body, q1, q2, q3, q4
-        
         for el in q_elements:
             if "<p" in el:
-                txt = clean_html_tags(el)
-                if "①" in txt:
-                    current_state = "q1"
-                elif "②" in txt:
-                    current_state = "q2"
-                elif "③" in txt:
-                    current_state = "q3"
-                elif "④" in txt:
-                    current_state = "q4"
-                
                 body_parts.append(el)
             elif "<img" in el:
-                # 이미지 크기를 반응형에 최적화하도록 style 강제 조정
-                img_style = 'max-width: 100%; height: auto; display: block; margin: 0.5rem 0; border-radius: 4px; border: 1px solid rgba(255,255,255,0.06);'
+                # 이미지 크기 max-width: 50% 및 display: block, margin: 0.8rem 0 설정
+                img_style = 'max-width: 50%; height: auto; display: block; margin: 0.8rem 0; border-radius: 4px; border: 1px solid rgba(255,255,255,0.06);'
                 modified_img = re.sub(r'style="[^"]*"', f'style="{img_style}"', el)
                 
-                # absolute position이 혹시 남아있으면 인라인으로 강제 변경
                 if 'position:absolute' in modified_img:
                     modified_img = re.sub(r'position:\s*absolute;?', '', modified_img)
                 
                 body_parts.append(modified_img)
                 
-        # 수집된 HTML 조각들을 문항 본문으로 결합
         html_body = "".join(body_parts)
         enriched_questions[f"{year}_{num}"] = html_body
         
     return enriched_questions
 
 def main():
-    print("=== [시작] SE 기출 HTML 지문 이미지 임베딩 작업 ===")
+    print("=== [시작] SE 기출 HTML 지문 이미지 임베딩 및 지문 완전 정화 작업 ===")
     
     # 1. 기존 SE DB 및 공통 DB 로드
     se_db = load_db_js(SE_DB_JS_PATH)
@@ -154,7 +216,6 @@ def main():
         enriched = extract_images_for_questions(html_path, year)
         
         for key, html_content in enriched.items():
-            # 기존 텍스트 지문을 HTML 지문으로 대체 보강
             se_db[key] = html_content
             shared_db[key] = html_content
             total_embedded += 1
@@ -163,7 +224,7 @@ def main():
     if total_embedded > 0:
         save_db_js(SE_DB_JS_PATH, se_db)
         save_db_js(SHARED_DB_JS_PATH, shared_db)
-        print(f"\n✅ 지문 데이터베이스 업데이트 완료! (총 {total_embedded}개 문항 보강됨)")
+        print(f"\n✅ 지문 데이터베이스 업데이트 완료! (총 {total_embedded}개 문항 정화 및 보강됨)")
     else:
         print("\nℹ️ 새로 업데이트된 지문이 없습니다.")
 
