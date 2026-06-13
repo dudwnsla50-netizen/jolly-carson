@@ -39,7 +39,7 @@ def save_db_js(js_path, db_dict):
         f.write(content)
 
 def compress_base64_image(img_tag):
-    # img 태그 내의 src="data:image/...;base64,..." 에서 base64 데이터를 파싱합니다.
+     # img 태그 내의 src="data:image/...;base64,..." 에서 base64 데이터를 파싱합니다.
     src_match = re.search(r'src="data:image/([^;]+);base64,([^"]+)"', img_tag)
     if not src_match:
         return img_tag
@@ -75,7 +75,7 @@ def sanitize_and_compress_question(key, val):
         
     sub_elements = re.findall(r'(<p[^>]*>[\s\S]*?</p>|<img[^>]*>)', val)
     
-    # 1. 보기 ④번의 인덱스 찾기
+    # 1. 보기 ④번의 인덱스 찾기 (가장 마지막 ④번)
     q4_idx = -1
     for idx, el in enumerate(sub_elements):
         if "<p" in el:
@@ -87,33 +87,16 @@ def sanitize_and_compress_question(key, val):
     cleaned_elements = []
     
     if q4_idx != -1:
-        # 보기 ④번 인덱스 전까지는 그대로 누적
+        # 보기 ④번이 발견되면 보기 ④번 인덱스까지만 취하고 그 뒤의 모든 노이즈를 일괄 소거합니다.
         cleaned_elements.extend(sub_elements[:q4_idx+1])
-        
-        # 보기 ④번 이후 노이즈 필터링
-        post_elements = sub_elements[q4_idx+1:]
-        total_imgs = sum(1 for el in sub_elements if "<img" in el)
-        
-        for el in post_elements:
-            if "<img" in el:
-                # 전체 이미지 수가 4개 미만인 경우(선택지 이미지형 문제가 아닌 경우) ④번 뒤 이미지는 타 문항 노이즈
-                if total_imgs < 4:
-                    print(f"    -> [{key}] ④번 뒤 노이즈 이미지 제거됨.")
-                    changed = True
-                    continue
-                else:
-                    cleaned_elements.append(el)
-            elif "<p" in el:
-                # 페이지 지시선 번호(- 11 - 등) 제거
-                txt = re.sub(r'<[^>]*>', '', el).strip()
-                if re.match(r'^\s*-\s*\d+\s*-\s*$', txt):
-                    print(f"    -> [{key}] 페이지 번호 단락 제거됨: '{txt}'")
-                    changed = True
-                    continue
-                else:
-                    cleaned_elements.append(el)
-            else:
-                cleaned_elements.append(el)
+        if len(sub_elements) > (q4_idx + 1):
+            # 사소한 공백이나 구분선만 있는 경우는 제외하고 실질적 텍스트/이미지가 있을 때만 변경된 것으로 판단
+            post_elements = sub_elements[q4_idx+1:]
+            post_text = " ".join(re.sub(r'<[^>]*>', '', el).strip() for el in post_elements if "<p" in el).strip()
+            has_img = any("<img" in el for el in post_elements)
+            if post_text or has_img:
+                print(f"    -> [{key}] 보기 ④번 뒤 노이즈 일괄 제거됨. (엘리먼트 수: {len(sub_elements)} -> {q4_idx+1})")
+                changed = True
     else:
         cleaned_elements.extend(sub_elements)
         
@@ -134,39 +117,52 @@ def sanitize_and_compress_question(key, val):
     return val, False
 
 def main():
-    print("=== [시작] 노이즈 소거 및 이미지 50% 최적화 작업 ===")
+    print("=== [시작] 전과목 노이즈 소거 및 이미지 50% 최적화 작업 ===")
     
-    se_db = load_db_js(SE_DB_JS_PATH)
-    shared_db = load_db_js(SHARED_DB_JS_PATH)
+    db_files = [
+        "se_db.js",
+        "db_db.js",
+        "pm_db.js",
+        "sa_db.js",
+        "sc_db.js"
+    ]
     
-    total_changed = 0
-    
-    # SE DB 가공
-    print("\n[1/2] se_db.js 정화 및 압축 시작...")
-    for key, val in se_db.items():
-        new_val, changed = sanitize_and_compress_question(key, val)
-        if changed:
-            se_db[key] = new_val
-            total_changed += 1
+    # 1. 5대 개별 과목 DB 가공 및 저장
+    for db_file in db_files:
+        db_path = os.path.join(BASE_DIR, "reports", "exam_db", db_file)
+        if not os.path.exists(db_path):
+            continue
             
-    # Shared DB 가공 (SE 과목 범위인 26~50번만)
-    print("\n[2/2] exam_database.js 정화 및 압축 시작...")
-    for key, val in shared_db.items():
-        # SE 과목 범위인지 확인 (예: 2015_26 ~ 2026_50)
-        match = re.match(r'^(\d{4})_(\d+)$', key)
-        if match:
-            num = int(match.group(2))
-            if 26 <= num <= 50:
-                new_val, changed = sanitize_and_compress_question(key, val)
-                if changed:
-                    shared_db[key] = new_val
-                    
-    if total_changed > 0:
-        save_db_js(SE_DB_JS_PATH, se_db)
-        save_db_js(SHARED_DB_JS_PATH, shared_db)
-        print(f"\n✅ 데이터베이스 정화 및 압축 저장 완료! (총 {total_changed}개 문항 변경)")
-    else:
-        print("\nℹ️ 변경할 데이터가 없거나 이미 정화 및 압축이 적용되어 있습니다.")
+        print(f"\n📂 [{db_file}] 정화 및 압축 시작...")
+        db_dict = load_db_js(db_path)
+        
+        file_changed = False
+        for key, val in db_dict.items():
+            new_val, changed = sanitize_and_compress_question(key, val)
+            if changed:
+                db_dict[key] = new_val
+                file_changed = True
+                
+        if file_changed:
+            save_db_js(db_path, db_dict)
+            print(f"✅ [{db_file}] 정화 완료 및 저장!")
+            
+    # 2. 공통 DB (exam_database.js) 가공 및 저장
+    shared_path = SHARED_DB_JS_PATH
+    if os.path.exists(shared_path):
+        print(f"\n📂 [exam_database.js] 정화 및 압축 시작...")
+        shared_db = load_db_js(shared_path)
+        
+        shared_changed = False
+        for key, val in shared_db.items():
+            new_val, changed = sanitize_and_compress_question(key, val)
+            if changed:
+                shared_db[key] = new_val
+                shared_changed = True
+                
+        if shared_changed:
+            save_db_js(shared_path, shared_db)
+            print(f"✅ [exam_database.js] 정화 완료 및 저장!")
 
 if __name__ == "__main__":
     main()
