@@ -1461,7 +1461,7 @@ def build_html_content(question_db, concept_map):
         const imgContainer = document.getElementById(`viewer-img-container-${idx}`);
         
         titleEl.textContent = `${year}년도 감리사 기출 ${num}번`;
-        bodyEl.textContent = questionText;
+        bodyEl.innerHTML = questionText;
         
         if (imgEl && imgContainer) {
             imgContainer.style.display = 'block';

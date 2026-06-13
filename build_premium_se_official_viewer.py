@@ -1247,7 +1247,7 @@ def build_html_content(question_db, concept_map):
                 const imgContainer = document.getElementById(`viewer-img-container-${index}`);
                 
                 titleEl.textContent = `[대표 문제 예시] ${dataObj.rep_year}년 기출 ${dataObj.rep_num}번`;
-                bodyEl.textContent = dataObj.rep_question;
+                bodyEl.innerHTML = dataObj.rep_question;
                 
                 if (imgEl && imgContainer) {
                     imgContainer.style.display = 'block';
@@ -1294,7 +1294,7 @@ def build_html_content(question_db, concept_map):
         const imgContainer = document.getElementById(`viewer-img-container-${idx}`);
         
         titleEl.textContent = `${year}년도 감리사 기출 ${num}번`;
-        bodyEl.textContent = questionText;
+        bodyEl.innerHTML = questionText;
         
         if (imgEl && imgContainer) {
             imgContainer.style.display = 'block';
