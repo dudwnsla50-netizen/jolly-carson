@@ -1047,16 +1047,15 @@ def build_html_content(question_db, concept_map):
             border-color: rgba(139, 92, 246, 0.25) !important;
             color: #ffffff !important;
         }
-
-    
-        /* [일괄 레이아웃 패치: 스크롤바 제거 및 이미지 50% 축소] */
+        /* [일괄 레이아웃 패치: 스크롤바 제거, 이미지 50% 축소 및 좌측 정렬] */
         .viewer-body {
             max-height: none !important;
             overflow-y: visible !important;
         }
-        .viewer-img-container img, .question-img {
+        .viewer-body img, .viewer-img-container img, .question-img {
             max-width: 50% !important;
             height: auto !important;
+            margin: 0.8rem 0 !important; /* 가운데 정렬(auto)에서 좌측 정렬(0)로 변경 */
             display: block !important;
         }
         @media (max-width: 768px) {
@@ -1064,11 +1063,13 @@ def build_html_content(question_db, concept_map):
                 max-height: none !important;
                 overflow-y: visible !important;
             }
-            .viewer-img-container img, .question-img {
+            .viewer-body img, .viewer-img-container img, .question-img {
                 max-width: 50% !important;
                 height: auto !important;
+                margin: 0.8rem 0 !important;
             }
         }
+
 
     </style>
     <script src="exam_db/db_db.js?v=20260613"></script>
