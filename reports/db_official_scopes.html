@@ -2987,7 +2987,7 @@
 
             // 로컬 파일과 웹 서버 URL 경로 분기 처리
             const isLocal = window.location.protocol === 'file:';
-            const imgPath = isLocal ? `images/${year}_${num}.png` : `/reports/images/${year}_${num}.png`;
+            const imgPath = isLocal ? `images/${year}_${num}.png` : `images/${year}_${num}.png`;
             
             const img = document.getElementById(`viewer-img-${idx}`);
             img.src = imgPath;
