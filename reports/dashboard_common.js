@@ -178,7 +178,12 @@ function renderDashboard(filter = 'all') {
         countBadge.textContent = filteredData.length;
     }
 
-    filteredData.forEach((item) => {
+    filteredData.forEach((item, index) => {
+        // [버그 해결] 빈출순 데이터 등 global_idx가 누락된 데이터셋에서도 고유한 DOM ID를 가질 수 있도록 
+        // 루프 인덱스를 활용해 global_idx 값을 보장합니다.
+        if (item.global_idx === undefined || item.global_idx === null) {
+            item.global_idx = index;
+        }
         const globalIdx = item.global_idx;
         const totalCount = item.count;
         const yearsStr = item.years && item.years.length > 0 ? item.years.join(', ') : '없음';
@@ -293,12 +298,14 @@ function toggleAccordion(idx) {
     const content = item.querySelector('.accordion-content');
     const isActive = item.classList.contains('active');
 
-    // 1) 다른 아코디언은 모두 닫기 처리
+    // 1) 다른 아코디언은 모두 닫기 처리 (사용자 요청에 따라 주석 처리)
+    /*
     document.querySelectorAll('.accordion-item').forEach(el => {
         el.classList.remove('active');
         const c = el.querySelector('.accordion-content');
         if (c) c.style.maxHeight = null;
     });
+    */
 
     // 2) 현재 아코디언 활성화 처리
     if (!isActive) {
@@ -313,6 +320,11 @@ function toggleAccordion(idx) {
         }
 
         content.style.maxHeight = content.scrollHeight + 1000 + 'px'; // 여유 마진 추가
+    } else {
+        // [잠재 리스크 보완] 일괄 닫기 로직이 주석처리 됨에 따라,
+        // 이미 열려 있는 아코디언을 사용자가 다시 클릭했을 때 정상적으로 닫힐 수 있도록 예외 처리합니다.
+        item.classList.remove('active');
+        if (content) content.style.maxHeight = null;
     }
 }
 
@@ -334,7 +346,12 @@ function showQuestion(idx, year, num, btnElement) {
 
     // 2) 기출문제 본문 가져오기 (examDatabase 객체 활용)
     const key = `${year}_${num}`;
-    const questionBody = (window.examDatabase && window.examDatabase[key]) || "지문 정보를 읽어올 수 없습니다.";
+    let questionBody = "지문 정보를 읽어올 수 없습니다.";
+    if (typeof examDatabase !== 'undefined') {
+        questionBody = examDatabase[key] || "지문 정보를 읽어올 수 없습니다.";
+    } else if (window.examDatabase) {
+        questionBody = window.examDatabase[key] || "지문 정보를 읽어올 수 없습니다.";
+    }
 
     const viewer = document.getElementById(`viewer-${idx}`);
     if (!viewer) return;
