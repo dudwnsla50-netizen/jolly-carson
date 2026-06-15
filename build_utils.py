@@ -3,7 +3,7 @@ import json
 import re
 
 # 현재 대화의 아티팩트 디렉토리 경로
-ARTIFACT_DIR = r"C:\Users\histo\.gemini\antigravity-ide\brain\ae510509-1b89-475f-9e8b-abe2d35a05b1"
+ARTIFACT_DIR = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184"
 
 def get_output_paths(filename):
     """
