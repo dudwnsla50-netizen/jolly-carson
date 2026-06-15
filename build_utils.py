@@ -69,3 +69,92 @@ def update_shared_db(new_db, subject_code):
     with open(artifact_js_path, "w", encoding="utf-8") as f:
         f.write(js_content)
     print(f"[{subject_code} DB] 아티팩트 업데이트 완료: {artifact_js_path}")
+
+def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapping_json, filter_section_html=""):
+    """
+    모든 과목(5종) 및 모드(2종)에서 공유하는 공통 HTML 대시보드 구조를 반환합니다.
+    """
+    title_suffix = "공식 범위별 기출 뷰어" if dashboard_type == "official" else "12개년 빈출 개념 정밀 뷰어"
+    header_title = f"{subject_name} 공식 범위별 기출분석" if dashboard_type == "official" else f"{subject_name} 기출 정밀 분석 대시보드"
+    header_subtitle = "공식 시험 범위 표준 가이드를 기준으로 매핑된 세부 중단원 정밀 대시보드" if dashboard_type == "official" else "12개년 기출 전수 조사 기반 빈출 세부 토픽 분석 엔진"
+    topic_badge_prefix = "매핑된 공식 중단원" if dashboard_type == "official" else "검출된 빈출 세부 토픽"
+
+    html_template = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{subject_name} {title_suffix}</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard_common.css">
+    <script src="exam_db/{subject_code.lower()}_db.js?v=20260613"></script>
+    <script src="dashboard_common.js?v=20260613"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{header_title}</h1>
+            <p class="subtitle">{header_subtitle}</p>
+            
+            <div class="navigation-container">
+                <div class="mode-switch-wrapper">
+                    <span class="mode-label" id="label-freq">🔥 빈출 개념순</span>
+                    <label class="switch">
+                        <input type="checkbox" id="dashboard-mode-toggle" onchange="toggleDashboardMode(this)">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="mode-label" id="label-official">📋 공식 범위순</span>
+                </div>
+                
+                <div class="meta-badges" id="dynamic-nav-badges">
+                    <a href="#" class="badge home-badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
+                    <a href="se_frequent_concepts.html" class="badge subject-badge" data-freq="se_frequent_concepts.html" data-official="se_official_scopes.html" style="text-decoration: none;">소프트웨어공학</a>
+                    <a href="pm_frequent_concepts.html" class="badge subject-badge" data-freq="pm_frequent_concepts.html" data-official="pm_official_scopes.html" style="text-decoration: none;">프로젝트 관리</a>
+                    <a href="db_frequent_concepts.html" class="badge subject-badge" data-freq="db_frequent_concepts.html" data-official="db_official_scopes.html" style="text-decoration: none;">데이터베이스</a>
+                    <a href="sa_frequent_concepts.html" class="badge subject-badge" data-freq="sa_frequent_concepts.html" data-official="sa_official_scopes.html" style="text-decoration: none;">시스템 아키텍처</a>
+                    <a href="sc_frequent_concepts.html" class="badge subject-badge" data-freq="sc_frequent_concepts.html" data-official="sc_official_scopes.html" style="text-decoration: none;">보안</a>
+                </div>
+            </div>
+            
+            <div class="meta-badges">
+                <span class="badge">기출 범위: 2015년 ~ 2026년</span>
+                <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
+                <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
+                    {topic_badge_prefix}: <span id="topic-count-badge">0</span>개
+                </span>
+            </div>
+        </header>
+
+        {filter_section_html}
+
+        <div class="accordion-list" id="accordionContainer">
+            <!-- Dynamic Accordion Items Rendered by JS -->
+        </div>
+    </div>
+
+    <!-- 세부 토픽 목록 팝업 모달 -->
+    <div id="topic-modal" class="modal-overlay" onclick="closeTopicModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-card-header">
+                <h2 class="modal-card-title">🔍 검출된 공식 중단원 목록</h2>
+                <button class="modal-close-x" onclick="closeTopicModal()">✕</button>
+            </div>
+            <div class="modal-card-body">
+                <ul id="modal-topic-list" class="modal-topic-list">
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 개별 과목 메타 및 파이썬 인젝션 데이터 선언부
+        window.DASHBOARD_TYPE = "{dashboard_type}";
+        window.SUBJECT_CODE = "{subject_code}";
+        window.SUBJECT_NAME = "{subject_name}";
+        window.dashboardData = {mapping_json};
+    </script>
+</body>
+</html>"""
+    return html_template
+
