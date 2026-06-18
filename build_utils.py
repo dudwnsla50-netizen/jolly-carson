@@ -3,7 +3,7 @@ import json
 import re
 
 # 현재 대화의 아티팩트 디렉토리 경로
-ARTIFACT_DIR = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184"
+ARTIFACT_DIR = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\67ae5d2c-bc8c-43a5-8e13-47848b2d1ce9"
 
 def get_output_paths(filename):
     """
@@ -73,7 +73,28 @@ def update_shared_db(new_db, subject_code):
 def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapping_json, filter_section_html=""):
     """
     모든 과목(5종) 및 모드(2종)에서 공유하는 공통 HTML 대시보드 구조를 반환합니다.
+    동시에 대용량 mapping_json 데이터를 외부 JS 파일(js/data/)로 분리하여 로컬 및 아티팩트 경로에 저장합니다.
     """
+    import os
+
+    # 1. 외부 JS 파일 생성 및 저장 경로 획득
+    js_filename = f"js/data/{subject_code.lower()}_{dashboard_type}.js"
+    local_js_path, artifact_js_path = get_output_paths(js_filename)
+    
+    js_content = f"window.dashboardData = {mapping_json};\n"
+    
+    # 로컬 경로에 저장
+    os.makedirs(os.path.dirname(local_js_path), exist_ok=True)
+    with open(local_js_path, "w", encoding="utf-8") as f:
+        f.write(js_content)
+    print(f"[{subject_code} 데이터 JS] 로컬 저장 완료: {local_js_path}")
+    
+    # 아티팩트 경로에 저장
+    os.makedirs(os.path.dirname(artifact_js_path), exist_ok=True)
+    with open(artifact_js_path, "w", encoding="utf-8") as f:
+        f.write(js_content)
+    print(f"[{subject_code} 데이터 JS] 아티팩트 저장 완료: {artifact_js_path}")
+
     title_suffix = "공식 범위별 기출 뷰어" if dashboard_type == "official" else "12개년 빈출 개념 정밀 뷰어"
     header_title = f"{subject_name} 공식 범위별 기출분석" if dashboard_type == "official" else f"{subject_name} 기출 정밀 분석 대시보드"
     header_subtitle = "공식 시험 범위 표준 가이드를 기준으로 매핑된 세부 중단원 정밀 대시보드" if dashboard_type == "official" else "12개년 기출 전수 조사 기반 빈출 세부 토픽 분석 엔진"
@@ -89,7 +110,9 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="dashboard_common.css">
     <script src="exam_db/{subject_code.lower()}_db.js?v=20260613"></script>
-    <script src="dashboard_common.js?v=20260613"></script>
+    <script src="js/dashboard_common.js?v=20260613"></script>
+    <!-- 외부 데이터 스크립트 동적 로드 -->
+    <script src="js/data/{subject_code.lower()}_{dashboard_type}.js?v=20260618"></script>
 </head>
 <body>
     <div class="container">
@@ -148,13 +171,13 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
     </div>
 
     <script>
-        // 개별 과목 메타 및 파이썬 인젝션 데이터 선언부
+        // 개별 과목 메타 선언부
         window.DASHBOARD_TYPE = "{dashboard_type}";
         window.SUBJECT_CODE = "{subject_code}";
         window.SUBJECT_NAME = "{subject_name}";
-        window.dashboardData = {mapping_json};
     </script>
 </body>
 </html>"""
     return html_template
+
 

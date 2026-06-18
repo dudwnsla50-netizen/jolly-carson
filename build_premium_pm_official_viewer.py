@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 """
 
 import os
-from build_utils import get_output_paths, update_shared_db
+from build_utils import get_output_paths, update_shared_db, ARTIFACT_DIR
 import sys
 import re
 import json
@@ -190,7 +190,7 @@ TOPIC_CATEGORIES = {
 def crop_question_images(pdf_path, year, output_dir):
     """[공통 모듈 위임] PDF로부터 PM 과목 문항 영역을 추출하여 이미지로 저장하고 위치 좌표를 반환"""
     local_img_dir = r"e:\jolly-carson\reports\images"
-    artifact_img_dir = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\7e1fd111-1dc1-495d-82a1-c40573600184\images"
+    artifact_img_dir = os.path.join(ARTIFACT_DIR, "images")
     return image_cropper.get_question_positions_and_crop(
         pdf_path, year, "PM", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
     )
