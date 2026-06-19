@@ -748,7 +748,7 @@ function showQuestion(idx, year, num, btnElement) {
                 id: key,
                 question: qAndO.question,
                 options: qAndO.options,
-                answer: [],
+                answer: qAndO.answer,
                 explanation: null
             };
 
@@ -1415,7 +1415,7 @@ function openAnswerModal(idx, event) {
     let modal = document.getElementById('answer-modal');
     let title = document.getElementById('answer-modal-title');
     let body = document.getElementById('answer-modal-body');
-    
+
     // 만약 어떠한 이유로 DOM에 모달 엘리먼트가 존재하지 않으면 즉시 동적 자동 구축
     if (!modal) {
         modal = document.createElement('div');
