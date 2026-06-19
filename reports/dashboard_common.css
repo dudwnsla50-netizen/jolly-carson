@@ -816,3 +816,148 @@ input:checked+.slider:before {
         padding-bottom: 0.8rem;
     }
 }
+
+/* 13. 인라인 퀴즈 풀이 전용 스타일 */
+.inline-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+    width: 100%;
+}
+
+.inline-opt-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-primary);
+}
+
+.inline-opt-btn:hover:not(.opt-correct):not(.opt-wrong):not(.opt-disabled) {
+    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(139, 92, 246, 0.25);
+}
+
+.inline-opt-btn.selected {
+    background: rgba(139, 92, 246, 0.12);
+    border-color: var(--accent-violet);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+}
+
+.inline-opt-num {
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.inline-opt-btn.selected .inline-opt-num {
+    background: var(--accent-violet);
+    color: #ffffff;
+}
+
+/* 채점 완료 후의 상태 효과 */
+.inline-opt-btn.opt-correct {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: var(--success);
+    cursor: default;
+}
+.inline-opt-btn.opt-correct .inline-opt-num {
+    background: var(--success);
+    color: #ffffff;
+}
+
+.inline-opt-btn.opt-wrong {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: #ef4444;
+    cursor: default;
+}
+.inline-opt-btn.opt-wrong .inline-opt-num {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.inline-opt-btn.opt-disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.inline-opt-text {
+    font-size: 0.88rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    padding-top: 1px;
+}
+
+/* 제출 버튼 스타일 */
+.inline-quiz-submit-btn {
+    background: var(--accent-gradient);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+    outline: none;
+    font-family: inherit;
+}
+
+.inline-quiz-submit-btn:active {
+    filter: brightness(0.85);
+    transform: scale(0.98);
+}
+
+/* 채점 결과 피드백 블록 */
+.inline-quiz-feedback {
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    animation: fadeIn 0.25s ease-out;
+}
+.inline-quiz-feedback.correct {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.inline-quiz-feedback.wrong {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* 해설 보관함 */
+.inline-explanation-box {
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid var(--accent-violet);
+    padding: 0.8rem 1rem;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 0.8rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

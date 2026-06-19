@@ -751,6 +751,7 @@ function showQuestion(idx, year, num, btnElement) {
 
 /**
  * [설계 의도] 캐싱된 문제 데이터를 상세 뷰어 영역에 보기 좋게 렌더링합니다.
+ * 동시에 사용자가 클릭 가능한 보기 버튼과 답안 제출 및 채점 패널을 렌더링합니다.
  */
 function renderLoadedQuestion(idx, qId) {
     const data = window.loadedQuestions[qId];
@@ -762,22 +763,86 @@ function renderLoadedQuestion(idx, qId) {
     // 질문 본문 렌더링
     let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: #ffffff; margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
     
+    // 이 문항의 풀이 완료(제출) 이력이 전역 버퍼에 있는지 확인
+    const submittedResult = window.quizSubmittedResults && window.quizSubmittedResults[qId];
+    const isSubmitted = !!submittedResult;
+
     // 보기 리스트 렌더링
     if (data.options && data.options.length > 0) {
-        htmlContent += `<ul class="options-list" style="list-style: none; padding-left: 0; margin-bottom: 1.5rem;">`;
+        htmlContent += `<div class="inline-options-container" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem;">`;
+        
         const numSymbols = ["①", "②", "③", "④", "⑤"];
+        window.currentDraftAnswers = window.currentDraftAnswers || {};
+        window.currentDraftAnswers[qId] = window.currentDraftAnswers[qId] || [];
+        const currentDraft = window.currentDraftAnswers[qId];
+
         data.options.forEach((opt, oIdx) => {
-            const sym = numSymbols[oIdx] || `${oIdx + 1}.`;
-            htmlContent += `<li style="margin-bottom: 0.6rem; font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); display: flex; gap: 0.5rem;">
-                <span style="color: #8b5cf6; font-weight: bold; flex-shrink: 0;">${sym}</span>
-                <span style="white-space: pre-wrap;">${opt}</span>
-            </li>`;
+            const sym = numSymbols[oIdx] || `${oIdx + 1}`;
+            const optNum = oIdx + 1;
+            
+            // 클래스 빌드 (선택 상태 및 제출 후 채점 결과 오버레이)
+            let optClass = "inline-opt-btn";
+            
+            if (isSubmitted) {
+                // 제출 완료 후 피드백 클래스
+                const isCorrectOpt = Array.isArray(data.answer) ? data.answer.includes(optNum) : parseInt(data.answer) === optNum;
+                const isUserSelected = submittedResult.userAnswer.includes(optNum);
+                
+                if (isCorrectOpt) {
+                    optClass += " opt-correct"; // 실제 정답 (녹색 테두리)
+                } else if (isUserSelected) {
+                    optClass += " opt-wrong"; // 내가 고른 오답 (붉은 테두리)
+                } else {
+                    optClass += " opt-disabled"; // 미선택 및 비활성
+                }
+            } else {
+                // 대기 중 선택 클래스
+                const isSelected = currentDraft.includes(optNum);
+                if (isSelected) optClass += " selected";
+            }
+
+            const clickHandler = isSubmitted ? '' : `onclick="toggleInlineAnswer('${idx}', '${qId}', ${optNum}, event)"`;
+
+            htmlContent += `
+                <button class="${optClass}" ${clickHandler} style="width: 100%; outline: none; font-family: inherit; text-align: left;">
+                    <span class="inline-opt-num">${sym}</span>
+                    <span class="inline-opt-text">${opt}</span>
+                </button>
+            `;
         });
-        htmlContent += `</ul>`;
+        htmlContent += `</div>`;
     }
 
-    // [설계 변경] 인라인 정답/해설 영역 제거 → 상단 헤더의 공통 팝업 모달로 이동함
-    
+    // 답안 제출 및 피드백 패널
+    if (isSubmitted) {
+        // 정답 피드백 렌더링
+        const statusClass = submittedResult.isCorrect ? 'correct' : 'wrong';
+        const statusText = submittedResult.isCorrect ? '✓ 정답입니다! 🎉' : `✕ 오답입니다. (정답: ${submittedResult.cAnsStr})`;
+        
+        htmlContent += `
+            <div class="inline-quiz-feedback ${statusClass}">
+                ${statusText}
+            </div>
+            ${data.explanation ? `
+                <div class="inline-explanation-box">
+                    <strong>💡 정답 해설:</strong><br>${data.explanation}
+                </div>
+            ` : ''}
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.8rem;">
+                <button onclick="retryInlineQuestion('${idx}', '${qId}', event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-family: inherit;">다시 풀기</button>
+            </div>
+        `;
+    } else {
+        // 미제출 상태 제출 버튼
+        htmlContent += `
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.8rem;">
+                <button onclick="submitInlineAnswer('${idx}', '${qId}', event)" class="inline-quiz-submit-btn">
+                    💾 답안 제출 및 채점
+                </button>
+            </div>
+        `;
+    }
+
     body.innerHTML = htmlContent;
     
     // 편집 버튼 텍스트 리셋
@@ -785,6 +850,140 @@ function renderLoadedQuestion(idx, qId) {
     if (editBtn) editBtn.innerText = "✏️ 수정";
 
     updateAccordionContentHeight(document.getElementById(`item-${idx}`));
+}
+
+window.currentDraftAnswers = window.currentDraftAnswers || {};
+window.quizSubmittedResults = window.quizSubmittedResults || {};
+
+/**
+ * 9-A. 인라인 문제 풀이에서 보기 선택을 토글합니다. (단일 선택 방식)
+ */
+function toggleInlineAnswer(idx, qId, optNum, event) {
+    if (event) event.stopPropagation();
+    
+    window.currentDraftAnswers[qId] = window.currentDraftAnswers[qId] || [];
+    const currentDraft = window.currentDraftAnswers[qId];
+    
+    const valIdx = currentDraft.indexOf(optNum);
+    if (valIdx > -1) {
+        currentDraft.splice(valIdx, 1);
+    } else {
+        // 단일 선택 적용을 위해 배열을 비우고 하나만 담습니다.
+        currentDraft.length = 0;
+        currentDraft.push(optNum);
+    }
+    
+    renderLoadedQuestion(idx, qId);
+}
+
+/**
+ * 9-B. 인라인 퀴즈 답안을 채점하고 백엔드 + LocalStorage에 전송 저장합니다.
+ */
+function submitInlineAnswer(idx, qId, event) {
+    if (event) event.stopPropagation();
+    
+    const uAns = window.currentDraftAnswers[qId] || [];
+    if (uAns.length === 0) {
+        alert("답안을 선택해 주세요!");
+        return;
+    }
+    
+    const data = window.loadedQuestions[qId];
+    if (!data) return;
+    
+    // 정답 계산
+    let cAns = [];
+    if (data.answer) {
+        if (Array.isArray(data.answer)) {
+            cAns = data.answer.sort();
+        } else {
+            cAns = [parseInt(data.answer)].sort();
+        }
+    }
+    
+    // 채점
+    const isCorrect = JSON.stringify(uAns.sort()) === JSON.stringify(cAns) && uAns.length > 0;
+    const numSymbols = ["①", "②", "③", "④", "⑤"];
+    const cAnsStr = cAns.map(num => numSymbols[num - 1] || num).join(', ');
+    
+    // 제출 버퍼에 결과 기록
+    window.quizSubmittedResults[qId] = {
+        isCorrect: isCorrect,
+        userAnswer: uAns,
+        cAnsStr: cAnsStr
+    };
+    
+    // 이 문항의 개념(concept) 탐색
+    const subject = window.SUBJECT_CODE || "DB";
+    const matchedConcept = window.dashboardData.find(d => {
+        const key = qId.split('_'); // [year, num]
+        return d.questions && d.questions.some(q => String(q.year) === String(key[0]) && String(q.num) === String(key[1]));
+    });
+    const conceptName = matchedConcept ? matchedConcept.concept : '기타';
+    
+    const payload = {
+        subject: subject,
+        concept: conceptName,
+        total_questions: 1,
+        correct_count: isCorrect ? 1 : 0,
+        wrong_count: isCorrect ? 0 : 1,
+        details: {
+            correct: isCorrect ? [qId] : [],
+            wrong: isCorrect ? [] : [qId]
+        }
+    };
+    
+    // 1) LocalStorage 캐시 저장
+    try {
+        const backupList = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
+        backupList.push({
+            created_at: new Date().toISOString(),
+            subject: subject,
+            concept: conceptName,
+            total_questions: 1,
+            correct_count: payload.correct_count,
+            wrong_count: payload.wrong_count,
+            details: payload.details
+        });
+        localStorage.setItem('jolly_carson_quiz_history', JSON.stringify(backupList));
+    } catch (e) {
+        console.warn(e);
+    }
+    
+    // 2) 백엔드 API 제출 및 통계 실시간 비동기 리프레시
+    fetch('/api/quiz/submit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(() => {
+        return loadQuizStatsAndMerge();
+    })
+    .then(() => {
+        renderLoadedQuestion(idx, qId);
+    })
+    .catch(err => {
+        console.error(err);
+        renderLoadedQuestion(idx, qId);
+    });
+}
+
+/**
+ * 9-C. 문제를 다시 풀기 위해 캐시를 클리어하고 상태를 리셋합니다.
+ */
+function retryInlineQuestion(idx, qId, event) {
+    if (event) event.stopPropagation();
+    
+    if (window.quizSubmittedResults) {
+        delete window.quizSubmittedResults[qId];
+    }
+    if (window.currentDraftAnswers) {
+        window.currentDraftAnswers[qId] = [];
+    }
+    
+    renderLoadedQuestion(idx, qId);
 }
 
 /**
