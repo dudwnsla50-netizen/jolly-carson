@@ -372,7 +372,6 @@ span.badge[onclick]:hover {
     font-size: 0.92rem;
     line-height: 1.7;
     color: #d1d5db;
-    white-space: pre-wrap;
     overflow-y: auto;
     max-height: 400px;
     padding-right: 0.5rem;
@@ -808,7 +807,7 @@ input:checked+.slider:before {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
-    
+
     .summary-stats-column {
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -876,6 +875,7 @@ input:checked+.slider:before {
     border-color: var(--success);
     cursor: default;
 }
+
 .inline-opt-btn.opt-correct .inline-opt-num {
     background: var(--success);
     color: #ffffff;
@@ -886,6 +886,7 @@ input:checked+.slider:before {
     border-color: #ef4444;
     cursor: default;
 }
+
 .inline-opt-btn.opt-wrong .inline-opt-num {
     background: #ef4444;
     color: #ffffff;
@@ -911,7 +912,6 @@ input:checked+.slider:before {
     padding: 0.5rem 1.1rem;
     border-radius: 8px;
     font-size: 0.82rem;
-    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
     box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
@@ -933,11 +933,13 @@ input:checked+.slider:before {
     margin-bottom: 0.8rem;
     animation: fadeIn 0.25s ease-out;
 }
+
 .inline-quiz-feedback.correct {
     background: rgba(16, 185, 129, 0.15);
     color: var(--success);
     border: 1px solid rgba(16, 185, 129, 0.25);
 }
+
 .inline-quiz-feedback.wrong {
     background: rgba(239, 68, 68, 0.15);
     color: #ef4444;
@@ -958,6 +960,26 @@ input:checked+.slider:before {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 14. 퀴즈 히스토리 타임라인 스타일 */
+.quiz-history-timeline-section {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.timeline-list li {
+    transition: background-color 0.2s ease;
+}
+
+.timeline-list li:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
 }

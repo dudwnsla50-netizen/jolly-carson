@@ -19,10 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadDashboardDataAndInit() {
     const subject = window.SUBJECT_CODE || "DB";
     const type = window.DASHBOARD_TYPE || "frequent";
-    
+
     // API 주소 구성
     const apiUrl = `/api/dashboard?subject=${subject}&type=${type}`;
-    
+
     fetch(apiUrl)
         .then(response => {
             if (!response.ok) throw new Error("HTTP error " + response.status);
@@ -67,7 +67,7 @@ function initDashboard() {
 }
 
 // 퀴즈 관련 전역 데이터 버퍼
-window.quizStats = {}; 
+window.quizStats = {};
 window.quizSummary = { total_attempts: 0, total_correct: 0, total_solved: 0, avg_score: 0.0 };
 
 /**
@@ -84,7 +84,7 @@ function loadQuizStatsAndMerge() {
         .then(data => {
             const serverConcepts = data.concepts || [];
             const serverSummary = data.summary || { total_attempts: 0, total_correct: 0, total_solved: 0 };
-            
+
             // LocalStorage 백업 읽기
             let localHistory = [];
             try {
@@ -92,17 +92,59 @@ function loadQuizStatsAndMerge() {
             } catch (e) {
                 console.warn(e);
             }
-            
+
             const filteredLocal = localHistory.filter(h => h.subject === subject);
             const serverTotal = serverSummary.total_attempts || 0;
-            
+
+            // 로컬 캐시와 서버 전체 로그 데이터를 created_at 기준으로 Union 병합
+            const mergedLogs = [];
+            const seenCreatedAts = new Set();
+
+            const serverLogs = data.logs || [];
+            serverLogs.forEach(log => {
+                if (log.created_at) {
+                    seenCreatedAts.add(log.created_at);
+                    let parsedDetails = log.details;
+                    if (typeof log.details === 'string') {
+                        try {
+                            parsedDetails = JSON.parse(log.details);
+                        } catch (e) {
+                            console.warn("Failed to parse log details", e);
+                        }
+                    }
+                    mergedLogs.push({
+                        ...log,
+                        details: parsedDetails
+                    });
+                }
+            });
+
+            filteredLocal.forEach(log => {
+                if (log.created_at && !seenCreatedAts.has(log.created_at)) {
+                    seenCreatedAts.add(log.created_at);
+                    let parsedDetails = log.details;
+                    if (typeof log.details === 'string') {
+                        try {
+                            parsedDetails = JSON.parse(log.details);
+                        } catch (e) { }
+                    }
+                    mergedLogs.push({
+                        ...log,
+                        details: parsedDetails
+                    });
+                }
+            });
+
+            mergedLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            window.quizFullHistoryList = mergedLogs;
+
             // 스마트 폴백 정책: 서버가 초기화(0건)되었고 로컬 백업이 있는 경우, 로컬 데이터 복구
             if (serverTotal === 0 && filteredLocal.length > 0) {
                 const localStats = {};
                 let totalAttempts = 0;
                 let totalCorrect = 0;
                 let totalSolved = 0;
-                
+
                 filteredLocal.forEach(h => {
                     if (!localStats[h.concept]) {
                         localStats[h.concept] = {
@@ -124,7 +166,7 @@ function loadQuizStatsAndMerge() {
                     totalCorrect += h.correct_count;
                     totalSolved += h.total_questions;
                 });
-                
+
                 Object.keys(localStats).forEach(con => {
                     const s = localStats[con];
                     window.quizStats[con] = {
@@ -133,7 +175,7 @@ function loadQuizStatsAndMerge() {
                         last_attempt_at: s.last_attempt_at
                     };
                 });
-                
+
                 window.quizSummary = {
                     total_attempts: totalAttempts,
                     total_correct: totalCorrect,
@@ -156,7 +198,7 @@ function loadQuizStatsAndMerge() {
                     avg_score: serverSummary.avg_score
                 };
             }
-            
+
             // 대시보드 상단 요약 카드 렌더링
             renderQuizSummarySection();
         })
@@ -166,14 +208,31 @@ function loadQuizStatsAndMerge() {
             let localHistory = [];
             try {
                 localHistory = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
-            } catch (e) {}
+            } catch (e) { }
             const filteredLocal = localHistory.filter(h => h.subject === subject);
+
+            // 로컬 로그 기반으로 quizFullHistoryList 구성
+            const mergedLogs = filteredLocal.map(log => {
+                let parsedDetails = log.details;
+                if (typeof log.details === 'string') {
+                    try {
+                        parsedDetails = JSON.parse(log.details);
+                    } catch (e) { }
+                }
+                return {
+                    ...log,
+                    details: parsedDetails
+                };
+            });
+            mergedLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            window.quizFullHistoryList = mergedLogs;
+
             if (filteredLocal.length > 0) {
                 const localStats = {};
                 let totalAttempts = 0;
                 let totalCorrect = 0;
                 let totalSolved = 0;
-                
+
                 filteredLocal.forEach(h => {
                     if (!localStats[h.concept]) {
                         localStats[h.concept] = {
@@ -195,7 +254,7 @@ function loadQuizStatsAndMerge() {
                     totalCorrect += h.correct_count;
                     totalSolved += h.total_questions;
                 });
-                
+
                 Object.keys(localStats).forEach(con => {
                     const s = localStats[con];
                     window.quizStats[con] = {
@@ -204,7 +263,7 @@ function loadQuizStatsAndMerge() {
                         last_attempt_at: s.last_attempt_at
                     };
                 });
-                
+
                 window.quizSummary = {
                     total_attempts: totalAttempts,
                     total_correct: totalCorrect,
@@ -221,7 +280,7 @@ function loadQuizStatsAndMerge() {
  */
 function renderQuizSummarySection() {
     const container = document.querySelector('.container');
-    if (!container || window.quizSummary.total_attempts === 0) return;
+    if (!container) return;
 
     let oldSection = document.getElementById('quiz-summary-section');
     if (oldSection) oldSection.remove();
@@ -242,20 +301,32 @@ function renderQuizSummarySection() {
 
     const topWeak = sortedWeak.slice(0, 3);
     let weakListHtml = '';
-    topWeak.forEach((item, idx) => {
-        const colors = ['#ef4444', '#f59e0b', '#fbbf24'];
-        const color = colors[idx] || '#ef4444';
-        weakListHtml += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
-                <span style="color: var(--text-primary); font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 65%;" title="${item.concept}">
-                    ${idx + 1}. ${item.concept}
-                </span>
-                <span style="color: ${color}; font-weight: 700;">
-                    ${item.avg_score}% (시도 ${item.attempt_count}회)
-                </span>
+    if (topWeak.length > 0) {
+        topWeak.forEach((item, idx) => {
+            const colors = ['#ef4444', '#f59e0b', '#fbbf24'];
+            const color = colors[idx] || '#ef4444';
+            weakListHtml += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+                    <span style="color: var(--text-primary); font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 65%;" title="${item.concept}">
+                        ${idx + 1}. ${item.concept}
+                    </span>
+                    <span style="color: ${color}; font-weight: 700;">
+                        ${item.avg_score}% (시도 ${item.attempt_count}회)
+                    </span>
+                </div>
+            `;
+        });
+    } else {
+        weakListHtml = `
+            <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 1.2rem 0; line-height: 1.6;">
+                📢 아직 테스트한 이력이 없습니다.<br>하단의 문제를 풀면 취약 분석이 시작됩니다.
             </div>
         `;
-    });
+    }
+
+    const totalAttempts = window.quizSummary ? (window.quizSummary.total_attempts || 0) : 0;
+    const totalSolved = window.quizSummary ? (window.quizSummary.total_solved || 0) : 0;
+    const avgScore = window.quizSummary ? (window.quizSummary.avg_score || 0) : 0;
 
     const section = document.createElement('div');
     section.id = 'quiz-summary-section';
@@ -272,7 +343,6 @@ function renderQuizSummarySection() {
     section.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
             <h3 style="font-size: 0.95rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 0.3rem;">📊 나의 기출 분석 리포트</h3>
-            <span style="font-size: 0.7rem; color: var(--accent-primary); font-weight: bold; cursor: pointer; text-decoration: underline;" onclick="resetQuizHistoryLocal()">기록 초기화</span>
         </div>
         
         <div class="summary-report-grid">
@@ -280,22 +350,22 @@ function renderQuizSummarySection() {
             <div class="summary-stats-column">
                 <div class="summary-stat-row">
                     <span class="summary-stat-label">총 테스트 횟수</span>
-                    <span class="summary-stat-val">${window.quizSummary.total_attempts}회</span>
+                    <span class="summary-stat-val">${totalAttempts}회</span>
                 </div>
                 <div class="summary-stat-row">
                     <span class="summary-stat-label">해결한 문항 수</span>
-                    <span class="summary-stat-val">${window.quizSummary.total_solved}개</span>
+                    <span class="summary-stat-val">${totalSolved}개</span>
                 </div>
                 <div class="summary-stat-row total">
                     <span class="summary-stat-label">평균 정답률</span>
-                    <span class="summary-stat-val-big">${window.quizSummary.avg_score}%</span>
+                    <span class="summary-stat-val-big">${avgScore}%</span>
                 </div>
             </div>
             
             <!-- 우측: 취약점 분석 -->
             <div class="summary-weakness-column">
                 <div class="summary-weak-title">🚨 보완이 필요한 취약 개념 TOP 3</div>
-                ${weakListHtml || '<div style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding-top: 1rem;">취약 개념 정보 수집 중...</div>'}
+                ${weakListHtml}
             </div>
         </div>
     `;
@@ -309,7 +379,7 @@ function renderQuizSummarySection() {
 /**
  * 1-C. LocalStorage 캐시 및 서버 초기화
  */
-window.resetQuizHistoryLocal = function() {
+window.resetQuizHistoryLocal = function () {
     if (confirm("정말 나의 퀴즈 풀이 이력(서버 기록 및 로컬 캐시 전체)을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
         localStorage.removeItem('jolly_carson_quiz_history');
         alert("이력이 성공적으로 초기화되었습니다.");
@@ -577,10 +647,7 @@ function renderDashboard(filter = 'all') {
                     ` : ''}
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.4rem;">
-                            <h4 class="section-title" style="margin: 0;">출제 문항 일람 (선택 시 아래에 표시)</h4>
-                            <button class="quiz-start-btn" onclick="startQuiz('${subjectCode}', '${item.concept.replace(/'/g, "\\'")}', event)" style="background: var(--accent-gradient); color: #ffffff; border: none; padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; transition: all 0.2s; box-shadow: 0 0 10px rgba(139, 92, 246, 0.2); outline: none; font-family: inherit;">
-                                📝 모바일 테스트 시작
-                            </button>
+                            <h4 class="section-title" style="margin: 0;">출제 문항 일람 (선택 시 아래에 표시)</h4>                            
                         </div>
                         <div class="year-grid" style="margin-top: 0.6rem;">
                             ${yearButtonsHtml}
@@ -591,7 +658,7 @@ function renderDashboard(filter = 'all') {
                         <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="viewer-title" id="viewer-title-${globalIdx}"></span>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <button class="viewer-answer-btn" id="answer-btn-${globalIdx}" onclick="openAnswerModal('${globalIdx}', event)" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">🔑 정답 및 해설 확인</button>
+                                <button class="viewer-answer-btn" id="answer-btn-${globalIdx}" onclick="openAnswerModal('${globalIdx}', event)" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">🔑 정답 및 테스트이력</button>
                                 <button class="viewer-edit-btn" id="edit-btn-${globalIdx}" onclick="onEditBtnClick('${globalIdx}', event)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">✏️ 수정</button>
                                 <button class="viewer-close-btn" onclick="closeViewer('${globalIdx}', event)">닫기 ✕</button>
                             </div>
@@ -724,7 +791,7 @@ function showQuestion(idx, year, num, btnElement) {
             } else if (window.examDatabase) {
                 questionBody = window.examDatabase[key] || questionBody;
             }
-            
+
             // 로컬 폴백 시에도 간이 파싱 수행 및 캐싱
             const qAndO = splitQuestionAndOptionsFallback(questionBody);
             window.loadedQuestions[key] = {
@@ -734,7 +801,7 @@ function showQuestion(idx, year, num, btnElement) {
                 answer: [],
                 explanation: null
             };
-            
+
             renderLoadedQuestion(idx, key);
         });
 
@@ -753,6 +820,27 @@ function showQuestion(idx, year, num, btnElement) {
  * [설계 의도] 캐싱된 문제 데이터를 상세 뷰어 영역에 보기 좋게 렌더링합니다.
  * 동시에 사용자가 클릭 가능한 보기 버튼과 답안 제출 및 채점 패널을 렌더링합니다.
  */
+/**
+ * 한국어 형식으로 일시를 포맷팅합니다.
+ * 예시: 26년 6월 19일 3시 / 26년 6월 19일 3시 30분
+ */
+function formatKoreanDate(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const yy = String(d.getFullYear()).slice(-2);
+    const mm = d.getMonth() + 1;
+    const dd = d.getDate();
+    const hh = d.getHours();
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    const min = d.getMinutes();
+    const minStr = min > 0 ? ` ${min}분` : '';
+    return `${yy}년 ${mm}월 ${dd}일 ${h12}시${minStr}`;
+}
+
+/**
+ * [설계 의도] 캐싱된 문제 데이터를 상세 뷰어 영역에 보기 좋게 렌더링합니다.
+ * 동시에 사용자가 클릭 가능한 보기 버튼과 답안 제출 및 채점 패널을 렌더링합니다.
+ */
 function renderLoadedQuestion(idx, qId) {
     const data = window.loadedQuestions[qId];
     if (!data) return;
@@ -762,7 +850,7 @@ function renderLoadedQuestion(idx, qId) {
 
     // 질문 본문 렌더링
     let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: #ffffff; margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
-    
+
     // 이 문항의 풀이 완료(제출) 이력이 전역 버퍼에 있는지 확인
     const submittedResult = window.quizSubmittedResults && window.quizSubmittedResults[qId];
     const isSubmitted = !!submittedResult;
@@ -770,7 +858,7 @@ function renderLoadedQuestion(idx, qId) {
     // 보기 리스트 렌더링
     if (data.options && data.options.length > 0) {
         htmlContent += `<div class="inline-options-container" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem;">`;
-        
+
         const numSymbols = ["①", "②", "③", "④", "⑤"];
         window.currentDraftAnswers = window.currentDraftAnswers || {};
         window.currentDraftAnswers[qId] = window.currentDraftAnswers[qId] || [];
@@ -779,15 +867,15 @@ function renderLoadedQuestion(idx, qId) {
         data.options.forEach((opt, oIdx) => {
             const sym = numSymbols[oIdx] || `${oIdx + 1}`;
             const optNum = oIdx + 1;
-            
+
             // 클래스 빌드 (선택 상태 및 제출 후 채점 결과 오버레이)
             let optClass = "inline-opt-btn";
-            
+
             if (isSubmitted) {
                 // 제출 완료 후 피드백 클래스
                 const isCorrectOpt = Array.isArray(data.answer) ? data.answer.includes(optNum) : parseInt(data.answer) === optNum;
                 const isUserSelected = submittedResult.userAnswer.includes(optNum);
-                
+
                 if (isCorrectOpt) {
                     optClass += " opt-correct"; // 실제 정답 (녹색 테두리)
                 } else if (isUserSelected) {
@@ -813,12 +901,61 @@ function renderLoadedQuestion(idx, qId) {
         htmlContent += `</div>`;
     }
 
+    // 해당 문항의 모든 풀이 이력을 window.quizFullHistoryList 에서 필터링하여 가져옵니다.
+    const questionLogs = (window.quizFullHistoryList || []).filter(log => {
+        if (!log.details) return false;
+        // 신규 포맷
+        if (log.details.q_id === qId) return true;
+        // 구 포맷
+        if (log.details.correct && log.details.correct.includes(qId)) return true;
+        if (log.details.wrong && log.details.wrong.includes(qId)) return true;
+        return false;
+    });
+
+    let historyHtml = '';
+    if (questionLogs.length > 0) {
+        historyHtml += `
+            <div class="quiz-history-timeline-section" style="margin-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.6rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem;">
+                    ⏱️ 나의 풀이 이력
+                </div>
+                <ul class="timeline-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem;">
+        `;
+        const numSymbols = ["①", "②", "③", "④", "⑤"];
+        questionLogs.forEach(log => {
+            let text = '';
+            const dateFormatted = formatKoreanDate(log.created_at);
+            const isCorrect = log.details && (log.details.is_correct !== undefined ? log.details.is_correct : (log.details.correct && log.details.correct.includes(qId)));
+            const resultText = isCorrect ? '맞음' : '틀림';
+            const resultColor = isCorrect ? 'var(--success)' : '#ef4444';
+            const resultIcon = isCorrect ? '✓' : '✕';
+
+            if (log.details && log.details.user_choice) {
+                const choiceStr = log.details.user_choice.map(num => numSymbols[num - 1] || num).join(', ');
+                text = `${dateFormatted}에 ${choiceStr}번을 선택해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+            } else {
+                text = `${dateFormatted}에 답안을 제출해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+            }
+
+            historyHtml += `
+                <li style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${resultColor};">
+                    <span style="color: ${resultColor}; font-weight: bold; font-size: 0.75rem;">[${resultIcon}]</span>
+                    <span>${text}</span>
+                </li>
+            `;
+        });
+        historyHtml += `
+                </ul>
+            </div>
+        `;
+    }
+
     // 답안 제출 및 피드백 패널
     if (isSubmitted) {
         // 정답 피드백 렌더링
         const statusClass = submittedResult.isCorrect ? 'correct' : 'wrong';
         const statusText = submittedResult.isCorrect ? '✓ 정답입니다! 🎉' : `✕ 오답입니다. (정답: ${submittedResult.cAnsStr})`;
-        
+
         htmlContent += `
             <div class="inline-quiz-feedback ${statusClass}">
                 ${statusText}
@@ -828,6 +965,7 @@ function renderLoadedQuestion(idx, qId) {
                     <strong>💡 정답 해설:</strong><br>${data.explanation}
                 </div>
             ` : ''}
+            ${historyHtml}
             <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.8rem;">
                 <button onclick="retryInlineQuestion('${idx}', '${qId}', event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-family: inherit;">다시 풀기</button>
             </div>
@@ -835,16 +973,17 @@ function renderLoadedQuestion(idx, qId) {
     } else {
         // 미제출 상태 제출 버튼
         htmlContent += `
-            <div style="display: flex; justify-content: flex-end; margin-top: 0.8rem;">
+            ${historyHtml}
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.2rem;">
                 <button onclick="submitInlineAnswer('${idx}', '${qId}', event)" class="inline-quiz-submit-btn">
-                    💾 답안 제출 및 채점
+                    💾 답안 제출
                 </button>
             </div>
         `;
     }
 
     body.innerHTML = htmlContent;
-    
+
     // 편집 버튼 텍스트 리셋
     const editBtn = document.getElementById(`edit-btn-${idx}`);
     if (editBtn) editBtn.innerText = "✏️ 수정";
@@ -860,10 +999,10 @@ window.quizSubmittedResults = window.quizSubmittedResults || {};
  */
 function toggleInlineAnswer(idx, qId, optNum, event) {
     if (event) event.stopPropagation();
-    
+
     window.currentDraftAnswers[qId] = window.currentDraftAnswers[qId] || [];
     const currentDraft = window.currentDraftAnswers[qId];
-    
+
     const valIdx = currentDraft.indexOf(optNum);
     if (valIdx > -1) {
         currentDraft.splice(valIdx, 1);
@@ -872,7 +1011,7 @@ function toggleInlineAnswer(idx, qId, optNum, event) {
         currentDraft.length = 0;
         currentDraft.push(optNum);
     }
-    
+
     renderLoadedQuestion(idx, qId);
 }
 
@@ -881,16 +1020,16 @@ function toggleInlineAnswer(idx, qId, optNum, event) {
  */
 function submitInlineAnswer(idx, qId, event) {
     if (event) event.stopPropagation();
-    
+
     const uAns = window.currentDraftAnswers[qId] || [];
     if (uAns.length === 0) {
         alert("답안을 선택해 주세요!");
         return;
     }
-    
+
     const data = window.loadedQuestions[qId];
     if (!data) return;
-    
+
     // 정답 계산
     let cAns = [];
     if (data.answer) {
@@ -900,19 +1039,19 @@ function submitInlineAnswer(idx, qId, event) {
             cAns = [parseInt(data.answer)].sort();
         }
     }
-    
+
     // 채점
     const isCorrect = JSON.stringify(uAns.sort()) === JSON.stringify(cAns) && uAns.length > 0;
     const numSymbols = ["①", "②", "③", "④", "⑤"];
     const cAnsStr = cAns.map(num => numSymbols[num - 1] || num).join(', ');
-    
+
     // 제출 버퍼에 결과 기록
     window.quizSubmittedResults[qId] = {
         isCorrect: isCorrect,
         userAnswer: uAns,
         cAnsStr: cAnsStr
     };
-    
+
     // 이 문항의 개념(concept) 탐색
     const subject = window.SUBJECT_CODE || "DB";
     const matchedConcept = window.dashboardData.find(d => {
@@ -920,7 +1059,8 @@ function submitInlineAnswer(idx, qId, event) {
         return d.questions && d.questions.some(q => String(q.year) === String(key[0]) && String(q.num) === String(key[1]));
     });
     const conceptName = matchedConcept ? matchedConcept.concept : '기타';
-    
+
+    // 이력 포맷 상세화 적용: details에 q_id, user_choice, correct_answer, is_correct 적재
     const payload = {
         subject: subject,
         concept: conceptName,
@@ -928,16 +1068,19 @@ function submitInlineAnswer(idx, qId, event) {
         correct_count: isCorrect ? 1 : 0,
         wrong_count: isCorrect ? 0 : 1,
         details: {
-            correct: isCorrect ? [qId] : [],
-            wrong: isCorrect ? [] : [qId]
+            q_id: qId,
+            user_choice: uAns,
+            correct_answer: cAns,
+            is_correct: isCorrect
         }
     };
-    
+
     // 1) LocalStorage 캐시 저장
     try {
         const backupList = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
+        const createdAt = new Date().toISOString();
         backupList.push({
-            created_at: new Date().toISOString(),
+            created_at: createdAt,
             subject: subject,
             concept: conceptName,
             total_questions: 1,
@@ -949,7 +1092,7 @@ function submitInlineAnswer(idx, qId, event) {
     } catch (e) {
         console.warn(e);
     }
-    
+
     // 2) 백엔드 API 제출 및 통계 실시간 비동기 리프레시
     fetch('/api/quiz/submit', {
         method: 'POST',
@@ -958,16 +1101,16 @@ function submitInlineAnswer(idx, qId, event) {
         },
         body: JSON.stringify(payload)
     })
-    .then(() => {
-        return loadQuizStatsAndMerge();
-    })
-    .then(() => {
-        renderLoadedQuestion(idx, qId);
-    })
-    .catch(err => {
-        console.error(err);
-        renderLoadedQuestion(idx, qId);
-    });
+        .then(() => {
+            return loadQuizStatsAndMerge();
+        })
+        .then(() => {
+            renderLoadedQuestion(idx, qId);
+        })
+        .catch(err => {
+            console.error(err);
+            renderLoadedQuestion(idx, qId);
+        });
 }
 
 /**
@@ -975,14 +1118,14 @@ function submitInlineAnswer(idx, qId, event) {
  */
 function retryInlineQuestion(idx, qId, event) {
     if (event) event.stopPropagation();
-    
+
     if (window.quizSubmittedResults) {
         delete window.quizSubmittedResults[qId];
     }
     if (window.currentDraftAnswers) {
         window.currentDraftAnswers[qId] = [];
     }
-    
+
     renderLoadedQuestion(idx, qId);
 }
 
@@ -1033,7 +1176,7 @@ function startEditQuestion(idx, qId) {
 
     const numSymbols = ["①", "②", "③", "④", "⑤"];
     const options = data.options && data.options.length > 0 ? data.options : ["", "", "", ""];
-    
+
     options.forEach((opt, oIdx) => {
         const sym = numSymbols[oIdx] || `${oIdx + 1}.`;
         // input 내의 쌍따옴표 이스케이프 처리
@@ -1052,15 +1195,15 @@ function startEditQuestion(idx, qId) {
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.2rem;">🔑 정답 수정 (복수 선택 가능)</label>
                 <div id="edit-q-answer-${idx}" style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 0.5rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 4px;">
-                    ${[1,2,3,4].map(n => {
-                        const sym = ["①","②","③","④"][n-1];
-                        const ansArr = Array.isArray(data.answer) ? data.answer : [];
-                        const checked = ansArr.includes(n) ? 'checked' : '';
-                        return `<label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.9rem; color: #ffffff;">
+                    ${[1, 2, 3, 4].map(n => {
+        const sym = ["①", "②", "③", "④"][n - 1];
+        const ansArr = Array.isArray(data.answer) ? data.answer : [];
+        const checked = ansArr.includes(n) ? 'checked' : '';
+        return `<label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.9rem; color: #ffffff;">
                             <input type="checkbox" class="edit-answer-chk-${idx}" value="${n}" ${checked} style="accent-color: #8b5cf6; width: 16px; height: 16px; cursor: pointer;" />
                             ${sym}번
                         </label>`;
-                    }).join('')}
+    }).join('')}
                 </div>
             </div>
             <div>
@@ -1115,27 +1258,27 @@ function saveEditQuestion(idx, qId, event) {
         },
         body: JSON.stringify(updateData)
     })
-    .then(response => {
-        if (!response.ok) throw new Error("HTTP error " + response.status);
-        return response.json();
-    })
-    .then(res => {
-        if (res.success) {
-            // 로컬 캐시 데이터 즉시 동기화
-            window.loadedQuestions[qId].question = qTextVal;
-            window.loadedQuestions[qId].options = optionsVal;
-            window.loadedQuestions[qId].answer = answerArr;
-            window.loadedQuestions[qId].explanation = explanationVal;
-            alert("기출문제가 성공적으로 저장되었습니다.");
-            renderLoadedQuestion(idx, qId);
-        } else {
-            alert("저장 실패: " + res.message);
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        alert("서버와 통신 중 오류가 발생하여 저장에 실패했습니다.");
-    });
+        .then(response => {
+            if (!response.ok) throw new Error("HTTP error " + response.status);
+            return response.json();
+        })
+        .then(res => {
+            if (res.success) {
+                // 로컬 캐시 데이터 즉시 동기화
+                window.loadedQuestions[qId].question = qTextVal;
+                window.loadedQuestions[qId].options = optionsVal;
+                window.loadedQuestions[qId].answer = answerArr;
+                window.loadedQuestions[qId].explanation = explanationVal;
+                alert("기출문제가 성공적으로 저장되었습니다.");
+                renderLoadedQuestion(idx, qId);
+            } else {
+                alert("저장 실패: " + res.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("서버와 통신 중 오류가 발생하여 저장에 실패했습니다.");
+        });
 }
 
 /**
@@ -1154,14 +1297,14 @@ function splitQuestionAndOptionsFallback(bodyText) {
     if (splitIndex === -1) {
         return { question: bodyText, options: [] };
     }
-    
+
     const question = bodyText.substring(0, splitIndex).strip ? bodyText.substring(0, splitIndex).trim() : bodyText.substring(0, splitIndex);
     const optionsText = bodyText.substring(splitIndex);
-    
+
     // 보기들을 ①, ②, ③, ④ 등의 기호를 기준으로 쪼갭니다.
     const parts = optionsText.split(/①|②|③|④|❶|❷|❸|❹/);
     const options = parts.map(p => p.trim()).filter(p => p.length > 0);
-    
+
     return { question, options };
 }
 
@@ -1284,13 +1427,13 @@ window.closeTopicModal = function (event) {
 
 // 페이지 최초 로드 시 정답 모달 DOM을 body에 1회만 동적 생성
 // [버그 수정] head 내 스크립트 로드 시 document.body가 null인 문제 대응 → DOMContentLoaded 시점에 생성
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     if (document.getElementById('answer-modal')) return;
 
     const modal = document.createElement('div');
     modal.id = 'answer-modal';
     modal.className = 'modal-overlay';
-    modal.onclick = function(e) { closeAnswerModal(e); };
+    modal.onclick = function (e) { closeAnswerModal(e); };
     modal.innerHTML = `
         <div class="modal-card answer-modal-card" onclick="event.stopPropagation()" style="max-width: 560px; width: 90%;">
             <div class="modal-card-header" style="border-bottom: 1px solid rgba(139, 92, 246, 0.15);">
@@ -1336,7 +1479,7 @@ function openAnswerModal(idx, event) {
     // 복수 정답 표시 (배열 → 원문자 변환)
     const circleNums = ["?", "①", "②", "③", "④", "⑤"];
     const answerArr = Array.isArray(data.answer) ? data.answer : [];
-    
+
     let answerDisplay = "";
     if (answerArr.length === 0) {
         answerDisplay = `<span style="color: var(--text-secondary); font-style: italic;">미등록</span>`;
@@ -1352,7 +1495,7 @@ function openAnswerModal(idx, event) {
         optionsHtml = `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">보기 일람</div>
             <ul style="list-style: none; padding: 0; margin: 0;">`;
-        
+
         const symList = ["①", "②", "③", "④", "⑤"];
         data.options.forEach((opt, oIdx) => {
             const sym = symList[oIdx] || `${oIdx + 1}.`;
@@ -1402,8 +1545,117 @@ function openAnswerModal(idx, event) {
 }
 
 /**
- * [정답 팝업 닫기]
+ * [정답 팝업 열기] 
+ * 뷰어 헤더의 "정답 및 테스트이력" 버튼 클릭 시 호출됩니다.
+ * 정답과 테스트 이력을 보여주고 보기일람 및 해설은 제외합니다.
  */
+function openAnswerModal(idx, event) {
+    if (event) event.stopPropagation();
+
+    const answerBtn = document.getElementById(`answer-btn-${idx}`);
+    if (!answerBtn) return;
+
+    const qId = answerBtn.dataset.qId;
+    const data = window.loadedQuestions[qId];
+    if (!data) return;
+
+    const modal = document.getElementById('answer-modal');
+    const title = document.getElementById('answer-modal-title');
+    const body = document.getElementById('answer-modal-body');
+    if (!modal || !body) return;
+
+    // 제목 업데이트
+    const parts = qId.split('_');
+    const year = parts[0];
+    const num = parts[1];
+    const subjectName = window.SUBJECT_NAME || "감리사";
+    if (title) {
+        title.textContent = `🔑 ${year}년 ${subjectName} ${num}번 정답 및 테스트이력`;
+    }
+
+    // 복수 정답 표시 (배열 → 원문자 변환)
+    const circleNums = ["?", "①", "②", "③", "④", "⑤"];
+    const answerArr = Array.isArray(data.answer) ? data.answer : [];
+
+    let answerDisplay = "";
+    if (answerArr.length === 0) {
+        answerDisplay = `<span style="color: var(--text-secondary); font-style: italic;">미등록</span>`;
+    } else {
+        // 정답 번호를 원문자로 변환하여 표시
+        const ansSymbols = answerArr.map(n => circleNums[n] || n);
+        answerDisplay = `<span style="color: #ef4444; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.3rem;">${ansSymbols.join(' ')}</span>`;
+    }
+
+    // 해당 문항의 모든 풀이 이력을 window.quizFullHistoryList 에서 필터링하여 가져옵니다.
+    const questionLogs = (window.quizFullHistoryList || []).filter(log => {
+        if (!log.details) return false;
+        // 신규 포맷
+        if (log.details.q_id === qId) return true;
+        // 구 포맷
+        if (log.details.correct && log.details.correct.includes(qId)) return true;
+        if (log.details.wrong && log.details.wrong.includes(qId)) return true;
+        return false;
+    });
+
+    let historyHtml = '';
+    if (questionLogs.length > 0) {
+        historyHtml += `
+            <div class="quiz-history-timeline-section" style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.6rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem;">
+                    ⏱️ 테스트 이력
+                </div>
+                <ul class="timeline-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem;">
+        `;
+        const numSymbols = ["①", "②", "③", "④", "⑤"];
+        questionLogs.forEach(log => {
+            let text = '';
+            const dateFormatted = formatKoreanDate(log.created_at);
+            const isCorrect = log.details && (log.details.is_correct !== undefined ? log.details.is_correct : (log.details.correct && log.details.correct.includes(qId)));
+            const resultText = isCorrect ? '맞음' : '틀림';
+            const resultColor = isCorrect ? 'var(--success)' : '#ef4444';
+            const resultIcon = isCorrect ? '✓' : '✕';
+
+            if (log.details && log.details.user_choice) {
+                const choiceStr = log.details.user_choice.map(num => numSymbols[num - 1] || num).join(', ');
+                text = `${dateFormatted}에 ${choiceStr}번을 선택해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+            } else {
+                text = `${dateFormatted}에 답안을 제출해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+            }
+
+            historyHtml += `
+                <li style="font-size: 0.82rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${resultColor};">
+                    <span style="color: ${resultColor}; font-weight: bold; font-size: 0.75rem;">[${resultIcon}]</span>
+                    <span>${text}</span>
+                </li>
+            `;
+        });
+        historyHtml += `
+                </ul>
+            </div>
+        `;
+    } else {
+        historyHtml += `
+            <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem; text-align: center; color: var(--text-muted); font-size: 0.82rem; padding-bottom: 0.5rem;">
+                아직 테스트 이력이 없습니다.
+            </div>
+        `;
+    }
+
+    body.innerHTML = `
+        <div style="text-align: center; padding: 0.5rem 0 1rem 0;">
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">정답</div>
+            ${answerDisplay}
+            ${answerArr.length > 1 ? '<div style="font-size: 0.72rem; color: rgba(239,68,68,0.7); margin-top: 0.3rem;">⚡ 복수 정답</div>' : ''}
+        </div>
+        ${historyHtml}
+    `;
+
+    // 모달 표시 애니메이션
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
 function closeAnswerModal(event) {
     if (event && event.target !== event.currentTarget) return;
     const modal = document.getElementById('answer-modal');

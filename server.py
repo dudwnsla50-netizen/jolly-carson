@@ -306,9 +306,20 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             
             summary["avg_score"] = round((summary["total_correct"] * 100.0 / summary["total_solved"]), 1) if summary["total_solved"] > 0 else 0.0
             
+            # 사용자의 개별 상세 풀이 이력 로그 전체 조회
+            cursor.execute("""
+                SELECT created_at, concept, total_questions, correct_count, wrong_count, details
+                FROM quiz_history
+                WHERE subject = ?
+                ORDER BY created_at DESC
+            """, (subject,))
+            log_rows = cursor.fetchall()
+            logs_list = [dict(r) for r in log_rows]
+            
             self.send_json_response({
                 "summary": summary,
-                "concepts": stats_list
+                "concepts": stats_list,
+                "logs": logs_list
             })
         except Exception as e:
             self.send_error_response(500, f"Database error: {str(e)}")
