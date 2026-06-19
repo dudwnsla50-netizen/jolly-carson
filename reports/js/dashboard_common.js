@@ -92,14 +92,25 @@ function loadQuizStatsAndMerge() {
 
             const filteredLocal = localHistory.filter(h => h.subject === subject);
 
-            // 로컬 캐시와 서버 전체 로그 데이터를 created_at 기준으로 Union 병합
+            // 로컬 캐시와 서버 전체 로그 데이터를 q_id 및 근접 시간 기준으로 중복 검사하여 Union 병합
             const mergedLogs = [];
-            const seenCreatedAts = new Set();
-
             const serverLogs = data.logs || [];
+
+            // 시간 파싱 및 UTC 타임스탬프 반환 헬퍼
+            const getUTCTime = (dateStr) => {
+                if (!dateStr) return 0;
+                let standardized = dateStr;
+                if (!dateStr.includes('T') && dateStr.includes(' ')) {
+                    standardized = dateStr.replace(' ', 'T') + 'Z';
+                } else if (!dateStr.endsWith('Z') && dateStr.includes('T')) {
+                    standardized = dateStr + 'Z';
+                }
+                const t = new Date(standardized).getTime();
+                return isNaN(t) ? 0 : t;
+            };
+
             serverLogs.forEach(log => {
                 if (log.created_at) {
-                    seenCreatedAts.add(log.created_at);
                     let parsedDetails = log.details;
                     if (typeof log.details === 'string') {
                         try {
@@ -116,22 +127,35 @@ function loadQuizStatsAndMerge() {
             });
 
             filteredLocal.forEach(log => {
-                if (log.created_at && !seenCreatedAts.has(log.created_at)) {
-                    seenCreatedAts.add(log.created_at);
-                    let parsedDetails = log.details;
-                    if (typeof log.details === 'string') {
-                        try {
-                            parsedDetails = JSON.parse(log.details);
-                        } catch (e) { }
-                    }
-                    mergedLogs.push({
-                        ...log,
-                        details: parsedDetails
+                if (log.created_at) {
+                    const localTime = getUTCTime(log.created_at);
+                    const localQId = log.details ? log.details.q_id : null;
+
+                    // 서버 로그 중에 이미 동일한 시도(시간 차이 5초 이내 & q_id 동일)가 있는지 확인
+                    const isAlreadyExists = mergedLogs.some(sLog => {
+                        const serverTime = getUTCTime(sLog.created_at);
+                        const serverQId = sLog.details ? sLog.details.q_id : null;
+                        const isSameQ = (!localQId && !serverQId) || (localQId === serverQId);
+                        return isSameQ && Math.abs(localTime - serverTime) < 5000;
                     });
+
+                    if (!isAlreadyExists) {
+                        let parsedDetails = log.details;
+                        if (typeof log.details === 'string') {
+                            try {
+                                parsedDetails = JSON.parse(log.details);
+                            } catch (e) { }
+                        }
+                        mergedLogs.push({
+                            ...log,
+                            details: parsedDetails
+                        });
+                    }
                 }
             });
 
-            mergedLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            // 시간 정렬을 위해 정밀화된 UTC 타임스탬프 순으로 정렬
+            mergedLogs.sort((a, b) => getUTCTime(b.created_at) - getUTCTime(a.created_at));
             window.quizFullHistoryList = mergedLogs;
 
             // 데이터베이스(서버+로컬 병합 로그)를 전적으로 활용하여 실시간 재카운팅(집계)
@@ -162,7 +186,21 @@ function loadQuizStatsAndMerge() {
                     details: parsedDetails
                 };
             });
-            mergedLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            // 시간 파싱 및 UTC 타임스탬프 반환 헬퍼 (오프라인 캐치 블록용)
+            const getUTCTime = (dateStr) => {
+                if (!dateStr) return 0;
+                let standardized = dateStr;
+                if (!dateStr.includes('T') && dateStr.includes(' ')) {
+                    standardized = dateStr.replace(' ', 'T') + 'Z';
+                } else if (!dateStr.endsWith('Z') && dateStr.includes('T')) {
+                    standardized = dateStr + 'Z';
+                }
+                const t = new Date(standardized).getTime();
+                return isNaN(t) ? 0 : t;
+            };
+            
+            mergedLogs.sort((a, b) => getUTCTime(b.created_at) - getUTCTime(a.created_at));
             window.quizFullHistoryList = mergedLogs;
 
             recalculateQuizSummaryAndStats();
@@ -775,7 +813,15 @@ function showQuestion(idx, year, num, btnElement) {
  * 예시: 26년 6월 19일 3시 / 26년 6월 19일 3시 30분
  */
 function formatKoreanDate(dateStr) {
-    const d = new Date(dateStr);
+    if (!dateStr) return '';
+    let standardized = dateStr;
+    // SQLite의 'YYYY-MM-DD HH:MM:SS' UTC 형식을 JS가 올바르게 UTC로 인식하도록 'Z' 보정
+    if (!dateStr.includes('T') && dateStr.includes(' ')) {
+        standardized = dateStr.replace(' ', 'T') + 'Z';
+    } else if (!dateStr.endsWith('Z') && dateStr.includes('T')) {
+        standardized = dateStr + 'Z';
+    }
+    const d = new Date(standardized);
     if (isNaN(d.getTime())) return dateStr;
     const yy = String(d.getFullYear()).slice(-2);
     const mm = d.getMonth() + 1;
