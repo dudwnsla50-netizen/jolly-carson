@@ -9,14 +9,17 @@ import image_cropper
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-# 파일 저장 절대 경로 설정
-BASE_DIR = r"d:\100.lyj\anti_workspace\jolly-carson"
-EXAM_DIR = os.path.join(BASE_DIR, "data", "past_exam")
+# 파일 저장 절대 경로 설정 (동적 감지)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EXAM_DIR = os.path.join(BASE_DIR, "data", "past_exams")
 LOCAL_IMG_DIR = os.path.join(BASE_DIR, "reports", "images")
-ARTIFACT_IMG_DIR = r"C:\Users\histo\.gemini\antigravity-ide\brain\ae510509-1b89-475f-9e8b-abe2d35a05b1\images"
+
+# build_utils에서 정의된 아티팩트 디렉토리를 참조하여 현재 세션의 올바른 아티팩트 경로에 저장
+from build_utils import ARTIFACT_DIR
+ARTIFACT_IMG_DIR = os.path.join(ARTIFACT_DIR, "images")
 
 EXAM_FILES = [
-    {"year": 2015, "filename": "2015년(제16회) 정보시스템감리사 필기시험문제(답안).pdf"},
+    {"year": 2015, "filename": "2015년(제16회) 정보시스템 감리사 필기시험 문제 및 답안.pdf"},
     {"year": 2016, "filename": "2016년(제17회) 정보시스템 감리사 필기시험 문제 및 답안.pdf"},
     {"year": 2017, "filename": "2017년(제18회) 정보시스템 감리사 필기시험 문제 및 답안.pdf"},
     {"year": 2018, "filename": "2018년(제19회)정보시스템 감리사 필기시험 문제 및 답안.pdf"},
@@ -24,7 +27,7 @@ EXAM_FILES = [
     {"year": 2020, "filename": "2020년(제21회) 정보시스템 감리사 필기시험 문제 및 답안.pdf"},
     {"year": 2021, "filename": "2021년(제22회) 정보시스템 감리사 필기시험 문제 및 답안.pdf"},
     {"year": 2022, "filename": "2022년(제23회) 정보시스템 감리사 필기시험 문제 및 답안.pdf"},
-    {"year": 2023, "filename": "2023년 정보시스템 감리사 자격검정 필기시험 문제 A형(답안포함).pdf"},
+    {"year": 2023, "filename": "2023년(제24회) 정보시스템 감리사 필기시험 문제 및 답안.pdf"},
     {"year": 2024, "filename": "2024년(제25회) 감리사 자격검정 필기시험 문제-A형.pdf"},
     {"year": 2025, "filename": "2025년 감리사 자격검정 필기시험 문제-A형(답포함).pdf"},
     {"year": 2026, "filename": "2026년 감리사 자격검정 필기시험 문제 및 가답안（A형）.pdf"}

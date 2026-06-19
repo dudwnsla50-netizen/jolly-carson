@@ -9,8 +9,46 @@
 
 // 페이지 로드 완료 시 초기화 구동
 document.addEventListener('DOMContentLoaded', () => {
-    initDashboard();
+    loadDashboardDataAndInit();
 });
+
+/**
+ * API 서버로부터 대시보드 데이터를 로드한 후 초기화를 구동합니다.
+ * 서버에 연결할 수 없는 경우, 로컬 폴백을 시도합니다.
+ */
+function loadDashboardDataAndInit() {
+    const subject = window.SUBJECT_CODE || "DB";
+    const type = window.DASHBOARD_TYPE || "frequent";
+    
+    // API 주소 구성
+    const apiUrl = `/api/dashboard?subject=${subject}&type=${type}`;
+    
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) throw new Error("HTTP error " + response.status);
+            return response.json();
+        })
+        .then(data => {
+            window.dashboardData = data;
+            initDashboard();
+        })
+        .catch(error => {
+            console.warn("[경고] API 서버 연동 실패. 로컬 폴백 모드로 구동을 시도합니다.", error);
+            // 만약 HTML 내부에 기존 window.dashboardData가 이미 정의되어 있다면 로드
+            if (window.dashboardData) {
+                initDashboard();
+            } else {
+                const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+                if (container) {
+                    container.innerHTML = '<div style="padding: 3rem 2rem; text-align: center; color: var(--text-secondary); font-size: 0.95rem; line-height: 1.8;">' +
+                        '⚠️ API 서버가 구동되지 않았거나 로컬 파일로 열려 있습니다.<br>' +
+                        '프로젝트 루트 디렉토리에서 <code style="background: rgba(255,255,255,0.08); padding: 0.2rem 0.4rem; border-radius: 4px; color: #ef4444; font-family: monospace;">python server.py</code>를 실행하신 후,<br>' +
+                        '<a href="http://localhost:8000/reports/' + window.location.pathname.split('/').pop() + '" style="color: #8b5cf6; text-decoration: underline; font-weight: 600;">여기(로컬 호스트 주소)</a>로 접속해 주시면 정상 가동됩니다.' +
+                        '</div>';
+                }
+            }
+        });
+}
 
 /**
  * 1. 대시보드 초기 셋업
@@ -268,9 +306,13 @@ function renderDashboard(filter = 'all') {
                     </div>
                     
                     <div class="inline-question-viewer hidden" id="viewer-${globalIdx}">
-                        <div class="viewer-header">
+                        <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="viewer-title" id="viewer-title-${globalIdx}"></span>
-                            <button class="viewer-close-btn" onclick="closeViewer('${globalIdx}', event)">닫기 ✕</button>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <button class="viewer-answer-btn" id="answer-btn-${globalIdx}" onclick="openAnswerModal('${globalIdx}', event)" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">🔑 정답 및 해설 확인</button>
+                                <button class="viewer-edit-btn" id="edit-btn-${globalIdx}" onclick="onEditBtnClick('${globalIdx}', event)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">✏️ 수정</button>
+                                <button class="viewer-close-btn" onclick="closeViewer('${globalIdx}', event)">닫기 ✕</button>
+                            </div>
                         </div>
                         <div class="viewer-body" id="viewer-body-${globalIdx}"></div>
                         
@@ -331,6 +373,9 @@ function toggleAccordion(idx) {
 /**
  * 9. 개별 기출문항 클릭 시 상세 문제지 및 이미지 로드
  */
+// 로드된 기출문제를 캐싱할 전역 버퍼 객체
+window.loadedQuestions = window.loadedQuestions || {};
+
 function showQuestion(idx, year, num, btnElement) {
     // 1) 연도별 클릭 버튼 액티브 스타일 교체
     const item = document.getElementById(`item-${idx}`);
@@ -344,36 +389,75 @@ function showQuestion(idx, year, num, btnElement) {
         if (backupBtn) backupBtn.classList.add('active-btn');
     }
 
-    // 2) 기출문제 본문 가져오기 (examDatabase 객체 활용)
     const key = `${year}_${num}`;
-    let questionBody = "지문 정보를 읽어올 수 없습니다.";
-    if (typeof examDatabase !== 'undefined') {
-        questionBody = examDatabase[key] || "지문 정보를 읽어올 수 없습니다.";
-    } else if (window.examDatabase) {
-        questionBody = window.examDatabase[key] || "지문 정보를 읽어올 수 없습니다.";
-    }
-
     const viewer = document.getElementById(`viewer-${idx}`);
     if (!viewer) return;
 
     viewer.classList.remove('hidden');
 
-    // 3) 타이틀 및 본문 텍스트 갱신
+    // 2) 타이틀 및 수정 버튼 상태 갱신
     const title = document.getElementById(`viewer-title-${idx}`);
     if (title) {
         const subjectTitle = window.SUBJECT_NAME || "감리사";
         title.innerText = `[상세 기출] ${year}년도 ${subjectTitle} ${num}번 문항`;
     }
 
-    const body = document.getElementById(`viewer-body-${idx}`);
-    if (body) {
-        body.innerText = questionBody;
+    // 정답확인 버튼 노출 및 데이터 매핑
+    const answerBtn = document.getElementById(`answer-btn-${idx}`);
+    if (answerBtn) {
+        answerBtn.style.display = 'inline-flex';
+        answerBtn.dataset.qId = key;
     }
 
-    // 4) 원본 크롭 이미지 주소 바인딩 (로컬/웹서버 지원 분기)
-    const isLocal = (window.location.protocol === 'file:');
-    const imgPath = isLocal ? `images/${year}_${num}.png` : `images/${year}_${num}.png`;
+    // 수정 버튼 노출 및 데이터 매핑
+    const editBtn = document.getElementById(`edit-btn-${idx}`);
+    if (editBtn) {
+        editBtn.style.display = 'inline-flex';
+        editBtn.dataset.qId = key;
+        editBtn.innerText = "✏️ 수정"; // 편집 폼 상태에서 닫거나 전환 시 텍스트 리셋
+    }
 
+    const body = document.getElementById(`viewer-body-${idx}`);
+    if (body) {
+        body.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">데이터베이스에서 문항 정보를 조회하는 중...</div>';
+    }
+
+    // 3) API 서버로부터 기출문제 본문 온디맨드 로딩
+    fetch(`/api/question?id=${key}`)
+        .then(response => {
+            if (!response.ok) throw new Error("HTTP error " + response.status);
+            return response.json();
+        })
+        .then(data => {
+            // 로컬 전역 캐시에 저장
+            window.loadedQuestions[key] = data;
+            renderLoadedQuestion(idx, key);
+        })
+        .catch(error => {
+            console.warn(`[경고] API를 통한 문제(${key}) 로드 실패. 로컬 폴백 시도.`, error);
+            // 로컬 폴백
+            let questionBody = "지문 정보를 읽어올 수 없습니다. API 서버 상태를 확인해 주세요.";
+            if (typeof examDatabase !== 'undefined') {
+                questionBody = examDatabase[key] || questionBody;
+            } else if (window.examDatabase) {
+                questionBody = window.examDatabase[key] || questionBody;
+            }
+            
+            // 로컬 폴백 시에도 간이 파싱 수행 및 캐싱
+            const qAndO = splitQuestionAndOptionsFallback(questionBody);
+            window.loadedQuestions[key] = {
+                id: key,
+                question: qAndO.question,
+                options: qAndO.options,
+                answer: [],
+                explanation: null
+            };
+            
+            renderLoadedQuestion(idx, key);
+        });
+
+    // 4) 원본 크롭 이미지 주소 바인딩
+    const imgPath = `images/${year}_${num}.png`;
     const imgWrap = document.getElementById(`viewer-img-wrap-${idx}`);
     const img = document.getElementById(`viewer-img-${idx}`);
 
@@ -381,10 +465,231 @@ function showQuestion(idx, year, num, btnElement) {
     if (img) {
         img.src = imgPath;
     }
+}
 
-    // 5) 스크롤 영역 높이 갱신
+/**
+ * [설계 의도] 캐싱된 문제 데이터를 상세 뷰어 영역에 보기 좋게 렌더링합니다.
+ */
+function renderLoadedQuestion(idx, qId) {
+    const data = window.loadedQuestions[qId];
+    if (!data) return;
+
+    const body = document.getElementById(`viewer-body-${idx}`);
+    if (!body) return;
+
+    // 질문 본문 렌더링
+    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: #ffffff; margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
+    
+    // 보기 리스트 렌더링
+    if (data.options && data.options.length > 0) {
+        htmlContent += `<ul class="options-list" style="list-style: none; padding-left: 0; margin-bottom: 1.5rem;">`;
+        const numSymbols = ["①", "②", "③", "④", "⑤"];
+        data.options.forEach((opt, oIdx) => {
+            const sym = numSymbols[oIdx] || `${oIdx + 1}.`;
+            htmlContent += `<li style="margin-bottom: 0.6rem; font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); display: flex; gap: 0.5rem;">
+                <span style="color: #8b5cf6; font-weight: bold; flex-shrink: 0;">${sym}</span>
+                <span style="white-space: pre-wrap;">${opt}</span>
+            </li>`;
+        });
+        htmlContent += `</ul>`;
+    }
+
+    // [설계 변경] 인라인 정답/해설 영역 제거 → 상단 헤더의 공통 팝업 모달로 이동함
+    
+    body.innerHTML = htmlContent;
+    
+    // 편집 버튼 텍스트 리셋
+    const editBtn = document.getElementById(`edit-btn-${idx}`);
+    if (editBtn) editBtn.innerText = "✏️ 수정";
+
+    updateAccordionContentHeight(document.getElementById(`item-${idx}`));
+}
+
+/**
+ * [설계 의도] 수정 버튼 클릭 시 폼 제출 또는 편집 상태 전환을 관리합니다.
+ */
+function onEditBtnClick(idx, event) {
+    if (event) event.stopPropagation();
+    const editBtn = document.getElementById(`edit-btn-${idx}`);
+    if (!editBtn) return;
+
+    const qId = editBtn.dataset.qId;
+    if (!qId) return;
+
+    // 만약 현재 렌더링 영역이 편집 중인지 확인
+    const body = document.getElementById(`viewer-body-${idx}`);
+    const isEditing = body && body.querySelector('.edit-form-container') !== null;
+
+    if (isEditing) {
+        // 이미 수정 중인 상태에서 버튼을 다시 클릭하면 취소 처리
+        cancelEditQuestion(idx, qId);
+    } else {
+        // 수정 모드 시작
+        startEditQuestion(idx, qId);
+    }
+}
+
+/**
+ * [설계 의도] 상세 뷰어 영역을 인라인 편집이 가능한 input 및 textarea 폼으로 교체합니다.
+ */
+function startEditQuestion(idx, qId) {
+    const data = window.loadedQuestions[qId];
+    if (!data) return;
+
+    const body = document.getElementById(`viewer-body-${idx}`);
+    if (!body) return;
+
+    let htmlContent = `
+        <div class="edit-form-container" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">❓ 질문 본문 수정</label>
+                <textarea id="edit-q-text-${idx}" style="width: 100%; min-height: 120px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; font-family: inherit; resize: vertical;">${data.question}</textarea>
+            </div>
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.6rem;">📋 보기(선택지) 수정</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    `;
+
+    const numSymbols = ["①", "②", "③", "④", "⑤"];
+    const options = data.options && data.options.length > 0 ? data.options : ["", "", "", ""];
+    
+    options.forEach((opt, oIdx) => {
+        const sym = numSymbols[oIdx] || `${oIdx + 1}.`;
+        // input 내의 쌍따옴표 이스케이프 처리
+        const escapedOpt = opt.replace(/"/g, '&quot;');
+        htmlContent += `
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="color: #8b5cf6; font-weight: bold; font-size: 0.95rem; width: 20px; flex-shrink: 0; text-align: center;">${sym}</span>
+                <input type="text" class="edit-opt-input-${idx}" value="${escapedOpt}" style="flex-grow: 1; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.2); color: #ffffff; padding: 0.5rem; border-radius: 4px; font-size: 0.85rem; outline: none; font-family: inherit;" />
+            </div>
+        `;
+    });
+
+    htmlContent += `
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.2rem;">🔑 정답 수정 (복수 선택 가능)</label>
+                <div id="edit-q-answer-${idx}" style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 0.5rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 4px;">
+                    ${[1,2,3,4].map(n => {
+                        const sym = ["①","②","③","④"][n-1];
+                        const ansArr = Array.isArray(data.answer) ? data.answer : [];
+                        const checked = ansArr.includes(n) ? 'checked' : '';
+                        return `<label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.9rem; color: #ffffff;">
+                            <input type="checkbox" class="edit-answer-chk-${idx}" value="${n}" ${checked} style="accent-color: #8b5cf6; width: 16px; height: 16px; cursor: pointer;" />
+                            ${sym}번
+                        </label>`;
+                    }).join('')}
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">📝 해설 수정</label>
+                <textarea id="edit-q-explanation-${idx}" style="width: 100%; min-height: 80px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; font-family: inherit; resize: vertical;">${data.explanation || ''}</textarea>
+            </div>
+            <div style="display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.5rem;">
+                <button onclick="saveEditQuestion('${idx}', '${qId}', event)" style="background: #8b5cf6; border: none; color: #ffffff; padding: 0.4rem 1rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: all 0.2s;">💾 저장</button>
+                <button onclick="cancelEditQuestion('${idx}', '${qId}', event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.4rem 1rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; font-family: inherit;">취소</button>
+            </div>
+        </div>
+    `;
+
+    body.innerHTML = htmlContent;
+
+    const editBtn = document.getElementById(`edit-btn-${idx}`);
+    if (editBtn) editBtn.innerText = "✕ 취소";
+
+    updateAccordionContentHeight(document.getElementById(`item-${idx}`));
+}
+
+/**
+ * [설계 의도] 수정한 질문, 보기, 정답, 해설을 수집하여 백엔드 API에 POST 요청을 보내 저장하고 화면을 갱신합니다.
+ */
+function saveEditQuestion(idx, qId, event) {
+    if (event) event.stopPropagation();
+
+    const qTextVal = document.getElementById(`edit-q-text-${idx}`).value;
+    const optInputs = document.querySelectorAll(`.edit-opt-input-${idx}`);
+    const optionsVal = [];
+    optInputs.forEach(input => {
+        optionsVal.push(input.value);
+    });
+
+    // 복수 정답 체크박스에서 선택된 값 수집
+    const answerCheckboxes = document.querySelectorAll(`.edit-answer-chk-${idx}:checked`);
+    const answerArr = Array.from(answerCheckboxes).map(chk => parseInt(chk.value));
+    const explanationVal = document.getElementById(`edit-q-explanation-${idx}`).value;
+
+    const updateData = {
+        id: qId,
+        question: qTextVal,
+        options: optionsVal,
+        answer: answerArr,
+        explanation: explanationVal
+    };
+
+    fetch('/api/question/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+    })
+    .then(response => {
+        if (!response.ok) throw new Error("HTTP error " + response.status);
+        return response.json();
+    })
+    .then(res => {
+        if (res.success) {
+            // 로컬 캐시 데이터 즉시 동기화
+            window.loadedQuestions[qId].question = qTextVal;
+            window.loadedQuestions[qId].options = optionsVal;
+            window.loadedQuestions[qId].answer = answerArr;
+            window.loadedQuestions[qId].explanation = explanationVal;
+            alert("기출문제가 성공적으로 저장되었습니다.");
+            renderLoadedQuestion(idx, qId);
+        } else {
+            alert("저장 실패: " + res.message);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("서버와 통신 중 오류가 발생하여 저장에 실패했습니다.");
+    });
+}
+
+/**
+ * [설계 의도] 편집을 취소하고 원래 상태로 되돌립니다.
+ */
+function cancelEditQuestion(idx, qId, event) {
+    if (event) event.stopPropagation();
+    renderLoadedQuestion(idx, qId);
+}
+
+/**
+ * 프론트엔드 폴백용 간이 문제/보기 분리 함수
+ */
+function splitQuestionAndOptionsFallback(bodyText) {
+    const splitIndex = bodyText.search(/①|❶/);
+    if (splitIndex === -1) {
+        return { question: bodyText, options: [] };
+    }
+    
+    const question = bodyText.substring(0, splitIndex).strip ? bodyText.substring(0, splitIndex).trim() : bodyText.substring(0, splitIndex);
+    const optionsText = bodyText.substring(splitIndex);
+    
+    // 보기들을 ①, ②, ③, ④ 등의 기호를 기준으로 쪼갭니다.
+    const parts = optionsText.split(/①|②|③|④|❶|❷|❸|❹/);
+    const options = parts.map(p => p.trim()).filter(p => p.length > 0);
+    
+    return { question, options };
+}
+
+/**
+ * 아코디언이 열려 있는 상태에서 컨텐츠 높이를 동적으로 재조정합니다.
+ */
+function updateAccordionContentHeight(item) {
     const content = item.querySelector('.accordion-content');
-    if (content) {
+    if (content && item.classList.contains('active')) {
         content.style.maxHeight = content.scrollHeight + 500 + 'px';
     }
 }
@@ -489,3 +794,141 @@ window.closeTopicModal = function (event) {
         modal.style.display = 'none';
     }, 250);
 };
+
+/**
+ * 14. 정답 및 해설 공통 팝업 모달
+ * - 설계 의도: 모든 과목 대시보드에서 동일한 정답/해설 팝업 UI를 재사용합니다.
+ * - 복수 정답을 지원하며, 정답에 해당하는 보기 텍스트를 함께 표시합니다.
+ */
+
+// 페이지 최초 로드 시 정답 모달 DOM을 body에 1회만 동적 생성
+// [버그 수정] head 내 스크립트 로드 시 document.body가 null인 문제 대응 → DOMContentLoaded 시점에 생성
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('answer-modal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'answer-modal';
+    modal.className = 'modal-overlay';
+    modal.onclick = function(e) { closeAnswerModal(e); };
+    modal.innerHTML = `
+        <div class="modal-card answer-modal-card" onclick="event.stopPropagation()" style="max-width: 560px; width: 90%;">
+            <div class="modal-card-header" style="border-bottom: 1px solid rgba(139, 92, 246, 0.15);">
+                <h2 class="modal-card-title" id="answer-modal-title">🔑 정답 및 해설</h2>
+                <button class="modal-close-x" onclick="closeAnswerModal()">✕</button>
+            </div>
+            <div class="modal-card-body" id="answer-modal-body" style="padding: 1.2rem 1.5rem; max-height: 65vh; overflow-y: auto;">
+                <!-- 동적 콘텐츠 -->
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+});
+
+/**
+ * [정답 팝업 열기] 
+ * 뷰어 헤더의 "정답 및 해설 확인" 버튼 클릭 시 호출됩니다.
+ */
+function openAnswerModal(idx, event) {
+    if (event) event.stopPropagation();
+
+    const answerBtn = document.getElementById(`answer-btn-${idx}`);
+    if (!answerBtn) return;
+
+    const qId = answerBtn.dataset.qId;
+    const data = window.loadedQuestions[qId];
+    if (!data) return;
+
+    const modal = document.getElementById('answer-modal');
+    const title = document.getElementById('answer-modal-title');
+    const body = document.getElementById('answer-modal-body');
+    if (!modal || !body) return;
+
+    // 제목 업데이트
+    const parts = qId.split('_');
+    const year = parts[0];
+    const num = parts[1];
+    const subjectName = window.SUBJECT_NAME || "감리사";
+    if (title) {
+        title.textContent = `🔑 ${year}년 ${subjectName} ${num}번 정답 및 해설`;
+    }
+
+    // 복수 정답 표시 (배열 → 원문자 변환)
+    const circleNums = ["?", "①", "②", "③", "④", "⑤"];
+    const answerArr = Array.isArray(data.answer) ? data.answer : [];
+    
+    let answerDisplay = "";
+    if (answerArr.length === 0) {
+        answerDisplay = `<span style="color: var(--text-secondary); font-style: italic;">미등록</span>`;
+    } else {
+        // 정답 번호를 원문자로 변환하여 표시
+        const ansSymbols = answerArr.map(n => circleNums[n] || n);
+        answerDisplay = `<span style="color: #ef4444; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.3rem;">${ansSymbols.join(' ')}</span>`;
+    }
+
+    // 정답에 해당하는 보기 텍스트 하이라이트 포함 리스트 구성
+    let optionsHtml = '';
+    if (data.options && data.options.length > 0) {
+        optionsHtml = `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">보기 일람</div>
+            <ul style="list-style: none; padding: 0; margin: 0;">`;
+        
+        const symList = ["①", "②", "③", "④", "⑤"];
+        data.options.forEach((opt, oIdx) => {
+            const sym = symList[oIdx] || `${oIdx + 1}.`;
+            const isCorrect = answerArr.includes(oIdx + 1);
+            const highlightStyle = isCorrect
+                ? 'background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #ffffff; font-weight: 600;'
+                : 'background: transparent; border: 1px solid transparent; color: var(--text-secondary);';
+            const correctBadge = isCorrect
+                ? '<span style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; margin-left: 0.4rem;">정답</span>'
+                : '';
+
+            optionsHtml += `
+                <li style="margin-bottom: 0.4rem; padding: 0.45rem 0.6rem; border-radius: 5px; font-size: 0.88rem; line-height: 1.5; display: flex; align-items: flex-start; gap: 0.5rem; transition: all 0.2s; ${highlightStyle}">
+                    <span style="color: ${isCorrect ? '#ef4444' : '#8b5cf6'}; font-weight: bold; flex-shrink: 0;">${sym}</span>
+                    <span style="white-space: pre-wrap; flex: 1;">${opt}</span>
+                    ${correctBadge}
+                </li>`;
+        });
+        optionsHtml += `</ul></div>`;
+    }
+
+    // 해설 영역
+    const explanationHtml = `
+        <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem; font-weight: 600;">📝 해설</div>
+            <div style="font-size: 0.88rem; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; background: rgba(255,255,255,0.02); padding: 0.6rem 0.8rem; border-radius: 6px; border-left: 3px solid #8b5cf6;">
+                ${data.explanation || "등록된 정답 근거 해설이 없습니다.\n학습 범위를 참고하여 학습해 주세요."}
+            </div>
+        </div>
+    `;
+
+    body.innerHTML = `
+        <div style="text-align: center; padding: 1rem 0 0.5rem;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">정답</div>
+            ${answerDisplay}
+            ${answerArr.length > 1 ? '<div style="font-size: 0.72rem; color: rgba(239,68,68,0.7); margin-top: 0.3rem;">⚡ 복수 정답</div>' : ''}
+        </div>
+        ${optionsHtml}
+        ${explanationHtml}
+    `;
+
+    // 모달 표시 애니메이션
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
+
+/**
+ * [정답 팝업 닫기]
+ */
+function closeAnswerModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const modal = document.getElementById('answer-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 250);
+}

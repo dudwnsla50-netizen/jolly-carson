@@ -28,6 +28,12 @@ def main():
     if sys.stdout.encoding != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')
 
+    # 명령줄 아규먼트 전달
+    extra_args = []
+    for arg in sys.argv[1:]:
+        if arg in ["--force", "--force-crop"]:
+            extra_args.append(arg)
+
     success_count = 0
     for builder in BUILDERS:
         print(f"\n👉 [{builder}] 빌더 구동 중...")
@@ -37,8 +43,9 @@ def main():
             env = copy.deepcopy(os.environ)
             env["PYTHONPATH"] = os.path.dirname(os.path.abspath(__file__))
 
+            cmd = [sys.executable, builder] + extra_args
             result = subprocess.run(
-                [sys.executable, builder],
+                cmd,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",

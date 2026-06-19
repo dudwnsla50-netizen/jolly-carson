@@ -9,5 +9,14 @@
             "envManager": "ms-python.python:venv",
             "packageManager": "ms-python.python:pip"
         }
-    ]
+    ],
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:jolly-carson}/reports/exam_db/jolly_carson.db",
+            "name": "jolly_carson"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
 }

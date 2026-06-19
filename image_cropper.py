@@ -35,7 +35,12 @@ def get_question_positions_and_crop(pdf_path, year, subject_code, local_img_dir,
     - 캐싱 정책: 기존 크롭 파일이 이미 존재하면 렌더링 과정을 건너뛰고 기존 좌표만 반환합니다.
     """
     os.makedirs(local_img_dir, exist_ok=True)
-    os.makedirs(artifact_img_dir, exist_ok=True)
+    # 배포 환경을 위한 방어 코드: 아티팩트 디렉토리 생성 실패 시 에러 없이 넘어감
+    try:
+        if artifact_img_dir:
+            os.makedirs(artifact_img_dir, exist_ok=True)
+    except Exception:
+        pass
     
     try:
         doc = fitz.open(pdf_path)
@@ -200,7 +205,12 @@ def get_question_positions_and_crop(pdf_path, year, subject_code, local_img_dir,
             # 사용자의 요청에 따라 이미지 사이즈 및 품질을 50% 줄이기 위해 Matrix 배율을 2.2에서 1.1로 조정
             pix = page.get_pixmap(clip=crop_rect, matrix=fitz.Matrix(1.1, 1.1))
             pix.save(local_path)
-            pix.save(artifact_path)
+            # 배포 환경을 위한 방어 코드: 아티팩트 파일 저장 실패 시 에러 없이 넘어감
+            if artifact_path:
+                try:
+                    pix.save(artifact_path)
+                except Exception:
+                    pass
         except Exception as e:
             print(f"  [경고] {year}년도 {num}번 크롭 이미지 저장 실패: {e}")
             

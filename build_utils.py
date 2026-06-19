@@ -3,7 +3,22 @@ import json
 import re
 
 # 현재 대화의 아티팩트 디렉토리 경로
-ARTIFACT_DIR = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\67ae5d2c-bc8c-43a5-8e13-47848b2d1ce9"
+# render.com 등 서버 배포 환경 및 타 OS 환경(리눅스 등)에서 로컬 경로(C:\Users\...) 접근 시의 에러를 방지하기 위해 
+# 환경 변수나 OS 환경을 파악하여 적절한 폴백 경로를 지정합니다.
+import sys
+_DEFAULT_ARTIFACT_DIR = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\67ae5d2c-bc8c-43a5-8e13-47848b2d1ce9"
+
+if os.environ.get("GEMINI_ARTIFACT_DIR"):
+    ARTIFACT_DIR = os.environ.get("GEMINI_ARTIFACT_DIR")
+elif sys.platform == "win32" and os.path.exists(os.path.dirname(r"C:\Users\DCCIS040000")):
+    ARTIFACT_DIR = _DEFAULT_ARTIFACT_DIR
+else:
+    # render.com 등 리눅스 서버 환경 혹은 타 사용자 PC에서는 
+    # 워크스페이스 내의 임시/더미 경로를 반환하여 os.path.join 시의 TypeError를 예방합니다.
+    # 실제로 이 디렉토리를 물리적으로 생성하거나 쓸 때 예외가 나면 무시하도록 처리합니다.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    ARTIFACT_DIR = os.path.join(base_dir, "reports", "temp_artifacts_fallback")
+
 
 def get_output_paths(filename):
     """
@@ -64,11 +79,14 @@ def update_shared_db(new_db, subject_code):
         f.write(js_content)
     print(f"[{subject_code} DB] 로컬 업데이트 완료: {local_js_path}")
     
-    # 6. 아티팩트 경로에 저장
-    os.makedirs(os.path.dirname(artifact_js_path), exist_ok=True)
-    with open(artifact_js_path, "w", encoding="utf-8") as f:
-        f.write(js_content)
-    print(f"[{subject_code} DB] 아티팩트 업데이트 완료: {artifact_js_path}")
+    # 6. 아티팩트 경로에 저장 (배포 환경 등을 고려하여 예외 처리로 방어)
+    try:
+        os.makedirs(os.path.dirname(artifact_js_path), exist_ok=True)
+        with open(artifact_js_path, "w", encoding="utf-8") as f:
+            f.write(js_content)
+        print(f"[{subject_code} DB] 아티팩트 업데이트 완료: {artifact_js_path}")
+    except Exception as e:
+        print(f"[{subject_code} DB] 아티팩트 업데이트 건너뜀 (배포 환경 혹은 권한 없음): {e}")
 
 def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapping_json, filter_section_html=""):
     """
@@ -89,11 +107,14 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
         f.write(js_content)
     print(f"[{subject_code} 데이터 JS] 로컬 저장 완료: {local_js_path}")
     
-    # 아티팩트 경로에 저장
-    os.makedirs(os.path.dirname(artifact_js_path), exist_ok=True)
-    with open(artifact_js_path, "w", encoding="utf-8") as f:
-        f.write(js_content)
-    print(f"[{subject_code} 데이터 JS] 아티팩트 저장 완료: {artifact_js_path}")
+    # 아티팩트 경로에 저장 (배포 환경 등을 고려하여 예외 처리로 방어)
+    try:
+        os.makedirs(os.path.dirname(artifact_js_path), exist_ok=True)
+        with open(artifact_js_path, "w", encoding="utf-8") as f:
+            f.write(js_content)
+        print(f"[{subject_code} 데이터 JS] 아티팩트 저장 완료: {artifact_js_path}")
+    except Exception as e:
+        print(f"[{subject_code} 데이터 JS] 아티팩트 저장 건너뜀 (배포 환경 혹은 권한 없음): {e}")
 
     title_suffix = "공식 범위별 기출 뷰어" if dashboard_type == "official" else "12개년 빈출 개념 정밀 뷰어"
     header_title = f"{subject_name} 공식 범위별 기출분석" if dashboard_type == "official" else f"{subject_name} 기출 정밀 분석 대시보드"
