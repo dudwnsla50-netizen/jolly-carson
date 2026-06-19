@@ -1444,9 +1444,8 @@ function openAnswerModal(idx, event) {
     const parts = qId.split('_');
     const year = parts[0];
     const num = parts[1];
-    const subjectName = window.SUBJECT_NAME || "감리사";
     if (title) {
-        title.textContent = `🔑 ${year}년 ${subjectName} ${num}번 정답 및 테스트이력`;
+        title.textContent = `🔑 ${year}년 ${num}번 정답 및 테스트이력`;
     }
 
     // 복수 정답 표시 (배열 → 원문자 변환)
