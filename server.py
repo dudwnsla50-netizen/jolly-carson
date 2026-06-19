@@ -146,8 +146,20 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             cursor.execute("SELECT question, options, answer, explanation FROM exam_questions WHERE id = ?", (q_id,))
             row = cursor.fetchone()
             if row:
-                # answer는 JSON 배열 문자열(예: "[1,3]")로 저장됨 → 파싱하여 리스트로 반환
-                answer_val = json.loads(row[2]) if row[2] else []
+                # answer는 JSON 배열 문자열(예: "[1,3]") 또는 정수(예: 2)로 저장될 수 있으므로 유연하게 파싱
+                raw_answer = row[2]
+                if isinstance(raw_answer, int):
+                    answer_val = [raw_answer]
+                elif isinstance(raw_answer, str) and raw_answer.strip():
+                    try:
+                        answer_val = json.loads(raw_answer)
+                        if isinstance(answer_val, int):
+                            answer_val = [answer_val]
+                    except Exception:
+                        answer_val = []
+                else:
+                    answer_val = []
+
                 self.send_json_response({
                     "id": q_id, 
                     "question": row[0],
@@ -181,8 +193,21 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             for row in rows:
                 item = dict(row)
                 item["options"] = json.loads(item["options"]) if item["options"] else []
-                # answer JSON 배열 파싱 (복수 정답 지원)
-                item["answer"] = json.loads(item["answer"]) if item["answer"] else []
+                # answer는 JSON 배열 문자열 또는 정수일 수 있으므로 유연하게 파싱 (복수 정답 지원)
+                raw_answer = item["answer"]
+                if isinstance(raw_answer, int):
+                    item["answer"] = [raw_answer]
+                elif isinstance(raw_answer, str) and raw_answer.strip():
+                    try:
+                        parsed_ans = json.loads(raw_answer)
+                        if isinstance(parsed_ans, int):
+                            item["answer"] = [parsed_ans]
+                        else:
+                            item["answer"] = parsed_ans
+                    except Exception:
+                        item["answer"] = []
+                else:
+                    item["answer"] = []
                 data_dict[item["id"]] = item
                 
             self.send_json_response(data_dict)
