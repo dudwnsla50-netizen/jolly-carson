@@ -1425,7 +1425,7 @@ function openAnswerModal(idx, event) {
         modal.innerHTML = `
             <div class="modal-card answer-modal-card" onclick="event.stopPropagation()" style="max-width: 560px; width: 90%;">
                 <div class="modal-card-header" style="border-bottom: 1px solid rgba(139, 92, 246, 0.15);">
-                    <h2 class="modal-card-title" id="answer-modal-title">🔑 정답 및 해설</h2>
+                    <h2 class="modal-card-title" id="answer-modal-title">🔑 정답 및 테스트이력</h2>
                     <button class="modal-close-x" onclick="closeAnswerModal()">✕</button>
                 </div>
                 <div class="modal-card-body" id="answer-modal-body" style="padding: 1.2rem 1.5rem; max-height: 65vh; overflow-y: auto;">
@@ -1446,7 +1446,7 @@ function openAnswerModal(idx, event) {
     const num = parts[1];
     const subjectName = window.SUBJECT_NAME || "감리사";
     if (title) {
-        title.textContent = `🔑 ${year}년 ${subjectName} ${num}번 정답 및 해설`;
+        title.textContent = `🔑 ${year}년 ${subjectName} ${num}번 정답 및 테스트이력`;
     }
 
     // 복수 정답 표시 (배열 → 원문자 변환)
@@ -1460,44 +1460,6 @@ function openAnswerModal(idx, event) {
         const ansSymbols = answerArr.map(n => circleNums[n] || n);
         answerDisplay = `<span style="color: #ef4444; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.3rem;">${ansSymbols.join(' ')}</span>`;
     }
-
-    // 정답에 해당하는 보기 텍스트 하이라이트 포함 리스트 구성
-    let optionsHtml = '';
-    if (data.options && data.options.length > 0) {
-        optionsHtml = `<div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">보기 일람</div>
-            <ul style="list-style: none; padding: 0; margin: 0;">`;
-
-        const symList = ["①", "②", "③", "④", "⑤"];
-        data.options.forEach((opt, oIdx) => {
-            const sym = symList[oIdx] || `${oIdx + 1}.`;
-            const isCorrect = answerArr.includes(oIdx + 1);
-            const highlightStyle = isCorrect
-                ? 'background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #ffffff; font-weight: 600;'
-                : 'background: transparent; border: 1px solid transparent; color: var(--text-secondary);';
-            const correctBadge = isCorrect
-                ? '<span style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; margin-left: 0.4rem;">정답</span>'
-                : '';
-
-            optionsHtml += `
-                <li style="margin-bottom: 0.4rem; padding: 0.45rem 0.6rem; border-radius: 5px; font-size: 0.88rem; line-height: 1.5; display: flex; align-items: flex-start; gap: 0.5rem; transition: all 0.2s; ${highlightStyle}">
-                    <span style="color: ${isCorrect ? '#ef4444' : '#8b5cf6'}; font-weight: bold; flex-shrink: 0;">${sym}</span>
-                    <span style="white-space: pre-wrap; flex: 1;">${opt}</span>
-                    ${correctBadge}
-                </li>`;
-        });
-        optionsHtml += `</ul></div>`;
-    }
-
-    // 해설 영역
-    const explanationHtml = `
-        <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem; font-weight: 600;">📝 해설</div>
-            <div style="font-size: 0.88rem; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; background: rgba(255,255,255,0.02); padding: 0.6rem 0.8rem; border-radius: 6px; border-left: 3px solid #8b5cf6;">
-                ${data.explanation || "등록된 정답 근거 해설이 없습니다.\n학습 범위를 참고하여 학습해 주세요."}
-            </div>
-        </div>
-    `;
 
     // 풀이 이력 영역
     const questionLogs = (window.quizFullHistoryList || []).filter(log => {
@@ -1558,8 +1520,6 @@ function openAnswerModal(idx, event) {
             ${answerDisplay}
             ${answerArr.length > 1 ? '<div style="font-size: 0.72rem; color: rgba(239,68,68,0.7); margin-top: 0.3rem;">⚡ 복수 정답</div>' : ''}
         </div>
-        ${optionsHtml}
-        ${explanationHtml}
         ${historyHtml}
     `;
 
