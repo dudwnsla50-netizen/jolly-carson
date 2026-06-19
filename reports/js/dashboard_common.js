@@ -1412,9 +1412,32 @@ function openAnswerModal(idx, event) {
     const data = window.loadedQuestions[qId];
     if (!data) return;
 
-    const modal = document.getElementById('answer-modal');
-    const title = document.getElementById('answer-modal-title');
-    const body = document.getElementById('answer-modal-body');
+    let modal = document.getElementById('answer-modal');
+    let title = document.getElementById('answer-modal-title');
+    let body = document.getElementById('answer-modal-body');
+    
+    // 만약 어떠한 이유로 DOM에 모달 엘리먼트가 존재하지 않으면 즉시 동적 자동 구축
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'answer-modal';
+        modal.className = 'modal-overlay';
+        modal.onclick = function (e) { closeAnswerModal(e); };
+        modal.innerHTML = `
+            <div class="modal-card answer-modal-card" onclick="event.stopPropagation()" style="max-width: 560px; width: 90%;">
+                <div class="modal-card-header" style="border-bottom: 1px solid rgba(139, 92, 246, 0.15);">
+                    <h2 class="modal-card-title" id="answer-modal-title">🔑 정답 및 해설</h2>
+                    <button class="modal-close-x" onclick="closeAnswerModal()">✕</button>
+                </div>
+                <div class="modal-card-body" id="answer-modal-body" style="padding: 1.2rem 1.5rem; max-height: 65vh; overflow-y: auto;">
+                    <!-- 동적 콘텐츠 -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        title = document.getElementById('answer-modal-title');
+        body = document.getElementById('answer-modal-body');
+    }
+
     if (!modal || !body) return;
 
     // 제목 업데이트
@@ -1434,7 +1457,6 @@ function openAnswerModal(idx, event) {
     if (answerArr.length === 0) {
         answerDisplay = `<span style="color: var(--text-secondary); font-style: italic;">미등록</span>`;
     } else {
-        // 정답 번호를 원문자로 변환하여 표시
         const ansSymbols = answerArr.map(n => circleNums[n] || n);
         answerDisplay = `<span style="color: #ef4444; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.3rem;">${ansSymbols.join(' ')}</span>`;
     }
@@ -1477,71 +1499,10 @@ function openAnswerModal(idx, event) {
         </div>
     `;
 
-    body.innerHTML = `
-        <div style="text-align: center; padding: 1rem 0 0.5rem;">
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">정답</div>
-            ${answerDisplay}
-            ${answerArr.length > 1 ? '<div style="font-size: 0.72rem; color: rgba(239,68,68,0.7); margin-top: 0.3rem;">⚡ 복수 정답</div>' : ''}
-        </div>
-        ${optionsHtml}
-        ${explanationHtml}
-    `;
-
-    // 모달 표시 애니메이션
-    modal.style.display = 'flex';
-    setTimeout(() => {
-        modal.classList.add('show');
-    }, 10);
-}
-
-/**
- * [정답 팝업 열기] 
- * 뷰어 헤더의 "정답 및 테스트이력" 버튼 클릭 시 호출됩니다.
- * 정답과 테스트 이력을 보여주고 보기일람 및 해설은 제외합니다.
- */
-function openAnswerModal(idx, event) {
-    if (event) event.stopPropagation();
-
-    const answerBtn = document.getElementById(`answer-btn-${idx}`);
-    if (!answerBtn) return;
-
-    const qId = answerBtn.dataset.qId;
-    const data = window.loadedQuestions[qId];
-    if (!data) return;
-
-    const modal = document.getElementById('answer-modal');
-    const title = document.getElementById('answer-modal-title');
-    const body = document.getElementById('answer-modal-body');
-    if (!modal || !body) return;
-
-    // 제목 업데이트
-    const parts = qId.split('_');
-    const year = parts[0];
-    const num = parts[1];
-    const subjectName = window.SUBJECT_NAME || "감리사";
-    if (title) {
-        title.textContent = `🔑 ${year}년 ${subjectName} ${num}번 정답 및 테스트이력`;
-    }
-
-    // 복수 정답 표시 (배열 → 원문자 변환)
-    const circleNums = ["?", "①", "②", "③", "④", "⑤"];
-    const answerArr = Array.isArray(data.answer) ? data.answer : [];
-
-    let answerDisplay = "";
-    if (answerArr.length === 0) {
-        answerDisplay = `<span style="color: var(--text-secondary); font-style: italic;">미등록</span>`;
-    } else {
-        // 정답 번호를 원문자로 변환하여 표시
-        const ansSymbols = answerArr.map(n => circleNums[n] || n);
-        answerDisplay = `<span style="color: #ef4444; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.3rem;">${ansSymbols.join(' ')}</span>`;
-    }
-
-    // 해당 문항의 모든 풀이 이력을 window.quizFullHistoryList 에서 필터링하여 가져옵니다.
+    // 풀이 이력 영역
     const questionLogs = (window.quizFullHistoryList || []).filter(log => {
         if (!log.details) return false;
-        // 신규 포맷
         if (log.details.q_id === qId) return true;
-        // 구 포맷
         if (log.details.correct && log.details.correct.includes(qId)) return true;
         if (log.details.wrong && log.details.wrong.includes(qId)) return true;
         return false;
@@ -1551,8 +1512,8 @@ function openAnswerModal(idx, event) {
     if (questionLogs.length > 0) {
         historyHtml += `
             <div class="quiz-history-timeline-section" style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
-                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.6rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem;">
-                    ⏱️ 테스트 이력
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.6rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem;">
+                    ⏱️ 나의 풀이 이력
                 </div>
                 <ul class="timeline-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem;">
         `;
@@ -1573,7 +1534,7 @@ function openAnswerModal(idx, event) {
             }
 
             historyHtml += `
-                <li style="font-size: 0.82rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${resultColor};">
+                <li style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${resultColor};">
                     <span style="color: ${resultColor}; font-weight: bold; font-size: 0.75rem;">[${resultIcon}]</span>
                     <span>${text}</span>
                 </li>
@@ -1585,18 +1546,20 @@ function openAnswerModal(idx, event) {
         `;
     } else {
         historyHtml += `
-            <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem; text-align: center; color: var(--text-muted); font-size: 0.82rem; padding-bottom: 0.5rem;">
+            <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; padding-bottom: 0.3rem;">
                 아직 테스트 이력이 없습니다.
             </div>
         `;
     }
 
     body.innerHTML = `
-        <div style="text-align: center; padding: 0.5rem 0 1rem 0;">
-            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">정답</div>
+        <div style="text-align: center; padding: 1rem 0 0.5rem;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">정답</div>
             ${answerDisplay}
             ${answerArr.length > 1 ? '<div style="font-size: 0.72rem; color: rgba(239,68,68,0.7); margin-top: 0.3rem;">⚡ 복수 정답</div>' : ''}
         </div>
+        ${optionsHtml}
+        ${explanationHtml}
         ${historyHtml}
     `;
 
