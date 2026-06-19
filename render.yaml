@@ -1,0 +1,12 @@
+# render.com Blueprint Specification
+# 이 파일을 프로젝트에 추가한 뒤 GitHub 리포지토리를 Render에 연결하면,
+# master 브랜치에 push가 일어날 때마다 자동으로 빌드 및 배포 파이프라인이 구동됩니다.
+services:
+  - type: web
+    name: jolly-carson
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python server.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
