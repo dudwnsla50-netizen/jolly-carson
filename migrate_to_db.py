@@ -144,6 +144,10 @@ def migrate_exam_questions():
             answer = cached_item.get("answer")
             explanation = cached_item.get("explanation")
             
+            # [버그 해결] SQLite3는 파이썬 list 타입을 바로 바인딩할 수 없으므로, JSON 문자열로 직렬화하여 저장
+            if isinstance(answer, list):
+                answer = json.dumps(answer)
+            
             cursor.execute("""
             INSERT OR REPLACE INTO exam_questions (id, year, subject, question_num, question, options, answer, explanation)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
