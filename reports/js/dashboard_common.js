@@ -82,9 +82,6 @@ function loadQuizStatsAndMerge() {
             return res.json();
         })
         .then(data => {
-            const serverConcepts = data.concepts || [];
-            const serverSummary = data.summary || { total_attempts: 0, total_correct: 0, total_solved: 0 };
-
             // LocalStorage 백업 읽기
             let localHistory = [];
             try {
@@ -94,7 +91,6 @@ function loadQuizStatsAndMerge() {
             }
 
             const filteredLocal = localHistory.filter(h => h.subject === subject);
-            const serverTotal = serverSummary.total_attempts || 0;
 
             // 로컬 캐시와 서버 전체 로그 데이터를 created_at 기준으로 Union 병합
             const mergedLogs = [];
@@ -138,66 +134,8 @@ function loadQuizStatsAndMerge() {
             mergedLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             window.quizFullHistoryList = mergedLogs;
 
-            // 스마트 폴백 정책: 서버가 초기화(0건)되었고 로컬 백업이 있는 경우, 로컬 데이터 복구
-            if (serverTotal === 0 && filteredLocal.length > 0) {
-                const localStats = {};
-                let totalAttempts = 0;
-                let totalCorrect = 0;
-                let totalSolved = 0;
-
-                filteredLocal.forEach(h => {
-                    if (!localStats[h.concept]) {
-                        localStats[h.concept] = {
-                            concept: h.concept,
-                            attempt_count: 0,
-                            total_correct: 0,
-                            total_solved: 0,
-                            last_attempt_at: h.created_at
-                        };
-                    }
-                    const s = localStats[h.concept];
-                    s.attempt_count += 1;
-                    s.total_correct += h.correct_count;
-                    s.total_solved += h.total_questions;
-                    if (new Date(h.created_at) > new Date(s.last_attempt_at)) {
-                        s.last_attempt_at = h.created_at;
-                    }
-                    totalAttempts += 1;
-                    totalCorrect += h.correct_count;
-                    totalSolved += h.total_questions;
-                });
-
-                Object.keys(localStats).forEach(con => {
-                    const s = localStats[con];
-                    window.quizStats[con] = {
-                        attempt_count: s.attempt_count,
-                        avg_score: s.total_solved > 0 ? Math.round((s.total_correct * 100.0 / s.total_solved) * 10) / 10 : 0.0,
-                        last_attempt_at: s.last_attempt_at
-                    };
-                });
-
-                window.quizSummary = {
-                    total_attempts: totalAttempts,
-                    total_correct: totalCorrect,
-                    total_solved: totalSolved,
-                    avg_score: totalSolved > 0 ? Math.round((totalCorrect * 100.0 / totalSolved) * 10) / 10 : 0.0
-                };
-            } else {
-                // 서버 데이터가 정상적으로 있으면 이를 기준 데이터로 채택
-                serverConcepts.forEach(c => {
-                    window.quizStats[c.concept] = {
-                        attempt_count: c.attempt_count,
-                        avg_score: c.avg_score,
-                        last_attempt_at: c.last_attempt_at
-                    };
-                });
-                window.quizSummary = {
-                    total_attempts: serverSummary.total_attempts,
-                    total_correct: serverSummary.total_correct,
-                    total_solved: serverSummary.total_solved,
-                    avg_score: serverSummary.avg_score
-                };
-            }
+            // 데이터베이스(서버+로컬 병합 로그)를 전적으로 활용하여 실시간 재카운팅(집계)
+            recalculateQuizSummaryAndStats();
 
             // 대시보드 상단 요약 카드 렌더링
             renderQuizSummarySection();
@@ -227,52 +165,64 @@ function loadQuizStatsAndMerge() {
             mergedLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             window.quizFullHistoryList = mergedLogs;
 
-            if (filteredLocal.length > 0) {
-                const localStats = {};
-                let totalAttempts = 0;
-                let totalCorrect = 0;
-                let totalSolved = 0;
+            recalculateQuizSummaryAndStats();
 
-                filteredLocal.forEach(h => {
-                    if (!localStats[h.concept]) {
-                        localStats[h.concept] = {
-                            concept: h.concept,
-                            attempt_count: 0,
-                            total_correct: 0,
-                            total_solved: 0,
-                            last_attempt_at: h.created_at
-                        };
-                    }
-                    const s = localStats[h.concept];
-                    s.attempt_count += 1;
-                    s.total_correct += h.correct_count;
-                    s.total_solved += h.total_questions;
-                    if (new Date(h.created_at) > new Date(s.last_attempt_at)) {
-                        s.last_attempt_at = h.created_at;
-                    }
-                    totalAttempts += 1;
-                    totalCorrect += h.correct_count;
-                    totalSolved += h.total_questions;
-                });
-
-                Object.keys(localStats).forEach(con => {
-                    const s = localStats[con];
-                    window.quizStats[con] = {
-                        attempt_count: s.attempt_count,
-                        avg_score: s.total_solved > 0 ? Math.round((s.total_correct * 100.0 / s.total_solved) * 10) / 10 : 0.0,
-                        last_attempt_at: s.last_attempt_at
-                    };
-                });
-
-                window.quizSummary = {
-                    total_attempts: totalAttempts,
-                    total_correct: totalCorrect,
-                    total_solved: totalSolved,
-                    avg_score: totalSolved > 0 ? Math.round((totalCorrect * 100.0 / totalSolved) * 10) / 10 : 0.0
-                };
-            }
             renderQuizSummarySection();
         });
+}
+
+/**
+ * window.quizFullHistoryList(최종 마스터 로그 배열)를 기반으로
+ * 전역 통계 변수(window.quizStats, window.quizSummary)를 직접 전수 재계산(집계)합니다.
+ */
+function recalculateQuizSummaryAndStats() {
+    const conceptStats = {};
+    let totalAttempts = 0;
+    let totalCorrect = 0;
+    let totalSolved = 0;
+
+    (window.quizFullHistoryList || []).forEach(log => {
+        const con = log.concept || "기타";
+        if (!conceptStats[con]) {
+            conceptStats[con] = {
+                concept: con,
+                attempt_count: 0,
+                total_correct: 0,
+                total_solved: 0,
+                last_attempt_at: log.created_at
+            };
+        }
+        const s = conceptStats[con];
+        s.attempt_count += 1;
+        s.total_correct += (log.correct_count || 0);
+        s.total_solved += (log.total_questions || 0);
+        if (new Date(log.created_at) > new Date(s.last_attempt_at)) {
+            s.last_attempt_at = log.created_at;
+        }
+
+        totalAttempts += 1;
+        totalCorrect += (log.correct_count || 0);
+        totalSolved += (log.total_questions || 0);
+    });
+
+    // window.quizStats 초기화 및 갱신
+    window.quizStats = {};
+    Object.keys(conceptStats).forEach(con => {
+        const s = conceptStats[con];
+        window.quizStats[con] = {
+            attempt_count: s.attempt_count,
+            avg_score: s.total_solved > 0 ? Math.round((s.total_correct * 100.0 / s.total_solved) * 10) / 10 : 0.0,
+            last_attempt_at: s.last_attempt_at
+        };
+    });
+
+    // window.quizSummary 갱신
+    window.quizSummary = {
+        total_attempts: totalAttempts,
+        total_correct: totalCorrect,
+        total_solved: totalSolved,
+        avg_score: totalSolved > 0 ? Math.round((totalCorrect * 100.0 / totalSolved) * 10) / 10 : 0.0
+    };
 }
 
 /**
