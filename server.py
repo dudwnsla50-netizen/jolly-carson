@@ -76,6 +76,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         # POST 전 전용 API 라우터
         if path == "/api/question/update":
             self.update_question(data)
+        elif path == "/api/quiz/submit":
+            self.submit_quiz(data)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
 
@@ -86,6 +88,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_question(query)
         elif path == "/api/questions":
             self.get_questions(query)
+        elif path == "/api/quiz/stats":
+            self.get_quiz_stats(query)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
 
@@ -222,6 +226,95 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         finally:
             conn.close()
 
+    def submit_quiz(self, data):
+        """[설계 의도] 모바일 퀴즈 채점 결과를 DB에 안전하게 INSERT합니다."""
+        subject = data.get("subject")
+        concept = data.get("concept")
+        total_questions = data.get("total_questions")
+        correct_count = data.get("correct_count")
+        wrong_count = data.get("wrong_count")
+        details = data.get("details") # dict 또는 list -> json.dumps 저장
+        
+        if not subject or not concept or total_questions is None or correct_count is None or wrong_count is None:
+            self.send_error_response(400, "Missing parameters for quiz submission")
+            return
+            
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        try:
+            details_json = json.dumps(details, ensure_ascii=False) if details else None
+            cursor.execute("""
+                INSERT INTO quiz_history (subject, concept, total_questions, correct_count, wrong_count, details)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (subject, concept, total_questions, correct_count, wrong_count, details_json))
+            conn.commit()
+            self.send_json_response({"success": True, "message": "Quiz attempt history saved successfully"})
+        except Exception as e:
+            self.send_error_response(500, f"Database error: {str(e)}")
+        finally:
+            conn.close()
+
+    def get_quiz_stats(self, query):
+        """[설계 의도] 특정 과목의 단원(concept)별 총 푼 횟수, 평균 정답률, 최근 풀이 일시를 집계하여 반환합니다."""
+        subject = query.get("subject", [None])[0]
+        if not subject:
+            self.send_error_response(400, "Missing parameter (subject)")
+            return
+            
+        subject = subject.upper()
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        try:
+            # 단원(concept)별로 그룹화하여 푼 횟수, 평균 정답률, 최신 풀이 일시를 구합니다.
+            cursor.execute("""
+                SELECT concept, 
+                       COUNT(*) as attempt_count,
+                       SUM(correct_count) as total_correct,
+                       SUM(total_questions) as total_solved,
+                       MAX(created_at) as last_attempt_at
+                FROM quiz_history
+                WHERE subject = ?
+                GROUP BY concept
+            """, (subject,))
+            
+            rows = cursor.fetchall()
+            stats_list = []
+            for row in rows:
+                item = dict(row)
+                total_solved = item["total_solved"]
+                item["avg_score"] = round((item["total_correct"] * 100.0 / total_solved), 1) if total_solved > 0 else 0.0
+                stats_list.append(item)
+                
+            # 전체 누적 통계 계산 (푼 문제 수, 누적 정답률 등)
+            cursor.execute("""
+                SELECT COUNT(*) as total_attempts,
+                       SUM(correct_count) as total_correct,
+                       SUM(total_questions) as total_solved
+                FROM quiz_history
+                WHERE subject = ?
+            """, (subject,))
+            summary_row = cursor.fetchone()
+            summary = dict(summary_row) if summary_row else {"total_attempts": 0, "total_correct": 0, "total_solved": 0}
+            
+            # None 방지
+            if summary["total_attempts"] is None: summary["total_attempts"] = 0
+            if summary["total_correct"] is None: summary["total_correct"] = 0
+            if summary["total_solved"] is None: summary["total_solved"] = 0
+            
+            summary["avg_score"] = round((summary["total_correct"] * 100.0 / summary["total_solved"]), 1) if summary["total_solved"] > 0 else 0.0
+            
+            self.send_json_response({
+                "summary": summary,
+                "concepts": stats_list
+            })
+        except Exception as e:
+            self.send_error_response(500, f"Database error: {str(e)}")
+        finally:
+            conn.close()
+
     def send_json_response(self, data):
         try:
             response_content = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -241,6 +334,28 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(response_content)
 
+def init_quiz_history_table():
+    """Jolly-Carson 퀴즈 히스토리 테이블이 없을 경우 자동으로 신규 구성합니다."""
+    if not os.path.exists(DB_PATH):
+        return
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS quiz_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        subject TEXT NOT NULL,
+        concept TEXT NOT NULL,
+        total_questions INTEGER NOT NULL,
+        correct_count INTEGER NOT NULL,
+        wrong_count INTEGER NOT NULL,
+        details TEXT
+    )
+    """)
+    conn.commit()
+    conn.close()
+    print("[SQLite] 퀴즈 이력(quiz_history) 테이블 검증/초기화 완료.")
+
 def main():
     # 현재 디렉토리를 작업 디렉토리로 고정하여 SimpleHTTPRequestHandler가 프로젝트 리소스를 정상적으로 서빙하도록 보장
     os.chdir(BASE_DIR)
@@ -250,6 +365,7 @@ def main():
         print("  -> 먼저 'python migrate_to_db.py'를 실행하여 DB를 구축해 주세요.")
         sys.exit(1)
         
+    init_quiz_history_table()
     server_address = ("", PORT)
     httpd = HTTPServer(server_address, JollyCarsonRequestHandler)
     print(f"\n========================================================")

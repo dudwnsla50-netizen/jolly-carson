@@ -60,8 +60,269 @@ function initDashboard() {
     // 2) 전체 문제 개수 뱃지 계산 및 세팅
     setupStatsBadges();
 
-    // 3) 대시보드 아코디언 목록 최초 렌더링
-    renderDashboard();
+    // 3) 퀴즈 통계 로드 및 병합 후 렌더링 시작
+    loadQuizStatsAndMerge().then(() => {
+        renderDashboard();
+    });
+}
+
+// 퀴즈 관련 전역 데이터 버퍼
+window.quizStats = {}; 
+window.quizSummary = { total_attempts: 0, total_correct: 0, total_solved: 0, avg_score: 0.0 };
+
+/**
+ * 1-A. 백엔드 통계 API 정보와 LocalStorage 백업 이력을 병합(Hybrid Merge)합니다.
+ * render.com의 DB 영속성 초기화 리스크를 방어하기 위함입니다.
+ */
+function loadQuizStatsAndMerge() {
+    const subject = window.SUBJECT_CODE || "DB";
+    return fetch(`/api/quiz/stats?subject=${subject}`)
+        .then(res => {
+            if (!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+        })
+        .then(data => {
+            const serverConcepts = data.concepts || [];
+            const serverSummary = data.summary || { total_attempts: 0, total_correct: 0, total_solved: 0 };
+            
+            // LocalStorage 백업 읽기
+            let localHistory = [];
+            try {
+                localHistory = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
+            } catch (e) {
+                console.warn(e);
+            }
+            
+            const filteredLocal = localHistory.filter(h => h.subject === subject);
+            const serverTotal = serverSummary.total_attempts || 0;
+            
+            // 스마트 폴백 정책: 서버가 초기화(0건)되었고 로컬 백업이 있는 경우, 로컬 데이터 복구
+            if (serverTotal === 0 && filteredLocal.length > 0) {
+                const localStats = {};
+                let totalAttempts = 0;
+                let totalCorrect = 0;
+                let totalSolved = 0;
+                
+                filteredLocal.forEach(h => {
+                    if (!localStats[h.concept]) {
+                        localStats[h.concept] = {
+                            concept: h.concept,
+                            attempt_count: 0,
+                            total_correct: 0,
+                            total_solved: 0,
+                            last_attempt_at: h.created_at
+                        };
+                    }
+                    const s = localStats[h.concept];
+                    s.attempt_count += 1;
+                    s.total_correct += h.correct_count;
+                    s.total_solved += h.total_questions;
+                    if (new Date(h.created_at) > new Date(s.last_attempt_at)) {
+                        s.last_attempt_at = h.created_at;
+                    }
+                    totalAttempts += 1;
+                    totalCorrect += h.correct_count;
+                    totalSolved += h.total_questions;
+                });
+                
+                Object.keys(localStats).forEach(con => {
+                    const s = localStats[con];
+                    window.quizStats[con] = {
+                        attempt_count: s.attempt_count,
+                        avg_score: s.total_solved > 0 ? Math.round((s.total_correct * 100.0 / s.total_solved) * 10) / 10 : 0.0,
+                        last_attempt_at: s.last_attempt_at
+                    };
+                });
+                
+                window.quizSummary = {
+                    total_attempts: totalAttempts,
+                    total_correct: totalCorrect,
+                    total_solved: totalSolved,
+                    avg_score: totalSolved > 0 ? Math.round((totalCorrect * 100.0 / totalSolved) * 10) / 10 : 0.0
+                };
+            } else {
+                // 서버 데이터가 정상적으로 있으면 이를 기준 데이터로 채택
+                serverConcepts.forEach(c => {
+                    window.quizStats[c.concept] = {
+                        attempt_count: c.attempt_count,
+                        avg_score: c.avg_score,
+                        last_attempt_at: c.last_attempt_at
+                    };
+                });
+                window.quizSummary = {
+                    total_attempts: serverSummary.total_attempts,
+                    total_correct: serverSummary.total_correct,
+                    total_solved: serverSummary.total_solved,
+                    avg_score: serverSummary.avg_score
+                };
+            }
+            
+            // 대시보드 상단 요약 카드 렌더링
+            renderQuizSummarySection();
+        })
+        .catch(error => {
+            console.warn("[퀴즈 통계 경고] 퀴즈 통계 API 조회 실패. 로컬 캐시로 대체 작동합니다.", error);
+            // 오프라인 상태일 때 LocalStorage 단독 기동
+            let localHistory = [];
+            try {
+                localHistory = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
+            } catch (e) {}
+            const filteredLocal = localHistory.filter(h => h.subject === subject);
+            if (filteredLocal.length > 0) {
+                const localStats = {};
+                let totalAttempts = 0;
+                let totalCorrect = 0;
+                let totalSolved = 0;
+                
+                filteredLocal.forEach(h => {
+                    if (!localStats[h.concept]) {
+                        localStats[h.concept] = {
+                            concept: h.concept,
+                            attempt_count: 0,
+                            total_correct: 0,
+                            total_solved: 0,
+                            last_attempt_at: h.created_at
+                        };
+                    }
+                    const s = localStats[h.concept];
+                    s.attempt_count += 1;
+                    s.total_correct += h.correct_count;
+                    s.total_solved += h.total_questions;
+                    if (new Date(h.created_at) > new Date(s.last_attempt_at)) {
+                        s.last_attempt_at = h.created_at;
+                    }
+                    totalAttempts += 1;
+                    totalCorrect += h.correct_count;
+                    totalSolved += h.total_questions;
+                });
+                
+                Object.keys(localStats).forEach(con => {
+                    const s = localStats[con];
+                    window.quizStats[con] = {
+                        attempt_count: s.attempt_count,
+                        avg_score: s.total_solved > 0 ? Math.round((s.total_correct * 100.0 / s.total_solved) * 10) / 10 : 0.0,
+                        last_attempt_at: s.last_attempt_at
+                    };
+                });
+                
+                window.quizSummary = {
+                    total_attempts: totalAttempts,
+                    total_correct: totalCorrect,
+                    total_solved: totalSolved,
+                    avg_score: totalSolved > 0 ? Math.round((totalCorrect * 100.0 / totalSolved) * 10) / 10 : 0.0
+                };
+            }
+            renderQuizSummarySection();
+        });
+}
+
+/**
+ * 1-B. 대시보드 상단에 퀴즈 누적 기록 및 취약 개념 분석 리포트를 동적으로 렌더링합니다.
+ */
+function renderQuizSummarySection() {
+    const container = document.querySelector('.container');
+    if (!container || window.quizSummary.total_attempts === 0) return;
+
+    let oldSection = document.getElementById('quiz-summary-section');
+    if (oldSection) oldSection.remove();
+
+    // 취약 개념 TOP 3 정렬 산출 (평균 정답률 오름차순, 시도 횟수 내림차순)
+    const sortedWeak = Object.keys(window.quizStats)
+        .map(key => {
+            return {
+                concept: key,
+                attempt_count: window.quizStats[key].attempt_count,
+                avg_score: window.quizStats[key].avg_score
+            };
+        })
+        .sort((a, b) => {
+            if (a.avg_score !== b.avg_score) return a.avg_score - b.avg_score;
+            return b.attempt_count - a.attempt_count;
+        });
+
+    const topWeak = sortedWeak.slice(0, 3);
+    let weakListHtml = '';
+    topWeak.forEach((item, idx) => {
+        const colors = ['#ef4444', '#f59e0b', '#fbbf24'];
+        const color = colors[idx] || '#ef4444';
+        weakListHtml += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
+                <span style="color: var(--text-primary); font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 65%;" title="${item.concept}">
+                    ${idx + 1}. ${item.concept}
+                </span>
+                <span style="color: ${color}; font-weight: 700;">
+                    ${item.avg_score}% (시도 ${item.attempt_count}회)
+                </span>
+            </div>
+        `;
+    });
+
+    const section = document.createElement('div');
+    section.id = 'quiz-summary-section';
+    section.className = 'quiz-summary-card';
+    section.style.background = 'var(--card-bg)';
+    section.style.border = '1px solid var(--card-border)';
+    section.style.borderRadius = '16px';
+    section.style.padding = '1.2rem';
+    section.style.marginBottom = '1.5rem';
+    section.style.boxShadow = '0 10px 25px rgba(0,0,0,0.25)';
+    section.style.backdropFilter = 'blur(12px)';
+    section.style.webkitBackdropFilter = 'blur(12px)';
+
+    section.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 0.3rem;">📊 나의 기출 분석 리포트</h3>
+            <span style="font-size: 0.7rem; color: var(--accent-primary); font-weight: bold; cursor: pointer; text-decoration: underline;" onclick="resetQuizHistoryLocal()">기록 초기화</span>
+        </div>
+        
+        <div class="summary-report-grid">
+            <!-- 좌측: 누적 스코어 -->
+            <div class="summary-stats-column">
+                <div class="summary-stat-row">
+                    <span class="summary-stat-label">총 테스트 횟수</span>
+                    <span class="summary-stat-val">${window.quizSummary.total_attempts}회</span>
+                </div>
+                <div class="summary-stat-row">
+                    <span class="summary-stat-label">해결한 문항 수</span>
+                    <span class="summary-stat-val">${window.quizSummary.total_solved}개</span>
+                </div>
+                <div class="summary-stat-row total">
+                    <span class="summary-stat-label">평균 정답률</span>
+                    <span class="summary-stat-val-big">${window.quizSummary.avg_score}%</span>
+                </div>
+            </div>
+            
+            <!-- 우측: 취약점 분석 -->
+            <div class="summary-weakness-column">
+                <div class="summary-weak-title">🚨 보완이 필요한 취약 개념 TOP 3</div>
+                ${weakListHtml || '<div style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding-top: 1rem;">취약 개념 정보 수집 중...</div>'}
+            </div>
+        </div>
+    `;
+
+    const header = document.querySelector('header');
+    if (header) {
+        header.parentNode.insertBefore(section, header.nextSibling);
+    }
+}
+
+/**
+ * 1-C. LocalStorage 캐시 및 서버 초기화
+ */
+window.resetQuizHistoryLocal = function() {
+    if (confirm("정말 나의 퀴즈 풀이 이력(서버 기록 및 로컬 캐시 전체)을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
+        localStorage.removeItem('jolly_carson_quiz_history');
+        alert("이력이 성공적으로 초기화되었습니다.");
+        window.location.reload();
+    }
+}
+
+/**
+ * 1-D. 모바일 퀴즈 러너로 라우팅합니다.
+ */
+function startQuiz(sub, concept, event) {
+    if (event) event.stopPropagation();
+    window.location.href = `quiz_runner.html?subject=${sub}&concept=${encodeURIComponent(concept)}`;
 }
 
 /**
@@ -269,6 +530,21 @@ function renderDashboard(filter = 'all') {
             `;
         }
 
+        // 퀴즈 푼 이력 뱃지 구성 (정답률에 따른 다이나믹 네온 스타일 적용)
+        const qStat = window.quizStats && window.quizStats[item.concept];
+        let quizStatBadgeHtml = '';
+        if (qStat && qStat.attempt_count > 0) {
+            const glowColor = qStat.avg_score >= 80 ? 'rgba(16, 185, 129, 0.15)' : (qStat.avg_score >= 50 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)');
+            const textColor = qStat.avg_score >= 80 ? 'var(--success)' : (qStat.avg_score >= 50 ? '#f59e0b' : '#ef4444');
+            quizStatBadgeHtml = `
+                <span class="quiz-stat-badge" style="background: ${glowColor}; color: ${textColor}; border: 1px solid ${textColor}40; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
+                    📝 ${qStat.attempt_count}회 (${qStat.avg_score}%)
+                </span>
+            `;
+        }
+
+        const subjectCode = window.SUBJECT_CODE || "DB";
+
         // 세부 아코디언 마크업 구조 결합
         accordion.innerHTML = `
             <button class="accordion-trigger" onclick="toggleAccordion('${globalIdx}')">
@@ -277,6 +553,7 @@ function renderDashboard(filter = 'all') {
                         <span class="rank-badge">${rankBadgeText}</span>
                         <span class="concept-title">${item.concept}</span>
                         <span class="category-tag">${item.category}</span>
+                        ${quizStatBadgeHtml}
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.8rem;">
                         <span class="freq-count-badge">기출 ${totalCount}회</span>
@@ -299,7 +576,12 @@ function renderDashboard(filter = 'all') {
                     </div>
                     ` : ''}
                     <div>
-                        <h4 class="section-title">출제 문항 일람 (선택 시 아래에 시험지와 원본 크롭 이미지가 표시됩니다)</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.4rem;">
+                            <h4 class="section-title" style="margin: 0;">출제 문항 일람 (선택 시 아래에 표시)</h4>
+                            <button class="quiz-start-btn" onclick="startQuiz('${subjectCode}', '${item.concept.replace(/'/g, "\\'")}', event)" style="background: var(--accent-gradient); color: #ffffff; border: none; padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; transition: all 0.2s; box-shadow: 0 0 10px rgba(139, 92, 246, 0.2); outline: none; font-family: inherit;">
+                                📝 모바일 테스트 시작
+                            </button>
+                        </div>
                         <div class="year-grid" style="margin-top: 0.6rem;">
                             ${yearButtonsHtml}
                         </div>

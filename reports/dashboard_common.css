@@ -739,3 +739,80 @@ input:checked+.slider:before {
         margin: 0.8rem 0 !important;
     }
 }
+
+/* 12. 퀴즈 누적 요약 리포트 영역 스타일 */
+.summary-report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 1.5rem;
+}
+
+.summary-stats-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.6rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding-right: 1.2rem;
+}
+
+.summary-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.summary-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.summary-stat-val {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.summary-stat-row.total {
+    margin-top: 0.4rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.summary-stat-val-big {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--accent-violet);
+    font-family: 'Outfit', sans-serif;
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+}
+
+.summary-weakness-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.summary-weak-title {
+    font-size: 0.78rem;
+    color: #ef4444;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+@media (max-width: 768px) {
+    .summary-report-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .summary-stats-column {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-right: 0;
+        padding-bottom: 0.8rem;
+    }
+}
