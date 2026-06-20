@@ -220,24 +220,61 @@ function recalculateQuizSummaryAndStats() {
     let totalSolved = 0;
 
     (window.quizFullHistoryList || []).forEach(log => {
-        const con = log.concept || "기타";
-        if (!conceptStats[con]) {
-            conceptStats[con] = {
-                concept: con,
-                attempt_count: 0,
-                total_correct: 0,
-                total_solved: 0,
-                last_attempt_at: log.created_at
-            };
-        }
-        const s = conceptStats[con];
-        s.attempt_count += 1;
-        s.total_correct += (log.correct_count || 0);
-        s.total_solved += (log.total_questions || 0);
-        if (new Date(log.created_at) > new Date(s.last_attempt_at)) {
-            s.last_attempt_at = log.created_at;
+        // 1) 이 로그가 가리키는 문제 ID가 무엇인지 확인
+        let qId = null;
+        if (log.details) {
+            if (typeof log.details === 'object') {
+                qId = log.details.q_id;
+            } else {
+                try {
+                    const parsed = JSON.parse(log.details);
+                    qId = parsed.q_id;
+                } catch (e) {}
+            }
         }
 
+        // 2) 이 q_id를 포함하고 있는 모든 concept들을 dashboardData에서 탐색
+        let targetConcepts = [];
+        if (qId && window.dashboardData) {
+            const parts = qId.split('_'); // [year, num]
+            if (parts.length === 2) {
+                const yearVal = parts[0];
+                const numVal = parts[1];
+                window.dashboardData.forEach(d => {
+                    const hasQ = d.questions && d.questions.some(q => String(q.year) === String(yearVal) && String(q.num) === String(numVal));
+                    if (hasQ) {
+                        targetConcepts.push(d.concept);
+                    }
+                });
+            }
+        }
+
+        // 3) 만약 찾지 못했다면 폴백으로 로그에 기록된 원래 concept 사용
+        if (targetConcepts.length === 0) {
+            targetConcepts.push(log.concept || "기타");
+        }
+
+        // 4) 탐색된 모든 targetConcepts에 해당 로그의 점수를 각각 가중 누적
+        targetConcepts.forEach(con => {
+            if (!conceptStats[con]) {
+                conceptStats[con] = {
+                    concept: con,
+                    attempt_count: 0,
+                    total_correct: 0,
+                    total_solved: 0,
+                    last_attempt_at: log.created_at
+                };
+            }
+            const s = conceptStats[con];
+            s.attempt_count += 1;
+            s.total_correct += (log.correct_count || 0);
+            s.total_solved += (log.total_questions || 0);
+            if (new Date(log.created_at) > new Date(s.last_attempt_at)) {
+                s.last_attempt_at = log.created_at;
+            }
+        });
+
+        // 5) 전체 시도 요약은 중복 없이 1회만 계산
         totalAttempts += 1;
         totalCorrect += (log.correct_count || 0);
         totalSolved += (log.total_questions || 0);
@@ -1029,8 +1066,15 @@ function submitInlineAnswer(idx, qId, event) {
         }
     }
 
-    // 채점
-    const isCorrect = JSON.stringify(uAns.sort()) === JSON.stringify(cAns) && uAns.length > 0;
+    // 채점: 답안이 여러개인 경우는 여러개 중에 1개만 선택해도 답으로 인정해 줍니다.
+    let isCorrect = false;
+    if (uAns.length > 0) {
+        if (cAns.length > 1) {
+            isCorrect = uAns.some(ans => cAns.includes(ans));
+        } else {
+            isCorrect = JSON.stringify(uAns.sort()) === JSON.stringify(cAns);
+        }
+    }
     const numSymbols = ["①", "②", "③", "④", "⑤"];
     const cAnsStr = cAns.map(num => numSymbols[num - 1] || num).join(', ');
 

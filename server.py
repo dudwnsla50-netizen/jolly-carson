@@ -110,11 +110,13 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         
         try:
             cursor.execute("""
-            SELECT concept, category, count, core_concept, features, scope, 
-                   rep_question, rep_year, rep_num, global_idx, years, questions
-            FROM dashboard_mappings
-            WHERE subject = ? AND dashboard_type = ?
-            ORDER BY global_idx ASC
+            SELECT dm.concept, dm.category, dm.count, dm.core_concept, dm.features, dm.scope, 
+                   COALESCE(eq.question, dm.rep_question) AS rep_question, 
+                   dm.rep_year, dm.rep_num, dm.global_idx, dm.years, dm.questions
+            FROM dashboard_mappings dm
+            LEFT JOIN exam_questions eq ON eq.id = (dm.rep_year || '_' || dm.rep_num) AND eq.subject = dm.subject
+            WHERE dm.subject = ? AND dm.dashboard_type = ?
+            ORDER BY dm.global_idx ASC
             """, (subject, dtype))
             
             rows = cursor.fetchall()
