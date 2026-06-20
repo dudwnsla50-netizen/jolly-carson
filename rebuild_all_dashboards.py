@@ -49,6 +49,7 @@ def main():
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
+                errors="replace",
                 check=True,
                 cwd=os.path.dirname(os.path.abspath(__file__)),
                 env=env

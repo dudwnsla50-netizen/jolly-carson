@@ -6,11 +6,11 @@ import re
 # render.com 등 서버 배포 환경 및 타 OS 환경(리눅스 등)에서 로컬 경로(C:\Users\...) 접근 시의 에러를 방지하기 위해 
 # 환경 변수나 OS 환경을 파악하여 적절한 폴백 경로를 지정합니다.
 import sys
-_DEFAULT_ARTIFACT_DIR = r"C:\Users\DCCIS040000\.gemini\antigravity-ide\brain\67ae5d2c-bc8c-43a5-8e13-47848b2d1ce9"
+_DEFAULT_ARTIFACT_DIR = r"C:\Users\histo\.gemini\antigravity-ide\brain\3b0b18aa-3dac-4252-8a82-888bf4634d2d"
 
 if os.environ.get("GEMINI_ARTIFACT_DIR"):
     ARTIFACT_DIR = os.environ.get("GEMINI_ARTIFACT_DIR")
-elif sys.platform == "win32" and os.path.exists(os.path.dirname(r"C:\Users\DCCIS040000")):
+elif sys.platform == "win32" and os.path.exists(os.path.dirname(r"C:\Users\histo")):
     ARTIFACT_DIR = _DEFAULT_ARTIFACT_DIR
 else:
     # render.com 등 리눅스 서버 환경 혹은 타 사용자 PC에서는 

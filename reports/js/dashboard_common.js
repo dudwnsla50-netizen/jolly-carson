@@ -646,7 +646,6 @@ function renderDashboard(filter = 'all') {
                         <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="viewer-title" id="viewer-title-${globalIdx}"></span>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <button class="viewer-answer-btn" id="answer-btn-${globalIdx}" onclick="openAnswerModal('${globalIdx}', event)" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">🔑 정답 및 테스트이력</button>
                                 <button class="viewer-edit-btn" id="edit-btn-${globalIdx}" onclick="onEditBtnClick('${globalIdx}', event)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">✏️ 수정</button>
                                 <button class="viewer-close-btn" onclick="closeViewer('${globalIdx}', event)">닫기 ✕</button>
                             </div>
@@ -676,15 +675,6 @@ function toggleAccordion(idx) {
 
     const content = item.querySelector('.accordion-content');
     const isActive = item.classList.contains('active');
-
-    // 1) 다른 아코디언은 모두 닫기 처리 (사용자 요청에 따라 주석 처리)
-    /*
-    document.querySelectorAll('.accordion-item').forEach(el => {
-        el.classList.remove('active');
-        const c = el.querySelector('.accordion-content');
-        if (c) c.style.maxHeight = null;
-    });
-    */
 
     // 2) 현재 아코디언 활성화 처리
     if (!isActive) {
@@ -737,13 +727,6 @@ function showQuestion(idx, year, num, btnElement) {
     if (title) {
         const subjectTitle = window.SUBJECT_NAME || "감리사";
         title.innerText = `[상세 기출] ${year}년도 ${subjectTitle} ${num}번 문항`;
-    }
-
-    // 정답확인 버튼 노출 및 데이터 매핑
-    const answerBtn = document.getElementById(`answer-btn-${idx}`);
-    if (answerBtn) {
-        answerBtn.style.display = 'inline-flex';
-        answerBtn.dataset.qId = key;
     }
 
     // 수정 버튼 노출 및 데이터 매핑
@@ -922,20 +905,30 @@ function renderLoadedQuestion(idx, qId) {
             let text = '';
             const dateFormatted = formatKoreanDate(log.created_at);
             const isCorrect = log.details && (log.details.is_correct !== undefined ? log.details.is_correct : (log.details.correct && log.details.correct.includes(qId)));
-            const resultText = isCorrect ? '맞음' : '틀림';
-            const resultColor = isCorrect ? 'var(--success)' : '#ef4444';
-            const resultIcon = isCorrect ? '✓' : '✕';
+            
+            let itemColor, itemIcon;
+            if (isSubmitted) {
+                const resultText = isCorrect ? '맞음' : '틀림';
+                const resultColor = isCorrect ? 'var(--success)' : '#ef4444';
+                const resultIcon = isCorrect ? '✓' : '✕';
+                itemColor = resultColor;
+                itemIcon = resultIcon;
 
-            if (log.details && log.details.user_choice) {
-                const choiceStr = log.details.user_choice.map(num => numSymbols[num - 1] || num).join(', ');
-                text = `${dateFormatted}에 ${choiceStr}번을 선택해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+                if (log.details && log.details.user_choice) {
+                    const choiceStr = log.details.user_choice.map(num => numSymbols[num - 1] || num).join(', ');
+                    text = `${dateFormatted}에 ${choiceStr}번을 선택해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+                } else {
+                    text = `${dateFormatted}에 답안을 제출해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+                }
             } else {
-                text = `${dateFormatted}에 답안을 제출해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
+                itemColor = 'rgba(255,255,255,0.25)'; // 미제출 시 중립 컬러
+                itemIcon = '⏱️';
+                text = `${dateFormatted}에 풀었음`;
             }
 
             historyHtml += `
-                <li style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${resultColor};">
-                    <span style="color: ${resultColor}; font-weight: bold; font-size: 0.75rem;">[${resultIcon}]</span>
+                <li style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${itemColor};">
+                    <span style="color: ${itemColor}; font-weight: bold; font-size: 0.75rem;">[${itemIcon}]</span>
                     <span>${text}</span>
                 </li>
             `;
@@ -1415,171 +1408,4 @@ window.closeTopicModal = function (event) {
     }, 250);
 };
 
-/**
- * 14. 정답 및 해설 공통 팝업 모달
- * - 설계 의도: 모든 과목 대시보드에서 동일한 정답/해설 팝업 UI를 재사용합니다.
- * - 복수 정답을 지원하며, 정답에 해당하는 보기 텍스트를 함께 표시합니다.
- */
-
-// 페이지 최초 로드 시 정답 모달 DOM을 body에 1회만 동적 생성
-// [버그 수정] head 내 스크립트 로드 시 document.body가 null인 문제 대응 → DOMContentLoaded 시점에 생성
-document.addEventListener('DOMContentLoaded', function () {
-    if (document.getElementById('answer-modal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'answer-modal';
-    modal.className = 'modal-overlay';
-    modal.onclick = function (e) { closeAnswerModal(e); };
-    modal.innerHTML = `
-        <div class="modal-card answer-modal-card" onclick="event.stopPropagation()" style="max-width: 560px; width: 90%;">
-            <div class="modal-card-header" style="border-bottom: 1px solid rgba(139, 92, 246, 0.15);">
-                <h2 class="modal-card-title" id="answer-modal-title">🔑 정답 및 해설</h2>
-                <button class="modal-close-x" onclick="closeAnswerModal()">✕</button>
-            </div>
-            <div class="modal-card-body" id="answer-modal-body" style="padding: 1.2rem 1.5rem; max-height: 65vh; overflow-y: auto;">
-                <!-- 동적 콘텐츠 -->
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-});
-
-/**
- * [정답 팝업 열기] 
- * 뷰어 헤더의 "정답 및 해설 확인" 버튼 클릭 시 호출됩니다.
- */
-function openAnswerModal(idx, event) {
-    if (event) event.stopPropagation();
-
-    const answerBtn = document.getElementById(`answer-btn-${idx}`);
-    if (!answerBtn) return;
-
-    const qId = answerBtn.dataset.qId;
-    const data = window.loadedQuestions[qId];
-    if (!data) return;
-
-    let modal = document.getElementById('answer-modal');
-    let title = document.getElementById('answer-modal-title');
-    let body = document.getElementById('answer-modal-body');
-
-    // 만약 어떠한 이유로 DOM에 모달 엘리먼트가 존재하지 않으면 즉시 동적 자동 구축
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'answer-modal';
-        modal.className = 'modal-overlay';
-        modal.onclick = function (e) { closeAnswerModal(e); };
-        modal.innerHTML = `
-            <div class="modal-card answer-modal-card" onclick="event.stopPropagation()" style="max-width: 560px; width: 90%;">
-                <div class="modal-card-header" style="border-bottom: 1px solid rgba(139, 92, 246, 0.15);">
-                    <h2 class="modal-card-title" id="answer-modal-title">🔑 정답 및 테스트이력</h2>
-                    <button class="modal-close-x" onclick="closeAnswerModal()">✕</button>
-                </div>
-                <div class="modal-card-body" id="answer-modal-body" style="padding: 1.2rem 1.5rem; max-height: 65vh; overflow-y: auto;">
-                    <!-- 동적 콘텐츠 -->
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        title = document.getElementById('answer-modal-title');
-        body = document.getElementById('answer-modal-body');
-    }
-
-    if (!modal || !body) return;
-
-    // 제목 업데이트
-    const parts = qId.split('_');
-    const year = parts[0];
-    const num = parts[1];
-    if (title) {
-        title.textContent = `🔑 ${year}년 ${num}번 정답 및 테스트이력`;
-    }
-
-    // 복수 정답 표시 (배열 → 원문자 변환)
-    const circleNums = ["?", "①", "②", "③", "④", "⑤"];
-    const answerArr = Array.isArray(data.answer) ? data.answer : [];
-
-    let answerDisplay = "";
-    if (answerArr.length === 0) {
-        answerDisplay = `<span style="color: var(--text-secondary); font-style: italic;">미등록</span>`;
-    } else {
-        const ansSymbols = answerArr.map(n => circleNums[n] || n);
-        answerDisplay = `<span style="color: #ef4444; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.3rem;">${ansSymbols.join(' ')}</span>`;
-    }
-
-    // 풀이 이력 영역
-    const questionLogs = (window.quizFullHistoryList || []).filter(log => {
-        if (!log.details) return false;
-        if (log.details.q_id === qId) return true;
-        if (log.details.correct && log.details.correct.includes(qId)) return true;
-        if (log.details.wrong && log.details.wrong.includes(qId)) return true;
-        return false;
-    });
-
-    let historyHtml = '';
-    if (questionLogs.length > 0) {
-        historyHtml += `
-            <div class="quiz-history-timeline-section" style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
-                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.6rem; font-weight: 700; display: flex; align-items: center; gap: 0.3rem;">
-                    ⏱️ 나의 풀이 이력
-                </div>
-                <ul class="timeline-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem;">
-        `;
-        const numSymbols = ["①", "②", "③", "④", "⑤"];
-        questionLogs.forEach(log => {
-            let text = '';
-            const dateFormatted = formatKoreanDate(log.created_at);
-            const isCorrect = log.details && (log.details.is_correct !== undefined ? log.details.is_correct : (log.details.correct && log.details.correct.includes(qId)));
-            const resultText = isCorrect ? '맞음' : '틀림';
-            const resultColor = isCorrect ? 'var(--success)' : '#ef4444';
-            const resultIcon = isCorrect ? '✓' : '✕';
-
-            if (log.details && log.details.user_choice) {
-                const choiceStr = log.details.user_choice.map(num => numSymbols[num - 1] || num).join(', ');
-                text = `${dateFormatted}에 ${choiceStr}번을 선택해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
-            } else {
-                text = `${dateFormatted}에 답안을 제출해서 <span style="color: ${resultColor}; font-weight: bold;">${resultText}</span>`;
-            }
-
-            historyHtml += `
-                <li style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${resultColor};">
-                    <span style="color: ${resultColor}; font-weight: bold; font-size: 0.75rem;">[${resultIcon}]</span>
-                    <span>${text}</span>
-                </li>
-            `;
-        });
-        historyHtml += `
-                </ul>
-            </div>
-        `;
-    } else {
-        historyHtml += `
-            <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; padding-bottom: 0.3rem;">
-                아직 테스트 이력이 없습니다.
-            </div>
-        `;
-    }
-
-    body.innerHTML = `
-        <div style="text-align: center; padding: 1rem 0 0.5rem;">
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">정답</div>
-            ${answerDisplay}
-            ${answerArr.length > 1 ? '<div style="font-size: 0.72rem; color: rgba(239,68,68,0.7); margin-top: 0.3rem;">⚡ 복수 정답</div>' : ''}
-        </div>
-        ${historyHtml}
-    `;
-
-    // 모달 표시 애니메이션
-    modal.style.display = 'flex';
-    setTimeout(() => {
-        modal.classList.add('show');
-    }, 10);
-}
-function closeAnswerModal(event) {
-    if (event && event.target !== event.currentTarget) return;
-    const modal = document.getElementById('answer-modal');
-    if (!modal) return;
-    modal.classList.remove('show');
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 250);
-}
+// [삭제됨] 정답 및 테스트 이력 팝업 모달과 관련 로직은 사용자 요청에 의해 삭제되었습니다.
