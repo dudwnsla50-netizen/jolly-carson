@@ -82,32 +82,8 @@ function loadQuizStatsAndMerge() {
             return res.json();
         })
         .then(data => {
-            // LocalStorage 백업 읽기
-            let localHistory = [];
-            try {
-                localHistory = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
-            } catch (e) {
-                console.warn(e);
-            }
-
-            const filteredLocal = localHistory.filter(h => h.subject === subject);
-
-            // 로컬 캐시와 서버 전체 로그 데이터를 q_id 및 근접 시간 기준으로 중복 검사하여 Union 병합
             const mergedLogs = [];
             const serverLogs = data.logs || [];
-
-            // 시간 파싱 및 UTC 타임스탬프 반환 헬퍼
-            const getUTCTime = (dateStr) => {
-                if (!dateStr) return 0;
-                let standardized = dateStr;
-                if (!dateStr.includes('T') && dateStr.includes(' ')) {
-                    standardized = dateStr.replace(' ', 'T') + 'Z';
-                } else if (!dateStr.endsWith('Z') && dateStr.includes('T')) {
-                    standardized = dateStr + 'Z';
-                }
-                const t = new Date(standardized).getTime();
-                return isNaN(t) ? 0 : t;
-            };
 
             serverLogs.forEach(log => {
                 if (log.created_at) {
@@ -126,68 +102,7 @@ function loadQuizStatsAndMerge() {
                 }
             });
 
-            filteredLocal.forEach(log => {
-                if (log.created_at) {
-                    const localTime = getUTCTime(log.created_at);
-                    const localQId = log.details ? log.details.q_id : null;
-
-                    // 서버 로그 중에 이미 동일한 시도(시간 차이 5초 이내 & q_id 동일)가 있는지 확인
-                    const isAlreadyExists = mergedLogs.some(sLog => {
-                        const serverTime = getUTCTime(sLog.created_at);
-                        const serverQId = sLog.details ? sLog.details.q_id : null;
-                        const isSameQ = (!localQId && !serverQId) || (localQId === serverQId);
-                        return isSameQ && Math.abs(localTime - serverTime) < 5000;
-                    });
-
-                    if (!isAlreadyExists) {
-                        let parsedDetails = log.details;
-                        if (typeof log.details === 'string') {
-                            try {
-                                parsedDetails = JSON.parse(log.details);
-                            } catch (e) { }
-                        }
-                        mergedLogs.push({
-                            ...log,
-                            details: parsedDetails
-                        });
-                    }
-                }
-            });
-
-            // 시간 정렬을 위해 정밀화된 UTC 타임스탬프 순으로 정렬
-            mergedLogs.sort((a, b) => getUTCTime(b.created_at) - getUTCTime(a.created_at));
-            window.quizFullHistoryList = mergedLogs;
-
-            // 데이터베이스(서버+로컬 병합 로그)를 전적으로 활용하여 실시간 재카운팅(집계)
-            recalculateQuizSummaryAndStats();
-
-            // 대시보드 상단 요약 카드 렌더링
-            renderQuizSummarySection();
-        })
-        .catch(error => {
-            console.warn("[퀴즈 통계 경고] 퀴즈 통계 API 조회 실패. 로컬 캐시로 대체 작동합니다.", error);
-            // 오프라인 상태일 때 LocalStorage 단독 기동
-            let localHistory = [];
-            try {
-                localHistory = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
-            } catch (e) { }
-            const filteredLocal = localHistory.filter(h => h.subject === subject);
-
-            // 로컬 로그 기반으로 quizFullHistoryList 구성
-            const mergedLogs = filteredLocal.map(log => {
-                let parsedDetails = log.details;
-                if (typeof log.details === 'string') {
-                    try {
-                        parsedDetails = JSON.parse(log.details);
-                    } catch (e) { }
-                }
-                return {
-                    ...log,
-                    details: parsedDetails
-                };
-            });
-            
-            // 시간 파싱 및 UTC 타임스탬프 반환 헬퍼 (오프라인 캐치 블록용)
+            // 시간 파싱 및 UTC 타임스탬프 반환 헬퍼
             const getUTCTime = (dateStr) => {
                 if (!dateStr) return 0;
                 let standardized = dateStr;
@@ -199,12 +114,21 @@ function loadQuizStatsAndMerge() {
                 const t = new Date(standardized).getTime();
                 return isNaN(t) ? 0 : t;
             };
-            
+
+            // 시간 정렬을 위해 정밀화된 UTC 타임스탬프 순으로 정렬
             mergedLogs.sort((a, b) => getUTCTime(b.created_at) - getUTCTime(a.created_at));
             window.quizFullHistoryList = mergedLogs;
 
+            // 데이터베이스(서버 로그)를 전적으로 활용하여 실시간 재카운팅(집계)
             recalculateQuizSummaryAndStats();
 
+            // 대시보드 상단 요약 카드 렌더링
+            renderQuizSummarySection();
+        })
+        .catch(error => {
+            console.error("[퀴즈 통계 오류] 퀴즈 통계 API 조회 실패.", error);
+            window.quizFullHistoryList = [];
+            recalculateQuizSummaryAndStats();
             renderQuizSummarySection();
         });
 }
@@ -509,6 +433,30 @@ function initDashboardNav() {
         const officialLabel = document.getElementById('label-official');
         if (freqLabel) freqLabel.style.color = isOfficialPage ? 'var(--text-secondary)' : '#ffffff';
         if (officialLabel) officialLabel.style.color = isOfficialPage ? '#ffffff' : 'var(--text-secondary)';
+    }
+
+    // 오답 복습 배지 동적 삽입 연동
+    const navBadges = document.getElementById('dynamic-nav-badges');
+    if (navBadges && !document.getElementById('wrong-answers-badge')) {
+        const wrongBadge = document.createElement('a');
+        wrongBadge.id = 'wrong-answers-badge';
+        wrongBadge.href = 'wrong_answers/index.html';
+        wrongBadge.className = 'badge';
+        wrongBadge.style.textDecoration = 'none';
+        wrongBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+        wrongBadge.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+        wrongBadge.style.color = '#f87171';
+        wrongBadge.style.fontWeight = '700';
+        wrongBadge.style.borderStyle = 'solid';
+        wrongBadge.style.borderWidth = '1px';
+        wrongBadge.innerHTML = '❌ 오답 복습';
+        
+        const homeBadge = navBadges.querySelector('.home-badge');
+        if (homeBadge) {
+            homeBadge.parentNode.insertBefore(wrongBadge, homeBadge.nextSibling);
+        } else {
+            navBadges.appendChild(wrongBadge);
+        }
     }
 
     const badges = document.querySelectorAll('.subject-badge');
@@ -1108,25 +1056,7 @@ function submitInlineAnswer(idx, qId, event) {
         }
     };
 
-    // 1) LocalStorage 캐시 저장
-    try {
-        const backupList = JSON.parse(localStorage.getItem('jolly_carson_quiz_history') || '[]');
-        const createdAt = new Date().toISOString();
-        backupList.push({
-            created_at: createdAt,
-            subject: subject,
-            concept: conceptName,
-            total_questions: 1,
-            correct_count: payload.correct_count,
-            wrong_count: payload.wrong_count,
-            details: payload.details
-        });
-        localStorage.setItem('jolly_carson_quiz_history', JSON.stringify(backupList));
-    } catch (e) {
-        console.warn(e);
-    }
-
-    // 2) 백엔드 API 제출 및 통계 실시간 비동기 리프레시
+    // 백엔드 API 제출 및 통계 실시간 비동기 리프레시
     fetch('/api/quiz/submit', {
         method: 'POST',
         headers: {

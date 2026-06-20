@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jolly-Carson 오답 집중 복습 (Wrong Answers)</title>
+    <!-- 구글 폰트 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Lucide Icons 로드 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 전역 스타일 및 공통 테마 대응을 위해 CSS 링크 -->
+    <link rel="stylesheet" href="../dashboard_common.css">
+    <link rel="stylesheet" href="review.css">
+</head>
+<body class="dark-theme">
+
+    <!-- 상단 내비게이션 바 -->
+    <header class="header">
+        <div class="nav-container">
+            <div class="nav-left" style="cursor: pointer;" onclick="goToHome()">
+                <div class="logo-glow-dot"></div>
+                <h1 class="logo-text">JOLLY-CARSON <span class="badge badge-purple" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; vertical-align: middle;">오답노트</span></h1>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="/reports/db_frequent_concepts.html" class="subject-link">데이터베이스</a>
+                <a href="/reports/se_frequent_concepts.html" class="subject-link">소프트웨어공학</a>
+                <a href="/reports/pm_frequent_concepts.html" class="subject-link">사업관리</a>
+                <a href="/reports/sa_frequent_concepts.html" class="subject-link">시스템구조</a>
+                <a href="/reports/sc_frequent_concepts.html" class="subject-link">보안</a>
+                <a href="/" class="home-btn-link"><i data-lucide="home"></i> 홈으로</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- 뷰 1: 오답 홈 대시보드 (dashboard-view) -->
+        <section id="dashboard-view" class="view-panel active">
+            <div class="view-header">
+                <h2 class="title"><i data-lucide="clipboard-x" class="title-icon"></i> 개인 맞춤형 오답 복습 홈</h2>
+                <p class="subtitle">틀렸던 기출문제를 완벽히 소화할 때까지 한 문제씩 플래시카드로 트레이닝합니다.</p>
+            </div>
+
+            <!-- 요약 스탯 카드 -->
+            <div class="summary-stats-banner">
+                <div class="stat-item">
+                    <span class="stat-label">누적 학습 과목</span>
+                    <span class="stat-value" id="stats-total-subjects">0개</span>
+                </div>
+                <div class="stat-item highlight">
+                    <span class="stat-label">현재 해결해야 할 총 오답</span>
+                    <span class="stat-value" id="stats-total-wrong">0개</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">복습 완료 확률</span>
+                    <span class="stat-value" id="stats-clear-rate">0%</span>
+                </div>
+            </div>
+
+            <!-- 과목별 오답 카드 목록 그리드 -->
+            <div class="subject-grid" id="subject-grid-container">
+                <!-- JS에서 동적 로드 -->
+                <div class="loading-spinner-wrapper">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 1rem; color: var(--text-secondary);">이력을 파싱하여 오답 노트를 구성하고 있습니다...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 뷰 2: 플래시카드 러너 화면 (card-view) -->
+        <section id="card-view" class="view-panel">
+            <div class="card-runner-header">
+                <div class="header-left">
+                    <button class="back-btn" onclick="backToDashboard()"><i data-lucide="arrow-left"></i> 목록으로</button>
+                    <span class="runner-subject-badge" id="runner-subject-title">데이터베이스</span>
+                </div>
+                <div class="header-right">
+                    <span class="progress-text" id="runner-progress-text">카드 1 / 10</span>
+                </div>
+            </div>
+
+            <!-- 세션 진척도 바 -->
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="runner-progress-fill" style="width: 10%;"></div>
+            </div>
+
+            <!-- 플래시카드 영역 -->
+            <div class="flashcard-container">
+                <!-- 카드 본체 -->
+                <div class="flashcard" id="active-flashcard">
+                    <!-- 문제 본문 -->
+                    <div class="card-question-section">
+                        <div class="card-question-meta">
+                            <span class="meta-q-id" id="card-q-id">2025년 45번 기출</span>
+                            <span class="meta-tag" id="card-concept-tag">1-a. 요구사항명세</span>
+                        </div>
+                        <div class="card-question-text" id="card-question-text">
+                            문제를 로딩하는 중입니다...
+                        </div>
+                    </div>
+
+                    <!-- 4지선다 보기 영역 -->
+                    <div class="card-options-section" id="card-options-container">
+                        <!-- JS에서 버튼 동적 렌더링 -->
+                    </div>
+
+                    <!-- 피드백 & 해설 박스 -->
+                    <div class="card-feedback-section hidden" id="card-feedback-box">
+                        <div class="feedback-banner" id="card-feedback-banner">
+                            <!-- 정오답 여부 -->
+                        </div>
+                        <div class="explanation-box" id="card-explanation-box">
+                            <!-- 해설 텍스트 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 하단 네비게이션 컨트롤 -->
+            <div class="card-controls">
+                <button class="control-btn" id="btn-prev" onclick="prevCard()"><i data-lucide="chevron-left"></i> 이전</button>
+                <button class="control-btn end-btn" id="btn-end" onclick="backToDashboard()">종료</button>
+                <button class="control-btn next-btn" id="btn-next" onclick="nextCard()">다음 <i data-lucide="chevron-right"></i></button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer-note" style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4rem;">
+        © 2026 Jolly-Carson 정보시스템감리사 학습 시스템. All Rights Reserved.
+    </footer>
+
+    <!-- JS 제어 파일 연동 -->
+    <script src="review.js"></script>
+    <script>
+        // Lucide 아이콘 초기 구동
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+        
+        // 홈으로 이동 분기
+        function goToHome() {
+            window.location.href = "/";
+        }
+    </script>
+</body>
+</html>

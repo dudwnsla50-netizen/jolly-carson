@@ -145,7 +145,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         cursor = conn.cursor()
         
         try:
-            cursor.execute("SELECT question, options, answer, explanation FROM exam_questions WHERE id = ?", (q_id,))
+            cursor.execute("SELECT question, options, answer, explanation, subject FROM exam_questions WHERE id = ?", (q_id,))
             row = cursor.fetchone()
             if row:
                 # answer는 JSON 배열 문자열(예: "[1,3]") 또는 정수(예: 2)로 저장될 수 있으므로 유연하게 파싱
@@ -167,7 +167,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     "question": row[0],
                     "options": json.loads(row[1]) if row[1] else [],
                     "answer": answer_val,
-                    "explanation": row[3]
+                    "explanation": row[3],
+                    "subject": row[4]
                 })
             else:
                 self.send_error_response(404, f"Question {q_id} Not Found")
@@ -188,7 +189,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         cursor = conn.cursor()
         
         try:
-            cursor.execute("SELECT id, question, options, answer, explanation FROM exam_questions WHERE subject = ?", (subject,))
+            cursor.execute("SELECT id, subject, question, options, answer, explanation FROM exam_questions WHERE subject = ?", (subject,))
             rows = cursor.fetchall()
             
             data_dict = {}
