@@ -486,9 +486,21 @@ function submitAnswer(qId, selectedOption) {
         
         // 카드 러너 미니 EXP 바 갱신 (오답노트 전용)
         updateRunnerExpUI();
+
+        // 펫 정답 축하 말풍선 트리거 (공통)
+        if (typeof gamTriggerPetCorrectMessage === 'function') {
+            gamTriggerPetCorrectMessage();
+        }
+
+        // 펫 정답 애니메이션 트리거 (공통)
+        if (typeof gamApplyPetAnimation === 'function') {
+            gamApplyPetAnimation('correct');
+        }
         
         // EXP +1 플로팅 뱃지 연출 (공통)
-        gamTriggerExpFloat();
+        if (typeof gamTriggerExpFloat === 'function') {
+            gamTriggerExpFloat();
+        }
         
         // 보물 상자 + 보석 파티클 연출 (공통 함수 사용)
         const feedbackBox = document.getElementById('card-feedback-box');
@@ -505,7 +517,18 @@ function submitAnswer(qId, selectedOption) {
         
         // 레벨업 체크 → 공통 전체화면 레이저 빔 오버레이 연출
         if (window.gamState.level > prevLevel) {
-            setTimeout(() => gamTriggerLevelUp(window.gamState.level), 900);
+            if (typeof gamTriggerLevelUp === 'function') {
+                setTimeout(() => gamTriggerLevelUp(window.gamState.level), 900);
+            }
+        }
+    } else {
+        // 펫 오답 격려 말풍선 트리거 (공통)
+        if (typeof gamTriggerPetIncorrectMessage === 'function') {
+            gamTriggerPetIncorrectMessage();
+        }
+        // 펫 오답 시무룩 흔들림 애니메이션 트리거 (공통)
+        if (typeof gamApplyPetAnimation === 'function') {
+            gamApplyPetAnimation('incorrect');
         }
     }
 
@@ -571,6 +594,47 @@ function updateRunnerExpUI() {
     if (runnerLevelValue) runnerLevelValue.textContent = level;
     if (runnerExpFill) runnerExpFill.style.width = `${expPercent}%`;
     if (runnerExpValue) runnerExpValue.textContent = `${totalExp} / ${nextLevelExp} EXP`;
+
+    // 🎮 미니 응원 펫 위젯 삽입 (오답노트 카드 뷰어용)
+    const wrapper = document.querySelector('.runner-exp-bar-wrapper');
+    if (wrapper && !document.getElementById('gam-runner-pet-widget')) {
+        const petWidget = document.createElement('div');
+        petWidget.id = 'gam-runner-pet-widget';
+        petWidget.className = 'gam-pet-widget';
+        petWidget.style.cssText = 'display: flex; align-items: center; gap: 0.6rem; cursor: pointer; margin-right: 0.8rem; flex-shrink: 0;';
+        petWidget.onclick = () => {
+            if (typeof gamCyclePet === 'function') {
+                gamCyclePet();
+            }
+        };
+        petWidget.title = '클릭 시 포켓몬 캐릭터 교체';
+
+        // 현재 선택된 펫 로드
+        const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur'];
+        let currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+        if (!petKeys.includes(currentPetKey)) currentPetKey = 'pikachu';
+
+        const POKEMON_PETS = {
+            'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
+            'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png', defaultMsg: '뜨거운 열정으로 문제를 정복해요! 🔥' },
+            'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
+            'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' }
+        };
+
+        const activePet = POKEMON_PETS[currentPetKey];
+
+        petWidget.innerHTML = `
+            <div class="gam-pet-avatar-wrapper" style="width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                <img id="gam-runner-pet-img" src="${activePet.src}" alt="${activePet.name}" style="width: 85%; height: 85%; object-fit: contain; transform: scale(1.1);" />
+            </div>
+            <div class="gam-pet-bubble" style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.25); color: #e9d5ff; font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 6px; position: relative; max-width: 120px; line-height: 1.3; font-weight: 500; min-height: 28px; display: flex; align-items: center;">
+                <span id="gam-runner-pet-bubble-text">${activePet.defaultMsg}</span>
+                <div style="position: absolute; left: -5px; top: 50%; transform: translateY(-50%) rotate(45deg); width: 6px; height: 6px; background: #0c0f1d; border-left: 1px solid rgba(139, 92, 246, 0.25); border-bottom: 1px solid rgba(139, 92, 246, 0.25);"></div>
+            </div>
+        `;
+
+        wrapper.insertBefore(petWidget, wrapper.firstChild);
+    }
 }
 
 /**

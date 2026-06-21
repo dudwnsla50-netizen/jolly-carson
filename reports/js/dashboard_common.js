@@ -1107,15 +1107,33 @@ function submitInlineAnswer(idx, qId, event) {
         })
         .then(() => {
             renderLoadedQuestion(idx, qId);
-            if (isCorrect && typeof gamOnCorrectAnswer === 'function') {
-                gamOnCorrectAnswer(idx, qId);
+            if (isCorrect) {
+                if (typeof gamOnCorrectAnswer === 'function') {
+                    gamOnCorrectAnswer(idx, qId);
+                }
+            } else {
+                if (typeof gamTriggerPetIncorrectMessage === 'function') {
+                    gamTriggerPetIncorrectMessage();
+                }
+                if (typeof gamApplyPetAnimation === 'function') {
+                    gamApplyPetAnimation('incorrect');
+                }
             }
         })
         .catch(err => {
             console.error(err);
             renderLoadedQuestion(idx, qId);
-            if (isCorrect && typeof gamOnCorrectAnswer === 'function') {
-                gamOnCorrectAnswer(idx, qId);
+            if (isCorrect) {
+                if (typeof gamOnCorrectAnswer === 'function') {
+                    gamOnCorrectAnswer(idx, qId);
+                }
+            } else {
+                if (typeof gamTriggerPetIncorrectMessage === 'function') {
+                    gamTriggerPetIncorrectMessage();
+                }
+                if (typeof gamApplyPetAnimation === 'function') {
+                    gamApplyPetAnimation('incorrect');
+                }
             }
         });
 }
@@ -1472,17 +1490,41 @@ function initGamification() {
 }
 
 /**
- * GAM-2. EXP/Level 카드 UI를 생성하여 상단에 주입합니다.
+ * GAM-2. EXP/Level 카드 UI를 생성하여 상단에 주입합니다. (포켓몬 응원 펫 연동)
  */
 function gamInjectExpCard() {
     // 이미 존재하면 스킵
     if (document.getElementById('gam-exp-card')) return;
 
+    // 저장된 펫 정보 로드
+    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur'];
+    let currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+    if (!petKeys.includes(currentPetKey)) currentPetKey = 'pikachu';
+
+    const POKEMON_PETS = {
+        'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
+        'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png', defaultMsg: '뜨거운 열정으로 문제를 정복해요! 🔥' },
+        'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
+        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' }
+    };
+
+    const activePet = POKEMON_PETS[currentPetKey];
+
     const card = document.createElement('div');
     card.id = 'gam-exp-card';
     card.className = 'gamification-exp-card';
     card.innerHTML = `
-        <div class="gam-level-badge">
+        <div class="gam-pet-widget" style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; position: relative; margin-right: 0.5rem;" onclick="gamCyclePet()" title="클릭 시 포켓몬 캐릭터 교체">
+            <div class="gam-pet-avatar-wrapper" style="width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; transition: all 0.2s;">
+                <img id="gam-pet-img" src="${activePet.src}" alt="${activePet.name}" style="width: 85%; height: 85%; object-fit: contain; transform: scale(1.1); transition: transform 0.2s;" />
+            </div>
+            <div class="gam-pet-bubble" style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.25); color: #e9d5ff; font-size: 0.72rem; padding: 0.4rem 0.6rem; border-radius: 8px; position: relative; max-width: 155px; line-height: 1.4; font-weight: 500; min-height: 38px; display: flex; align-items: center;">
+                <span id="gam-pet-bubble-text">${activePet.defaultMsg}</span>
+                <!-- 말풍선 꼬리 -->
+                <div style="position: absolute; left: -5px; top: 50%; transform: translateY(-50%) rotate(45deg); width: 8px; height: 8px; background: #0c0f1d; border-left: 1px solid rgba(139, 92, 246, 0.25); border-bottom: 1px solid rgba(139, 92, 246, 0.25);"></div>
+            </div>
+        </div>
+        <div class="gam-level-badge" style="margin-left: auto;">
             <span class="gam-lv-label">LV</span>
             <span class="gam-lv-num" id="gam-lv-value">1</span>
         </div>
@@ -1561,6 +1603,12 @@ function gamOnCorrectAnswer(idx, qId) {
     // UI 갱신
     gamUpdateExpUI();
 
+    // 펫 정답 축하 말풍선 트리거
+    gamTriggerPetCorrectMessage();
+
+    // 펫 정답 애니메이션 (바운스)
+    gamApplyPetAnimation('correct');
+
     // EXP +1 플로팅 뱃지
     gamTriggerExpFloat();
 
@@ -1578,6 +1626,205 @@ function gamOnCorrectAnswer(idx, qId) {
     if (window.gamState.level > prevLevel) {
         setTimeout(() => gamTriggerLevelUp(window.gamState.level), 900);
     }
+}
+
+/**
+ * GAM-5-B. 펫 캐릭터를 클릭했을 때 다음 캐릭터로 교체합니다.
+ */
+window.gamCyclePet = function() {
+    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur'];
+    let currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+    let nextIdx = (petKeys.indexOf(currentPetKey) + 1) % petKeys.length;
+    let nextPetKey = petKeys[nextIdx];
+    localStorage.setItem('gam_selected_pet', nextPetKey);
+
+    const POKEMON_PETS = {
+        'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
+        'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png', defaultMsg: '뜨거운 열정으로 문제를 정복해요! 🔥' },
+        'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
+        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' }
+    };
+
+    const pet = POKEMON_PETS[nextPetKey];
+    const img = document.getElementById('gam-pet-img');
+    const runnerImg = document.getElementById('gam-runner-pet-img');
+    const bubble = document.getElementById('gam-pet-bubble-text');
+    const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+    if (img) {
+        img.src = pet.src;
+        img.alt = pet.name;
+    }
+    if (runnerImg) {
+        runnerImg.src = pet.src;
+        runnerImg.alt = pet.name;
+    }
+    if (bubble) bubble.textContent = pet.defaultMsg;
+    if (runnerBubble) runnerBubble.textContent = pet.defaultMsg;
+
+    // 교체 시 360도 스핀 애니메이션 적용
+    gamApplyPetAnimation('spin');
+};
+
+// 복귀 타이머 ID를 관리할 전역 변수
+window.gamPetBubbleTimeout = null;
+
+/**
+ * GAM-5-C. 정답 시 펫의 특별 칭찬 메시지를 말풍선에 띄웁니다.
+ */
+function gamTriggerPetCorrectMessage() {
+    const PET_CORRECT_MESSAGES = {
+        'pikachu': [
+            '정답이에요! 짜릿한 백만볼트급 활약! ⚡',
+            '합격을 향해 한 걸음 더 전진! 삐까삐까! ⚡',
+            '최고의 감리사가 될 상이로군요! 삐까! 🌟'
+        ],
+        'charmander': [
+            '정답입니다! 파이리의 불꽃 열정! 🔥',
+            '뜨겁게 타오르는 실력! 멋져요! 🔥',
+            '이 기세라면 고득점 합격 확정! 🔥'
+        ],
+        'squirtle': [
+            '대단해요! 정답을 거침없이 명중! 💦',
+            '정답 행진! 시원한 물대포 슛! 💦',
+            '거북이처럼 우직하고 견고한 실력! 🐢'
+        ],
+        'bulbasaur': [
+            '정답! 탄탄한 기본기가 빛을 발해요! 🌱',
+            '넝쿨처럼 쑥쑥 뻗어나가는 성적! 🌿',
+            '이상해씨가 봐도 너무 똑똑해요! 🍃'
+        ]
+    };
+
+    const currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+    const msgs = PET_CORRECT_MESSAGES[currentPetKey] || ['정답입니다! 🎉'];
+    const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
+    
+    const bubble = document.getElementById('gam-pet-bubble-text');
+    const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+
+    if (bubble) bubble.textContent = randomMsg;
+    if (runnerBubble) runnerBubble.textContent = randomMsg;
+
+    // 이전 복귀 타이머 제거
+    if (window.gamPetBubbleTimeout) {
+        clearTimeout(window.gamPetBubbleTimeout);
+    }
+
+    // 4초 후 기본 상태 메시지로 복귀
+    const DEFAULT_PET_MESSAGES = {
+        'pikachu': '오늘도 합격을 향해 백만볼트! ⚡',
+        'charmander': '뜨거운 열정으로 문제를 정복해요! 🔥',
+        'squirtle': '오답은 시원하게 물대포로 날려요! 💦',
+        'bulbasaur': '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱'
+    };
+    window.gamPetBubbleTimeout = setTimeout(() => {
+        const curPet = localStorage.getItem('gam_selected_pet') || 'pikachu';
+        const curBubble = document.getElementById('gam-pet-bubble-text');
+        const curRunnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+        if (curBubble) {
+            curBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
+        }
+        if (curRunnerBubble) {
+            curRunnerBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
+        }
+    }, 4000);
+}
+
+/**
+ * GAM-5-D. 오답 시 펫의 특별 격려 메시지를 말풍선에 띄웁니다.
+ */
+function gamTriggerPetIncorrectMessage() {
+    const PET_INCORRECT_MESSAGES = {
+        'pikachu': [
+            '앗! 틀렸지만 괜찮아요! 다음 번엔 백만볼트 파워로 정답 조준! ⚡',
+            '피카... 조금 아쉽네요! 삐까츄와 함께 다시 한 번 복습해봐요! ⚡',
+            '괜찮아요, 피카츄도 처음엔 전기를 잘 다루지 못했답니다! 힘내세요! 🌱'
+        ],
+        'charmander': [
+            '앗, 오답이라니! 하지만 제 불꽃은 꺼지지 않았어요! 다시 도전해요! 🔥',
+            '뜨거운 열정으로 오답을 다 태워버려요! 파이팅! 🔥',
+            '실패는 성공의 어머니! 다음 문제는 꼭 맞출 수 있을 거예요! 🔥'
+        ],
+        'squirtle': [
+            '이런! 오답이네요. 하지만 시원하게 물대포 한 번 쏘고 다시 해봐요! 💦',
+            '꼬북... 아쉽지만 실망하긴 일러요! 거북이처럼 우직하게 정진! 🐢',
+            '괜찮아요! 물 흐르듯 유연하게 다음 문제로 나아가 볼까요? 💦'
+        ],
+        'bulbasaur': [
+            '아쉬워요! 하지만 단단한 씨앗이 싹을 틔우듯 차근차근 배워가면 돼요! 🌱',
+            '이상해씨 덩굴채찍으로 오답을 확 걷어내요! 🌿',
+            '괜찮아요! 한 걸음씩 자라나는 거니까요. 이상해! 씨앗! 🍃'
+        ]
+    };
+
+    const currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+    const msgs = PET_INCORRECT_MESSAGES[currentPetKey] || ['괜찮아요! 다시 한 번 검토해봅시다! 💪'];
+    const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
+    
+    const bubble = document.getElementById('gam-pet-bubble-text');
+    const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+
+    if (bubble) bubble.textContent = randomMsg;
+    if (runnerBubble) runnerBubble.textContent = randomMsg;
+
+    // 이전 복귀 타이머 제거
+    if (window.gamPetBubbleTimeout) {
+        clearTimeout(window.gamPetBubbleTimeout);
+    }
+
+    // 4초 후 기본 상태 메시지로 복귀
+    const DEFAULT_PET_MESSAGES = {
+        'pikachu': '오늘도 합격을 향해 백만볼트! ⚡',
+        'charmander': '뜨거운 열정으로 문제를 정복해요! 🔥',
+        'squirtle': '오답은 시원하게 물대포로 날려요! 💦',
+        'bulbasaur': '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱'
+    };
+    window.gamPetBubbleTimeout = setTimeout(() => {
+        const curPet = localStorage.getItem('gam_selected_pet') || 'pikachu';
+        const curBubble = document.getElementById('gam-pet-bubble-text');
+        const curRunnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+        if (curBubble) {
+            curBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
+        }
+        if (curRunnerBubble) {
+            curRunnerBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
+        }
+    }, 4000);
+}
+
+/**
+ * GAM-5-E. 펫 이미지에 특정 애니메이션 효과(bounce, shake, spin)를 적용합니다.
+ */
+function gamApplyPetAnimation(type) {
+    const mainImg = document.getElementById('gam-pet-img');
+    const runnerImg = document.getElementById('gam-runner-pet-img');
+
+    const classNameMap = {
+        'correct': 'gam-pet-bounce',
+        'incorrect': 'gam-pet-shake',
+        'spin': 'gam-pet-spin'
+    };
+
+    const targetClass = classNameMap[type];
+    if (!targetClass) return;
+
+    [mainImg, runnerImg].forEach(img => {
+        if (!img) return;
+
+        // 기존 클래스 제거
+        img.classList.remove('gam-pet-bounce', 'gam-pet-shake', 'gam-pet-spin');
+        
+        // 리플로우 강제 유발로 애니메이션 리셋
+        void img.offsetWidth;
+
+        img.classList.add(targetClass);
+
+        const onAnimationEnd = () => {
+            img.classList.remove(targetClass);
+            img.removeEventListener('animationend', onAnimationEnd);
+        };
+        img.addEventListener('animationend', onAnimationEnd);
+    });
 }
 
 /**

@@ -395,3 +395,37 @@
         font-size: 1.4rem;
     }
 }
+
+/* ==========================================================================
+   🎮 포켓몬 응원 펫 리액션 애니메이션
+   ========================================================================== */
+.gam-pet-bounce {
+    animation: gamPetBounce 0.6s ease;
+}
+
+@keyframes gamPetBounce {
+    0%, 100% { transform: scale(1.1) translateY(0); }
+    30% { transform: scale(1.1) translateY(-12px); }
+    50% { transform: scale(1.1) translateY(0); }
+    70% { transform: scale(1.1) translateY(-6px); }
+}
+
+.gam-pet-shake {
+    animation: gamPetShake 0.6s ease;
+}
+
+@keyframes gamPetShake {
+    0%, 100% { transform: scale(1.1) translateX(0); }
+    20%, 60% { transform: scale(1.1) translateX(-6px); }
+    40%, 80% { transform: scale(1.1) translateX(6px); }
+}
+
+.gam-pet-spin {
+    animation: gamPetSpin 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes gamPetSpin {
+    0% { transform: scale(0.5) rotate(-180deg); opacity: 0; }
+    100% { transform: scale(1.1) rotate(0deg); opacity: 1; }
+}
+
