@@ -129,7 +129,8 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
     <title>{subject_name} {title_suffix}</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="dashboard_common.css">
+    <link rel="stylesheet" href="css/dashboard_common.css">
+    <link rel="stylesheet" href="css/game.css">
     <script src="exam_db/{subject_code.lower()}_db.js?v=20260613"></script>
     <script src="js/dashboard_common.js?v=20260613"></script>
     <!-- 외부 데이터 스크립트 동적 로드 -->

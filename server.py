@@ -90,6 +90,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_questions(query)
         elif path == "/api/quiz/stats":
             self.get_quiz_stats(query)
+        elif path == "/api/quiz/total-exp":
+            self.get_total_exp(query)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
 
@@ -348,6 +350,34 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                 "summary": summary,
                 "concepts": stats_list,
                 "logs": logs_list
+            })
+        except Exception as e:
+            self.send_error_response(500, f"Database error: {str(e)}")
+        finally:
+            conn.close()
+
+    def get_total_exp(self, query):
+        """[설계 의도] 전체 과목의 누적 정답 수(EXP)를 합산하여 반환합니다. 게이미피케이션 레벨 시스템에 사용됩니다."""
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT COALESCE(SUM(correct_count), 0) as total_exp
+                FROM quiz_history
+            """)
+            row = cursor.fetchone()
+            total_exp = row[0] if row else 0
+            
+            level = (total_exp // 10) + 1
+            exp_in_level = total_exp % 10
+            exp_to_next = 10
+            
+            self.send_json_response({
+                "total_exp": total_exp,
+                "level": level,
+                "exp_in_level": exp_in_level,
+                "exp_to_next": exp_to_next
             })
         except Exception as e:
             self.send_error_response(500, f"Database error: {str(e)}")

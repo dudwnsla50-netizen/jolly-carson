@@ -1,17 +1,22 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jolly-Carson 오답 집중 복습 (Wrong Answers)</title>
+    <title>오답 집중 복습 (Wrong Answers)</title>
     <!-- 구글 폰트 적용 -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap"
+        rel="stylesheet">
     <!-- Lucide Icons 로드 -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- 전역 스타일 및 공통 테마 대응을 위해 CSS 링크 -->
-    <link rel="stylesheet" href="../dashboard_common.css">
+    <link rel="stylesheet" href="../css/dashboard_common.css">
+    <link rel="stylesheet" href="../css/game.css">
     <link rel="stylesheet" href="review.css">
 </head>
+
 <body class="dark-theme">
 
     <!-- 상단 내비게이션 바 -->
@@ -19,9 +24,8 @@
         <div class="nav-container">
             <div class="nav-left" style="cursor: pointer;" onclick="goToHome()">
                 <div class="logo-glow-dot"></div>
-                <h1 class="logo-text">JOLLY-CARSON <span class="badge badge-purple" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; vertical-align: middle;">오답노트</span></h1>
             </div>
-            
+
             <nav class="nav-links">
                 <a href="/reports/db_frequent_concepts.html" class="subject-link">데이터베이스</a>
                 <a href="/reports/se_frequent_concepts.html" class="subject-link">소프트웨어공학</a>
@@ -34,12 +38,29 @@
     </header>
 
     <main class="container">
-        
+
         <!-- 뷰 1: 오답 홈 대시보드 (dashboard-view) -->
         <section id="dashboard-view" class="view-panel active">
             <div class="view-header">
-                <h2 class="title"><i data-lucide="clipboard-x" class="title-icon"></i> 개인 맞춤형 오답 복습 홈</h2>
+                <h2 class="title"><i data-lucide="clipboard-x" class="title-icon"></i> 개인 맞춤형 오답 복습</h2>
                 <p class="subtitle">틀렸던 기출문제를 완벽히 소화할 때까지 한 문제씩 플래시카드로 트레이닝합니다.</p>
+            </div>
+
+            <!-- 게임 스타일 캐릭터 프로필 & EXP 바 (대시보드 공통 구조 연동) -->
+            <div class="gamification-exp-card" id="gam-exp-card">
+                <div class="gam-level-badge">
+                    <span class="gam-lv-label">LV</span>
+                    <span class="gam-lv-num" id="gam-lv-value">1</span>
+                </div>
+                <div class="gam-exp-wrapper">
+                    <div class="gam-exp-header">
+                        <span class="gam-exp-title">🛡️ 감리사 수험생 경험치 (EXP)</span>
+                        <span class="gam-exp-value" id="gam-exp-text">0 / 10 EXP</span>
+                    </div>
+                    <div class="gam-exp-bar-bg">
+                        <div class="gam-exp-bar-fill" id="gam-exp-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- 요약 스탯 카드 -->
@@ -78,6 +99,15 @@
                 <div class="header-right">
                     <span class="progress-text" id="runner-progress-text">카드 1 / 10</span>
                 </div>
+            </div>
+
+            <!-- 카드 러너 전용 레벨/EXP 미니 바 -->
+            <div class="runner-exp-bar-wrapper">
+                <span class="runner-level-badge">LV <span id="runner-level-value">1</span></span>
+                <div class="runner-exp-bar-bg">
+                    <div class="runner-exp-bar-fill" id="runner-exp-fill" style="width: 0%;"></div>
+                </div>
+                <span class="runner-exp-text" id="runner-exp-value">0 / 10 EXP</span>
             </div>
 
             <!-- 세션 진척도 바 -->
@@ -119,20 +149,24 @@
 
             <!-- 하단 네비게이션 컨트롤 -->
             <div class="card-controls">
-                <button class="control-btn" id="btn-prev" onclick="prevCard()"><i data-lucide="chevron-left"></i> 이전</button>
+                <button class="control-btn" id="btn-prev" onclick="prevCard()"><i data-lucide="chevron-left"></i>
+                    이전</button>
                 <button class="control-btn end-btn" id="btn-end" onclick="backToDashboard()">종료</button>
-                <button class="control-btn next-btn" id="btn-next" onclick="nextCard()">다음 <i data-lucide="chevron-right"></i></button>
+                <button class="control-btn next-btn" id="btn-next" onclick="nextCard()">다음 <i
+                        data-lucide="chevron-right"></i></button>
             </div>
         </section>
 
     </main>
 
-    <footer class="footer-note" style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4rem;">
-        © 2026 Jolly-Carson 정보시스템감리사 학습 시스템. All Rights Reserved.
+    <footer class="footer-note"
+        style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4rem;">
+        © 2026 Jolly-Carson 학습 시스템. All Rights Reserved.
     </footer>
 
-    <!-- JS 제어 파일 연동 -->
-    <script src="review.js"></script>
+    <!-- JS 제어 파일 연동 (대시보드 공통 기능 포함) -->
+    <script src="../js/dashboard_common.js"></script>
+    <script src="../js/review.js"></script>
     <script>
         // Lucide 아이콘 초기 구동
         document.addEventListener('DOMContentLoaded', () => {
@@ -140,11 +174,12 @@
                 lucide.createIcons();
             }
         });
-        
+
         // 홈으로 이동 분기
         function goToHome() {
             window.location.href = "/";
         }
     </script>
 </body>
+
 </html>

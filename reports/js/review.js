@@ -4,6 +4,7 @@
  * - 주요 기능: LocalStorage + 백엔드 DB 하이브리드 로그 취합
  *             최신 시도 결과 기준 오답 문항 자동 선별
  *             플래시카드 렌더링 및 실시간 채점 제출 연동
+ *             🎮 게이미피케이션: EXP/Level 성장 시스템 + 보물상자 + 레벨업 이펙트
  * ==========================================================================
  */
 
@@ -15,8 +16,15 @@ const ReviewState = {
     sessionQuizzes: [],        // 이번 복습 세션에 필터링된 문제 객체 목록
     currentIdx: 0,             // 현재 진행 중인 카드 인덱스
     userSelections: {},        // 이번 세션에서 사용자가 선택한 답 캐시
-    isSubmitted: {}            // 각 카드별 제출 완료 여부
+    isSubmitted: {},           // 각 카드별 제출 완료 여부
+    // 🎮 게이미피케이션 EXP/Level 전역 상태
+    totalExp: 0,               // 전체 누적 경험치 (=총 정답 수)
+    level: 1,                  // 현재 레벨 (Math.floor(totalExp / 10) + 1)
+    expInLevel: 0              // 현재 레벨 내 경험치 진행량 (totalExp % 10)
 };
+
+// 🎮 게이미피케이션 공통 전역 상태 안전 초기화 가드
+window.gamState = window.gamState || { totalExp: 0, level: 1, expInLevel: 0 };
 
 // 과목 코드와 명칭 매핑
 const SUBJECT_NAMES = {
@@ -51,8 +59,26 @@ function initWrongAnswers() {
             .catch(() => ({ logs: [] }));
     });
 
-    Promise.all(fetchPromises)
-        .then(results => {
+    // EXP 데이터도 함께 비동기 패치
+    const expPromise = fetch('/api/quiz/total-exp')
+        .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0 })
+        .catch(() => ({ total_exp: 0, level: 1, exp_in_level: 0 }));
+
+    Promise.all([Promise.all(fetchPromises), expPromise])
+        .then(([results, expData]) => {
+            // 🎮 EXP/Level 상태 적재 및 공통 gamState 연동
+            window.gamState.totalExp = expData.total_exp || 0;
+            window.gamState.level = expData.level || 1;
+            window.gamState.expInLevel = expData.exp_in_level || 0;
+
+            ReviewState.totalExp = window.gamState.totalExp;
+            ReviewState.level = window.gamState.level;
+            ReviewState.expInLevel = window.gamState.expInLevel;
+
+            // 공통 DOM 요소 주입 및 UI 즉시 갱신
+            gamInjectLevelUpOverlay();
+            gamUpdateExpUI();
+
             const allLogs = [];
             
             // 오직 서버 이력만 누적하여 마스터 로그 리스트로 설정
@@ -118,8 +144,9 @@ function initWrongAnswers() {
                 }
             });
 
-            // 메인 대시보드 렌더링
+            // 메인 대시보드 렌더링 + EXP UI 갱신
             renderDashboard();
+            updateAllExpUI();
         })
         .catch(err => {
             console.error("오답 이력 초기화 오류", err);
@@ -204,6 +231,7 @@ function startReview(subject) {
     document.getElementById('card-feedback-box').classList.add('hidden');
 
     switchView('card-view');
+    updateAllExpUI();
 
     // 1) 전체 기출문제 약정 및 2) 단원 매핑 팩 동시 비동기 로딩 (Promise.all)
     const questionsPromise = fetch(`/api/questions?subject=${subject}`)
@@ -221,9 +249,24 @@ function startReview(subject) {
             ReviewState.questionsData = qData;
             window.dashboardData = dData; // 단원 매핑 데이터 전역 활성화
 
-            // 이번 세션에 풀 문제들만 매핑
+            // 이번 세션에 풀 문제들만 매핑 및 보기 셔플
             ReviewState.sessionQuizzes = ReviewState.sessionQIds.map(qId => {
-                return qData[qId];
+                const quiz = qData[qId];
+                if (quiz && quiz.options && quiz.options.length > 0) {
+                    const indices = Array.from({ length: quiz.options.length }, (_, i) => i);
+                    if (typeof shuffleArray === 'function') {
+                        quiz.shuffledIndices = shuffleArray(indices);
+                    } else {
+                        // shuffleArray 폴백 구현
+                        const arr = [...indices];
+                        for (let i = arr.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [arr[i], arr[j]] = [arr[j], arr[i]];
+                        }
+                        quiz.shuffledIndices = arr;
+                    }
+                }
+                return quiz;
             }).filter(q => q !== undefined);
 
             if (ReviewState.sessionQuizzes.length === 0) {
@@ -289,9 +332,12 @@ function renderCard(idx) {
         }
     }
 
-    quiz.options.forEach((optText, oIdx) => {
+    const indices = quiz.shuffledIndices || Array.from({ length: quiz.options.length }, (_, i) => i);
+
+    indices.forEach((oIdx, displayIdx) => {
+        const optText = quiz.options[oIdx];
         const optNum = oIdx + 1;
-        const sym = numSymbols[oIdx] || `${optNum}`;
+        const sym = numSymbols[displayIdx] || `${optNum}`;
         const button = document.createElement('button');
         button.className = 'card-opt-btn';
 
@@ -322,15 +368,25 @@ function renderCard(idx) {
 
     // 피드백 박스 노출 분기 제어
     const feedbackBox = document.getElementById('card-feedback-box');
+    
+    // 이전 보물 상자 이펙트 제거 (정답/오답 상태 전이에 따른 잔재 청소)
+    const existingChest = feedbackBox.querySelector('.treasure-popup-container');
+    if (existingChest) {
+        existingChest.remove();
+    }
+
     if (isSubmitted) {
         const isUserCorrect = cAns.includes(selectedOpt);
         const banner = document.getElementById('card-feedback-banner');
         
         if (isUserCorrect) {
-            banner.className = 'feedback-banner correct';
-            banner.innerHTML = '<i data-lucide="check-circle-2"></i> 정답입니다! 🎉';
+            banner.className = 'feedback-banner correct hidden';
+            banner.innerHTML = '';
         } else {
-            const ansStr = cAns.map(n => numSymbols[n - 1] || n).join(', ');
+            const ansStr = cAns.map(n => {
+                const displayIdx = quiz.shuffledIndices ? quiz.shuffledIndices.indexOf(n - 1) : (n - 1);
+                return numSymbols[displayIdx] || (displayIdx + 1);
+            }).join(', ');
             banner.className = 'feedback-banner wrong';
             banner.innerHTML = `<i data-lucide="x-circle"></i> 오답입니다. (정답: ${ansStr})`;
         }
@@ -413,6 +469,46 @@ function submitAnswer(qId, selectedOption) {
         body: JSON.stringify(payload)
     }).catch(err => console.error("백엔드 이력 전송 실패", err));
 
+    // 🎮 정답 시 게이미피케이션 이펙트 트리거 (공통 gam 기능 사용)
+    if (isCorrect) {
+        const prevLevel = window.gamState.level;
+        window.gamState.totalExp += 1;
+        window.gamState.level = Math.floor(window.gamState.totalExp / 10) + 1;
+        window.gamState.expInLevel = window.gamState.totalExp % 10;
+        
+        // ReviewState 동기화
+        ReviewState.totalExp = window.gamState.totalExp;
+        ReviewState.level = window.gamState.level;
+        ReviewState.expInLevel = window.gamState.expInLevel;
+        
+        // 공통 EXP UI 갱신 (메인 프로필 카드)
+        gamUpdateExpUI();
+        
+        // 카드 러너 미니 EXP 바 갱신 (오답노트 전용)
+        updateRunnerExpUI();
+        
+        // EXP +1 플로팅 뱃지 연출 (공통)
+        gamTriggerExpFloat();
+        
+        // 보물 상자 + 보석 파티클 연출 (공통 함수 사용)
+        const feedbackBox = document.getElementById('card-feedback-box');
+        if (feedbackBox) {
+            gamSpawnTreasureChest(feedbackBox, '.explanation-box');
+        }
+        
+        // 카드 섬광 이펙트 (오답노트 전용)
+        const flashcard = document.getElementById('active-flashcard');
+        if (flashcard) {
+            flashcard.classList.add('correct-flash');
+            setTimeout(() => flashcard.classList.remove('correct-flash'), 600);
+        }
+        
+        // 레벨업 체크 → 공통 전체화면 레이저 빔 오버레이 연출
+        if (window.gamState.level > prevLevel) {
+            setTimeout(() => gamTriggerLevelUp(window.gamState.level), 900);
+        }
+    }
+
     // 화면 즉시 리렌더링
     renderCard(ReviewState.currentIdx);
 }
@@ -453,5 +549,38 @@ function switchView(viewId) {
     const target = document.getElementById(viewId);
     if (target) {
         target.classList.add('active');
+    }
+}
+
+/* ==========================================================================
+   🎮 게이미피케이션 시스템 - 오답노트 전용 바 동기화
+   ========================================================================== */
+
+/**
+ * 카드 러너용 미니 EXP 바 UI를 업데이트합니다.
+ */
+function updateRunnerExpUI() {
+    const { totalExp, level, expInLevel } = window.gamState;
+    const expPercent = (expInLevel / 10) * 100;
+    const nextLevelExp = level * 10;
+
+    const runnerLevelValue = document.getElementById('runner-level-value');
+    const runnerExpFill = document.getElementById('runner-exp-fill');
+    const runnerExpValue = document.getElementById('runner-exp-value');
+
+    if (runnerLevelValue) runnerLevelValue.textContent = level;
+    if (runnerExpFill) runnerExpFill.style.width = `${expPercent}%`;
+    if (runnerExpValue) runnerExpValue.textContent = `${totalExp} / ${nextLevelExp} EXP`;
+}
+
+/**
+ * 🎮 모든 EXP/Level 관련 UI 요소를 동기화하여 갱신합니다.
+ */
+function updateAllExpUI() {
+    if (typeof gamUpdateExpUI === 'function') {
+        gamUpdateExpUI();
+    }
+    if (typeof updateRunnerExpUI === 'function') {
+        updateRunnerExpUI();
     }
 }
