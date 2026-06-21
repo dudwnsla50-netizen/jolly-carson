@@ -118,9 +118,30 @@
     gap: 0.8rem;
     margin-top: 0.6rem;
     padding: 0.6rem;
-    background: rgba(251, 191, 36, 0.04);
-    border: 1px solid rgba(251, 191, 36, 0.12);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.25);
     border-radius: 10px;
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.05), inset 0 0 12px rgba(251, 191, 36, 0.05);
+    overflow: hidden;
+}
+
+/* 보석 상자 뒤쪽 회전하는 후광(빛무리) 효과 */
+.gam-treasure-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0) 60%);
+    animation: gamGlowRotate 8s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes gamGlowRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .gam-treasure-img {
@@ -128,7 +149,14 @@
     height: 72px;
     object-fit: contain;
     filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.45));
-    animation: gamChestPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    position: relative;
+    z-index: 2;
+    animation: gamChestPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, gamGemsFloat 3s ease-in-out infinite 0.55s;
+}
+
+@keyframes gamGemsFloat {
+    0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)); }
+    50% { transform: translateY(-6px) scale(1.03); filter: drop-shadow(0 0 28px rgba(255, 215, 0, 0.9)); }
 }
 
 @keyframes gamChestPop {

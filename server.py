@@ -439,7 +439,7 @@ def main():
     httpd = HTTPServer(server_address, JollyCarsonRequestHandler)
     print(f"\n========================================================")
     print(f"[Server] Jolly-Carson Web API Server Started Successfully")
-    print(f"[Dashboard URL] http://localhost:{PORT}/reports/db_frequent_concepts.html")
+    print(f"[Dashboard URL] http://localhost:{PORT}/reports/db_official_scopes.html")
     print(f"========================================================\n")
     try:
         httpd.serve_forever()

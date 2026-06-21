@@ -108,8 +108,8 @@ async function fetchStats() {
           <button class="btn btn-primary btn-block" onclick="startQuiz('${code}')" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
             <i data-lucide="play-circle"></i> 기출문제 퀴즈 풀기
           </button>
-          <a class="btn btn-secondary btn-block" href="/reports/${code.toLowerCase()}_frequent_concepts.html" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <i data-lucide="bar-chart-2"></i> 기출분석 대시보드
+          <a class="btn btn-secondary btn-block" href="/reports/${code.toLowerCase()}_official_scopes.html" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i data-lucide="book-open"></i> 기출분석 대시보드
           </a>
         `;
       }

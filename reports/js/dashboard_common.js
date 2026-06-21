@@ -1610,7 +1610,7 @@ function gamTriggerTreasureChest(idx, qId) {
 
     // 보물 상자 이미지
     const img = document.createElement('img');
-    img.src = '/reports/images/gem_chest_open.png';
+    img.src = '/reports/images_game/gems_overflowing.png';
     img.alt = '보물 상자 오픈!';
     img.className = 'gam-treasure-img';
     container.appendChild(img);
@@ -1666,7 +1666,7 @@ function gamSpawnTreasureChest(parentEl, insertBeforeSelector) {
 
     // 보물 상자 이미지
     const img = document.createElement('img');
-    img.src = '/reports/images/gem_chest_open.png';
+    img.src = '/reports/images_game/gems_overflowing.png';
     img.alt = '보물 상자 오픈!';
     img.className = 'gam-treasure-img';
     container.appendChild(img);
