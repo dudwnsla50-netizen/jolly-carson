@@ -118,6 +118,33 @@ function loadQuizStatsAndMerge() {
                 }
             });
 
+            // LocalStorage 백업 로그 조회 및 하이브리드 병합 (Render DB 휘발 방어)
+            try {
+                const localHistoryStr = localStorage.getItem('jolly_carson_quiz_history');
+                if (localHistoryStr) {
+                    const localLogs = JSON.parse(localHistoryStr) || [];
+                    localLogs.forEach(localLog => {
+                        if (localLog.subject === subject) {
+                            const localQId = localLog.details ? localLog.details.q_id : null;
+                            const isDuplicate = mergedLogs.some(serverLog => {
+                                const serverQId = serverLog.details ? serverLog.details.q_id : null;
+                                if (localQId && serverQId && localQId === serverQId) {
+                                    const diff = Math.abs(new Date(localLog.created_at) - new Date(serverLog.created_at));
+                                    return diff < 60000; // 1분 이내 동일 문항은 중복 간주
+                                }
+                                return false;
+                            });
+
+                            if (!isDuplicate) {
+                                mergedLogs.push(localLog);
+                            }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn("[로컬스토리지 병합 실패]", e);
+            }
+
             // 시간 파싱 및 UTC 타임스탬프 반환 헬퍼
             const getUTCTime = (dateStr) => {
                 if (!dateStr) return 0;
@@ -306,8 +333,11 @@ function renderQuizSummarySection() {
     section.style.webkitBackdropFilter = 'blur(12px)';
 
     section.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
             <h3 style="font-size: 0.95rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 0.3rem;">📊 나의 기출 분석 리포트</h3>
+            <button onclick="startGlobalRolling(event)" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); transition: all 0.2s; outline: none; font-family: inherit;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                🔄 전체 문제 롤링 시작
+            </button>
         </div>
         
         <div class="summary-report-grid">
@@ -839,6 +869,58 @@ function renderLoadedQuestion(idx, qId) {
     const body = document.getElementById(`viewer-body-${idx}`);
     if (!body) return;
 
+    // 다음 문제 이동 버튼 준비 (랜덤 롤링 세션 기반)
+    let nextQuestionButtonHtml = '';
+    const activeQsList = getActiveQuestionsList();
+    if (activeQsList.length > 0) {
+        // 기존 세션 조회 및 검증 (세션이 현재 화면의 문항과 구성이 같은지 체크)
+        let session = window.rollingSession;
+        const isSessionValid = session && session.isActive && session.questions.length === activeQsList.length &&
+            session.questions.every(sq => activeQsList.some(aq => aq.qId === sq.qId));
+
+        if (!isSessionValid) {
+            // 세션이 없거나 유효하지 않다면, 현재 문제를 시작점으로 설정하고
+            // 나머지 문제들을 랜덤하게 섞은 새로운 롤링 세션을 구성합니다.
+            const otherQs = activeQsList.filter(q => q.qId !== qId);
+            const shuffledOthers = shuffleArray(otherQs);
+            const currentQ = activeQsList.find(q => q.qId === qId);
+
+            const newQs = [];
+            if (currentQ) newQs.push(currentQ);
+            newQs.push(...shuffledOthers);
+
+            window.rollingSession = {
+                isActive: true,
+                questions: newQs,
+                currentIndex: currentQ ? 0 : -1
+            };
+            session = window.rollingSession;
+        } else {
+            // 세션이 있다면, 사용자가 아코디언에서 다른 문제를 클릭해 이동했을 수도 있으므로 현재 인덱스를 맞춰줍니다.
+            const foundIdx = session.questions.findIndex(q => q.qId === qId);
+            if (foundIdx > -1) {
+                session.currentIndex = foundIdx;
+            }
+        }
+
+        // 세션 인덱스를 바탕으로 다음 롤링 문제 버튼 생성
+        if (session.isActive && session.currentIndex > -1) {
+            if (session.currentIndex < session.questions.length - 1) {
+                const nextQ = session.questions[session.currentIndex + 1];
+                nextQuestionButtonHtml = `
+                    <button onclick="moveToNextRollingQuestion('${nextQ.globalIdx}', ${nextQ.year}, ${nextQ.num}, event)" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">다음 문제 ➡️</button>
+                `;
+            } else {
+                // 롤링 세션의 모든 문제를 다 푼 경우 새롭게 랜덤 롤링 시작
+                if (session.questions.length > 1) {
+                    nextQuestionButtonHtml = `
+                        <button onclick="restartRollingSession(event)" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">새 롤링 시작 🔄</button>
+                    `;
+                }
+            }
+        }
+    }
+
     // 질문 본문 렌더링
     let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: #ffffff; margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
 
@@ -977,6 +1059,7 @@ function renderLoadedQuestion(idx, qId) {
             ${historyHtml}
             <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.8rem;">
                 <button onclick="retryInlineQuestion('${idx}', '${qId}', event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-family: inherit;">다시 풀기</button>
+                ${nextQuestionButtonHtml}
             </div>
         `;
     } else {
@@ -1093,6 +1176,30 @@ function submitInlineAnswer(idx, qId, event) {
             is_correct: isCorrect
         }
     };
+
+    // 로컬스토리지 백업 저장 (서버 초기화 리스크 방지)
+    try {
+        const localHistoryStr = localStorage.getItem('jolly_carson_quiz_history');
+        const localHistory = localHistoryStr ? JSON.parse(localHistoryStr) : [];
+        const localPayload = {
+            created_at: new Date().toISOString(),
+            subject: subject,
+            concept: conceptName,
+            total_questions: 1,
+            correct_count: isCorrect ? 1 : 0,
+            wrong_count: isCorrect ? 0 : 1,
+            details: {
+                q_id: qId,
+                user_choice: uAns,
+                correct_answer: cAns,
+                is_correct: isCorrect
+            }
+        };
+        localHistory.push(localPayload);
+        localStorage.setItem('jolly_carson_quiz_history', JSON.stringify(localHistory));
+    } catch (e) {
+        console.warn("[로컬스토리지 백업 실패]", e);
+    }
 
     // 백엔드 API 제출 및 통계 실시간 비동기 리프레시
     fetch('/api/quiz/submit', {
@@ -1474,17 +1581,40 @@ function initGamification() {
     gamInjectExpCard();
     gamInjectLevelUpOverlay();
 
-    // API 조회하여 EXP 데이터 업데이트
+    // API 조회하여 EXP 데이터 업데이트 (로컬스토리지 비교식 이중 유실 방어막 적용)
     fetch('/api/quiz/total-exp')
         .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0 })
         .then(data => {
-            window.gamState.totalExp = data.total_exp || 0;
-            window.gamState.level = data.level || 1;
-            window.gamState.expInLevel = data.exp_in_level || 0;
+            const apiTotalExp = data.total_exp || 0;
+            let localTotalExp = 0;
+            try {
+                const localHistoryStr = localStorage.getItem('jolly_carson_quiz_history');
+                if (localHistoryStr) {
+                    const localLogs = JSON.parse(localHistoryStr) || [];
+                    localTotalExp = localLogs.reduce((sum, log) => sum + (log.correct_count || 0), 0);
+                }
+            } catch (e) {}
+
+            // 서버 측 누적 경험치와 로컬스토리지 누적 경험치 중 유실 방지를 위해 더 큰 값을 최종 적용
+            const finalTotalExp = Math.max(apiTotalExp, localTotalExp);
+            window.gamState.totalExp = finalTotalExp;
+            window.gamState.level = Math.floor(finalTotalExp / 10) + 1;
+            window.gamState.expInLevel = finalTotalExp % 10;
             gamUpdateExpUI();
         })
         .catch(err => {
-            console.warn("[경고] 게이미피케이션 데이터 로드 실패", err);
+            console.warn("[경고] 게이미피케이션 데이터 로드 실패. 로컬 폴백을 시도합니다.", err);
+            let localTotalExp = 0;
+            try {
+                const localHistoryStr = localStorage.getItem('jolly_carson_quiz_history');
+                if (localHistoryStr) {
+                    const localLogs = JSON.parse(localHistoryStr) || [];
+                    localTotalExp = localLogs.reduce((sum, log) => sum + (log.correct_count || 0), 0);
+                }
+            } catch (e) {}
+            window.gamState.totalExp = localTotalExp;
+            window.gamState.level = Math.floor(localTotalExp / 10) + 1;
+            window.gamState.expInLevel = localTotalExp % 10;
             gamUpdateExpUI();
         });
 }
@@ -1996,4 +2126,109 @@ function gamTriggerLevelUp(newLevel) {
     setTimeout(() => {
         overlay.classList.add('hidden');
     }, 3500);
+}
+
+/**
+ * ==========================================================================
+ * 🔄 문제 롤링 및 순회 제어 시스템
+ * ==========================================================================
+ */
+
+/**
+ * 14. 현재 화면에 표시된 (필터가 적용된) 전체 질문 목록을 순서대로 수집합니다.
+ */
+function getActiveQuestionsList() {
+    const list = [];
+    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    if (!container || !window.dashboardData) return list;
+
+    const items = container.querySelectorAll('.accordion-item');
+    items.forEach(item => {
+        const globalIdx = parseInt(item.id.replace('item-', ''));
+        const targetData = window.dashboardData.find(d => String(d.global_idx) === String(globalIdx));
+        if (targetData && targetData.questions) {
+            targetData.questions.forEach(q => {
+                list.push({
+                    globalIdx: globalIdx,
+                    year: q.year,
+                    num: q.num,
+                    qId: `${q.year}_${q.num}`,
+                    concept: targetData.concept
+                });
+            });
+        }
+    });
+    return list;
+}
+
+/**
+ * 15. 다음 롤링 타겟 문제로 이동합니다. (아코디언 제어 및 질문 상세 로드)
+ */
+function moveToNextRollingQuestion(nextGlobalIdx, nextYear, nextNum, event) {
+    if (event) event.stopPropagation();
+
+    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    if (!container) return;
+
+    // 다른 열린 아코디언 및 뷰어는 깔끔한 전환을 위해 일괄 초기화
+    container.querySelectorAll('.accordion-item').forEach(item => {
+        const itemIdx = item.id.replace('item-', '');
+        if (String(itemIdx) !== String(nextGlobalIdx)) {
+            item.classList.remove('active');
+            const content = item.querySelector('.accordion-content');
+            if (content) content.style.maxHeight = null;
+            const viewer = item.querySelector(`.inline-question-viewer`);
+            if (viewer) viewer.classList.add('hidden');
+        }
+    });
+
+    const nextItem = document.getElementById(`item-${nextGlobalIdx}`);
+    if (nextItem) {
+        nextItem.classList.add('active');
+        const content = nextItem.querySelector('.accordion-content');
+        if (content) {
+            content.style.maxHeight = '2000px'; // 임시 여유값
+        }
+
+        // 포커스 이동
+        nextItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => {
+            const nextBtn = nextItem.querySelector(`.q-btn-${nextYear}-${nextNum}`) ||
+                document.getElementById(`btn-${nextGlobalIdx}-${nextYear}-${nextNum}`);
+            showQuestion(nextGlobalIdx, nextYear, nextNum, nextBtn);
+        }, 300);
+    }
+}
+
+/**
+ * 16. 전체 문제 롤링 시작 (활성 문항 전체를 랜덤하게 섞어 세션을 시작합니다)
+ */
+function startGlobalRolling(event) {
+    if (event) event.stopPropagation();
+
+    const activeQsList = getActiveQuestionsList();
+    if (activeQsList.length === 0) {
+        alert("롤링을 시작할 문항이 없습니다. 필터 조건을 확인해주세요!");
+        return;
+    }
+
+    // 전체 활성 문제를 랜덤 셔플하여 롤링 세션 개시
+    const shuffledQs = shuffleArray(activeQsList);
+    window.rollingSession = {
+        isActive: true,
+        questions: shuffledQs,
+        currentIndex: 0
+    };
+
+    const firstQ = shuffledQs[0];
+    moveToNextRollingQuestion(firstQ.globalIdx, firstQ.year, firstQ.num);
+}
+
+/**
+ * 17. 롤링 세션이 한 바퀴 다 끝났을 때 세션을 재셔플하여 롤링을 재시작합니다.
+ */
+function restartRollingSession(event) {
+    if (event) event.stopPropagation();
+    startGlobalRolling();
 }
