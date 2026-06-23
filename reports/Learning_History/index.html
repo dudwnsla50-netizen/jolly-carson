@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jolly-Carson 학습 이력 분석 센터</title>
+
+    <!-- CSS 및 폰트 연동 -->
+    <link rel="stylesheet" href="history.css">
+
+    <!-- Chart.js 및 Lucide Icons CDN 탑재 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <!-- 장식 배경 글로우 -->
+    <div class="bg-glow"></div>
+    <div class="bg-glow-left"></div>
+
+    <div class="container">
+        <!-- 상단 헤더 영역 -->
+        <div class="header-row">
+            <!-- DB 공식 범위 대시보드로 돌아가는 버튼 -->
+            <a href="../db_official_scopes.html" class="back-btn">
+                <i data-lucide="arrow-left"></i> 대시보드로 복귀
+            </a>
+        </div>
+
+        <!-- 1단계: 종합 학습 요약 통계 리본 -->
+        <div class="stats-grid">
+            <!-- 카드 1: 총 푼 문제 수 -->
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i data-lucide="check-square"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">총 풀이 문항</span>
+                    <span class="stat-value" id="stat-total-solved">-</span>
+                    <span class="stat-subtext" id="stat-total-solved-sub">-</span>
+                </div>
+            </div>
+
+            <!-- 카드 2: 평균 정답률 -->
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i data-lucide="award"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">누적 평균 정답률</span>
+                    <span class="stat-value" id="stat-avg-accuracy">-</span>
+                    <span class="stat-subtext" id="stat-avg-accuracy-sub">-</span>
+                </div>
+            </div>
+
+            <!-- 카드 3: 추정 학습 시간 -->
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i data-lucide="clock"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">추정 누적 공부시간</span>
+                    <span class="stat-value" id="stat-study-time">-</span>
+                    <span class="stat-subtext" id="stat-study-time-sub">-</span>
+                </div>
+            </div>
+
+            <!-- 카드 4: 공부한 총 일수 -->
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i data-lucide="calendar-check-2"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">누적 공부일 수</span>
+                    <span class="stat-value" id="stat-active-days">-</span>
+                    <span class="stat-subtext" id="stat-active-days-sub">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2단계: 메인 학습 대시보드 그리드 구조 -->
+        <div class="dashboard-row">
+
+            <!-- 2-1. 일별 학습량 트렌드 (최근 30일) -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <i data-lucide="trending-up"></i> 최근 30일 학습 추이
+                    </span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 2-2. 과목별 공부 분포도 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <i data-lucide="pie-chart"></i> 5대 과목 공부 분포
+                    </span>
+                </div>
+                <div class="chart-container"
+                    style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 2-3. 일별 학습이력 (일별 학습 건수) -->
+            <div class="card recent-activity-card">
+                <div class="card-header">
+                    <span class="card-title">
+                        <i data-lucide="calendar"></i> 일별 학습이력
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                        행을 클릭하면 해당 일자의 과목별 상세 풀이 건수가 레이어로 보입니다.
+                    </span>
+                </div>
+                <div class="table-responsive">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>일자 (KST)</th>
+                                <th>총 학습 건수</th>
+                                <th>평균 정답률</th>
+                                <th>추정 학습 시간</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody">
+                            <!-- JS를 통해 동적 생성 -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- 페이징 컨트롤 -->
+                <div class="pagination">
+                    <button class="page-btn" id="btn-prev-page" onclick="prevPage()">
+                        < 이전</button>
+                            <span class="page-info" id="page-info">-</span>
+                            <button class="page-btn" id="btn-next-page" onclick="nextPage()">다음 ></button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 일별 과목별 학습 건수 상세 모달 레이어 -->
+    <div id="daily-detail-modal" class="modal-overlay" onclick="closeDailyModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-card-header">
+                <h2 class="modal-card-title" id="daily-modal-title">📅 과목별 학습 상세</h2>
+                <button class="modal-close-x" onclick="closeDailyModal()">✕</button>
+            </div>
+            <div class="modal-card-body" id="daily-modal-body">
+                <!-- JS를 통해 동적 생성 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 비즈니스 스크립트 연결 -->
+    <script src="history.js"></script>
+    <script>
+        // 루시드 아이콘 렌더링 구동
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+
+</html>

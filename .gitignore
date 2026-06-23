@@ -20,3 +20,6 @@ C:/Users/DCCIS040000/.gemini/antigravity-ide/brain/7e1fd111-1dc1-495d-82a1-c4057
 # 가상환경 및 로컬 설치 스크립트 제외
 temp_python/
 get-pip.py
+
+# 빌드 시 아티팩트 fallback용 더미 저장소 제외
+reports/temp_artifacts_fallback/

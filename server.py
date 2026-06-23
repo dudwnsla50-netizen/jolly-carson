@@ -13,7 +13,42 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 PORT = int(os.environ.get("PORT", 8000))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
+
+# [설계 의도] Render.com 지속성 디스크 연동
+# 1) 환경 변수 DB_PATH가 등록되어 있다면 최우선적으로 적용
+# 2) /data 마운트 디렉토리가 감지되면 마운트된 지속성 경로를 사용하고, 최초 구동 시 시드 DB를 복사
+# 3) 이외의 로컬 환경일 경우 기존 상대 경로로 폴백
+DB_PATH = os.environ.get("DB_PATH")
+if not DB_PATH:
+    PERSISTENT_DB_DIR = "/data"
+    DEFAULT_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
+    if os.path.exists(PERSISTENT_DB_DIR):
+        DB_PATH = os.path.join(PERSISTENT_DB_DIR, "jolly_carson.db")
+        # 볼륨이 처음 생성되어 빈 디스크인 상태일 경우, 기존 기출문제 DB 파일을 지속성 디렉토리에 최초 복사
+        if not os.path.exists(DB_PATH) and os.path.exists(DEFAULT_DB_PATH):
+            import shutil
+            try:
+                os.makedirs(PERSISTENT_DB_DIR, exist_ok=True)
+                shutil.copy2(DEFAULT_DB_PATH, DB_PATH)
+                print(f"[SQLite] 지속성 볼륨 초기 데이터베이스 복사 성공: {DEFAULT_DB_PATH} -> {DB_PATH}")
+            except Exception as e:
+                print(f"[SQLite] 오류 - 데이터베이스 초기화(복사) 실패: {e}")
+        # 이미 DB가 존재할 경우, 배포된 최신 문제 데이터 및 대시보드 맵핑 데이터만 안전하게 병합 (학습 이력 보존)
+        elif os.path.exists(DB_PATH) and os.path.exists(DEFAULT_DB_PATH):
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute(f"ATTACH DATABASE '{DEFAULT_DB_PATH}' AS seed_db")
+                # 기출문제 테이블 및 대시보드 맵핑 테이블만 선택적 병합 (INSERT OR REPLACE)
+                cursor.execute("INSERT OR REPLACE INTO exam_questions SELECT * FROM seed_db.exam_questions")
+                cursor.execute("INSERT OR REPLACE INTO dashboard_mappings SELECT * FROM seed_db.dashboard_mappings")
+                conn.commit()
+                conn.close()
+                print(f"[SQLite] 지속성 디렉토리의 데이터베이스 문제 및 매핑 정보를 최신 상태로 병합했습니다.")
+            except Exception as e:
+                print(f"[SQLite] 오류 - 최신 문제 데이터 병합 실패: {e}")
+    else:
+        DB_PATH = DEFAULT_DB_PATH
 
 class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
     

@@ -92,6 +92,20 @@ window.quizSummary = { total_attempts: 0, total_correct: 0, total_solved: 0, avg
  */
 function loadQuizStatsAndMerge() {
     const subject = window.SUBJECT_CODE || "DB";
+
+    // [설계 의도] 시간 문자열을 UTC 타임스탬프로 통일하여 정합성 비교를 수행하는 헬퍼 함수
+    const getUTCTime = (dateStr) => {
+        if (!dateStr) return 0;
+        let standardized = dateStr;
+        if (!dateStr.includes('T') && dateStr.includes(' ')) {
+            standardized = dateStr.replace(' ', 'T') + 'Z';
+        } else if (!dateStr.endsWith('Z') && dateStr.includes('T')) {
+            standardized = dateStr + 'Z';
+        }
+        const t = new Date(standardized).getTime();
+        return isNaN(t) ? 0 : t;
+    };
+
     return fetch(`/api/quiz/stats?subject=${subject}`)
         .then(res => {
             if (!res.ok) throw new Error("HTTP error " + res.status);
@@ -129,7 +143,9 @@ function loadQuizStatsAndMerge() {
                             const isDuplicate = mergedLogs.some(serverLog => {
                                 const serverQId = serverLog.details ? serverLog.details.q_id : null;
                                 if (localQId && serverQId && localQId === serverQId) {
-                                    const diff = Math.abs(new Date(localLog.created_at) - new Date(serverLog.created_at));
+                                    // [버그 수정] SQLite 시간(서버 기준 UTC)과 로컬스토리지 시간(KST)의 시차(9시간) 차이로 인해 
+                                    // 직접 new Date() 파싱 비교 시 중복 제거 필터(1분)가 실패하던 문제를 getUTCTime으로 정밀 대조하여 해결
+                                    const diff = Math.abs(getUTCTime(localLog.created_at) - getUTCTime(serverLog.created_at));
                                     return diff < 60000; // 1분 이내 동일 문항은 중복 간주
                                 }
                                 return false;
@@ -144,19 +160,6 @@ function loadQuizStatsAndMerge() {
             } catch (e) {
                 console.warn("[로컬스토리지 병합 실패]", e);
             }
-
-            // 시간 파싱 및 UTC 타임스탬프 반환 헬퍼
-            const getUTCTime = (dateStr) => {
-                if (!dateStr) return 0;
-                let standardized = dateStr;
-                if (!dateStr.includes('T') && dateStr.includes(' ')) {
-                    standardized = dateStr.replace(' ', 'T') + 'Z';
-                } else if (!dateStr.endsWith('Z') && dateStr.includes('T')) {
-                    standardized = dateStr + 'Z';
-                }
-                const t = new Date(standardized).getTime();
-                return isNaN(t) ? 0 : t;
-            };
 
             // 시간 정렬을 위해 정밀화된 UTC 타임스탬프 순으로 정렬
             mergedLogs.sort((a, b) => getUTCTime(b.created_at) - getUTCTime(a.created_at));
@@ -734,7 +737,16 @@ function toggleAccordion(idx) {
 // 로드된 기출문제를 캐싱할 전역 버퍼 객체
 window.loadedQuestions = window.loadedQuestions || {};
 
-function showQuestion(idx, year, num, btnElement) {
+function showQuestion(idx, year, num, btnElement, isRollingTransition) {
+    if (!isRollingTransition) {
+        // [설계 의도] 사용자가 아코디언에서 직접 수동으로 문항 단추를 클릭한 경우,
+        // 기존 전체 롤링 세션 상태를 로컬 중단원 세션으로 전환될 수 있도록 플래그를 리셋합니다.
+        if (window.rollingSession) {
+            window.rollingSession.isGlobal = false;
+            window.rollingSession.globalIdx = parseInt(idx);
+        }
+    }
+
     // 1) 연도별 클릭 버튼 액티브 스타일 교체
     const item = document.getElementById(`item-${idx}`);
     if (item) {
@@ -871,19 +883,33 @@ function renderLoadedQuestion(idx, qId) {
 
     // 다음 문제 이동 버튼 준비 (랜덤 롤링 세션 기반)
     let nextQuestionButtonHtml = '';
-    const activeQsList = getActiveQuestionsList();
-    if (activeQsList.length > 0) {
-        // 기존 세션 조회 및 검증 (세션이 현재 화면의 문항과 구성이 같은지 체크)
-        let session = window.rollingSession;
-        const isSessionValid = session && session.isActive && session.questions.length === activeQsList.length &&
-            session.questions.every(sq => activeQsList.some(aq => aq.qId === sq.qId));
+    
+    // 세션 조회 및 검증
+    let session = window.rollingSession;
+    let isSessionValid = false;
 
-        if (!isSessionValid) {
-            // 세션이 없거나 유효하지 않다면, 현재 문제를 시작점으로 설정하고
-            // 나머지 문제들을 랜덤하게 섞은 새로운 롤링 세션을 구성합니다.
-            const otherQs = activeQsList.filter(q => q.qId !== qId);
+    if (session && session.isActive) {
+        if (session.isGlobal) {
+            // 글로벌 세션인 경우: 현재 문제(qId)가 글로벌 세션에 존재하는지만 체크
+            isSessionValid = session.questions.some(sq => sq.qId === qId);
+        } else {
+            // 로컬 중단원 세션인 경우: 현재 중단원(idx)과 세션의 중단원이 일치하며, 
+            // 현재 중단원의 문제 목록 크기가 세션 문제 목록 크기와 동일하고, 문제 구성이 일치하는지 체크
+            const localQsList = getConceptQuestionsList(idx);
+            isSessionValid = (String(session.globalIdx) === String(idx)) &&
+                             (session.questions.length === localQsList.length) &&
+                             (session.questions.every(sq => localQsList.some(aq => aq.qId === sq.qId)));
+        }
+    }
+
+    if (!isSessionValid) {
+        // 기존 세션이 없거나 유효하지 않다면 새로 세션 개시
+        // 아코디언에서 직접 개별 문항을 클릭해 진입한 상황이므로 강제로 "로컬 중단원 롤링 세션"으로 초기화합니다.
+        const localQsList = getConceptQuestionsList(idx);
+        if (localQsList.length > 0) {
+            const otherQs = localQsList.filter(q => q.qId !== qId);
             const shuffledOthers = shuffleArray(otherQs);
-            const currentQ = activeQsList.find(q => q.qId === qId);
+            const currentQ = localQsList.find(q => q.qId === qId);
 
             const newQs = [];
             if (currentQ) newQs.push(currentQ);
@@ -892,19 +918,22 @@ function renderLoadedQuestion(idx, qId) {
             window.rollingSession = {
                 isActive: true,
                 questions: newQs,
-                currentIndex: currentQ ? 0 : -1
+                currentIndex: currentQ ? 0 : -1,
+                isGlobal: false,
+                globalIdx: parseInt(idx)
             };
             session = window.rollingSession;
-        } else {
-            // 세션이 있다면, 사용자가 아코디언에서 다른 문제를 클릭해 이동했을 수도 있으므로 현재 인덱스를 맞춰줍니다.
-            const foundIdx = session.questions.findIndex(q => q.qId === qId);
-            if (foundIdx > -1) {
-                session.currentIndex = foundIdx;
-            }
         }
+    } else {
+        // 세션이 유효하다면 인덱스만 동기화
+        const foundIdx = session.questions.findIndex(q => q.qId === qId);
+        if (foundIdx > -1) {
+            session.currentIndex = foundIdx;
+        }
+    }
 
         // 세션 인덱스를 바탕으로 다음 롤링 문제 버튼 생성
-        if (session.isActive && session.currentIndex > -1) {
+        if (session && session.isActive && session.currentIndex > -1) {
             if (session.currentIndex < session.questions.length - 1) {
                 const nextQ = session.questions[session.currentIndex + 1];
                 nextQuestionButtonHtml = `
@@ -919,7 +948,6 @@ function renderLoadedQuestion(idx, qId) {
                 }
             }
         }
-    }
 
     // 질문 본문 렌더링
     let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: #ffffff; margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
@@ -2135,6 +2163,27 @@ function gamTriggerLevelUp(newLevel) {
  */
 
 /**
+ * 13-A. 특정 중단원(concept)에 매핑된 전체 기출문제 목록을 수집합니다.
+ */
+function getConceptQuestionsList(globalIdx) {
+    const list = [];
+    if (!window.dashboardData) return list;
+    const targetData = window.dashboardData.find(d => String(d.global_idx) === String(globalIdx));
+    if (targetData && targetData.questions) {
+        targetData.questions.forEach(q => {
+            list.push({
+                globalIdx: parseInt(globalIdx),
+                year: q.year,
+                num: q.num,
+                qId: `${q.year}_${q.num}`,
+                concept: targetData.concept
+            });
+        });
+    }
+    return list;
+}
+
+/**
  * 14. 현재 화면에 표시된 (필터가 적용된) 전체 질문 목록을 순서대로 수집합니다.
  */
 function getActiveQuestionsList() {
@@ -2196,7 +2245,7 @@ function moveToNextRollingQuestion(nextGlobalIdx, nextYear, nextNum, event) {
         setTimeout(() => {
             const nextBtn = nextItem.querySelector(`.q-btn-${nextYear}-${nextNum}`) ||
                 document.getElementById(`btn-${nextGlobalIdx}-${nextYear}-${nextNum}`);
-            showQuestion(nextGlobalIdx, nextYear, nextNum, nextBtn);
+            showQuestion(nextGlobalIdx, nextYear, nextNum, nextBtn, true); // 롤링 전환 플래그 true 전달
         }, 300);
     }
 }
@@ -2230,5 +2279,26 @@ function startGlobalRolling(event) {
  */
 function restartRollingSession(event) {
     if (event) event.stopPropagation();
+
+    const session = window.rollingSession;
+    if (session && session.isActive && !session.isGlobal && session.globalIdx !== undefined) {
+        // 로컬 중단원 세션 재시작
+        const localQsList = getConceptQuestionsList(session.globalIdx);
+        if (localQsList.length > 0) {
+            const shuffledQs = shuffleArray(localQsList);
+            window.rollingSession = {
+                isActive: true,
+                questions: shuffledQs,
+                currentIndex: 0,
+                isGlobal: false,
+                globalIdx: session.globalIdx
+            };
+            const firstQ = shuffledQs[0];
+            moveToNextRollingQuestion(firstQ.globalIdx, firstQ.year, firstQ.num);
+            return;
+        }
+    }
+
+    // 기본은 전체 롤링 재시작
     startGlobalRolling();
 }
