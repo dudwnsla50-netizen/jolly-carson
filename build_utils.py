@@ -10,7 +10,7 @@ _DEFAULT_ARTIFACT_DIR = r"C:\Users\histo\.gemini\antigravity-ide\brain\3b0b18aa-
 
 if os.environ.get("GEMINI_ARTIFACT_DIR"):
     ARTIFACT_DIR = os.environ.get("GEMINI_ARTIFACT_DIR")
-elif sys.platform == "win32" and os.path.exists(os.path.dirname(r"C:\Users\histo")):
+elif sys.platform == "win32" and os.path.exists(_DEFAULT_ARTIFACT_DIR):
     ARTIFACT_DIR = _DEFAULT_ARTIFACT_DIR
 else:
     # render.com 등 리눅스 서버 환경 혹은 타 사용자 PC에서는 
@@ -154,6 +154,7 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
                 
                 <div class="meta-badges" id="dynamic-nav-badges">
                     <a href="#" class="badge home-badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
+                    <a href="Learning_History/index.html" class="badge history-badge" style="text-decoration: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; font-weight: 700;">📈 학습 분석</a>
                     <a href="se_frequent_concepts.html" class="badge subject-badge" data-freq="se_frequent_concepts.html" data-official="se_official_scopes.html" style="text-decoration: none;">소프트웨어공학</a>
                     <a href="pm_frequent_concepts.html" class="badge subject-badge" data-freq="pm_frequent_concepts.html" data-official="pm_official_scopes.html" style="text-decoration: none;">프로젝트 관리</a>
                     <a href="db_frequent_concepts.html" class="badge subject-badge" data-freq="db_frequent_concepts.html" data-official="db_official_scopes.html" style="text-decoration: none;">데이터베이스</a>

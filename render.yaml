@@ -10,3 +10,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
+    disk:
+      name: jolly-carson-db
+      mountPath: /data
+      sizeGB: 1
+
