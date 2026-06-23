@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>데이터베이스 12개년 빈출 개념 정밀 뷰어</title>
+    <title>__SUBJECT_NAME__ __TITLE_SUFFIX__</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard_common.css">
     <link rel="stylesheet" href="css/game.css">
-    <script src="exam_db/db_db.js?v=20260613"></script>
+    <script src="exam_db/__SUBJECT_CODE_LOWER___db.js?v=20260613"></script>
     <script src="js/dashboard_common.js?v=20260613"></script>
     <!-- 외부 데이터 스크립트 동적 로드 -->
-    <script src="js/data/db_frequent.js?v=20260618"></script>
+    <script src="js/data/__SUBJECT_CODE_LOWER_____DASHBOARD_TYPE__.js?v=20260618"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>데이터베이스 기출 정밀 분석 대시보드</h1>
-            <p class="subtitle">12개년 기출 전수 조사 기반 빈출 세부 토픽 분석 엔진</p>
+            <h1>__HEADER_TITLE__</h1>
+            <p class="subtitle">__HEADER_SUBTITLE__</p>
             
             <div class="navigation-container">
                 <div class="mode-switch-wrapper">
@@ -44,12 +44,12 @@
                 <span class="badge">기출 범위: 2015년 ~ 2026년</span>
                 <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
                 <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
-                    검출된 빈출 세부 토픽: <span id="topic-count-badge">0</span>개
+                    __TOPIC_BADGE_PREFIX__: <span id="topic-count-badge">0</span>개
                 </span>
             </div>
         </header>
 
-        
+        __FILTER_SECTION_HTML__
 
         <div class="accordion-list" id="accordionContainer">
             <!-- Dynamic Accordion Items Rendered by JS -->
@@ -72,9 +72,9 @@
 
     <script>
         // 개별 과목 메타 선언부
-        window.DASHBOARD_TYPE = "frequent";
-        window.SUBJECT_CODE = "DB";
-        window.SUBJECT_NAME = "데이터베이스";
+        window.DASHBOARD_TYPE = "__DASHBOARD_TYPE__";
+        window.SUBJECT_CODE = "__SUBJECT_CODE__";
+        window.SUBJECT_NAME = "__SUBJECT_NAME__";
     </script>
 </body>
 </html>

@@ -116,12 +116,26 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
     except Exception as e:
         print(f"[{subject_code} 데이터 JS] 아티팩트 저장 건너뜀 (배포 환경 혹은 권한 없음): {e}")
 
-    title_suffix = "공식 범위별 기출 뷰어" if dashboard_type == "official" else "12개년 빈출 개념 정밀 뷰어"
-    header_title = f"{subject_name} 공식 범위별 기출분석" if dashboard_type == "official" else f"{subject_name} 기출 정밀 분석 대시보드"
-    header_subtitle = "공식 시험 범위 표준 가이드를 기준으로 매핑된 세부 중단원 정밀 대시보드" if dashboard_type == "official" else "12개년 기출 전수 조사 기반 빈출 세부 토픽 분석 엔진"
-    topic_badge_prefix = "매핑된 공식 중단원" if dashboard_type == "official" else "검출된 빈출 세부 토픽"
+    # 2. 정적 HTML 뼈대 템플릿 로드 시도
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    template_path = os.path.join(base_dir, "reports", "dashboard_template.html")
+    
+    html_template = ""
+    if os.path.exists(template_path):
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                html_template = f.read()
+        except Exception as e:
+            print(f"[경고] 템플릿 파일 로드 중 오류 발생: {e}")
 
-    html_template = f"""<!DOCTYPE html>
+    # 3. 템플릿을 사용할 수 없는 경우 내장 뼈대 문자열로 폴백 (배포 및 안정성 확보)
+    if not html_template:
+        title_suffix = "공식 범위별 기출 뷰어" if dashboard_type == "official" else "12개년 빈출 개념 정밀 뷰어"
+        header_title = f"{subject_name} 공식 범위별 기출분석" if dashboard_type == "official" else f"{subject_name} 기출 정밀 분석 대시보드"
+        header_subtitle = "공식 시험 범위 표준 가이드를 기준으로 매핑된 세부 중단원 정밀 대시보드" if dashboard_type == "official" else "12개년 기출 전수 조사 기반 빈출 세부 토픽 분석 엔진"
+        topic_badge_prefix = "매핑된 공식 중단원" if dashboard_type == "official" else "검출된 빈출 세부 토픽"
+        
+        html_template = f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -201,6 +215,20 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
     </script>
 </body>
 </html>"""
-    return html_template
+        return html_template
+
+    # 4. 플레이스홀더 치환을 통해 최종 HTML 완성
+    final_html = (html_template
+        .replace("__SUBJECT_NAME__", subject_name)
+        .replace("__SUBJECT_CODE__", subject_code)
+        .replace("__SUBJECT_CODE_LOWER__", subject_code.lower())
+        .replace("__DASHBOARD_TYPE__", dashboard_type)
+        .replace("__TITLE_SUFFIX__", "공식 범위별 기출 뷰어" if dashboard_type == "official" else "12개년 빈출 개념 정밀 뷰어")
+        .replace("__HEADER_TITLE__", f"{subject_name} 공식 범위별 기출분석" if dashboard_type == "official" else f"{subject_name} 기출 정밀 분석 대시보드")
+        .replace("__HEADER_SUBTITLE__", "공식 시험 범위 표준 가이드를 기준으로 매핑된 세부 중단원 정밀 대시보드" if dashboard_type == "official" else "12개년 기출 전수 조사 기반 빈출 세부 토픽 분석 엔진")
+        .replace("__TOPIC_BADGE_PREFIX__", "매핑된 공식 중단원" if dashboard_type == "official" else "검출된 빈출 세부 토픽")
+        .replace("__FILTER_SECTION_HTML__", filter_section_html)
+    )
+    return final_html
 
 

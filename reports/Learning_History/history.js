@@ -9,7 +9,7 @@ const HistoryState = {
     allLogs: [],         // 전체 과목의 로그 목록 병합 데이터
     dailyHistory: [],    // 일별 그룹화 학습 데이터
     currentPage: 1,      // 현재 페이징 인덱스
-    pageSize: 10,        // 페이징 당 행 개수
+    pageSize: 30,        // 페이징 당 행 개수
     charts: {}           // 차트 객체 버퍼 (인스턴스 소멸용)
 };
 
@@ -102,14 +102,14 @@ function calculateSummaryStats() {
     logs.forEach(log => {
         totalSolved += (log.total_questions || 0);
         totalCorrect += (log.correct_count || 0);
-        
+
         // 로컬 YYYY-MM-DD 문자열 추출
         const localDateStr = formatDateKey(log.parsedDate);
         uniqueDays.add(localDateStr);
     });
 
     const avgAccuracy = totalSolved > 0 ? Math.round((totalCorrect / totalSolved) * 100) : 0;
-    
+
     // 학습 시간 계산: 문제당 평균 1.5분 소요 가정
     const totalMinutes = Math.round(totalSolved * 1.5);
     const hours = Math.floor(totalMinutes / 60);
@@ -125,21 +125,21 @@ function calculateSummaryStats() {
     document.getElementById('stat-avg-accuracy').textContent = `${avgAccuracy}%`;
     document.getElementById('stat-study-time').textContent = timeStr;
     document.getElementById('stat-active-days').textContent = `${activeDaysCount}일`;
-    
+
     // 서브 텍스트 보충
     document.getElementById('stat-total-solved-sub').textContent = `정답 ${totalCorrect}개 / 오답 ${totalSolved - totalCorrect}개`;
     document.getElementById('stat-avg-accuracy-sub').textContent = `공부한 요일 기준 일평균 ${dailyAvg}문항`;
     document.getElementById('stat-study-time-sub').textContent = `문제당 평균 1.5분 풀이 환산`;
-    
+
     // 스트릭(연속성) 지수 계산
     const sortedDays = Array.from(uniqueDays).sort((a, b) => new Date(b) - new Date(a));
     let streak = 0;
     if (sortedDays.length > 0) {
         let current = new Date();
-        current.setHours(0,0,0,0);
+        current.setHours(0, 0, 0, 0);
         const lastStudy = new Date(sortedDays[0]);
-        lastStudy.setHours(0,0,0,0);
-        
+        lastStudy.setHours(0, 0, 0, 0);
+
         // 마지막 학습일이 오늘 혹은 어제인 경우 연속 학습 카운팅 시작
         const diffDays = Math.round((current - lastStudy) / (1000 * 60 * 60 * 24));
         if (diffDays <= 1) {
@@ -147,7 +147,7 @@ function calculateSummaryStats() {
             let prevDate = lastStudy;
             for (let i = 1; i < sortedDays.length; i++) {
                 const nextStudy = new Date(sortedDays[i]);
-                nextStudy.setHours(0,0,0,0);
+                nextStudy.setHours(0, 0, 0, 0);
                 const gap = Math.round((prevDate - nextStudy) / (1000 * 60 * 60 * 24));
                 if (gap === 1) {
                     streak++;
@@ -340,7 +340,7 @@ function renderHistoryTable() {
 
         // 정답률 계산
         const acc = row.totalSolved > 0 ? Math.round((row.totalCorrect / row.totalSolved) * 100) : 0;
-        
+
         // 추정 학습 시간 계산 (문제당 1.5분 환산)
         const totalMinutes = Math.round(row.totalSolved * 1.5);
         const hours = Math.floor(totalMinutes / 60);
@@ -466,7 +466,7 @@ function renderEmptyState() {
             대시보드로 돌아가기
         </a>
     `;
-    
+
     document.querySelector('.container').appendChild(emptyContainer);
     if (window.lucide) {
         lucide.createIcons();
