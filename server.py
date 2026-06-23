@@ -33,29 +33,36 @@ else:
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
-def get_safe_db_url(url_str):
-    """연결 문자열(URL) 내 비밀번호 특수문자(^ 등)를 자동으로 %5E 안전하게 인코딩합니다."""
-    try:
-        parsed = urllib.parse.urlparse(url_str)
-        if parsed.password:
-            encoded_password = urllib.parse.quote_plus(parsed.password)
-            netloc = parsed.netloc.replace(f":{parsed.password}@", f":{encoded_password}@")
-            return urllib.parse.urlunparse(parsed._replace(netloc=netloc))
-    except Exception:
-        pass
-    return url_str
-
-DATABASE_URL = get_safe_db_url(DATABASE_URL_RAW if DATABASE_URL_RAW else SUPABASE_URL_RAW)
-
 def get_db_connection():
     """
     [설계 의도]
     DB_TYPE 설정에 따라 SQLite 커넥션 또는 PostgreSQL 커넥션을 유연하게 반환합니다.
-    - PostgreSQL의 경우 dict 타입 매핑을 위해 RealDictCursor를 제공합니다.
+    - PostgreSQL의 경우 URL을 개별 파라미터로 디코딩하여 특수문자나 인코딩으로 인한 오류를 방지하고, 
+      dict 타입 매핑을 위해 RealDictCursor를 제공합니다.
     - SQLite의 경우 Row 객체를 바인딩하여 dict-like 조회를 지원합니다.
     """
     if DB_TYPE == "POSTGRES":
-        return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        raw_url = DATABASE_URL_RAW if DATABASE_URL_RAW else SUPABASE_URL_RAW
+        parsed = urllib.parse.urlparse(raw_url)
+        username = urllib.parse.unquote(parsed.username) if parsed.username else None
+        password = urllib.parse.unquote(parsed.password) if parsed.password else None
+        dbname = urllib.parse.unquote(parsed.path.lstrip("/")) if parsed.path else None
+        
+        conn_kwargs = {
+            "dbname": dbname,
+            "user": username,
+            "password": password,
+            "host": parsed.hostname,
+            "port": parsed.port or 5432
+        }
+        
+        if parsed.query:
+            query_params = urllib.parse.parse_qs(parsed.query)
+            for k, v in query_params.items():
+                if v:
+                    conn_kwargs[k] = v[0]
+                    
+        return psycopg2.connect(**conn_kwargs, cursor_factory=psycopg2.extras.RealDictCursor)
     else:
         conn = sqlite3.connect(SQLITE_DB_PATH)
         conn.row_factory = sqlite3.Row
@@ -518,8 +525,14 @@ def main():
     
     print(f"\n[데이터베이스 설정] 모드: {DB_TYPE}")
     if DB_TYPE == "POSTGRES":
-        masked_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else DATABASE_URL
-        print(f"  -> PostgreSQL 연결 중 (호스트: {masked_url})")
+        raw_url = DATABASE_URL_RAW if DATABASE_URL_RAW else SUPABASE_URL_RAW
+        try:
+            parsed = urllib.parse.urlparse(raw_url)
+            dbname = urllib.parse.unquote(parsed.path.lstrip("/")) if parsed.path else ""
+            masked_host = f"{parsed.hostname}:{parsed.port or 5432}/{dbname}"
+        except Exception:
+            masked_host = raw_url.split("@")[-1] if "@" in raw_url else raw_url
+        print(f"  -> PostgreSQL 연결 중 (호스트: {masked_host})")
     else:
         print(f"  -> 로컬 SQLite 파일 연결 중 (경로: {SQLITE_DB_PATH})")
         
