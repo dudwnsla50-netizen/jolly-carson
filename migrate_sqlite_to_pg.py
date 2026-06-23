@@ -119,13 +119,31 @@ def migrate_data():
     sl_conn = sqlite3.connect(SQLITE_DB_PATH)
     sl_cursor = sl_conn.cursor()
     
-    # 비밀번호 특수문자 자동 URL 인코딩 처리 적용
-    target_pg_url = safe_url_encode_password(POSTGRES_URL)
-    masked_url = target_pg_url.split("@")[-1] if "@" in target_pg_url else target_pg_url
-    print(f"[PostgreSQL] 원격 DB 연결 시도 중... (호스트: {masked_url})")
-    
+    # 비밀번호 특수문자 대응을 위해 URL을 디코딩하여 개별 매개변수로 명시적 전달
     try:
-        pg_conn = psycopg2.connect(target_pg_url)
+        parsed = urllib.parse.urlparse(POSTGRES_URL)
+        username = urllib.parse.unquote(parsed.username) if parsed.username else None
+        password = urllib.parse.unquote(parsed.password) if parsed.password else None
+        dbname = urllib.parse.unquote(parsed.path.lstrip("/")) if parsed.path else None
+        
+        conn_kwargs = {
+            "dbname": dbname,
+            "user": username,
+            "password": password,
+            "host": parsed.hostname,
+            "port": parsed.port or 5432
+        }
+        
+        if parsed.query:
+            query_params = urllib.parse.parse_qs(parsed.query)
+            for k, v in query_params.items():
+                if v:
+                    conn_kwargs[k] = v[0]
+                    
+        masked_host = f"{parsed.hostname}:{parsed.port or 5432}/{dbname}"
+        print(f"[PostgreSQL] 원격 DB 연결 시도 중... (호스트: {masked_host})")
+        
+        pg_conn = psycopg2.connect(**conn_kwargs)
         print("[PostgreSQL] 원격 데이터베이스 연결 성공!")
     except Exception as e:
         print(f"\n[오류] 데이터베이스 연결에 실패했습니다: {e}")
