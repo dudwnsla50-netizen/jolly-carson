@@ -61,6 +61,21 @@ def get_db_connection():
         conn.row_factory = sqlite3.Row
         return conn
 
+from contextlib import contextmanager
+
+@contextmanager
+def get_db_cursor(conn):
+    """
+    [설계 의도]
+    sqlite3.Cursor는 일부 Python 버전에서 context manager(with)를 미지원할 수 있습니다.
+    psycopg2 커서와 sqlite3 커서 모두 안전하게 with 문으로 사용할 수 있도록 래핑 컨텍스트를 제공합니다.
+    """
+    cursor = conn.cursor()
+    try:
+        yield cursor
+    finally:
+        cursor.close()
+
 def execute_query(cursor, query, params=None):
     """
     [설계 의도]
@@ -161,7 +176,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 
         try:
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with get_db_cursor(conn) as cursor:
                     # SQLite와 PostgreSQL 모두 CAST 및 || 문자열 결합 문법을 안전하게 지원하므로 공통 쿼리를 적용합니다.
                     sql = """
                     SELECT dm.concept, dm.category, dm.count, dm.core_concept, dm.features, dm.scope, 
@@ -195,7 +210,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             
         try:
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with get_db_cursor(conn) as cursor:
                     sql = """
                         SELECT question, options, answer, explanation, subject 
                         FROM exam_questions 
@@ -244,7 +259,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         subject = subject.upper()
         try:
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with get_db_cursor(conn) as cursor:
                     sql = """
                         SELECT id, subject, question, options, answer, explanation 
                         FROM exam_questions 
@@ -297,7 +312,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             answer_json = json.dumps(answer) if answer and len(answer) > 0 else None
             
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with get_db_cursor(conn) as cursor:
                     sql = """
                         UPDATE exam_questions 
                         SET question = %s, options = %s, answer = %s, explanation = %s
@@ -328,7 +343,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         try:
             details_json = json.dumps(details, ensure_ascii=False) if details else None
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with get_db_cursor(conn) as cursor:
                     sql = """
                         INSERT INTO quiz_history (subject, concept, total_questions, correct_count, wrong_count, details)
                         VALUES (%s, %s, %s, %s, %s, %s)
@@ -348,7 +363,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         subject = subject.upper()
         try:
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with get_db_cursor(conn) as cursor:
                     sql_concept = """
                         SELECT concept, 
                                COUNT(*) as attempt_count,
@@ -419,7 +434,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
     def get_total_exp(self, query):
         try:
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with get_db_cursor(conn) as cursor:
                     sql = """
                         SELECT COALESCE(SUM(correct_count), 0) as total_exp
                         FROM quiz_history
@@ -465,7 +480,7 @@ def init_quiz_history_table():
     """[설계 의도] SQLite 또는 PostgreSQL 등 기종에 맞는 퀴즈 히스토리 테이블을 생성/검증합니다."""
     try:
         with get_db_connection() as conn:
-            with conn.cursor() as cursor:
+            with get_db_cursor(conn) as cursor:
                 if DB_TYPE == "POSTGRES":
                     cursor.execute("""
                     CREATE TABLE IF NOT EXISTS quiz_history (
