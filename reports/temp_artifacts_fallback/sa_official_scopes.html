@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시스템 아키텍처 공식 범위별 기출 뷰어</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard_common.css">
+    <link rel="stylesheet" href="css/game.css">
+    <script src="exam_db/sa_db.js?v=20260613"></script>
+    <script src="js/dashboard_common.js?v=20260613"></script>
+    <!-- 외부 데이터 스크립트 동적 로드 -->
+    <script src="js/data/sa_official.js?v=20260618"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>시스템 아키텍처 공식 범위별 기출분석</h1>
+            <p class="subtitle">공식 시험 범위 표준 가이드를 기준으로 매핑된 세부 중단원 정밀 대시보드</p>
+            
+            <div class="navigation-container">
+                <div class="mode-switch-wrapper">
+                    <span class="mode-label" id="label-freq">🔥 빈출 개념순</span>
+                    <label class="switch">
+                        <input type="checkbox" id="dashboard-mode-toggle" onchange="toggleDashboardMode(this)">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="mode-label" id="label-official">📋 공식 범위순</span>
+                </div>
+                
+                <div class="meta-badges" id="dynamic-nav-badges">
+                    <a href="#" class="badge home-badge" onclick="goToHome(event)" style="text-decoration: none; background: var(--accent-gradient); color: #ffffff; border: none; font-weight: 700;">🏠 퀴즈 홈으로</a>
+                    <a href="Learning_History/index.html" class="badge history-badge" style="text-decoration: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; font-weight: 700;">📈 학습 분석</a>
+                    <a href="se_frequent_concepts.html" class="badge subject-badge" data-freq="se_frequent_concepts.html" data-official="se_official_scopes.html" style="text-decoration: none;">소프트웨어공학</a>
+                    <a href="pm_frequent_concepts.html" class="badge subject-badge" data-freq="pm_frequent_concepts.html" data-official="pm_official_scopes.html" style="text-decoration: none;">프로젝트 관리</a>
+                    <a href="db_frequent_concepts.html" class="badge subject-badge" data-freq="db_frequent_concepts.html" data-official="db_official_scopes.html" style="text-decoration: none;">데이터베이스</a>
+                    <a href="sa_frequent_concepts.html" class="badge subject-badge" data-freq="sa_frequent_concepts.html" data-official="sa_official_scopes.html" style="text-decoration: none;">시스템 아키텍처</a>
+                    <a href="sc_frequent_concepts.html" class="badge subject-badge" data-freq="sc_frequent_concepts.html" data-official="sc_official_scopes.html" style="text-decoration: none;">보안</a>
+                </div>
+            </div>
+            
+            <div class="meta-badges">
+                <span class="badge">기출 범위: 2015년 ~ 2026년</span>
+                <span class="badge accent">총 분석 데이터: <span id="total-question-badge">0</span> 문항</span>
+                <span class="badge" onclick="openTopicListModal()" style="cursor: pointer; transition: all 0.2s;" title="클릭 시 중단원 목록 팝업 열기">
+                    매핑된 공식 중단원: <span id="topic-count-badge">0</span>개
+                </span>
+            </div>
+        </header>
+
+        <div class="filter-section"><button class="filter-btn active" onclick="filterCategory('all')">전체 대단원</button><button class="filter-btn" onclick="filterCategory('1. 공통기술')">1. 공통기술</button><button class="filter-btn" onclick="filterCategory('2. 아키텍처 설계 및 구축')">2. 아키텍처 설계 및 구축</button><button class="filter-btn" onclick="filterCategory('3. 데이터 통신 및 네트워크 설계')">3. 데이터 통신 및 네트워크 설계</button><button class="filter-btn" onclick="filterCategory('4. 기타 신기술')">4. 기타 신기술</button></div>
+
+        <div class="accordion-list" id="accordionContainer">
+            <!-- Dynamic Accordion Items Rendered by JS -->
+        </div>
+    </div>
+
+    <!-- 세부 토픽 목록 팝업 모달 -->
+    <div id="topic-modal" class="modal-overlay" onclick="closeTopicModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-card-header">
+                <h2 class="modal-card-title">🔍 검출된 공식 중단원 목록</h2>
+                <button class="modal-close-x" onclick="closeTopicModal()">✕</button>
+            </div>
+            <div class="modal-card-body">
+                <ul id="modal-topic-list" class="modal-topic-list">
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 개별 과목 메타 선언부
+        window.DASHBOARD_TYPE = "official";
+        window.SUBJECT_CODE = "SA";
+        window.SUBJECT_NAME = "시스템 아키텍처";
+    </script>
+</body>
+</html>
