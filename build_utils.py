@@ -154,7 +154,7 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
     <div class="container">
         <header>
             <h1>{header_title}</h1>
-            <p class="subtitle">{header_subtitle}</p>
+            <p class="subtitle" id="db-mode-subtitle">{header_subtitle}</p>
             
             <div class="navigation-container">
                 <div class="mode-switch-wrapper">

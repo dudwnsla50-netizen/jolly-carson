@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 서버에 설정된 DB 타입(SQLite / Postgres) 정보를 가져와 브라우저 타이틀에 주입합니다.
+ * 서버에 설정된 DB 타입(SQLite / Postgres) 정보를 가져와 브라우저 타이틀 및 헤더 부제목에 주입합니다.
  */
 function updateTabTitleWithDbMode() {
     fetch('/api/db-mode')
@@ -25,6 +25,12 @@ function updateTabTitleWithDbMode() {
                 // 이미 추가되어 있는 경우 중복 추가 방지
                 if (!document.title.includes(`[${dbTypeStr}]`)) {
                     document.title = `${document.title} [${dbTypeStr}]`;
+                }
+                
+                // __HEADER_SUBTITLE__ 위치에 DB 모드 동적 주입
+                const subtitleEl = document.getElementById('db-mode-subtitle');
+                if (subtitleEl) {
+                    subtitleEl.textContent = `데이터베이스 연결 모드: ${dbTypeStr}`;
                 }
             }
         })
