@@ -11,6 +11,7 @@ import sys
 import json
 import sqlite3
 import urllib.parse
+import traceback
 import psycopg2
 import psycopg2.extras
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -63,7 +64,9 @@ def get_db_connection():
                 if v:
                     conn_kwargs[k] = v[0]
                     
-        return psycopg2.connect(**conn_kwargs, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn = psycopg2.connect(**conn_kwargs, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn.set_client_encoding('UTF8')
+        return conn
     else:
         conn = sqlite3.connect(SQLITE_DB_PATH)
         conn.row_factory = sqlite3.Row
@@ -208,6 +211,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         
                     self.send_json_response(data_list)
         except Exception as e:
+            traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def get_question(self, query):
@@ -256,6 +260,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     else:
                         self.send_error_response(404, f"Question {q_id} Not Found")
         except Exception as e:
+            traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def get_questions(self, query):
@@ -302,6 +307,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         
                     self.send_json_response(data_dict)
         except Exception as e:
+            traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def update_question(self, data):
@@ -334,6 +340,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     else:
                         self.send_error_response(404, f"Question {q_id} Not Found in database")
         except Exception as e:
+            traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def submit_quiz(self, data):
@@ -360,6 +367,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     conn.commit()
                     self.send_json_response({"success": True, "message": "Quiz attempt history saved successfully"})
         except Exception as e:
+            traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def get_quiz_stats(self, query):
@@ -437,6 +445,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         "logs": logs_list
                     })
         except Exception as e:
+            traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def get_total_exp(self, query):
@@ -462,6 +471,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         "exp_to_next": exp_to_next
                     })
         except Exception as e:
+            traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def send_json_response(self, data):
