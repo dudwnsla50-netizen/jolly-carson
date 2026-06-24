@@ -23,7 +23,27 @@ const SUBJECT_NAMES = {
 
 document.addEventListener('DOMContentLoaded', () => {
     loadAllHistoryData();
+    updateTabTitleWithDbMode();
 });
+
+/**
+  * 서버의 DB 타입 정보를 탭 타이틀에 주입하는 함수
+  */
+function updateTabTitleWithDbMode() {
+    fetch('/api/db-mode')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+            if (data && data.db_type) {
+                const dbTypeStr = data.db_type.toUpperCase();
+                if (!document.title.includes(`[${dbTypeStr}]`)) {
+                    document.title = `${document.title} [${dbTypeStr}]`;
+                }
+            }
+        })
+        .catch(err => {
+            console.warn("[경고] DB 모드 정보 조회 실패:", err);
+        });
+}
 
 /**
  * 1. 5대 과목의 API 이력을 병합하여 수집합니다.

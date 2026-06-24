@@ -10,7 +10,28 @@
 // 페이지 로드 완료 시 초기화 구동
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboardDataAndInit();
+    updateTabTitleWithDbMode();
 });
+
+/**
+ * 서버에 설정된 DB 타입(SQLite / Postgres) 정보를 가져와 브라우저 타이틀에 주입합니다.
+ */
+function updateTabTitleWithDbMode() {
+    fetch('/api/db-mode')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+            if (data && data.db_type) {
+                const dbTypeStr = data.db_type.toUpperCase();
+                // 이미 추가되어 있는 경우 중복 추가 방지
+                if (!document.title.includes(`[${dbTypeStr}]`)) {
+                    document.title = `${document.title} [${dbTypeStr}]`;
+                }
+            }
+        })
+        .catch(err => {
+            console.warn("[경고] DB 모드 정보 조회 실패:", err);
+        });
+}
 
 /**
  * 배열 요소들의 순서를 무작위로 섞은 새로운 배열을 반환합니다. (Fisher-Yates Shuffle)

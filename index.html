@@ -553,12 +553,24 @@
             }
         };
 
-        // 이미 인증을 통과한 유저는 로그인 페이지를 우회
+        // 이미 인증을 통과한 유저는 로그인 페이지를 우회하고, 타이틀에 DB 모드를 주입합니다.
         (function () {
             const AUTH_KEY = 'dashboard_auth';
             if (sessionStorage.getItem(AUTH_KEY) === 'authenticated') {
                 window.location.href = 'reports/se_official_scopes.html';
             }
+
+            fetch('/api/db-mode')
+                .then(res => res.ok ? res.json() : null)
+                .then(data => {
+                    if (data && data.db_type) {
+                        const dbTypeStr = data.db_type.toUpperCase();
+                        if (!document.title.includes(`[${dbTypeStr}]`)) {
+                            document.title = `${document.title} [${dbTypeStr}]`;
+                        }
+                    }
+                })
+                .catch(err => console.warn("DB 모드 조회 실패:", err));
         })();
     </script>
 </body>

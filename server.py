@@ -171,8 +171,13 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_quiz_stats(query)
         elif path == "/api/quiz/total-exp":
             self.get_total_exp(query)
+        elif path == "/api/db-mode":
+            self.get_db_mode(query)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
+
+    def get_db_mode(self, query):
+        self.send_json_response({"db_type": DB_TYPE})
 
     def get_dashboard(self, query):
         subject = query.get("subject", [None])[0]
