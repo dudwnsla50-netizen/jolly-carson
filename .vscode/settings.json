@@ -1,7 +1,7 @@
 {
-    "python.defaultInterpreterPath": "d:\\100.lyj\\anti_workspace\\jolly-carson\\temp_python\\python.exe",
+    "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
     "python.analysis.extraPaths": [
-        "d:\\100.lyj\\anti_workspace\\jolly-carson\\temp_python\\Lib\\site-packages"
+        ".venv/Lib/site-packages"
     ],
     "python-envs.pythonProjects": [
         {

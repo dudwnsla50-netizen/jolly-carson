@@ -21,15 +21,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # [설계 의도]
 # Render.com 배포 환경에 등록될 Supabase 연결 문자열 기본값 설정
 # (비밀번호 특수문자 처리를 위해 안전한 인코딩 필터링을 거치게 설계)
-SUPABASE_URL_RAW = "postgresql://postgres:yj1024word^^@db.sqrnhkhgctfxnxwbiwxp.supabase.co:5432/postgres"
+SUPABASE_URL_RAW = "postgresql://postgres.sqrnhkhgctfxnxwbiwxp:yj1024word%5E%5E@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
 DATABASE_URL_RAW = os.environ.get("DATABASE_URL")
 
-# DATABASE_URL 환경변수가 세팅되어 있으면 PostgreSQL 모드, 없으면 로컬 SQLite 모드로 동작합니다.
-if DATABASE_URL_RAW:
-    DB_TYPE = "POSTGRES"
-else:
-    # Render.com 환경 변수가 없고 로컬인 상태이면 SQLite를 기본 폴백으로 지정
+# [설계 변경]
+# 로컬에서도 기본적으로 PostgreSQL(Supabase) 데이터베이스에 연결하도록 기본 DB_TYPE을 POSTGRES로 고정합니다.
+# 다만 오프라인 환경 등에서 SQLite를 강제로 사용해야 할 경우를 위해 USE_SQLITE 환경변수를 통한 폴백 옵션을 제공합니다.
+if os.environ.get("USE_SQLITE") == "true":
     DB_TYPE = "SQLITE"
+else:
+    DB_TYPE = "POSTGRES"
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
@@ -493,8 +494,8 @@ def init_quiz_history_table():
                     CREATE TABLE IF NOT EXISTS quiz_history (
                         id SERIAL PRIMARY KEY,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        subject VARCHAR(50) NOT NULL,
-                        concept VARCHAR(255) NOT NULL,
+                        subject TEXT NOT NULL,
+                        concept TEXT NOT NULL,
                         total_questions INTEGER NOT NULL,
                         correct_count INTEGER NOT NULL,
                         wrong_count INTEGER NOT NULL,
@@ -521,9 +522,12 @@ def init_quiz_history_table():
 
 
 def main():
+    global DB_TYPE
     os.chdir(BASE_DIR)
     
-    print(f"\n[데이터베이스 설정] 모드: {DB_TYPE}")
+    # [설계 의도]
+    # 만약 설정된 DB_TYPE이 POSTGRES이지만, Supabase 등 원격 DB 연결이 제한되거나 실패하는 환경인 경우
+    # 퀴즈 제출 및 조회 시 에러가 발생하는 것을 방지하기 위해 로컬 SQLite 모드로 자동 폴백(Fallback)시킵니다.
     if DB_TYPE == "POSTGRES":
         raw_url = DATABASE_URL_RAW if DATABASE_URL_RAW else SUPABASE_URL_RAW
         try:
@@ -532,8 +536,22 @@ def main():
             masked_host = f"{parsed.hostname}:{parsed.port or 5432}/{dbname}"
         except Exception:
             masked_host = raw_url.split("@")[-1] if "@" in raw_url else raw_url
-        print(f"  -> PostgreSQL 연결 중 (호스트: {masked_host})")
-    else:
+        
+        print(f"\n[데이터베이스 설정] 모드: {DB_TYPE}")
+        print(f"  -> PostgreSQL 연결 시도 중 (호스트: {masked_host})")
+        
+        try:
+            # 실시간 가용성 체크를 위한 가벼운 연결 확인
+            conn = get_db_connection()
+            conn.close()
+            print("  -> PostgreSQL 연결 성공!")
+        except Exception as e:
+            print(f"  -> [경고] PostgreSQL 연결 실패: {e}")
+            print("  -> [폴백] 로컬 SQLite 모드로 자동 전환하여 서버를 실행합니다.")
+            DB_TYPE = "SQLITE"
+            
+    if DB_TYPE == "SQLITE":
+        print(f"\n[데이터베이스 설정] 모드: {DB_TYPE}")
         print(f"  -> 로컬 SQLite 파일 연결 중 (경로: {SQLITE_DB_PATH})")
         
     try:

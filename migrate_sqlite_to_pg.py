@@ -21,8 +21,8 @@ SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
 # [설계 의도]
 # Azure Cosmos DB 또는 일반 PostgreSQL의 연결 정보를 환경변수(DATABASE_URL)로 주입받습니다.
-# 환경변수가 설정되지 않은 경우 Azure Cosmos DB 기본값을 폴백으로 제공합니다.
-DEFAULT_PG_URL = "postgresql://citus:yj1024word^^@c-jolly-carson-db.jdqkebiwey3ndz.postgres.cosmos.azure.com:5432/postgres?sslmode=require"
+# 환경변수가 설정되지 않은 경우 Supabase PostgreSQL 주소를 기본값(폴백)으로 제공하여 server.py와 일치시킵니다.
+DEFAULT_PG_URL = "postgresql://postgres.sqrnhkhgctfxnxwbiwxp:yj1024word%5E%5E@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
 POSTGRES_URL = os.environ.get("DATABASE_URL", DEFAULT_PG_URL)
 
 def safe_url_encode_password(url_str):
@@ -203,6 +203,12 @@ def migrate_data():
                         INSERT INTO quiz_history (id, created_at, subject, concept, total_questions, correct_count, wrong_count, details)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """, row)
+                
+                # [설계 의도]
+                # PostgreSQL의 SERIAL 기본키 id에 수동으로 명시 값을 대입하여 이관하였으므로,
+                # 내부 시퀀스 카운터를 동기화해주어야 다음 신규 퀴즈 제출(INSERT) 시 중복 키 에러(UniqueViolation)가 발생하지 않습니다.
+                pg_cursor.execute("SELECT setval(pg_get_serial_sequence('quiz_history', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM quiz_history;")
+                print("[이관 진행] quiz_history 테이블의 SERIAL 기본키 시퀀스 동기화 완료.")
                     
         pg_conn.commit()
         print("\n[완료] SQLite의 모든 데이터가 PostgreSQL DB로 정상적으로 마이그레이션되었습니다!")
