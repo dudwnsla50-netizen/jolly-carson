@@ -2246,7 +2246,8 @@ function startGlobalRolling(event) {
     window.rollingSession = {
         isActive: true,
         questions: shuffledQs,
-        currentIndex: 0
+        currentIndex: 0,
+        isGlobal: true // 전체 문제 롤링 상태가 유지되도록 플래그를 추가합니다.
     };
 
     const firstQ = shuffledQs[0];
