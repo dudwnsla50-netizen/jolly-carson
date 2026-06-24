@@ -159,36 +159,7 @@ function loadQuizStatsAndMerge() {
                 }
             });
 
-            // LocalStorage 백업 로그 조회 및 하이브리드 병합 (Render DB 휘발 방어)
-            try {
-                const localHistoryStr = localStorage.getItem('jolly_carson_quiz_history');
-                if (localHistoryStr) {
-                    const localLogs = JSON.parse(localHistoryStr) || [];
-                    localLogs.forEach(localLog => {
-                        if (localLog.subject === subject) {
-                            const localQId = localLog.details ? localLog.details.q_id : null;
-                            const isDuplicate = mergedLogs.some(serverLog => {
-                                const serverQId = serverLog.details ? serverLog.details.q_id : null;
-                                if (localQId && serverQId && localQId === serverQId) {
-                                    // [버그 수정] SQLite 시간(서버 기준 UTC)과 로컬스토리지 시간(KST)의 시차(9시간) 차이로 인해 
-                                    // 직접 new Date() 파싱 비교 시 중복 제거 필터(1분)가 실패하던 문제를 getUTCTime으로 정밀 대조하여 해결
-                                    const diff = Math.abs(getUTCTime(localLog.created_at) - getUTCTime(serverLog.created_at));
-                                    return diff < 60000; // 1분 이내 동일 문항은 중복 간주
-                                }
-                                return false;
-                            });
-
-                            if (!isDuplicate) {
-                                mergedLogs.push(localLog);
-                            }
-                        }
-                    });
-                }
-            } catch (e) {
-                console.warn("[로컬스토리지 병합 실패]", e);
-            }
-
-            // 시간 정렬을 위해 정밀화된 UTC 타임스탬프 순으로 정렬
+            // 시간 정렬을 위해 정밀화된 UTC 타임스탬프 순으로 정렬 (오직 서버 데이터베이스(DB) 기준 일관성 유지)
             mergedLogs.sort((a, b) => getUTCTime(b.created_at) - getUTCTime(a.created_at));
             window.quizFullHistoryList = mergedLogs;
 
@@ -1636,40 +1607,21 @@ function initGamification() {
     gamInjectExpCard();
     gamInjectLevelUpOverlay();
 
-    // API 조회하여 EXP 데이터 업데이트 (로컬스토리지 비교식 이중 유실 방어막 적용)
+    // API 조회하여 EXP 데이터 업데이트 (오직 서버 데이터베이스(DB) 기준 일관성 유지)
     fetch('/api/quiz/total-exp')
         .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0 })
         .then(data => {
-            const apiTotalExp = data.total_exp || 0;
-            let localTotalExp = 0;
-            try {
-                const localHistoryStr = localStorage.getItem('jolly_carson_quiz_history');
-                if (localHistoryStr) {
-                    const localLogs = JSON.parse(localHistoryStr) || [];
-                    localTotalExp = localLogs.reduce((sum, log) => sum + (log.correct_count || 0), 0);
-                }
-            } catch (e) {}
-
-            // 서버 측 누적 경험치와 로컬스토리지 누적 경험치 중 유실 방지를 위해 더 큰 값을 최종 적용
-            const finalTotalExp = Math.max(apiTotalExp, localTotalExp);
+            const finalTotalExp = data.total_exp || 0;
             window.gamState.totalExp = finalTotalExp;
             window.gamState.level = Math.floor(finalTotalExp / 10) + 1;
             window.gamState.expInLevel = finalTotalExp % 10;
             gamUpdateExpUI();
         })
         .catch(err => {
-            console.warn("[경고] 게이미피케이션 데이터 로드 실패. 로컬 폴백을 시도합니다.", err);
-            let localTotalExp = 0;
-            try {
-                const localHistoryStr = localStorage.getItem('jolly_carson_quiz_history');
-                if (localHistoryStr) {
-                    const localLogs = JSON.parse(localHistoryStr) || [];
-                    localTotalExp = localLogs.reduce((sum, log) => sum + (log.correct_count || 0), 0);
-                }
-            } catch (e) {}
-            window.gamState.totalExp = localTotalExp;
-            window.gamState.level = Math.floor(localTotalExp / 10) + 1;
-            window.gamState.expInLevel = localTotalExp % 10;
+            console.warn("[경고] 게이미피케이션 데이터 로드 실패. 기본값으로 구동합니다.", err);
+            window.gamState.totalExp = 0;
+            window.gamState.level = 1;
+            window.gamState.expInLevel = 0;
             gamUpdateExpUI();
         });
 }
