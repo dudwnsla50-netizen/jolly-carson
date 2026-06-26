@@ -546,20 +546,15 @@ function renderSubjectExpCards(expData) {
     container.innerHTML = '';
     const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
     
-    // 각 과목 대시보드와 동일한 캐릭터 펫 할당
-    const POKEMON_PETS = {
-        'DB': { name: '메타그로스', src: '/reports/images_game/metagross.png' }, // 데이터베이스 과목 전용 캐릭터 매핑
-        'SE': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' },
-        'PM': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png' }, // 사업관리 과목 전용 캐릭터 매핑
-        'SA': { name: '로토무', src: '/reports/images_game/rotom_architect.png' }, // 시스템구조 과목 전용 캐릭터 매핑
-        'SC': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png' } // 보안 과목 전용 캐릭터 매핑
-    };
-
     const subExps = expData.subjects_exp || {};
+    const config = window.APP_CONFIG || {};
+    const defaultPets = config.SUBJECT_DEFAULT_PETS || {};
+    const petProfiles = config.PET_PROFILES || {};
 
     subjects.forEach(sub => {
         const subData = subExps[sub] || { total_exp: 0, level: 1, exp_in_level: 0, exp_to_next: 10 };
-        const pet = POKEMON_PETS[sub] || { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' };
+        const petKey = defaultPets[sub] || 'pikachu';
+        const pet = petProfiles[petKey] || { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' };
         
         const card = document.createElement('div');
         card.className = 'subject-exp-card';

@@ -40,6 +40,39 @@ function updateTabTitleWithDbMode() {
 }
 
 /**
+ * 과목 코드에 대응하는 기본 펫을 전역 설정에서 조회하여 반환합니다.
+ */
+function gamGetDefaultPetForSubject(subjectCode) {
+    if (window.APP_CONFIG && window.APP_CONFIG.SUBJECT_DEFAULT_PETS) {
+        return window.APP_CONFIG.SUBJECT_DEFAULT_PETS[subjectCode] || 'pikachu';
+    }
+    // 폴백
+    if (subjectCode === 'SC') return 'growlithe';
+    if (subjectCode === 'DB') return 'metagross';
+    if (subjectCode === 'PM') return 'sirfetchd';
+    if (subjectCode === 'SA') return 'rotom';
+    return 'pikachu';
+}
+
+/**
+ * 펫 키에 해당하는 프로필 데이터를 조회하여 반환합니다.
+ */
+function gamGetPetProfile(petKey) {
+    if (window.APP_CONFIG && window.APP_CONFIG.PET_PROFILES) {
+        return window.APP_CONFIG.PET_PROFILES[petKey] || window.APP_CONFIG.PET_PROFILES['pikachu'];
+    }
+    // 폴백
+    const fallbackProfiles = {
+        'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
+        'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png', defaultMsg: '침입자 및 오답 철저 차단! 든든하게 지켜요! 🚨' },
+        'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' },
+        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png', defaultMsg: '기사도 정신으로 법령 준수! 공정한 계약과 감리를 집행해요! ⚖️' },
+        'metagross': { name: '메타그로스', src: '/reports/images_game/metagross.png', defaultMsg: '데이터베이스 대기 중... 메타그로스의 인덱스 연산을 시작하세요! 🧠' }
+    };
+    return fallbackProfiles[petKey] || fallbackProfiles['pikachu'];
+}
+
+/**
  * 배열 요소들의 순서를 무작위로 섞은 새로운 배열을 반환합니다. (Fisher-Yates Shuffle)
  */
 function shuffleArray(array) {
@@ -1645,39 +1678,15 @@ function gamInjectExpCard() {
     // 이미 존재하면 스킵
     if (document.getElementById('gam-exp-card')) return;
 
-    // 저장된 펫 정보 로드
-    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd'];
-
-    // [설계 의도]
-    // 과목 대시보드의 ID(window.SUBJECT_CODE)에 매칭되는 기본 펫을 지정합니다.
-    // 사업관리(PM) 과목은 하도급법, 국가계약법 등 법령 준수와 공정 계약이 중요하므로 기사도 정신의 창파나이트(sirfetchd)로 매핑합니다.
-    let defaultPet = 'pikachu';
-    if (window.SUBJECT_CODE === 'SC') {
-        defaultPet = 'growlithe';
-    } else if (window.SUBJECT_CODE === 'DB') {
-        defaultPet = 'metagross';
-    } else if (window.SUBJECT_CODE === 'PM') {
-        defaultPet = 'sirfetchd';
-    } else if (window.SUBJECT_CODE === 'SA') {
-        defaultPet = 'rotom';
-    }
+    // 전역 설정에서 펫 목록 및 기본값 로드
+    const petKeys = (window.APP_CONFIG && window.APP_CONFIG.PET_KEYS) || ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd', 'metagross'];
+    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
 
     const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
     let currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     if (!petKeys.includes(currentPetKey)) currentPetKey = defaultPet;
 
-    const POKEMON_PETS = {
-        'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
-        'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png', defaultMsg: '뜨거운 열정으로 문제를 정복해요! 🔥' },
-        'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
-        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' },
-        'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png', defaultMsg: '침입자 및 오답 철저 차단! 든든하게 지켜요! 🚨' },
-        'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' },
-        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png', defaultMsg: '기사도 정신으로 법령 준수! 공정한 계약과 감리를 집행해요! ⚖️' },
-        'metagross': { name: '메타그로스', src: '/reports/images_game/metagross.png', defaultMsg: '데이터베이스 대기 중... 메타그로스의 인덱스 연산을 시작하세요! 🧠' }
-    };
-
-    const activePet = POKEMON_PETS[currentPetKey];
+    const activePet = gamGetPetProfile(currentPetKey);
 
     const card = document.createElement('div');
     card.id = 'gam-exp-card';
@@ -1990,31 +1999,16 @@ function gamOnCorrectAnswer(idx, qId) {
  * GAM-5-B. 펫 캐릭터를 클릭했을 때 다음 캐릭터로 교체합니다.
  */
 window.gamCyclePet = function() {
-    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd', 'metagross'];
+    const petKeys = (window.APP_CONFIG && window.APP_CONFIG.PET_KEYS) || ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd', 'metagross'];
     const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
-    let defaultPet = 'pikachu';
-    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
-    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'metagross';
-    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
-    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
 
     let currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     let nextIdx = (petKeys.indexOf(currentPetKey) + 1) % petKeys.length;
     let nextPetKey = petKeys[nextIdx];
     localStorage.setItem(petStorageKey, nextPetKey);
 
-    const POKEMON_PETS = {
-        'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' },
-        'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png' },
-        'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png' },
-        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png' },
-        'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png' },
-        'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png' },
-        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png' },
-        'metagross': { name: '메타그로스', src: '/reports/images_game/metagross.png' }
-    };
-
-    const pet = POKEMON_PETS[nextPetKey];
+    const pet = gamGetPetProfile(nextPetKey);
     const img = document.getElementById('gam-pet-img');
     const runnerImg = document.getElementById('gam-runner-pet-img');
     
@@ -2085,11 +2079,7 @@ function gamTriggerPetCorrectMessage() {
     };
 
     const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
-    let defaultPet = 'pikachu';
-    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
-    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
-    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
-    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_CORRECT_MESSAGES[currentPetKey] || ['정답입니다! 🎉'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
@@ -2105,11 +2095,12 @@ function gamTriggerPetCorrectMessage() {
         clearTimeout(window.gamPetBubbleTimeout);
     }
 
-    // 4초 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
+    // 설정된 노출 시간(기본값 4초) 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
+    const bubbleDuration = (window.APP_CONFIG && window.APP_CONFIG.PET_BUBBLE_DURATION) || 4000;
     window.gamPetBubbleTimeout = setTimeout(() => {
         window.gamPetBubbleTimeout = null;
         gamUpdatePetMessageByProgress(window.gamState.todaySolved);
-    }, 4000);
+    }, bubbleDuration);
 }
 
 /**
@@ -2160,11 +2151,7 @@ function gamTriggerPetIncorrectMessage() {
     };
 
     const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
-    let defaultPet = 'pikachu';
-    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
-    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
-    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
-    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_INCORRECT_MESSAGES[currentPetKey] || ['괜찮아요! 다시 한 번 검토해봅시다! 💪'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
@@ -2180,11 +2167,12 @@ function gamTriggerPetIncorrectMessage() {
         clearTimeout(window.gamPetBubbleTimeout);
     }
 
-    // 4초 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
+    // 설정된 노출 시간(기본값 4초) 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
+    const bubbleDuration = (window.APP_CONFIG && window.APP_CONFIG.PET_BUBBLE_DURATION) || 4000;
     window.gamPetBubbleTimeout = setTimeout(() => {
         window.gamPetBubbleTimeout = null;
         gamUpdatePetMessageByProgress(window.gamState.todaySolved);
-    }, 4000);
+    }, bubbleDuration);
 }
 
 /**
