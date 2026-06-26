@@ -627,7 +627,8 @@ function updateRunnerExpUI() {
             defaultPet = 'rotom';
         }
 
-        let currentPetKey = localStorage.getItem('gam_selected_pet') || defaultPet;
+        const petStorageKey = curSub ? `gam_selected_pet_${curSub}` : 'gam_selected_pet';
+        let currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
         if (!petKeys.includes(currentPetKey)) currentPetKey = defaultPet;
 
         const POKEMON_PETS = {

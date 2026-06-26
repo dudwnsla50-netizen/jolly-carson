@@ -1245,6 +1245,8 @@ function submitInlineAnswer(idx, qId, event) {
                     gamOnCorrectAnswer(idx, qId);
                 }
             } else {
+                window.gamState.todaySolved = (window.gamState.todaySolved || 0) + 1;
+                gamUpdateExpUI();
                 if (typeof gamTriggerPetIncorrectMessage === 'function') {
                     gamTriggerPetIncorrectMessage();
                 }
@@ -1261,6 +1263,8 @@ function submitInlineAnswer(idx, qId, event) {
                     gamOnCorrectAnswer(idx, qId);
                 }
             } else {
+                window.gamState.todaySolved = (window.gamState.todaySolved || 0) + 1;
+                gamUpdateExpUI();
                 if (typeof gamTriggerPetIncorrectMessage === 'function') {
                     gamTriggerPetIncorrectMessage();
                 }
@@ -1600,7 +1604,8 @@ function initGamification() {
     window.gamState = {
         totalExp: 0,
         level: 1,
-        expInLevel: 0
+        expInLevel: 0,
+        todaySolved: 0 // [설계 의도] 오늘 전 과목 총 푼 문제 수를 누적 관리하여 일일 학습 목표를 연동합니다.
     };
 
     // UI 주입
@@ -1614,12 +1619,13 @@ function initGamification() {
 
     // API 조회하여 EXP 데이터 업데이트 (오직 서버 데이터베이스(DB) 기준 일관성 유지)
     fetch(apiUrl)
-        .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0 })
+        .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0, today_solved: 0 })
         .then(data => {
             const finalTotalExp = data.total_exp || 0;
             window.gamState.totalExp = finalTotalExp;
             window.gamState.level = Math.floor(finalTotalExp / 10) + 1;
             window.gamState.expInLevel = finalTotalExp % 10;
+            window.gamState.todaySolved = data.today_solved || 0;
             gamUpdateExpUI();
         })
         .catch(err => {
@@ -1627,6 +1633,7 @@ function initGamification() {
             window.gamState.totalExp = 0;
             window.gamState.level = 1;
             window.gamState.expInLevel = 0;
+            window.gamState.todaySolved = 0;
             gamUpdateExpUI();
         });
 }
@@ -1655,7 +1662,8 @@ function gamInjectExpCard() {
         defaultPet = 'rotom';
     }
 
-    let currentPetKey = localStorage.getItem('gam_selected_pet') || defaultPet;
+    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
+    let currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     if (!petKeys.includes(currentPetKey)) currentPetKey = defaultPet;
 
     const POKEMON_PETS = {
@@ -1696,6 +1704,14 @@ function gamInjectExpCard() {
             <div class="gam-exp-bar-bg">
                 <div class="gam-exp-bar-fill" id="gam-exp-fill" style="width: 0%;"></div>
             </div>
+            <!-- [설계 의도] 하루 학습 목표 150문항 게이지 바를 상단 카드 영역에 신설하여 결핍감과 완결 욕구를 자극합니다. -->
+            <div class="gam-exp-header" style="margin-top: 0.6rem;">
+                <span class="gam-exp-title" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 500;">🎯 일일 학습 목표 (150문항)</span>
+                <span class="gam-exp-value" id="gam-goal-text" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 600;">0 / 150개</span>
+            </div>
+            <div class="gam-exp-bar-bg" style="height: 5px; background: rgba(255,255,255,0.04);">
+                <div class="gam-exp-bar-fill" id="gam-goal-fill" style="width: 0%; background: linear-gradient(135deg, #10b981 0%, #059669 100%);"></div>
+            </div>
         </div>
     `;
 
@@ -1735,7 +1751,7 @@ function gamInjectLevelUpOverlay() {
  * GAM-4. EXP UI 요소들을 현재 상태값으로 갱신합니다.
  */
 function gamUpdateExpUI() {
-    const { totalExp, level, expInLevel } = window.gamState;
+    const { totalExp, level, expInLevel, todaySolved } = window.gamState;
     const expPercent = (expInLevel / 10) * 100;
     const nextLevelExp = level * 10;
 
@@ -1746,6 +1762,173 @@ function gamUpdateExpUI() {
     if (lvValue) lvValue.textContent = level;
     if (expText) expText.textContent = `${totalExp} / ${nextLevelExp} EXP`;
     if (expFill) expFill.style.width = `${expPercent}%`;
+
+    // 일일 학습 목표 150문항 게이지 바 동적 업데이트
+    const goalText = document.getElementById('gam-goal-text');
+    const goalFill = document.getElementById('gam-goal-fill');
+    
+    const solvedVal = todaySolved || 0;
+    const goalPercent = Math.min((solvedVal / 150) * 100, 100);
+
+    if (goalText) goalText.textContent = `${solvedVal} / 150개`;
+    if (goalFill) {
+        goalFill.style.width = `${goalPercent}%`;
+        // 일일 목표를 100% 초과 달성했을 때(150개 이상) 게이지 바에 화려한 골드 네온 그라데이션과 그림자를 줍니다.
+        if (solvedVal >= 150) {
+            goalFill.style.background = 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)';
+            goalFill.style.boxShadow = '0 0 10px rgba(251, 191, 36, 0.7)';
+        } else {
+            goalFill.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            goalFill.style.boxShadow = 'none';
+        }
+    }
+
+    // 오늘 푼 문항 수에 맞게 펫 말풍선 멘트와 비주얼(스케일, 아우라) 갱신
+    gamUpdatePetMessageByProgress(solvedVal);
+}
+
+// 펫 캐릭터들의 풀이 단계별 독려 메시지 정의 (0개 / 1~49개 / 50~99개 / 100~149개 / 150개 이상)
+const PROGRESS_PET_MESSAGES = {
+    'pikachu': [
+        '오늘 학습을 시작해볼까요? 백만볼트 에너지를 충전 중이에요! ⚡',
+        '피카! 첫 발걸음을 뗐군요! 가볍게 스파크를 튀기며 나아가봐요! ⚡',
+        '삐까삐까! 벌써 이만큼 풀었네요! 몸에 전기 에너지가 넘치기 시작해요! ⚡',
+        '대단해요! 조금만 더 하면 목표 달성이에요! 볼 전기 주머니가 번쩍번쩍! ⚡',
+        '피카츄~!! 150문항 돌파 완료! 정말 짜릿한 하루네요! 최고의 수험생! 🏆⚡'
+    ],
+    'charmander': [
+        '아직 불꽃이 작아요! 문제를 풀면서 열정의 불꽃을 키워볼까요? 🔥',
+        '좋은 시작이에요! 꼬리의 불꽃이 조금씩 타오르고 있어요! 🔥',
+        '화력이 올라옵니다! 집중해서 정답률도 같이 태워봐요! 🔥',
+        '목표가 코앞이에요! 마지막 열정을 불태워 돌파해봐요! 🔥',
+        '우와! 150문항 완성! 거대한 화염처럼 타오르는 합격의 기운! 🏆🔥'
+    ],
+    'squirtle': [
+        '아직 등껍질 속에서 쉬고 있나요? 이제 물대포 장전하고 시작해요! 💦',
+        '가볍게 첨벙첨벙 시작! 차근차근 등껍질처럼 견고한 실력을 쌓아봐요! 💦',
+        '좋은 페이스예요! 꼬부기와 함께 파도 타듯 부드럽게 나아가요! 💦',
+        '목표 달성까지 진짜 조금 남았어요! 마지막 물대포 슛! 💦',
+        '축하해요! 150문항 돌파! 오답은 시원하게 파도로 다 쓸어버렸어요! 🏆🌊'
+    ],
+    'bulbasaur': [
+        '아직 씨앗 상태네요. 문제를 풀어서 싹을 틔워볼까요? 🌱',
+        '조금씩 줄기가 뻗어나가고 있어요! 아주 좋은 흐름이에요! 🌱',
+        '꽃봉오리가 맺히기 시작했어요! 매일매일 자라나는 실력! 🌱',
+        '목표가 머지않았어요! 마지막 넝쿨채찍으로 확 당겨볼까요? 🌱',
+        '이상해씨~! 활짝 만개한 실력! 150문항 달성을 축하해요! 🏆🌸'
+    ],
+    'growlithe': [
+        '보안 검사를 시작합니다! 오늘 풀이량 0건 감지, 어서 보초를 서볼까요? 🚨',
+        '보안 순찰 개시! 한 문제 한 문제 꼼꼼히 검토하며 전진합시다! 🚨',
+        '경계 구역 50% 통과! 오답 침입자 차단율이 점점 높아지고 있습니다! 🚨',
+        '목표선 도달 임박! 침입자 및 오답 철저 봉쇄를 위해 힘내세요! 🚨',
+        '완벽한 철통 보안 달성! 150문항 돌파로 완벽한 방어망이 구축되었습니다! 🏆🛡️'
+    ],
+    'rotom': [
+        '시스템 대기 중... 로토무 폼 체인지를 위해 기기를 활성화해주세요! ⚙️',
+        '부팅 시작! 데이터 분석 및 시스템 아키텍처 설계를 개시합니다! ⚙️',
+        '성능 최적화 50% 완료! 하드웨어 연산 속도가 최고치에 도달 중입니다! ⚙️',
+        '오버클럭 작동! 시스템 처리 한계 돌파를 위해 마지막 스퍼트! ⚙️',
+        '초고속 연산 완료! 150문항 목표를 돌파하여 최고 효율을 달성했습니다! 🏆⚡'
+    ],
+    'sirfetchd': [
+        '아직 대파 검을 뽑지 않았군요. 공정한 감리와 관리를 위해 집총합시다! ⚖️',
+        '기사로서 첫 발을 내딛습니다! 사업 계획대로 차근차근 전진하겠습니다! ⚖️',
+        '계약 의무 이행률 50% 돌파! 리스크 없는 완벽한 사업 관리가 진행 중입니다! ⚖️',
+        '목표 완수가 눈앞입니다! 대파 창을 굳건히 쥐고 돌격합시다! ⚖️',
+        '사업 대성공! 150문항 이정표를 정복하여 위대한 기사 작위를 수여받았습니다! 🏆⚔️'
+    ]
+};
+
+/**
+ * 오늘 푼 문제 수(solvedVal)에 따라 펫의 말풍선 대사 및 이미지 스케일/필터 오라 효과를 업데이트합니다.
+ */
+function gamUpdatePetMessageByProgress(solvedVal) {
+    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
+    let defaultPet = 'pikachu';
+    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
+    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
+    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
+    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+    const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
+    
+    // 단계 산정 (0 / 1~49 / 50~99 / 100~149 / 150 이상)
+    let step = 0;
+    if (solvedVal === 0) {
+        step = 0;
+    } else if (solvedVal < 50) {
+        step = 1;
+    } else if (solvedVal < 100) {
+        step = 2;
+    } else if (solvedVal < 150) {
+        step = 3;
+    } else {
+        step = 4;
+    }
+
+    const msgs = PROGRESS_PET_MESSAGES[currentPetKey] || PROGRESS_PET_MESSAGES['pikachu'];
+    const currentMsg = msgs[step];
+
+    // 정답/오답으로 인한 특별 피드백 메시지 타이머가 없는 경우에만 일상 멘트를 대입합니다.
+    if (!window.gamPetBubbleTimeout) {
+        const bubble = document.getElementById('gam-pet-bubble-text');
+        const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+        if (bubble) bubble.textContent = currentMsg;
+        if (runnerBubble) runnerBubble.textContent = currentMsg;
+    }
+
+    // 펫 아바타 스케일 및 오라(Drop shadow) 실시간 변경
+    const img = document.getElementById('gam-pet-img');
+    const runnerImg = document.getElementById('gam-runner-pet-img');
+    const wrapper = document.querySelector('.gam-pet-avatar-wrapper');
+
+    [img, runnerImg].forEach(petImg => {
+        if (!petImg) return;
+        
+        let scale = 1.1;
+        let filterEffect = 'none';
+
+        if (step === 0) {
+            scale = 1.0;
+            filterEffect = 'none';
+        } else if (step === 1) {
+            scale = 1.05;
+            filterEffect = 'none';
+        } else if (step === 2) {
+            scale = 1.1;
+            filterEffect = 'drop-shadow(0 0 5px rgba(139, 92, 246, 0.45))'; // 연보라빛 아우라
+        } else if (step === 3) {
+            scale = 1.15;
+            filterEffect = 'drop-shadow(0 0 9px rgba(139, 92, 246, 0.75))'; // 강한 보라빛 아우라
+        } else if (step === 4) {
+            scale = 1.25;
+            filterEffect = 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.9))'; // 찬란한 황금빛 아우라
+            petImg.classList.add('gam-pet-bounce-loop'); // 상시 바운스 루프 활성화
+        }
+
+        if (step < 4) {
+            petImg.classList.remove('gam-pet-bounce-loop');
+        }
+
+        // 수동 교체 애니메이션 진행 중일 때(spin) transform을 강제 덮어쓰면 애니메이션이 씹힐 수 있으므로 클래스로 분리되게끔 처리
+        if (!petImg.classList.contains('gam-pet-spin')) {
+            petImg.style.transform = `scale(${scale})`;
+        }
+        petImg.style.filter = filterEffect;
+    });
+
+    // 아바타 원형 컨테이너의 테두리도 150개 이상 달성 시 골드로 하이라이팅
+    if (wrapper) {
+        if (step === 4) {
+            wrapper.style.borderColor = 'rgba(251, 191, 36, 0.6)';
+            wrapper.style.background = 'rgba(251, 191, 36, 0.08)';
+            wrapper.style.boxShadow = '0 0 8px rgba(251, 191, 36, 0.3)';
+        } else {
+            wrapper.style.borderColor = 'rgba(255,255,255,0.12)';
+            wrapper.style.background = 'rgba(255,255,255,0.06)';
+            wrapper.style.boxShadow = 'none';
+        }
+    }
 }
 
 /**
@@ -1755,12 +1938,13 @@ function gamUpdateExpUI() {
 function gamOnCorrectAnswer(idx, qId) {
     const prevLevel = window.gamState.level;
 
-    // EXP 증가
+    // EXP 및 오늘 푼 문제 수 증가
     window.gamState.totalExp += 1;
     window.gamState.level = Math.floor(window.gamState.totalExp / 10) + 1;
     window.gamState.expInLevel = window.gamState.totalExp % 10;
+    window.gamState.todaySolved = (window.gamState.todaySolved || 0) + 1;
 
-    // UI 갱신
+    // UI 갱신 (경험치 바 및 일일 학습 목표 150문항 바 동시 업데이트)
     gamUpdateExpUI();
 
     // 펫 정답 축하 말풍선 트리거
@@ -1792,24 +1976,33 @@ function gamOnCorrectAnswer(idx, qId) {
  * GAM-5-B. 펫 캐릭터를 클릭했을 때 다음 캐릭터로 교체합니다.
  */
 window.gamCyclePet = function() {
-    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur'];
-    let currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd'];
+    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
+    let defaultPet = 'pikachu';
+    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
+    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
+    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
+    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+
+    let currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     let nextIdx = (petKeys.indexOf(currentPetKey) + 1) % petKeys.length;
     let nextPetKey = petKeys[nextIdx];
-    localStorage.setItem('gam_selected_pet', nextPetKey);
+    localStorage.setItem(petStorageKey, nextPetKey);
 
     const POKEMON_PETS = {
-        'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
-        'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png', defaultMsg: '뜨거운 열정으로 문제를 정복해요! 🔥' },
-        'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
-        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' }
+        'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' },
+        'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png' },
+        'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png' },
+        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png' },
+        'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png' },
+        'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png' },
+        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png' }
     };
 
     const pet = POKEMON_PETS[nextPetKey];
     const img = document.getElementById('gam-pet-img');
     const runnerImg = document.getElementById('gam-runner-pet-img');
-    const bubble = document.getElementById('gam-pet-bubble-text');
-    const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+    
     if (img) {
         img.src = pet.src;
         img.alt = pet.name;
@@ -1818,11 +2011,12 @@ window.gamCyclePet = function() {
         runnerImg.src = pet.src;
         runnerImg.alt = pet.name;
     }
-    if (bubble) bubble.textContent = pet.defaultMsg;
-    if (runnerBubble) runnerBubble.textContent = pet.defaultMsg;
 
     // 교체 시 360도 스핀 애니메이션 적용
     gamApplyPetAnimation('spin');
+
+    // 펫 대사 및 비주얼 상태 즉시 업데이트 (오늘 푼 문제 수 비례)
+    gamUpdatePetMessageByProgress(window.gamState.todaySolved);
 };
 
 // 복귀 타이머 ID를 관리할 전역 변수
@@ -1852,10 +2046,31 @@ function gamTriggerPetCorrectMessage() {
             '정답! 탄탄한 기본기가 빛을 발해요! 🌱',
             '넝쿨처럼 쑥쑥 뻗어나가는 성적! 🌿',
             '이상해씨가 봐도 너무 똑똑해요! 🍃'
+        ],
+        'growlithe': [
+            '정답 판정! 보안 위협 요소를 제거했습니다! 🚨',
+            '완벽한 해독! 침입 오답 격퇴 완료! 🚨',
+            '정답을 확보하여 보안 등급이 상향되었습니다! 🚨'
+        ],
+        'rotom': [
+            '정답 확인! 연산 오류 없음, 시스템 고성능 가동 중! ⚙️',
+            '아키텍처 설계 합격! 완벽한 데이터 처리 구조입니다! ⚙️',
+            '로토무~! 성능 튜닝이 아주 잘 되었어요! ⚡'
+        ],
+        'sirfetchd': [
+            '정답입니다! 기사로서 한치의 부끄러움 없는 명쾌한 판단! ⚖️',
+            '감리 통과! 프로젝트 리스크가 성공적으로 해결되었습니다! ⚖️',
+            '대파 검이 번쩍였습니다! 정답 적중! ⚔️'
         ]
     };
 
-    const currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
+    let defaultPet = 'pikachu';
+    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
+    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
+    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
+    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+    const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_CORRECT_MESSAGES[currentPetKey] || ['정답입니다! 🎉'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
     
@@ -1870,23 +2085,10 @@ function gamTriggerPetCorrectMessage() {
         clearTimeout(window.gamPetBubbleTimeout);
     }
 
-    // 4초 후 기본 상태 메시지로 복귀
-    const DEFAULT_PET_MESSAGES = {
-        'pikachu': '오늘도 합격을 향해 백만볼트! ⚡',
-        'charmander': '뜨거운 열정으로 문제를 정복해요! 🔥',
-        'squirtle': '오답은 시원하게 물대포로 날려요! 💦',
-        'bulbasaur': '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱'
-    };
+    // 4초 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
     window.gamPetBubbleTimeout = setTimeout(() => {
-        const curPet = localStorage.getItem('gam_selected_pet') || 'pikachu';
-        const curBubble = document.getElementById('gam-pet-bubble-text');
-        const curRunnerBubble = document.getElementById('gam-runner-pet-bubble-text');
-        if (curBubble) {
-            curBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
-        }
-        if (curRunnerBubble) {
-            curRunnerBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
-        }
+        window.gamPetBubbleTimeout = null;
+        gamUpdatePetMessageByProgress(window.gamState.todaySolved);
     }, 4000);
 }
 
@@ -1914,10 +2116,31 @@ function gamTriggerPetIncorrectMessage() {
             '아쉬워요! 하지만 단단한 씨앗이 싹을 틔우듯 차근차근 배워가면 돼요! 🌱',
             '이상해씨 덩굴채찍으로 오답을 확 걷어내요! 🌿',
             '괜찮아요! 한 걸음씩 자라나는 거니까요. 이상해! 씨앗! 🍃'
+        ],
+        'growlithe': [
+            '보안 침해 경고! 오답 위협이 감지되었으니 정밀 재검토가 필요합니다! 🚨',
+            '경계 태세 강화! 취약점이 발견되었습니다, 다시 꼼꼼히 확인합시다! 🚨',
+            '괜찮습니다! 가디 보안관이 오답 침입 흔적을 추적하여 격려해 드립니다! 🐾'
+        ],
+        'rotom': [
+            '예외 발생! 연산 에러가 발생했습니다. 디버깅 모드로 진입하세요! ⚙️',
+            '시스템 장애 감지! 로그 분석 결과 오답입니다. 아키텍처를 재점검하세요! ⚙️',
+            '성능 저하 경보! 하지만 웜 부팅 후 다시 실행하면 성공할 것입니다! ⚡'
+        ],
+        'sirfetchd': [
+            '감리 지적 사항 발생! 계약 법령을 다시 대조해 볼 필요가 있습니다! ⚖️',
+            '기사로서의 일시적 후퇴일 뿐! 대파 방패로 오답을 막고 다시 싸웁시다! ⚔️',
+            '리스크가 현실화되었습니다! 하지만 시정 조치를 취하면 프로젝트는 성공합니다! ⚖️'
         ]
     };
 
-    const currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
+    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
+    let defaultPet = 'pikachu';
+    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
+    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
+    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
+    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+    const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_INCORRECT_MESSAGES[currentPetKey] || ['괜찮아요! 다시 한 번 검토해봅시다! 💪'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
     
@@ -1932,23 +2155,10 @@ function gamTriggerPetIncorrectMessage() {
         clearTimeout(window.gamPetBubbleTimeout);
     }
 
-    // 4초 후 기본 상태 메시지로 복귀
-    const DEFAULT_PET_MESSAGES = {
-        'pikachu': '오늘도 합격을 향해 백만볼트! ⚡',
-        'charmander': '뜨거운 열정으로 문제를 정복해요! 🔥',
-        'squirtle': '오답은 시원하게 물대포로 날려요! 💦',
-        'bulbasaur': '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱'
-    };
+    // 4초 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
     window.gamPetBubbleTimeout = setTimeout(() => {
-        const curPet = localStorage.getItem('gam_selected_pet') || 'pikachu';
-        const curBubble = document.getElementById('gam-pet-bubble-text');
-        const curRunnerBubble = document.getElementById('gam-runner-pet-bubble-text');
-        if (curBubble) {
-            curBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
-        }
-        if (curRunnerBubble) {
-            curRunnerBubble.textContent = DEFAULT_PET_MESSAGES[curPet] || '';
-        }
+        window.gamPetBubbleTimeout = null;
+        gamUpdatePetMessageByProgress(window.gamState.todaySolved);
     }, 4000);
 }
 

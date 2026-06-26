@@ -429,3 +429,13 @@
     100% { transform: scale(1.1) rotate(0deg); opacity: 1; }
 }
 
+/* 150문제 이상 달성 시 상시 위아래로 신나게 바운스하는 효과 */
+.gam-pet-bounce-loop {
+    animation: gamPetBounceLoop 1.2s ease-in-out infinite;
+}
+
+@keyframes gamPetBounceLoop {
+    0%, 100% { transform: scale(1.25) translateY(0); }
+    50% { transform: scale(1.25) translateY(-8px); }
+}
+

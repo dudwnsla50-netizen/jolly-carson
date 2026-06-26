@@ -685,4 +685,33 @@ body {
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ==========================================
+   [디자인 설계 의도 - 일일 학습 목표 달성 뱃지]
+   - 수험생의 학습량에 직관적인 피드백을 전달하기 위해 녹색/적색의 은은한 반투명 테두리 뱃지로 성공/실패를 구분했습니다.
+   - 글자색에 포인트를 주어 다크 테마에서도 눈에 잘 띄며 고급스러운 느낌을 부여했습니다.
+   ========================================== */
+.goal-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+}
+
+.goal-badge.success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.08);
+}
+
+.goal-badge.fail {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+
 

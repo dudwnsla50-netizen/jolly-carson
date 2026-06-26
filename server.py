@@ -458,12 +458,29 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         # 사용자가 과목별로 경험치(EXP)를 획득하고 관리할 수 있도록, 
         # 쿼리 파라미터로 subject가 제공될 경우 해당 과목의 경험치 정보만 반환합니다.
         # subject가 누락된 경우에는 전체 누적 경험치 정보와 함께 
-        # 5대 과목별 개별 경험치 맵(subjects_exp)을 일괄적으로 계산하여 반환해
-        # 종합 학습 분석 대시보드에서 한 번에 렌더링할 수 있도록 설계했습니다.
+        # 5대 과목별 개별 경험치 맵(subjects_exp)을 일괄적으로 계산하여 반환합니다.
+        # 이 때, 수험생의 동기부여를 위해 오늘 푼 총 문제 수(today_solved)를
+        # 로컬 오늘 자정(KST 00:00:00) 기준 쿼리로 산출하여 항상 함께 반환해 줍니다.
+        import datetime
         try:
             subject = query.get("subject", [None])[0]
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
+                    # 1. 오늘 푼 총 문항 수(today_solved) 산출 - KST 오늘 자정 기준
+                    # SQLite 및 PostgreSQL의 날짜 포맷 규격을 준수하기 위해 파이썬 단에서 날짜 스트링으로 매핑합니다.
+                    now = datetime.datetime.now()
+                    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                    today_start_str = today_start.strftime("%Y-%m-%d %H:%M:%S")
+
+                    sql_today = """
+                        SELECT COALESCE(SUM(total_questions), 0) as today_solved
+                        FROM quiz_history
+                        WHERE created_at >= %s
+                    """
+                    execute_query(cursor, sql_today, (today_start_str,))
+                    row_today = cursor.fetchone()
+                    today_solved = dict(row_today)["today_solved"] if row_today else 0
+
                     # 특정 과목의 경험치만 조회할 경우
                     if subject:
                         subject = subject.upper()
@@ -486,7 +503,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "level": level,
                             "exp_in_level": exp_in_level,
                             "exp_to_next": exp_to_next,
-                            "subject": subject
+                            "subject": subject,
+                            "today_solved": today_solved
                         })
                     
                     # 과목 파라미터가 없어서 전체 및 과목별 경험치 맵을 모두 일괄 반환하는 경우 (학습 분석용)
@@ -545,7 +563,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "level": level,
                             "exp_in_level": exp_in_level,
                             "exp_to_next": exp_to_next,
-                            "subjects_exp": subjects_exp
+                            "subjects_exp": subjects_exp,
+                            "today_solved": today_solved
                         })
         except Exception as e:
             traceback.print_exc()

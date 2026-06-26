@@ -191,7 +191,22 @@ function calculateSummaryStats() {
             }
         }
     }
-    document.getElementById('stat-active-days-sub').textContent = streak > 0 ? `🔥 현재 ${streak}일 연속 학습 중!` : '매일 꾸준히 잔디를 채워보세요.';
+    
+    // [설계 의도]
+    // 전체 일별 학습 이력을 순회하여 일일 권장 학습 목표인 150문항을 
+    // 돌파한 성공(Success) 일수를 합산해 누적 정보 서브텍스트에 노출시킵니다.
+    let successDays = 0;
+    HistoryState.dailyHistory.forEach(day => {
+        if (day.totalSolved >= 150) {
+            successDays++;
+        }
+    });
+
+    const activeDaysSubEl = document.getElementById('stat-active-days-sub');
+    if (activeDaysSubEl) {
+        const streakText = streak > 0 ? `🔥 현재 ${streak}일 연속 학습 중!` : '매일 꾸준히 잔디를 채워보세요.';
+        activeDaysSubEl.innerHTML = `${streakText}<br><span style="color: var(--success); font-weight: 600; font-size: 0.72rem; margin-top: 0.2rem; display: inline-block;">🎯 일일목표(150개) 달성: ${successDays}일</span>`;
+    }
 }
 
 /**
@@ -381,11 +396,21 @@ function renderHistoryTable() {
         const mins = totalMinutes % 60;
         const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
 
+        // [설계 의도]
+        // 일일 학습 목표인 150문항 기준 달성 여부를 검사하여 
+        // 시인성이 뛰어난 성공(success)/실패(fail) 뱃지 레이아웃을 생성합니다.
+        const goalLimit = 150;
+        const isSuccess = row.totalSolved >= goalLimit;
+        const statusHtml = isSuccess 
+            ? `<span class="goal-badge success">성공 🎉</span>` 
+            : `<span class="goal-badge fail">실패 😢 (${row.totalSolved}/${goalLimit})</span>`;
+
         tr.innerHTML = `
             <td>${dateFormatted}</td>
             <td><strong>${row.totalSolved}개</strong></td>
             <td>${acc}%</td>
             <td>${timeStr}</td>
+            <td>${statusHtml}</td>
         `;
 
         // 행 클릭 이벤트 바인딩: 과목별 상세 레이어 팝업 노출
