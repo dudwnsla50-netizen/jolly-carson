@@ -1764,18 +1764,21 @@ function gamUpdateExpUI() {
     if (expText) expText.textContent = `${totalExp} / ${nextLevelExp} EXP`;
     if (expFill) expFill.style.width = `${expPercent}%`;
 
-    // 일일 학습 목표 150문항 게이지 바 동적 업데이트
+    // 일일 학습 목표량 설정값 읽기 (폴백 기본값 150)
+    const dailyGoal = (window.APP_CONFIG && window.APP_CONFIG.DAILY_STUDY_GOAL) || 150;
+
+    // 일일 학습 목표 게이지 바 동적 업데이트
     const goalText = document.getElementById('gam-goal-text');
     const goalFill = document.getElementById('gam-goal-fill');
     
     const solvedVal = todaySolved || 0;
-    const goalPercent = Math.min((solvedVal / 150) * 100, 100);
+    const goalPercent = Math.min((solvedVal / dailyGoal) * 100, 100);
 
-    if (goalText) goalText.textContent = `${solvedVal} / 150개`;
+    if (goalText) goalText.textContent = `${solvedVal} / ${dailyGoal}개`;
     if (goalFill) {
         goalFill.style.width = `${goalPercent}%`;
-        // 일일 목표를 100% 초과 달성했을 때(150개 이상) 게이지 바에 화려한 골드 네온 그라데이션과 그림자를 줍니다.
-        if (solvedVal >= 150) {
+        // 일일 목표를 100% 초과 달성했을 때 게이지 바에 화려한 골드 네온 그라데이션과 그림자를 줍니다.
+        if (solvedVal >= dailyGoal) {
             goalFill.style.background = 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)';
             goalFill.style.boxShadow = '0 0 10px rgba(251, 191, 36, 0.7)';
         } else {
@@ -1860,15 +1863,18 @@ function gamUpdatePetMessageByProgress(solvedVal) {
     else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     
-    // 단계 산정 (0 / 1~49 / 50~99 / 100~149 / 150 이상)
+    // 일일 학습 목표량 설정값 읽기 (폴백 기본값 150)
+    const dailyGoal = (window.APP_CONFIG && window.APP_CONFIG.DAILY_STUDY_GOAL) || 150;
+
+    // 단계 산정 (목표 비례 동적 5단계 분기: 0% / ~33% / ~66% / ~99% / 100% 이상)
     let step = 0;
     if (solvedVal === 0) {
         step = 0;
-    } else if (solvedVal < 50) {
+    } else if (solvedVal < dailyGoal * 0.33) {
         step = 1;
-    } else if (solvedVal < 100) {
+    } else if (solvedVal < dailyGoal * 0.66) {
         step = 2;
-    } else if (solvedVal < 150) {
+    } else if (solvedVal < dailyGoal) {
         step = 3;
     } else {
         step = 4;

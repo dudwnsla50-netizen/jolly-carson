@@ -193,11 +193,12 @@ function calculateSummaryStats() {
     }
     
     // [설계 의도]
-    // 전체 일별 학습 이력을 순회하여 일일 권장 학습 목표인 150문항을 
+    // 전체 일별 학습 이력을 순회하여 일일 권장 학습 목표(APP_CONFIG에 정의)를 
     // 돌파한 성공(Success) 일수를 합산해 누적 정보 서브텍스트에 노출시킵니다.
+    const dailyGoal = (window.APP_CONFIG && window.APP_CONFIG.DAILY_STUDY_GOAL) || 150;
     let successDays = 0;
     HistoryState.dailyHistory.forEach(day => {
-        if (day.totalSolved >= 150) {
+        if (day.totalSolved >= dailyGoal) {
             successDays++;
         }
     });
@@ -205,7 +206,7 @@ function calculateSummaryStats() {
     const activeDaysSubEl = document.getElementById('stat-active-days-sub');
     if (activeDaysSubEl) {
         const streakText = streak > 0 ? `🔥 현재 ${streak}일 연속 학습 중!` : '매일 꾸준히 잔디를 채워보세요.';
-        activeDaysSubEl.innerHTML = `${streakText}<br><span style="color: var(--success); font-weight: 600; font-size: 0.72rem; margin-top: 0.2rem; display: inline-block;">🎯 일일목표(150개) 달성: ${successDays}일</span>`;
+        activeDaysSubEl.innerHTML = `${streakText}<br><span style="color: var(--success); font-weight: 600; font-size: 0.72rem; margin-top: 0.2rem; display: inline-block;">🎯 일일목표(${dailyGoal}개) 달성: ${successDays}일</span>`;
     }
 }
 
@@ -397,9 +398,9 @@ function renderHistoryTable() {
         const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
 
         // [설계 의도]
-        // 일일 학습 목표인 150문항 기준 달성 여부를 검사하여 
+        // 일일 학습 목표 기준 달성 여부를 검사하여 
         // 시인성이 뛰어난 성공(success)/실패(fail) 뱃지 레이아웃을 생성합니다.
-        const goalLimit = 150;
+        const goalLimit = (window.APP_CONFIG && window.APP_CONFIG.DAILY_STUDY_GOAL) || 150;
         const isSuccess = row.totalSolved >= goalLimit;
         const statusHtml = isSuccess 
             ? `<span class="goal-badge success">성공 🎉</span>` 
