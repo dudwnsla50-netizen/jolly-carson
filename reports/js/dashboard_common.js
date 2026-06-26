@@ -1639,18 +1639,18 @@ function gamInjectExpCard() {
     if (document.getElementById('gam-exp-card')) return;
 
     // 저장된 펫 정보 로드
-    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom'];
+    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd'];
 
     // [설계 의도]
     // 과목 대시보드의 ID(window.SUBJECT_CODE)에 매칭되는 기본 펫을 지정합니다.
-    // 특히 시스템구조(SA) 과목의 경우, 하드웨어와 서버 아키텍처를 연동 설계하는 로토무(rotom)로 매핑합니다.
+    // 사업관리(PM) 과목은 하도급법, 국가계약법 등 법령 준수와 공정 계약이 중요하므로 기사도 정신의 창파나이트(sirfetchd)로 매핑합니다.
     let defaultPet = 'pikachu';
     if (window.SUBJECT_CODE === 'SC') {
         defaultPet = 'growlithe';
     } else if (window.SUBJECT_CODE === 'DB') {
         defaultPet = 'squirtle';
     } else if (window.SUBJECT_CODE === 'PM') {
-        defaultPet = 'charmander';
+        defaultPet = 'sirfetchd';
     } else if (window.SUBJECT_CODE === 'SA') {
         defaultPet = 'rotom';
     }
@@ -1664,7 +1664,8 @@ function gamInjectExpCard() {
         'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
         'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' },
         'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png', defaultMsg: '침입자 및 오답 철저 차단! 든든하게 지켜요! 🚨' },
-        'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' }
+        'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' },
+        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png', defaultMsg: '기사도 정신으로 법령 준수! 공정한 계약과 감리를 집행해요! ⚖️' }
     };
 
     const activePet = POKEMON_PETS[currentPetKey];

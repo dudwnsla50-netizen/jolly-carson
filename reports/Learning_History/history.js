@@ -524,7 +524,7 @@ function renderSubjectExpCards(expData) {
     const POKEMON_PETS = {
         'DB': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png' },
         'SE': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' },
-        'PM': { name: '파이리', src: '/reports/images_game/charmander_cheer.png' },
+        'PM': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png' }, // 사업관리 과목 전용 캐릭터 매핑
         'SA': { name: '로토무', src: '/reports/images_game/rotom_architect.png' }, // 시스템구조 과목 전용 캐릭터 매핑
         'SC': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png' } // 보안 과목 전용 캐릭터 매핑
     };

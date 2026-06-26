@@ -611,7 +611,7 @@ function updateRunnerExpUI() {
         petWidget.title = '클릭 시 포켓몬 캐릭터 교체';
 
         // 현재 선택된 펫 로드
-        const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom'];
+        const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd'];
 
         // [설계 의도]
         // 오답 복습 중인 과목 코드(ReviewState.currentSubject)에 적합한 기본 마스코트 펫을 매핑합니다.
@@ -622,7 +622,7 @@ function updateRunnerExpUI() {
         } else if (curSub === 'DB') {
             defaultPet = 'squirtle';
         } else if (curSub === 'PM') {
-            defaultPet = 'charmander';
+            defaultPet = 'sirfetchd';
         } else if (curSub === 'SA') {
             defaultPet = 'rotom';
         }
@@ -636,7 +636,8 @@ function updateRunnerExpUI() {
             'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
             'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' },
             'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png', defaultMsg: '침입자 및 오답 철저 차단! 든든하게 지켜요! 🚨' },
-            'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' }
+            'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' },
+            'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png', defaultMsg: '기사도 정신으로 법령 준수! 공정한 계약과 감리를 집행해요! ⚖️' }
         };
 
         const activePet = POKEMON_PETS[currentPetKey];
