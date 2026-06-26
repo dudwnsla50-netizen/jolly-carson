@@ -1607,8 +1607,13 @@ function initGamification() {
     gamInjectExpCard();
     gamInjectLevelUpOverlay();
 
+    // [설계 의도]
+    // 과목별로 분리된 경험치 시스템을 실현하기 위해, 과목 대시보드의 식별자(window.SUBJECT_CODE)를 
+    // 기반으로 해당 과목의 경험치 정보만 골라서 API 요청을 보냅니다.
+    const apiUrl = window.SUBJECT_CODE ? `/api/quiz/total-exp?subject=${window.SUBJECT_CODE}` : '/api/quiz/total-exp';
+
     // API 조회하여 EXP 데이터 업데이트 (오직 서버 데이터베이스(DB) 기준 일관성 유지)
-    fetch('/api/quiz/total-exp')
+    fetch(apiUrl)
         .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0 })
         .then(data => {
             const finalTotalExp = data.total_exp || 0;
@@ -1634,15 +1639,32 @@ function gamInjectExpCard() {
     if (document.getElementById('gam-exp-card')) return;
 
     // 저장된 펫 정보 로드
-    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur'];
-    let currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
-    if (!petKeys.includes(currentPetKey)) currentPetKey = 'pikachu';
+    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom'];
+
+    // [설계 의도]
+    // 과목 대시보드의 ID(window.SUBJECT_CODE)에 매칭되는 기본 펫을 지정합니다.
+    // 특히 시스템구조(SA) 과목의 경우, 하드웨어와 서버 아키텍처를 연동 설계하는 로토무(rotom)로 매핑합니다.
+    let defaultPet = 'pikachu';
+    if (window.SUBJECT_CODE === 'SC') {
+        defaultPet = 'growlithe';
+    } else if (window.SUBJECT_CODE === 'DB') {
+        defaultPet = 'squirtle';
+    } else if (window.SUBJECT_CODE === 'PM') {
+        defaultPet = 'charmander';
+    } else if (window.SUBJECT_CODE === 'SA') {
+        defaultPet = 'rotom';
+    }
+
+    let currentPetKey = localStorage.getItem('gam_selected_pet') || defaultPet;
+    if (!petKeys.includes(currentPetKey)) currentPetKey = defaultPet;
 
     const POKEMON_PETS = {
         'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
         'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png', defaultMsg: '뜨거운 열정으로 문제를 정복해요! 🔥' },
         'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
-        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' }
+        'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' },
+        'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png', defaultMsg: '침입자 및 오답 철저 차단! 든든하게 지켜요! 🚨' },
+        'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' }
     };
 
     const activePet = POKEMON_PETS[currentPetKey];
@@ -1667,7 +1689,7 @@ function gamInjectExpCard() {
         </div>
         <div class="gam-exp-wrapper">
             <div class="gam-exp-header">
-                <span class="gam-exp-title">🛡️ 수험생 경험치 (EXP)</span>
+                <span class="gam-exp-title">${window.SUBJECT_NAME ? `🛡️ ${window.SUBJECT_NAME} 경험치 (EXP)` : "🛡️ 수험생 경험치 (EXP)"}</span>
                 <span class="gam-exp-value" id="gam-exp-text">0 / 10 EXP</span>
             </div>
             <div class="gam-exp-bar-bg">

@@ -454,27 +454,99 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def get_total_exp(self, query):
+        # [설계 의도]
+        # 사용자가 과목별로 경험치(EXP)를 획득하고 관리할 수 있도록, 
+        # 쿼리 파라미터로 subject가 제공될 경우 해당 과목의 경험치 정보만 반환합니다.
+        # subject가 누락된 경우에는 전체 누적 경험치 정보와 함께 
+        # 5대 과목별 개별 경험치 맵(subjects_exp)을 일괄적으로 계산하여 반환해
+        # 종합 학습 분석 대시보드에서 한 번에 렌더링할 수 있도록 설계했습니다.
         try:
+            subject = query.get("subject", [None])[0]
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
-                    sql = """
-                        SELECT COALESCE(SUM(correct_count), 0) as total_exp
-                        FROM quiz_history
-                    """
-                    execute_query(cursor, sql)
-                    row = cursor.fetchone()
-                    total_exp = dict(row)["total_exp"] if row else 0
+                    # 특정 과목의 경험치만 조회할 경우
+                    if subject:
+                        subject = subject.upper()
+                        sql = """
+                            SELECT COALESCE(SUM(correct_count), 0) as total_exp
+                            FROM quiz_history
+                            WHERE subject = %s
+                        """
+                        execute_query(cursor, sql, (subject,))
+                        row = cursor.fetchone()
+                        total_exp = dict(row)["total_exp"] if row else 0
+                        
+                        # 레벨링 계산 공식: 누적 정답 10개당 1 레벨업 (기본 레벨 1)
+                        level = (total_exp // 10) + 1
+                        exp_in_level = total_exp % 10
+                        exp_to_next = 10
+                        
+                        self.send_json_response({
+                            "total_exp": total_exp,
+                            "level": level,
+                            "exp_in_level": exp_in_level,
+                            "exp_to_next": exp_to_next,
+                            "subject": subject
+                        })
                     
-                    level = (total_exp // 10) + 1
-                    exp_in_level = total_exp % 10
-                    exp_to_next = 10
-                    
-                    self.send_json_response({
-                        "total_exp": total_exp,
-                        "level": level,
-                        "exp_in_level": exp_in_level,
-                        "exp_to_next": exp_to_next
-                    })
+                    # 과목 파라미터가 없어서 전체 및 과목별 경험치 맵을 모두 일괄 반환하는 경우 (학습 분석용)
+                    else:
+                        # 1. 전체 통합 누적 경험치 조회
+                        sql_all = """
+                            SELECT COALESCE(SUM(correct_count), 0) as total_exp
+                            FROM quiz_history
+                        """
+                        execute_query(cursor, sql_all)
+                        row_all = cursor.fetchone()
+                        total_exp = dict(row_all)["total_exp"] if row_all else 0
+                        
+                        level = (total_exp // 10) + 1
+                        exp_in_level = total_exp % 10
+                        exp_to_next = 10
+                        
+                        # 2. 과목별 누적 경험치 조회 및 5대 과목 기본값(0) 매핑
+                        sql_subjects = """
+                            SELECT subject, COALESCE(SUM(correct_count), 0) as sub_exp
+                            FROM quiz_history
+                            GROUP BY subject
+                        """
+                        execute_query(cursor, sql_subjects)
+                        rows_sub = cursor.fetchall()
+                        
+                        # 데이터가 없는 과목도 1레벨(0 EXP)로 안전하게 초기화
+                        subjects_exp = {}
+                        for sub_code in ['DB', 'SE', 'PM', 'SA', 'SC']:
+                            subjects_exp[sub_code] = {
+                                "total_exp": 0,
+                                "level": 1,
+                                "exp_in_level": 0,
+                                "exp_to_next": 10
+                            }
+                            
+                        # 조회된 과목별 실 데이터를 바인딩
+                        for r in rows_sub:
+                            d = dict(r)
+                            sub_name = d["subject"].upper()
+                            sub_exp = d["sub_exp"]
+                            sub_level = (sub_exp // 10) + 1
+                            sub_exp_in_level = sub_exp % 10
+                            
+                            # 정의된 5대 과목 매핑 내에 있을 경우에만 갱신
+                            if sub_name in subjects_exp:
+                                subjects_exp[sub_name] = {
+                                    "total_exp": sub_exp,
+                                    "level": sub_level,
+                                    "exp_in_level": sub_exp_in_level,
+                                    "exp_to_next": 10
+                                }
+                                
+                        self.send_json_response({
+                            "total_exp": total_exp,
+                            "level": level,
+                            "exp_in_level": exp_in_level,
+                            "exp_to_next": exp_to_next,
+                            "subjects_exp": subjects_exp
+                        })
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")

@@ -550,3 +550,139 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+/* ==========================================
+   [디자인 설계 의도 - 과목별 경험치 카드 시스템]
+   - 프리미엄 글래스모피즘 테마를 계승하여 반투명 카드 형태와 은은한 백그라운드 블러를 구현했습니다.
+   - 다크 모드에 최적화된 하이라이트 보라색 그라데이션 및 쉐도우 효과를 마우스 오버 시 입혀 시각적 즐거움을 줍니다.
+   - 경험치 바 및 레벨 뱃지는 감리사 5대 과목 대시보드와 디자인 통일성을 갖도록 색상 및 폰트를 연동했습니다.
+   ========================================== */
+
+/* 과목별 경험치 카드 그리드 */
+.subject-exp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+/* 과목별 경험치 개별 카드 */
+.subject-exp-card {
+    background: var(--bg-card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 마우스 오버 인터랙티브 효과 */
+.subject-exp-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--card-border-hover);
+    box-shadow: 0 10px 20px rgba(139, 92, 246, 0.12);
+}
+
+/* 카드 상단 영역 (과목명 & 약어 뱃지) */
+.sub-exp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.sub-exp-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.sub-exp-badge {
+    background: var(--accent-gradient);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+/* 카드 중간 영역 (펫 아바타 & 레벨 정보) */
+.sub-exp-body {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.sub-exp-pet-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.sub-exp-pet-avatar img {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+}
+
+.sub-exp-level-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-exp-level-label {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.sub-exp-level-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+
+/* 카드 하단 영역 (경험치 게이지 및 진행률 정보) */
+.sub-exp-bar-wrap {
+    width: 100%;
+}
+
+.sub-exp-bar-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.3rem;
+}
+
+.sub-exp-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.sub-exp-bar-fill {
+    height: 100%;
+    background: var(--accent-gradient);
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+

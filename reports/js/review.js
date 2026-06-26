@@ -222,6 +222,7 @@ function startReview(subject) {
     ReviewState.currentIdx = 0;
     ReviewState.userSelections = {};
     ReviewState.isSubmitted = {};
+    ReviewState.currentSubject = subject; // [설계 의도] 오답 복습 러너 뷰에서 해당 과목의 전용 캐릭터 펫을 노출할 수 있도록 세션 과목 코드를 보관합니다.
 
     // 로딩 인디케이터 연출
     document.getElementById('runner-subject-title').textContent = SUBJECT_NAMES[subject];
@@ -610,15 +611,32 @@ function updateRunnerExpUI() {
         petWidget.title = '클릭 시 포켓몬 캐릭터 교체';
 
         // 현재 선택된 펫 로드
-        const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur'];
-        let currentPetKey = localStorage.getItem('gam_selected_pet') || 'pikachu';
-        if (!petKeys.includes(currentPetKey)) currentPetKey = 'pikachu';
+        const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom'];
+
+        // [설계 의도]
+        // 오답 복습 중인 과목 코드(ReviewState.currentSubject)에 적합한 기본 마스코트 펫을 매핑합니다.
+        let defaultPet = 'pikachu';
+        const curSub = ReviewState.currentSubject ? ReviewState.currentSubject.toUpperCase() : '';
+        if (curSub === 'SC') {
+            defaultPet = 'growlithe';
+        } else if (curSub === 'DB') {
+            defaultPet = 'squirtle';
+        } else if (curSub === 'PM') {
+            defaultPet = 'charmander';
+        } else if (curSub === 'SA') {
+            defaultPet = 'rotom';
+        }
+
+        let currentPetKey = localStorage.getItem('gam_selected_pet') || defaultPet;
+        if (!petKeys.includes(currentPetKey)) currentPetKey = defaultPet;
 
         const POKEMON_PETS = {
             'pikachu': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif', defaultMsg: '오늘도 합격을 향해 백만볼트! ⚡' },
             'charmander': { name: '파이리', src: '/reports/images_game/charmander_cheer.png', defaultMsg: '뜨거운 열정으로 문제를 정복해요! 🔥' },
             'squirtle': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png', defaultMsg: '오답은 시원하게 물대포로 날려요! 💦' },
-            'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' }
+            'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' },
+            'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png', defaultMsg: '침입자 및 오답 철저 차단! 든든하게 지켜요! 🚨' },
+            'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' }
         };
 
         const activePet = POKEMON_PETS[currentPetKey];

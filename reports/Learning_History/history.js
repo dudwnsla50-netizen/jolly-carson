@@ -56,8 +56,15 @@ function loadAllHistoryData() {
             .catch(() => ({ logs: [] }));
     });
 
-    Promise.all(fetchPromises)
-        .then(results => {
+    // [설계 의도]
+    // 과목별 학습 현황 통계 데이터와 게이미피케이션 경험치 데이터를 병합 호출하여
+    // 학습 이력 분석 센터 화면에 유기적으로 연동하고, 한 번의 로딩으로 모든 정보를 노출시킵니다.
+    const expPromise = fetch('/api/quiz/total-exp')
+        .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0, subjects_exp: {} })
+        .catch(() => ({ total_exp: 0, level: 1, exp_in_level: 0, subjects_exp: {} }));
+
+    Promise.all([Promise.all(fetchPromises), expPromise])
+        .then(([results, expData]) => {
             const merged = [];
 
             results.forEach((data, index) => {
@@ -75,6 +82,9 @@ function loadAllHistoryData() {
             // 시간 최신순 정렬
             merged.sort((a, b) => b.parsedDate - a.parsedDate);
             HistoryState.allLogs = merged;
+
+            // 과목별 레벨/경험치 카드 UI 렌더링
+            renderSubjectExpCards(expData);
 
             if (merged.length === 0) {
                 renderEmptyState();
@@ -493,6 +503,73 @@ function renderEmptyState() {
 
 
     document.querySelector('.container').appendChild(emptyContainer);
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+/**
+ * 10. [설계 의도] 5대 과목별 레벨링 카드 그리드를 화면에 동적 주입합니다.
+ * - 각 과목에 부합하는 응원 펫 캐릭터 이미지와 독립 레벨, 경험치 게이지를 렌더링합니다.
+ * - 글래스모피즘 테마를 입혀 수려한 프리미엄 UI 디자인으로 사용자의 학습 의욕을 고취시킵니다.
+ */
+function renderSubjectExpCards(expData) {
+    const container = document.getElementById('subject-exp-grid');
+    if (!container) return;
+
+    container.innerHTML = '';
+    const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
+    
+    // 각 과목 대시보드와 동일한 캐릭터 펫 할당
+    const POKEMON_PETS = {
+        'DB': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png' },
+        'SE': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' },
+        'PM': { name: '파이리', src: '/reports/images_game/charmander_cheer.png' },
+        'SA': { name: '로토무', src: '/reports/images_game/rotom_architect.png' }, // 시스템구조 과목 전용 캐릭터 매핑
+        'SC': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png' } // 보안 과목 전용 캐릭터 매핑
+    };
+
+    const subExps = expData.subjects_exp || {};
+
+    subjects.forEach(sub => {
+        const subData = subExps[sub] || { total_exp: 0, level: 1, exp_in_level: 0, exp_to_next: 10 };
+        const pet = POKEMON_PETS[sub] || { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' };
+        
+        const card = document.createElement('div');
+        card.className = 'subject-exp-card';
+        
+        // 경험치바 백분율 계산
+        const expPercent = (subData.exp_in_level / 10) * 100;
+        const nextLevelExp = subData.level * 10;
+        
+        card.innerHTML = `
+            <div class="sub-exp-header">
+                <span class="sub-exp-title">${SUBJECT_NAMES[sub]}</span>
+                <span class="sub-exp-badge">${sub}</span>
+            </div>
+            <div class="sub-exp-body">
+                <div class="sub-exp-pet-avatar" title="${pet.name}">
+                    <img src="${pet.src}" alt="${pet.name}">
+                </div>
+                <div class="sub-exp-level-wrap">
+                    <span class="sub-exp-level-label">LEVEL</span>
+                    <span class="sub-exp-level-val">${subData.level}</span>
+                </div>
+            </div>
+            <div class="sub-exp-bar-wrap">
+                <div class="sub-exp-bar-info">
+                    <span>${subData.total_exp} EXP</span>
+                    <span>${subData.exp_in_level} / 10 EXP</span>
+                </div>
+                <div class="sub-exp-bar-bg">
+                    <div class="sub-exp-bar-fill" style="width: ${expPercent}%"></div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+
+    // 동적 아이콘 리프레시
     if (window.lucide) {
         lucide.createIcons();
     }
