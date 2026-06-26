@@ -547,7 +547,7 @@ function renderSubjectExpCards(expData) {
     
     // 각 과목 대시보드와 동일한 캐릭터 펫 할당
     const POKEMON_PETS = {
-        'DB': { name: '꼬부기', src: '/reports/images_game/squirtle_cheer.png' },
+        'DB': { name: '메타그로스', src: '/reports/images_game/metagross.png' }, // 데이터베이스 과목 전용 캐릭터 매핑
         'SE': { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' },
         'PM': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png' }, // 사업관리 과목 전용 캐릭터 매핑
         'SA': { name: '로토무', src: '/reports/images_game/rotom_architect.png' }, // 시스템구조 과목 전용 캐릭터 매핑

@@ -1655,7 +1655,7 @@ function gamInjectExpCard() {
     if (window.SUBJECT_CODE === 'SC') {
         defaultPet = 'growlithe';
     } else if (window.SUBJECT_CODE === 'DB') {
-        defaultPet = 'squirtle';
+        defaultPet = 'metagross';
     } else if (window.SUBJECT_CODE === 'PM') {
         defaultPet = 'sirfetchd';
     } else if (window.SUBJECT_CODE === 'SA') {
@@ -1673,7 +1673,8 @@ function gamInjectExpCard() {
         'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png', defaultMsg: '천천히 씨앗을 뿌리듯 실력을 키워요! 🌱' },
         'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png', defaultMsg: '침입자 및 오답 철저 차단! 든든하게 지켜요! 🚨' },
         'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png', defaultMsg: '시스템 성능 최적화 완료! 아키텍처 설계를 지원해요! ⚙️' },
-        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png', defaultMsg: '기사도 정신으로 법령 준수! 공정한 계약과 감리를 집행해요! ⚖️' }
+        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png', defaultMsg: '기사도 정신으로 법령 준수! 공정한 계약과 감리를 집행해요! ⚖️' },
+        'metagross': { name: '메타그로스', src: '/reports/images_game/metagross.png', defaultMsg: '데이터베이스 대기 중... 메타그로스의 인덱스 연산을 시작하세요! 🧠' }
     };
 
     const activePet = POKEMON_PETS[currentPetKey];
@@ -1837,6 +1838,13 @@ const PROGRESS_PET_MESSAGES = {
         '계약 의무 이행률 50% 돌파! 리스크 없는 완벽한 사업 관리가 진행 중입니다! ⚖️',
         '목표 완수가 눈앞입니다! 대파 창을 굳건히 쥐고 돌격합시다! ⚖️',
         '사업 대성공! 150문항 이정표를 정복하여 위대한 기사 작위를 수여받았습니다! 🏆⚔️'
+    ],
+    'metagross': [
+        '데이터베이스 대기 중... 메타그로스의 인덱스 연산을 시작하세요! 🧠',
+        '트랜잭션 가동! 일관성 있는 분석을 위해 데이터 검사를 시작합니다! 🧠',
+        '연산 처리율 50% 돌파! 인덱스 튜닝이 아주 잘 되어가고 있군요! 🧠',
+        '디스크 쓰기 작업 거의 완료! 목표 150문항 커밋이 코앞입니다! 🧠',
+        '커밋 완료! 150문항 이정표를 완벽히 유지하며 트랜잭션이 성공적으로 완수되었습니다! 🏆🧠'
     ]
 };
 
@@ -1976,11 +1984,11 @@ function gamOnCorrectAnswer(idx, qId) {
  * GAM-5-B. 펫 캐릭터를 클릭했을 때 다음 캐릭터로 교체합니다.
  */
 window.gamCyclePet = function() {
-    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd'];
+    const petKeys = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd', 'metagross'];
     const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
     let defaultPet = 'pikachu';
     if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
-    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
+    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'metagross';
     else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
     else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
 
@@ -1996,7 +2004,8 @@ window.gamCyclePet = function() {
         'bulbasaur': { name: '이상해씨', src: '/reports/images_game/bulbasaur_cheer.png' },
         'growlithe': { name: '가디 보안관', src: '/reports/images_game/growlithe_security.png' },
         'rotom': { name: '로토무', src: '/reports/images_game/rotom_architect.png' },
-        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png' }
+        'sirfetchd': { name: '창파나이트', src: '/reports/images_game/sirfetchd_pm.png' },
+        'metagross': { name: '메타그로스', src: '/reports/images_game/metagross.png' }
     };
 
     const pet = POKEMON_PETS[nextPetKey];
@@ -2061,6 +2070,11 @@ function gamTriggerPetCorrectMessage() {
             '정답입니다! 기사로서 한치의 부끄러움 없는 명쾌한 판단! ⚖️',
             '감리 통과! 프로젝트 리스크가 성공적으로 해결되었습니다! ⚖️',
             '대파 검이 번쩍였습니다! 정답 적중! ⚔️'
+        ],
+        'metagross': [
+            '정답입니다! 인덱스 스캔 속도 최고치 달성! 🧠',
+            '쿼리 실행 계획 완벽! 한치의 오차도 없는 정답입니다! 🧠',
+            '메타그로스의 4개 뇌가 감탄한 명쾌한 해답이네요! ⚡'
         ]
     };
 
@@ -2131,6 +2145,11 @@ function gamTriggerPetIncorrectMessage() {
             '감리 지적 사항 발생! 계약 법령을 다시 대조해 볼 필요가 있습니다! ⚖️',
             '기사로서의 일시적 후퇴일 뿐! 대파 방패로 오답을 막고 다시 싸웁시다! ⚔️',
             '리스크가 현실화되었습니다! 하지만 시정 조치를 취하면 프로젝트는 성공합니다! ⚖️'
+        ],
+        'metagross': [
+            '롤백 발생! 트랜잭션 오류가 감지되었습니다. 쿼리를 재확인하세요! 🧠',
+            '일시적인 커밋 실패! 하지만 격리 수준을 조정하고 다시 풀면 맞출 수 있습니다! 🧠',
+            '괜찮습니다! 데드락이 발생했으나 메타그로스가 정상 해제했으니 재도전합시다! ⚡'
         ]
     };
 
