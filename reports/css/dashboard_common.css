@@ -1551,4 +1551,109 @@ input:checked+.slider:before {
     30% { box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 60px rgba(16, 185, 129, 0.4); }
     100% { box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 40px rgba(139, 92, 246, 0.05); }
 }
+
+/* 5콤보 달성 축하 오버레이 및 뱃지 이펙트 */
+.gam-combo5-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(8, 11, 19, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: comboPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.gam-combo5-card {
+    position: relative;
+    background: rgba(17, 24, 39, 0.9);
+    border: 2px solid #8b5cf6;
+    box-shadow: 0 0 50px rgba(139, 92, 246, 0.4), inset 0 0 20px rgba(139, 92, 246, 0.2);
+    border-radius: 24px;
+    padding: 3rem 4rem;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    overflow: hidden;
+}
+
+.gam-combo5-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 60%);
+    animation: comboRotate 6s linear infinite;
+    pointer-events: none;
+}
+
+.gam-combo5-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+    color: #ffffff;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+    animation: comboPulse 1.2s infinite;
+}
+
+.gam-combo5-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 4.5rem;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px rgba(139, 92, 246, 0.8);
+    margin-bottom: 0.8rem;
+    letter-spacing: -0.02em;
+    animation: comboTitleBounce 0.6s ease-out 0.2s both;
+}
+
+.gam-combo5-sub {
+    font-size: 1.1rem;
+    color: #e5e7eb;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.gam-combo5-overlay.fade-out {
+    animation: comboFadeOut 0.4s ease-in forwards;
+}
+
+/* 키프레임 애니메이션 정의 */
+@keyframes comboPopIn {
+    0% { opacity: 0; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes comboFadeOut {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-40px); }
+}
+
+@keyframes comboPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
+}
+
+@keyframes comboRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes comboTitleBounce {
+    0% { opacity: 0; transform: translateY(50px) scale(0.3); }
+    50% { opacity: 1; transform: translateY(-10px) scale(1.1); }
+    70% { transform: translateY(5px) scale(0.95); }
+    100% { transform: translateY(0) scale(1); }
+}
 

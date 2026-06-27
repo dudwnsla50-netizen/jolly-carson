@@ -467,10 +467,13 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     # 1. 오늘 푼 총 문항 수(today_solved) 산출 - KST 오늘 자정 기준
-                    # SQLite 및 PostgreSQL의 날짜 포맷 규격을 준수하기 위해 파이썬 단에서 날짜 스트링으로 매핑합니다.
-                    now = datetime.datetime.now()
-                    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                    today_start_str = today_start.strftime("%Y-%m-%d %H:%M:%S")
+                    # DB(created_at)는 UTC 시간으로 기록되므로, KST 기준 오늘 자정을 UTC 시간으로 변환하여 비교합니다.
+                    # 이를 통해 서버의 기본 타임존 환경(KST 또는 UTC)에 구애받지 않고 일관된 집계가 가능합니다.
+                    utc_now = datetime.datetime.utcnow()
+                    kst_now = utc_now + datetime.timedelta(hours=9)
+                    kst_today_start = kst_now.replace(hour=0, minute=0, second=0, microsecond=0)
+                    utc_today_start = kst_today_start - datetime.timedelta(hours=9)
+                    today_start_str = utc_today_start.strftime("%Y-%m-%d %H:%M:%S")
 
                     sql_today = """
                         SELECT COALESCE(SUM(total_questions), 0) as today_solved
