@@ -26,7 +26,7 @@ function updateTabTitleWithDbMode() {
                 if (!document.title.includes(`[${dbTypeStr}]`)) {
                     document.title = `${document.title} [${dbTypeStr}]`;
                 }
-                
+
                 // __HEADER_SUBTITLE__ 위치에 DB 모드 동적 주입
                 const subtitleEl = document.getElementById('db-mode-subtitle');
                 if (subtitleEl) {
@@ -83,6 +83,162 @@ function shuffleArray(array) {
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+}
+
+/**
+ * 🔄 개별 기출문항의 최종 롤링 가중치를 계산합니다.
+ */
+function calculateQuestionWeight(qId) {
+    if (!window.APP_CONFIG || !window.APP_CONFIG.ROLLING_WEIGHT_CONFIG) {
+        console.error("[오류] config.js가 정상적으로 로드되지 않았거나 ROLLING_WEIGHT_CONFIG가 설정되지 않았습니다.");
+        return 0;
+    }
+    const config = window.APP_CONFIG.ROLLING_WEIGHT_CONFIG;
+
+    const history = window.quizFullHistoryList || [];
+    // 해당 문제(qId)의 모든 학습 시도 이력을 필터링합니다.
+    const qAttempts = history.filter(log => {
+        if (!log.details) return false;
+        let logQId = null;
+        if (typeof log.details === 'object') {
+            logQId = log.details.q_id;
+        } else {
+            try {
+                const parsed = JSON.parse(log.details);
+                logQId = parsed.q_id;
+            } catch (e) { }
+        }
+        return logQId === qId;
+    });
+
+    // 1. 학습한 적이 없는 문제는 미학습 문제 가중치(+1) 반환
+    if (qAttempts.length === 0) {
+        return config.UNSTUDIED_ADDITIVE_WEIGHT;
+    }
+
+    // 2. 학습한 문제 가중치 연산
+    let correctCount = 0;
+    let wrongCount = 0;
+
+    qAttempts.forEach(log => {
+        let isCorrect = false;
+        if (log.details) {
+            if (typeof log.details === 'object') {
+                isCorrect = !!log.details.is_correct;
+            } else {
+                try {
+                    const parsed = JSON.parse(log.details);
+                    isCorrect = !!parsed.is_correct;
+                } catch (e) { }
+            }
+        } else {
+            isCorrect = (log.correct_count || 0) > 0;
+        }
+
+        if (isCorrect) {
+            correctCount++;
+        } else {
+            wrongCount++;
+        }
+    });
+
+    const formula = config.STUDIED_WEIGHT_FORMULA;
+    let weight = (wrongCount * formula.wrongMultiplier) - (correctCount * formula.correctMultiplier);
+
+    // 3. 최근에 연속해서 N번 이상 맞았는지 판별 (이력 목록은 최신순으로 정렬되어 있음)
+    const limit = config.CONSECUTIVE_CORRECT_LIMIT || 3;
+    const penalty = config.CONSECUTIVE_CORRECT_PENALTY || 1.0;
+
+    if (qAttempts.length >= limit) {
+        let consecutiveCorrect = true;
+        for (let i = 0; i < limit; i++) {
+            let isCorrect = false;
+            const log = qAttempts[i];
+            if (log.details) {
+                if (typeof log.details === 'object') {
+                    isCorrect = !!log.details.is_correct;
+                } else {
+                    try {
+                        const parsed = JSON.parse(log.details);
+                        isCorrect = !!parsed.is_correct;
+                    } catch (e) { }
+                }
+            } else {
+                isCorrect = (log.correct_count || 0) > 0;
+            }
+
+            if (!isCorrect) {
+                consecutiveCorrect = false;
+                break;
+            }
+        }
+
+        if (consecutiveCorrect) {
+            weight -= penalty; // 연속 정답으로 인한 가중치 차감 (-1)
+        }
+    }
+
+    // 4. 하한값 제한
+    return Math.max(weight, formula.minWeight);
+}
+
+/**
+ * 🔄 문제별 롤링 가중치를 반영한 가중 비복원 추출 기반의 셔플을 수행합니다. (Weighted Random Sampling without replacement)
+ */
+function weightedShuffle(array) {
+    if (!array || array.length === 0) return [];
+
+    const list = [...array];
+    const result = [];
+
+    // 1. 각 문제의 롤링 가중치를 미리 연산
+    const weightsMap = {};
+    list.forEach(q => {
+        weightsMap[q.qId] = calculateQuestionWeight(q.qId);
+    });
+
+    // 2. 가중치가 음수일 때 비복원 추출 확률 계산이 불가능하므로 최소값 양수 보정 처리
+    let minW = Infinity;
+    list.forEach(q => {
+        const w = weightsMap[q.qId];
+        if (w < minW) minW = w;
+    });
+
+    // 가중치가 가장 낮은 문제도 최소 0.1의 선택 확률을 확보하도록 offset 설정
+    const offset = minW < 0 ? -minW + 0.1 : 0.1;
+    const positiveWeights = {};
+    list.forEach(q => {
+        positiveWeights[q.qId] = weightsMap[q.qId] + offset;
+    });
+
+    // 3. 비복원 추출 루프
+    while (list.length > 0) {
+        let totalWeight = 0;
+        list.forEach(q => {
+            totalWeight += positiveWeights[q.qId];
+        });
+
+        let r = Math.random() * totalWeight;
+        let cumulative = 0;
+        let selectedIdx = -1;
+
+        for (let i = 0; i < list.length; i++) {
+            cumulative += positiveWeights[list[i].qId];
+            if (r <= cumulative) {
+                selectedIdx = i;
+                break;
+            }
+        }
+
+        if (selectedIdx === -1) {
+            selectedIdx = list.length - 1;
+        }
+
+        result.push(list[selectedIdx]);
+        list.splice(selectedIdx, 1);
+    }
+
+    return result;
 }
 
 /**
@@ -914,7 +1070,7 @@ function renderLoadedQuestion(idx, qId) {
 
     // 다음 문제 이동 버튼 준비 (랜덤 롤링 세션 기반)
     let nextQuestionButtonHtml = '';
-    
+
     // 세션 조회 및 검증
     let session = window.rollingSession;
     let isSessionValid = false;
@@ -928,8 +1084,8 @@ function renderLoadedQuestion(idx, qId) {
             // 현재 중단원의 문제 목록 크기가 세션 문제 목록 크기와 동일하고, 문제 구성이 일치하는지 체크
             const localQsList = getConceptQuestionsList(idx);
             isSessionValid = (String(session.globalIdx) === String(idx)) &&
-                             (session.questions.length === localQsList.length) &&
-                             (session.questions.every(sq => localQsList.some(aq => aq.qId === sq.qId)));
+                (session.questions.length === localQsList.length) &&
+                (session.questions.every(sq => localQsList.some(aq => aq.qId === sq.qId)));
         }
     }
 
@@ -939,7 +1095,7 @@ function renderLoadedQuestion(idx, qId) {
         const localQsList = getConceptQuestionsList(idx);
         if (localQsList.length > 0) {
             const otherQs = localQsList.filter(q => q.qId !== qId);
-            const shuffledOthers = shuffleArray(otherQs);
+            const shuffledOthers = weightedShuffle(otherQs);
             const currentQ = localQsList.find(q => q.qId === qId);
 
             const newQs = [];
@@ -963,22 +1119,22 @@ function renderLoadedQuestion(idx, qId) {
         }
     }
 
-        // 세션 인덱스를 바탕으로 다음 롤링 문제 버튼 생성
-        if (session && session.isActive && session.currentIndex > -1) {
-            if (session.currentIndex < session.questions.length - 1) {
-                const nextQ = session.questions[session.currentIndex + 1];
-                nextQuestionButtonHtml = `
+    // 세션 인덱스를 바탕으로 다음 롤링 문제 버튼 생성
+    if (session && session.isActive && session.currentIndex > -1) {
+        if (session.currentIndex < session.questions.length - 1) {
+            const nextQ = session.questions[session.currentIndex + 1];
+            nextQuestionButtonHtml = `
                     <button onclick="moveToNextRollingQuestion('${nextQ.globalIdx}', ${nextQ.year}, ${nextQ.num}, event)" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">다음 문제 ➡️</button>
                 `;
-            } else {
-                // 롤링 세션의 모든 문제를 다 푼 경우 새롭게 랜덤 롤링 시작
-                if (session.questions.length > 1) {
-                    nextQuestionButtonHtml = `
+        } else {
+            // 롤링 세션의 모든 문제를 다 푼 경우 새롭게 랜덤 롤링 시작
+            if (session.questions.length > 1) {
+                nextQuestionButtonHtml = `
                         <button onclick="restartRollingSession(event)" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">새 롤링 시작 🔄</button>
                     `;
-                }
             }
         }
+    }
 
     // 질문 본문 렌더링
     let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: #ffffff; margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
@@ -1058,7 +1214,7 @@ function renderLoadedQuestion(idx, qId) {
                 <ul class="timeline-list" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem;">
         `;
         const numSymbols = ["①", "②", "③", "④", "⑤"];
-        questionLogs.forEach(log => {
+        questionLogs.forEach((log, logIdx) => {
             let text = '';
             const dateFormatted = formatKoreanDate(log.created_at);
             const isCorrect = log.details && (log.details.is_correct !== undefined ? log.details.is_correct : (log.details.correct && log.details.correct.includes(qId)));
@@ -1083,17 +1239,31 @@ function renderLoadedQuestion(idx, qId) {
                 text = `${dateFormatted}에 풀었음`;
             }
 
+            const displayStyle = logIdx >= 4 ? 'display: none !important;' : 'display: flex;';
+            const extraClass = logIdx >= 4 ? `hidden-history-item-${qId}` : '';
+
             historyHtml += `
-                <li style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${itemColor};">
+                <li class="${extraClass}" style="font-size: 0.8rem; color: var(--text-secondary); ${displayStyle} align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${itemColor};">
                     <span style="color: ${itemColor}; font-weight: bold; font-size: 0.75rem;">[${itemIcon}]</span>
                     <span>${text}</span>
                 </li>
             `;
         });
-        historyHtml += `
+
+        if (questionLogs.length > 4) {
+            historyHtml += `
+                </ul>
+                <div style="display: flex; justify-content: center; margin-top: 0.5rem;">
+                    <button class="history-more-btn" onclick="toggleMoreHistory('${qId}', this)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--text-secondary); padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; outline: none; font-family: inherit;">🔍 이력 더보기</button>
+                </div>
+            </div>
+            `;
+        } else {
+            historyHtml += `
                 </ul>
             </div>
-        `;
+            `;
+        }
     }
 
     // 답안 제출 및 피드백 패널
@@ -1779,7 +1949,7 @@ function gamUpdateExpUI() {
     // 일일 학습 목표 게이지 바 동적 업데이트
     const goalText = document.getElementById('gam-goal-text');
     const goalFill = document.getElementById('gam-goal-fill');
-    
+
     const solvedVal = todaySolved || 0;
     const goalPercent = Math.min((solvedVal / dailyGoal) * 100, 100);
 
@@ -1871,7 +2041,7 @@ function gamUpdatePetMessageByProgress(solvedVal) {
     else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
     else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
-    
+
     // 일일 학습 목표량 설정값 읽기 (폴백 기본값 150)
     const dailyGoal = (window.APP_CONFIG && window.APP_CONFIG.DAILY_STUDY_GOAL) || 150;
 
@@ -1907,7 +2077,7 @@ function gamUpdatePetMessageByProgress(solvedVal) {
 
     [img, runnerImg].forEach(petImg => {
         if (!petImg) return;
-        
+
         let scale = 1.1;
         let filterEffect = 'none';
 
@@ -1970,23 +2140,23 @@ function gamOnCorrectAnswer(idx, qId) {
     // 연속 정답 콤보 누적
     window.gamComboCount = (window.gamComboCount || 0) + 1;
     let isComboTriggered = false;
-    if (window.gamComboCount === 5) {
+    if (window.gamComboCount === 1 || window.gamComboCount >= 10) {
         isComboTriggered = true;
     }
 
     // UI 갱신 (경험치 바 및 오늘의 학습 목표 150문항 진척도 등)
     gamUpdateExpUI();
 
-    // 5콤보 달성 시 특별 축하 이펙트 구동, 그 외에는 일반 칭찬 멘트
+    // 5콤보 달성 또는 10콤보 이상 연속 정답 시 특별 축하 이펙트 구동, 그 외에는 일반 칭찬 멘트
     if (isComboTriggered) {
-        gamTriggerCombo5Effect();
+        gamTriggerCombo5Effect(window.gamComboCount);
     } else {
         gamTriggerPetCorrectMessage();
         gamApplyPetAnimation('correct');
     }
 
-    // EXP +1 플로팅 뱃지
-    gamTriggerExpFloat();
+    // EXP +1 플로팅 뱃지 (퍼펙트 이펙트 집중을 위해 비활성화)
+    // gamTriggerExpFloat();
 
     // 보물 상자 + 보석 파티클 (인라인 뷰어 내부에 삽입)
     gamTriggerTreasureChest(idx, qId);
@@ -2007,7 +2177,7 @@ function gamOnCorrectAnswer(idx, qId) {
 /**
  * GAM-5-B. 펫 캐릭터를 클릭했을 때 다음 캐릭터로 교체합니다.
  */
-window.gamCyclePet = function() {
+window.gamCyclePet = function () {
     const petKeys = (window.APP_CONFIG && window.APP_CONFIG.PET_KEYS) || ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd', 'metagross'];
     const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
     const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
@@ -2020,7 +2190,7 @@ window.gamCyclePet = function() {
     const pet = gamGetPetProfile(nextPetKey);
     const img = document.getElementById('gam-pet-img');
     const runnerImg = document.getElementById('gam-runner-pet-img');
-    
+
     if (img) {
         img.src = pet.src;
         img.alt = pet.name;
@@ -2092,7 +2262,7 @@ function gamTriggerPetCorrectMessage() {
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_CORRECT_MESSAGES[currentPetKey] || ['정답입니다! 🎉'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
-    
+
     const bubble = document.getElementById('gam-pet-bubble-text');
     const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
 
@@ -2167,7 +2337,7 @@ function gamTriggerPetIncorrectMessage() {
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_INCORRECT_MESSAGES[currentPetKey] || ['괜찮아요! 다시 한 번 검토해봅시다! 💪'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
-    
+
     const bubble = document.getElementById('gam-pet-bubble-text');
     const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
 
@@ -2208,7 +2378,7 @@ function gamApplyPetAnimation(type) {
 
         // 기존 클래스 제거
         img.classList.remove('gam-pet-bounce', 'gam-pet-shake', 'gam-pet-spin');
-        
+
         // 리플로우 강제 유발로 애니메이션 리셋
         void img.offsetWidth;
 
@@ -2499,8 +2669,8 @@ function startGlobalRolling(event) {
         return;
     }
 
-    // 전체 활성 문제를 랜덤 셔플하여 롤링 세션 개시
-    const shuffledQs = shuffleArray(activeQsList);
+    // 전체 활성 문제를 가중치 기반으로 셔플하여 롤링 세션 개시
+    const shuffledQs = weightedShuffle(activeQsList);
     window.rollingSession = {
         isActive: true,
         questions: shuffledQs,
@@ -2523,7 +2693,7 @@ function restartRollingSession(event) {
         // 로컬 중단원 세션 재시작
         const localQsList = getConceptQuestionsList(session.globalIdx);
         if (localQsList.length > 0) {
-            const shuffledQs = shuffleArray(localQsList);
+            const shuffledQs = weightedShuffle(localQsList);
             window.rollingSession = {
                 isActive: true,
                 questions: shuffledQs,
@@ -2541,74 +2711,187 @@ function restartRollingSession(event) {
     startGlobalRolling();
 }
 
+/**
+ * 🔄 현재 사용자의 레벨에 따라 진화된 포켓몬 펫 키를 반환합니다.
+ */
+function gamGetEvolvedPetKey(defaultPetKey) {
+    const level = (window.gamState && window.gamState.level) || 1;
+
+    if (defaultPetKey === 'charmander') {
+        if (level >= 31) return 'megacharizard';
+        if (level >= 21) return 'charizard';
+        if (level >= 11) return 'charmeleon';
+        return 'charmander';
+    }
+    if (defaultPetKey === 'farfetchd') {
+        if (level >= 16) return 'sirfetchd';
+        return 'farfetchd';
+    }
+    if (defaultPetKey === 'growlithe') {
+        if (level >= 16) return 'arcanine';
+        return 'growlithe';
+    }
+    return defaultPetKey;
+}
 
 /**
  * GAM-X. 5연속 정답(5콤보) 달성 시 특별 이펙트와 캐릭터 축하 연출을 구동합니다.
  */
-function gamTriggerCombo5Effect() {
-    // 1. 화면 중앙 "HIT 5! 💥" 오버레이 엘리먼트 생성
+function gamTriggerCombo5Effect(comboCount) {
+    const count = comboCount || window.gamComboCount || 5;
+
+    // 기존에 존재하는 콤보 이펙트 오버레이가 있다면 즉시 제거하여 1가지만 남김
+    const existingOverlay = document.querySelector('.gam-combo5-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+
+    // 1. 마우스 및 터치 위치에 단 하나의 멋진 콤보 텍스트 뱃지만 플로팅 생성
     const comboEl = document.createElement('div');
     comboEl.className = 'gam-combo5-overlay';
-    
-    // 현재 과목의 기본/진화 펫의 이름을 가져옵니다.
-    const defaultPetKey = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
-    const activePetKey = gamGetEvolvedPetKey(defaultPetKey);
-    const petProfile = gamGetPetProfile(activePetKey);
-    const petName = petProfile ? petProfile.name : '파트너';
+
+    // 마우스 위치 기준으로 fixed 좌표 및 중심 정렬 지정
+    const mouseX = window.gamLastMouseX || (window.innerWidth / 2);
+    const mouseY = window.gamLastMouseY || (window.innerHeight / 2);
+    comboEl.style.left = `${mouseX}px`;
+    comboEl.style.top = `${mouseY}px`;
+    comboEl.style.transform = 'translate(-50%, -50%)';
+    comboEl.style.pointerEvents = 'none'; // 클릭 이벤트 차단 없음 방지
 
     comboEl.innerHTML = `
-        <div class="gam-combo5-card">
-            <div class="gam-combo5-glow"></div>
-            <div class="gam-combo5-badge">🔥 5 COMBO 🔥</div>
-            <h1 class="gam-combo5-title">HIT 5!</h1>
-            <p class="gam-combo5-sub">${petName}이(가) 연속 정답을 축하합니다! 🏆</p>
+        <div class="gam-combo5-shockwave"></div>
+        <div class="gam-perfect-combo-container">
+            <img class="gam-perfect-img" src="images_game/perfect_text.png" alt="Perfect" draggable="false" />
+            <span class="gam-combo-cross">x</span>
+            <div class="gam-combo-num-wrapper">
+                <svg class="gam-combo-starburst-svg" viewBox="0 0 100 100">
+                    <polygon points="50,5 57,35 88,12 67,43 98,50 67,57 88,88 57,65 50,95 43,65 12,88 33,57 2,50 33,43 12,12 43,35" fill="rgba(216, 0, 255, 0.55)" stroke="#ff26ea" stroke-width="4" />
+                </svg>
+                <span class="gam-combo-num">${count}</span>
+            </div>
         </div>
     `;
-    
+
     document.body.appendChild(comboEl);
-    
+
+    // 1-A. 타격 파티클 폭발 이펙트 생성 (게임 타격감 연출)
+    const particleCount = 15;
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'gam-combo-particle';
+
+        // 마우스 시작 위치 지정
+        particle.style.left = `${mouseX}px`;
+        particle.style.top = `${mouseY}px`;
+
+        // 무작위 폭발 각도와 흩어질 거리(픽셀) 연산
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 40 + Math.random() * 120;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+
+        // CSS 변수로 최종 오프셋 값 전달
+        particle.style.setProperty('--tx', `${tx}px`);
+        particle.style.setProperty('--ty', `${ty}px`);
+
+        // 입자의 무작위 크기 세팅
+        const size = 4 + Math.random() * 6;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+
+        document.body.appendChild(particle);
+
+        // 0.8초 후 파티클 DOM 노드 자동 소멸
+        setTimeout(() => {
+            particle.remove();
+        }, 800);
+    }
+
     // 2. 펫 캐릭터 특별 축하 모션 (360도 회전 바운스)
     gamApplyPetAnimation('spin');
-    
+
     // 3. 말풍선에 5콤보 달성 특별 축하 대사 주입
+    const defaultPetKey = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
+    const activePetKey = gamGetEvolvedPetKey(defaultPetKey);
+
     const COMBO5_MESSAGES = {
-        'charmander': '🔥 와! 벌써 5연속 정답! 파이리의 불꽃 콤보로 기세를 올리고 있어요! 🔥',
-        'charmeleon': '🔥 트랜잭션 5회 연속 커밋 성공! 리자드의 뜨거운 불꽃 콤보 어택! 🔥',
-        'charizard': '🐉🔥 하늘을 날아오르는 5연속 정답! 리자몽의 화염방사가 완벽한 정답 길을 엽니다! 🏆',
-        'megacharizard': '⚡🏆 한계를 돌파한 5콤보! 메가리자몽의 전율하는 불꽃이 데이터베이스를 압도합니다! 🐉🔥',
-        'pikachu': '⚡ 삐까삐까! 연속 5번 정답! 피카츄의 전기 콤보로 오답들을 완전 방전시켰어요! ⚡',
-        'growlithe': '🚨 연속 5회 보안 위협 차단 성공! 가디 보안관의 완벽한 정답 순찰 라인 확보! 🚨',
-        'arcanine': '🚨🔥 전설의 5연속 보안 점검 완료! 윈디의 질풍 같은 속도로 오답들을 완벽 소각! 🏆🚨',
-        'farfetchd': '⚔️ 대파를 휘두르며 연속 5회 명중! 파오리의 예리한 검술로 PM 일정을 완전 제어! ⚖️',
-        'sirfetchd': '⚔️ 기사도의 영광! 5콤보 달성! 창파나이트의 빛나는 대파 창으로 완벽 감리 수행! 🏆⚖️',
-        'rotom': '⚙️ 로토무 콤보 분석 가동! 연속 5회 연산 에러율 0%! 최적의 아키텍처 아웃풋! ⚡',
-        'squirtle': '🌊 시원하게 터지는 5연속 정답 물대포! 꼬부기와 함께 이대로 합격까지 서핑해요! 💦',
-        'bulbasaur': '🌱 5연속 정답 씨앗이 만개했습니다! 이상해씨가 준비한 합격 꽃다발을 받아주세요! 🌸',
-        'metagross': '🧠 4개의 뇌가 완벽 동기화된 5콤보! 메타그로스의 계산대로 합격을 선점합니다! ⚡'
+        'charmander': `🔥 와! 벌써 ${count}연속 정답! 파이리의 불꽃 콤보로 기세를 올리고 있어요! 🔥`,
+        'charmeleon': `🔥 트랜잭션 ${count}회 연속 커밋 성공! 리자드의 뜨거운 불꽃 콤보 어택! 🔥`,
+        'charizard': `🐉🔥 하늘을 날아오르는 ${count}연속 정답! 리자몽의 화염방사가 완벽한 정답 길을 엽니다! 🏆`,
+        'megacharizard': `⚡🏆 한계를 돌파한 ${count}콤보! 메가리자몽의 전율하는 불꽃이 데이터베이스를 압도합니다! 🐉🔥`,
+        'pikachu': `⚡ 삐까삐까! 연속 ${count}번 정답! 피카츄의 전기 콤보로 오답들을 완전 방전시켰어요! ⚡`,
+        'growlithe': `🚨 연속 ${count}회 보안 위협 차단 성공! 가디 보안관의 완벽한 정답 순찰 라인 확보! 🚨`,
+        'arcanine': `🚨🔥 전설의 ${count}연속 보안 점검 완료! 윈디의 질풍 같은 속도로 오답들을 완벽 소각! 🏆🚨`,
+        'farfetchd': `⚔️ 대파를 휘두르며 연속 ${count}회 명중! 파오리의 예리한 검술로 PM 일정을 완전 제어! ⚖️`,
+        'sirfetchd': `⚔️ 기사도의 영광! ${count}콤보 달성! 창파나이트의 빛나는 대파 창으로 완벽 감리 수행! 🏆⚖️`,
+        'rotom': `⚙️ 로토무 콤보 분석 가동! 연속 ${count}회 연산 에러율 0%! 최적의 아키텍처 아웃풋! ⚡`,
+        'squirtle': `🌊 시원하게 터지는 ${count}연속 정답 물대포! 꼬부기와 함께 이대로 합격까지 서핑해요! 💦`,
+        'bulbasaur': `🌱 ${count}연속 정답 씨앗이 만개했습니다! 이상해씨가 준비한 합격 꽃다발을 받아주세요! 🌸`,
+        'metagross': `🧠 4개의 뇌가 완벽 동기화된 ${count}콤보! 메타그로스의 계산대로 합격을 선점합니다! ⚡`
     };
-    
-    const comboMsg = COMBO5_MESSAGES[activePetKey] || '🌟 대단해요! 5연속 정답 돌파! 합격의 기운이 가득합니다! 🌟';
-    
+
+    const comboMsg = COMBO5_MESSAGES[activePetKey] || `🌟 대단해요! ${count}연속 정답 돌파! 합격의 기운이 가득합니다! 🌟`;
+
     const bubble = document.getElementById('gam-pet-bubble-text');
     const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
 
     if (bubble) bubble.textContent = comboMsg;
     if (runnerBubble) runnerBubble.textContent = comboMsg;
 
-    // 말풍선 대사가 6초 동안 노출되도록 복귀 타이머 연장
+    // 말풍선 대사가 4초 동안 노출되도록 복귀 타이머 연장
     if (window.gamPetBubbleTimeout) {
         clearTimeout(window.gamPetBubbleTimeout);
     }
     window.gamPetBubbleTimeout = setTimeout(() => {
         window.gamPetBubbleTimeout = null;
         gamUpdatePetMessageByProgress(window.gamState.todaySolved);
-    }, 6000);
+    }, 4000);
 
-    // 4. 2.5초 후 콤보 오버레이 제거 (페이드아웃 애니메이션 완료 후)
+    // 4. 1.5초 후 콤보 오버레이 제거 시작, 0.5초 간 페이드아웃 적용 (총 2.0초)
     setTimeout(() => {
         comboEl.classList.add('fade-out');
         setTimeout(() => {
             comboEl.remove();
         }, 500);
-    }, 2500);
+    }, 1500);
 }
+
+// 전역 마우스 및 터치 위치 추적 리스너 등록
+window.gamLastMouseX = window.innerWidth / 2;
+window.gamLastMouseY = window.innerHeight / 2;
+
+const updateGamMouseCoords = (e) => {
+    if (e.touches && e.touches.length > 0) {
+        window.gamLastMouseX = e.touches[0].clientX;
+        window.gamLastMouseY = e.touches[0].clientY;
+    } else {
+        window.gamLastMouseX = e.clientX;
+        window.gamLastMouseY = e.clientY;
+    }
+};
+
+document.addEventListener('mousemove', updateGamMouseCoords, { capture: true, passive: true });
+document.addEventListener('click', updateGamMouseCoords, { capture: true, passive: true });
+document.addEventListener('touchstart', updateGamMouseCoords, { capture: true, passive: true });
+
+// 나의 풀이 이력 더보기/접기 토글 함수
+window.toggleMoreHistory = function (qId, btnElement) {
+    const hiddenItems = document.querySelectorAll(`.hidden-history-item-${qId}`);
+    if (hiddenItems.length > 0) {
+        const isHidden = hiddenItems[0].style.getPropertyValue('display') === 'none' || hiddenItems[0].style.display === 'none';
+        hiddenItems.forEach(el => {
+            if (isHidden) {
+                el.style.setProperty('display', 'flex', 'important');
+            } else {
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+        btnElement.innerText = isHidden ? '접기 ↩️' : '🔍 이력 더보기';
+
+        // 아코디언 높이 동적 재계산
+        const accordionItem = btnElement.closest('.accordion-item');
+        if (accordionItem && typeof updateAccordionContentHeight === 'function') {
+            updateAccordionContentHeight(accordionItem);
+        }
+    }
+};

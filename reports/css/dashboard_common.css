@@ -1552,108 +1552,183 @@ input:checked+.slider:before {
     100% { box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 40px rgba(139, 92, 246, 0.05); }
 }
 
-/* 5콤보 달성 축하 오버레이 및 뱃지 이펙트 */
+/* ═══════════════════════════════════════════════════════════
+   🕺 Classic Retro Disco 테마 - Perfect 콤보 이펙트
+   ═══════════════════════════════════════════════════════════ */
+
+/* 5콤보 달성 축하 오버레이 */
 .gam-combo5-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(8, 11, 19, 0.6);
-    backdrop-filter: blur(8px);
+    width: auto;
+    height: auto;
+    background: transparent;
+    backdrop-filter: none;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    animation: comboPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.gam-combo5-card {
-    position: relative;
-    background: rgba(17, 24, 39, 0.9);
-    border: 2px solid #8b5cf6;
-    box-shadow: 0 0 50px rgba(139, 92, 246, 0.4), inset 0 0 20px rgba(139, 92, 246, 0.2);
-    border-radius: 24px;
-    padding: 3rem 4rem;
-    text-align: center;
-    max-width: 500px;
-    width: 90%;
-    overflow: hidden;
-}
-
-.gam-combo5-glow {
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 60%);
-    animation: comboRotate 6s linear infinite;
     pointer-events: none;
+    animation: overlayPopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-.gam-combo5-badge {
+/* 핫핑크/마젠타 네온 충격파 링 */
+.gam-combo5-shockwave {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 5px solid rgba(255, 50, 150, 0.75);
+    box-shadow:
+        0 0 22px rgba(255, 50, 150, 0.6),
+        0 0 45px rgba(200, 0, 160, 0.35),
+        inset 0 0 14px rgba(255, 50, 150, 0.4);
+    pointer-events: none;
+    z-index: 9997;
+    animation: shockwaveBurst 0.7s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+/* 콤보 연출 컨테이너 - 충분한 간격으로 겹침 방지 */
+.gam-perfect-combo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    pointer-events: none;
+    user-select: none;
+    font-family: 'Outfit', 'Arial Rounded MT Bold', 'Impact', sans-serif;
+    opacity: 0.93;
+}
+
+/* Perfect 텍스트 - PNG 이미지 스프라이트 (게임 원본 품질) */
+.gam-perfect-img {
+    height: 52px;
+    width: auto;
     display: inline-block;
-    background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
-    color: #ffffff;
-    padding: 0.5rem 1.5rem;
-    border-radius: 50px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 1.2rem;
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-    animation: comboPulse 1.2s infinite;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(4px 4px 0px rgba(0, 0, 0, 0.8))
+           drop-shadow(0 0 12px rgba(255, 110, 199, 0.5));
+    animation: perfectImgPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.6) forwards;
 }
 
-.gam-combo5-title {
-    font-family: 'Outfit', sans-serif;
-    font-size: 4.5rem;
+/* 배율 표시 x - 핫핑크 */
+.gam-combo-cross {
+    font-size: 2rem;
     font-weight: 900;
-    color: #ffffff;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px rgba(139, 92, 246, 0.8);
-    margin-bottom: 0.8rem;
-    letter-spacing: -0.02em;
-    animation: comboTitleBounce 0.6s ease-out 0.2s both;
+    font-style: italic;
+    background: linear-gradient(to bottom, #ff5599 0%, #d4004a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 1.6px rgba(255, 255, 255, 0.93);
+    filter: drop-shadow(3px 3px 0px rgba(0, 0, 0, 0.85));
+    margin: 0 0.15rem;
+    align-self: center;
 }
 
-.gam-combo5-sub {
-    font-size: 1.1rem;
-    color: #e5e7eb;
-    line-height: 1.5;
-    font-weight: 500;
+/* 숫자 영역 래퍼 - 충분한 여유 공간 */
+.gam-combo-num-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 70px;
+    height: 70px;
+}
+
+/* 뾰족한 스타버스트 배경 (보라 글로우 엣지) */
+.gam-combo-starburst-svg {
+    position: absolute;
+    width: 155%;
+    height: 155%;
+    z-index: 1;
+    pointer-events: none;
+    transform-origin: center;
+    filter: drop-shadow(0 0 7px rgba(180, 0, 255, 0.55));
+    animation: starburstPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.6) forwards;
+}
+
+/* 콤보 숫자 - 골드→오렌지 메탈릭 그라데이션 */
+.gam-combo-num {
+    position: relative;
+    font-size: 3.2rem;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: 0.02em;
+    background: linear-gradient(to bottom, #fff176 0%, #ffb300 35%, #ff6d00 70%, #e65100 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 2.2px rgba(255, 255, 255, 0.93);
+    filter: drop-shadow(4px 4px 0px rgba(0, 0, 0, 0.85))
+           drop-shadow(0 0 10px rgba(255, 179, 0, 0.45));
+    z-index: 2;
+    animation: comboNumPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.6) forwards;
 }
 
 .gam-combo5-overlay.fade-out {
-    animation: comboFadeOut 0.4s ease-in forwards;
+    animation: comboHitFadeOut 0.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+}
+
+/* 타격 파티클 - 골드/핫핑크 불꽃 */
+.gam-combo-particle {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    background: radial-gradient(circle, #ffffff 0%, #ffd54f 50%, #ff6d00 100%);
+    box-shadow: 0 0 8px rgba(255, 171, 0, 0.65), 0 0 16px rgba(255, 109, 0, 0.4);
+    animation: particleBurst 0.9s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
 }
 
 /* 키프레임 애니메이션 정의 */
-@keyframes comboPopIn {
-    0% { opacity: 0; transform: scale(0.8); }
-    100% { opacity: 1; transform: scale(1); }
+@keyframes overlayPopIn {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    60% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
-@keyframes comboFadeOut {
-    0% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(-40px); }
+@keyframes comboHitFadeOut {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -60px) scale(0.75); filter: blur(3px); }
 }
 
-@keyframes comboPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
+@keyframes starburstPop {
+    0% { transform: scale(0.1) rotate(-20deg); opacity: 0; }
+    50% { transform: scale(1.3) rotate(10deg); opacity: 1; }
+    100% { transform: scale(1.05) rotate(3deg); opacity: 0.85; }
 }
 
-@keyframes comboRotate {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+@keyframes comboNumPop {
+    0% { transform: scale(0.2) rotate(-10deg); }
+    50% { transform: scale(1.3) rotate(8deg); }
+    100% { transform: scale(1) rotate(0deg); }
 }
 
-@keyframes comboTitleBounce {
-    0% { opacity: 0; transform: translateY(50px) scale(0.3); }
-    50% { opacity: 1; transform: translateY(-10px) scale(1.1); }
-    70% { transform: translateY(5px) scale(0.95); }
-    100% { transform: translateY(0) scale(1); }
+@keyframes shockwaveBurst {
+    0% {
+        transform: scale(0.2);
+        opacity: 0.9;
+        filter: brightness(2.2);
+    }
+    100% {
+        transform: scale(3.8);
+        opacity: 0;
+        filter: brightness(1) blur(2px);
+    }
 }
+
+@keyframes particleBurst {
+    0% {
+        transform: translate(0, 0) scale(1.5);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+    }
+}
+
 

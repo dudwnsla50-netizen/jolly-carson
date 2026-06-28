@@ -49,6 +49,11 @@ window.APP_CONFIG = {
             wrongMultiplier: 1.0,   // 오답 갯수 배율
             correctMultiplier: 1.0, // 정답 갯수 배율
             minWeight: -5.0         // 하한값 (정답을 많이 맞춘 문제의 가중치 과도한 하락 방지)
-        }
+        },
+
+        // 3. 최근 연속 정답에 따른 가중치 차감 설정
+        // 최근 연속 3회 이상 정답을 맞춘 문항은 가중치를 -1 차감합니다.
+        CONSECUTIVE_CORRECT_LIMIT: 3,
+        CONSECUTIVE_CORRECT_PENALTY: 1.0
     }
 };

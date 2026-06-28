@@ -488,20 +488,34 @@ function submitAnswer(qId, selectedOption) {
         // 카드 러너 미니 EXP 바 갱신 (오답노트 전용)
         updateRunnerExpUI();
 
-        // 펫 정답 축하 말풍선 트리거 (공통)
-        if (typeof gamTriggerPetCorrectMessage === 'function') {
-            gamTriggerPetCorrectMessage();
+        // 연속 정답 콤보 누적
+        window.gamComboCount = (window.gamComboCount || 0) + 1;
+        let isComboTriggered = false;
+        if (window.gamComboCount === 5 || window.gamComboCount >= 10) {
+            isComboTriggered = true;
         }
 
-        // 펫 정답 애니메이션 트리거 (공통)
-        if (typeof gamApplyPetAnimation === 'function') {
-            gamApplyPetAnimation('correct');
+        // 5콤보 달성 또는 10콤보 이상 연속 정답 시 특별 축하 이펙트 구동, 그 외에는 일반 칭찬 멘트
+        if (isComboTriggered) {
+            if (typeof gamTriggerCombo5Effect === 'function') {
+                gamTriggerCombo5Effect(window.gamComboCount);
+            }
+        } else {
+            // 펫 정답 축하 말풍선 트리거 (공통)
+            if (typeof gamTriggerPetCorrectMessage === 'function') {
+                gamTriggerPetCorrectMessage();
+            }
+
+            // 펫 정답 애니메이션 트리거 (공통)
+            if (typeof gamApplyPetAnimation === 'function') {
+                gamApplyPetAnimation('correct');
+            }
         }
         
-        // EXP +1 플로팅 뱃지 연출 (공통)
-        if (typeof gamTriggerExpFloat === 'function') {
-            gamTriggerExpFloat();
-        }
+        // EXP +1 플로팅 뱃지 연출 (공통 - 퍼펙트 이펙트 집중을 위해 비활성화)
+        // if (typeof gamTriggerExpFloat === 'function') {
+        //     gamTriggerExpFloat();
+        // }
         
         // 보물 상자 + 보석 파티클 연출 (공통 함수 사용)
         const feedbackBox = document.getElementById('card-feedback-box');
