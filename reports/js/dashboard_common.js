@@ -2140,7 +2140,7 @@ function gamOnCorrectAnswer(idx, qId) {
     // 연속 정답 콤보 누적
     window.gamComboCount = (window.gamComboCount || 0) + 1;
     let isComboTriggered = false;
-    if (window.gamComboCount === 1 || window.gamComboCount >= 10) {
+    if (window.gamComboCount >= 4) {
         isComboTriggered = true;
     }
 
@@ -2761,11 +2761,11 @@ function gamTriggerCombo5Effect(comboCount) {
     comboEl.innerHTML = `
         <div class="gam-combo5-shockwave"></div>
         <div class="gam-perfect-combo-container">
-            <img class="gam-perfect-img" src="images_game/perfect_text.png" alt="Perfect" draggable="false" />
+            <span class="gam-perfect-text">PERFECT</span>
             <span class="gam-combo-cross">x</span>
             <div class="gam-combo-num-wrapper">
                 <svg class="gam-combo-starburst-svg" viewBox="0 0 100 100">
-                    <polygon points="50,5 57,35 88,12 67,43 98,50 67,57 88,88 57,65 50,95 43,65 12,88 33,57 2,50 33,43 12,12 43,35" fill="rgba(216, 0, 255, 0.55)" stroke="#ff26ea" stroke-width="4" />
+                    <polygon points="50,5 57,35 88,12 67,43 98,50 67,57 88,88 57,65 50,95 43,65 12,88 33,57 2,50 33,43 12,12 43,35" fill="rgba(255, 64, 129, 0.45)" stroke="#ff4081" stroke-width="4" />
                 </svg>
                 <span class="gam-combo-num">${count}</span>
             </div>

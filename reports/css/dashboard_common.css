@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@700;900&display=swap');
+
 /* ==========================================================================
    [Jolly-Carson 기출 분석 대시보드 공통 스타일시트 - dashboard_common.css]
    - 작성 목적: 10종 대시보드(빈출순 5종, 공식범위순 5종)의 스타일 요소를 한 곳에서 일관되게 관리합니다.
@@ -1592,38 +1594,45 @@ input:checked+.slider:before {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.4rem; /* 간격을 좁혀 한 덩어리로 만듦 */
     pointer-events: none;
     user-select: none;
-    font-family: 'Outfit', 'Arial Rounded MT Bold', 'Impact', sans-serif;
-    opacity: 0.93;
+    font-family: 'Fredoka', 'Outfit', 'Arial Rounded MT Bold', sans-serif;
+    opacity: 0.98;
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.4));
 }
 
-/* Perfect 텍스트 - PNG 이미지 스프라이트 (게임 원본 품질) */
-.gam-perfect-img {
-    height: 52px;
-    width: auto;
+/* 귀여운 카툰 3D PERFECT 텍스트 효과 (이미지 대체) */
+.gam-perfect-text {
+    font-size: 3.6rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    background: linear-gradient(135deg, #ff007f 0%, #ff4081 55%, #ff80ab 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 2.2px #ffffff;
+    filter: drop-shadow(4px 4px 0px #080b13);
+    text-shadow: 0 0 15px rgba(255, 64, 129, 0.55);
     display: inline-block;
-    pointer-events: none;
-    user-select: none;
-    filter: drop-shadow(4px 4px 0px rgba(0, 0, 0, 0.8))
-           drop-shadow(0 0 12px rgba(255, 110, 199, 0.5));
-    animation: perfectImgPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.6) forwards;
+    animation: perfectTextPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards;
 }
 
 /* 배율 표시 x - 핫핑크 */
 .gam-combo-cross {
-    font-size: 2rem;
+    font-size: 2.8rem;
     font-weight: 900;
-    font-style: italic;
-    background: linear-gradient(to bottom, #ff5599 0%, #d4004a 100%);
+    font-family: 'Fredoka', 'Outfit', sans-serif;
+    background: linear-gradient(135deg, #00e5ff 0%, #00b0ff 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    -webkit-text-stroke: 1.6px rgba(255, 255, 255, 0.93);
-    filter: drop-shadow(3px 3px 0px rgba(0, 0, 0, 0.85));
-    margin: 0 0.15rem;
+    -webkit-text-stroke: 2px #ffffff;
+    filter: drop-shadow(3.5px 3.5px 0px #080b13);
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+    margin: 0 0.1rem;
     align-self: center;
+    animation: perfectTextPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards;
 }
 
 /* 숫자 영역 래퍼 - 충분한 여유 공간 */
@@ -1632,38 +1641,37 @@ input:checked+.slider:before {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-width: 70px;
+    min-width: 60px;
     height: 70px;
 }
 
 /* 뾰족한 스타버스트 배경 (보라 글로우 엣지) */
 .gam-combo-starburst-svg {
     position: absolute;
-    width: 155%;
-    height: 155%;
+    width: 140%;
+    height: 140%;
     z-index: 1;
     pointer-events: none;
     transform-origin: center;
-    filter: drop-shadow(0 0 7px rgba(180, 0, 255, 0.55));
+    filter: drop-shadow(0 0 8px rgba(255, 64, 129, 0.45));
     animation: starburstPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.6) forwards;
 }
 
 /* 콤보 숫자 - 골드→오렌지 메탈릭 그라데이션 */
 .gam-combo-num {
     position: relative;
-    font-size: 3.2rem;
+    font-size: 4.2rem;
     font-weight: 900;
-    font-style: italic;
-    letter-spacing: 0.02em;
-    background: linear-gradient(to bottom, #fff176 0%, #ffb300 35%, #ff6d00 70%, #e65100 100%);
+    font-family: 'Fredoka', 'Outfit', sans-serif;
+    background: linear-gradient(135deg, #fffde7 0%, #ffd54f 40%, #ff8f00 80%, #ff6d00 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    -webkit-text-stroke: 2.2px rgba(255, 255, 255, 0.93);
-    filter: drop-shadow(4px 4px 0px rgba(0, 0, 0, 0.85))
-           drop-shadow(0 0 10px rgba(255, 179, 0, 0.45));
+    -webkit-text-stroke: 2.6px #ffffff;
+    filter: drop-shadow(4px 4px 0px #080b13);
+    text-shadow: 0 0 15px rgba(255, 213, 79, 0.55);
     z-index: 2;
-    animation: comboNumPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.6) forwards;
+    animation: perfectTextPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.4) forwards;
 }
 
 .gam-combo5-overlay.fade-out {
@@ -1729,6 +1737,13 @@ input:checked+.slider:before {
         transform: translate(var(--tx), var(--ty)) scale(0);
         opacity: 0;
     }
+}
+
+@keyframes perfectTextPop {
+    0% { transform: scale(0.3) rotate(-6deg); opacity: 0; }
+    50% { transform: scale(1.18) rotate(4deg); opacity: 1; }
+    70% { transform: scale(0.95) rotate(-2deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 

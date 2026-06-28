@@ -491,7 +491,7 @@ function submitAnswer(qId, selectedOption) {
         // 연속 정답 콤보 누적
         window.gamComboCount = (window.gamComboCount || 0) + 1;
         let isComboTriggered = false;
-        if (window.gamComboCount === 5 || window.gamComboCount >= 10) {
+        if (window.gamComboCount >= 4) {
             isComboTriggered = true;
         }
 
