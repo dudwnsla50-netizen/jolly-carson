@@ -145,37 +145,39 @@ function calculateQuestionWeight(qId) {
     const formula = config.STUDIED_WEIGHT_FORMULA;
     let weight = (wrongCount * formula.wrongMultiplier) - (correctCount * formula.correctMultiplier);
 
-    // 3. 최근에 연속해서 N번 이상 맞았는지 판별 (이력 목록은 최신순으로 정렬되어 있음)
-    const limit = config.CONSECUTIVE_CORRECT_LIMIT || 3;
-    const penalty = config.CONSECUTIVE_CORRECT_PENALTY || 1.0;
-
-    if (qAttempts.length >= limit) {
-        let consecutiveCorrect = true;
-        for (let i = 0; i < limit; i++) {
-            let isCorrect = false;
-            const log = qAttempts[i];
-            if (log.details) {
-                if (typeof log.details === 'object') {
-                    isCorrect = !!log.details.is_correct;
-                } else {
-                    try {
-                        const parsed = JSON.parse(log.details);
-                        isCorrect = !!parsed.is_correct;
-                    } catch (e) { }
-                }
+    // 3. 최근 연속 정답에 따른 누적 가중 차감 연산 (최근 기록부터 탐색하여 끊어질 때까지의 연속 정답수 계산)
+    let consecutiveCount = 0;
+    for (let i = 0; i < qAttempts.length; i++) {
+        let isCorrect = false;
+        const log = qAttempts[i];
+        if (log.details) {
+            if (typeof log.details === 'object') {
+                isCorrect = !!log.details.is_correct;
             } else {
-                isCorrect = (log.correct_count || 0) > 0;
+                try {
+                    const parsed = JSON.parse(log.details);
+                    isCorrect = !!parsed.is_correct;
+                } catch (e) { }
             }
-
-            if (!isCorrect) {
-                consecutiveCorrect = false;
-                break;
-            }
+        } else {
+            isCorrect = (log.correct_count || 0) > 0;
         }
 
-        if (consecutiveCorrect) {
-            weight -= penalty; // 연속 정답으로 인한 가중치 차감 (-1)
+        if (isCorrect) {
+            consecutiveCount++;
+        } else {
+            break; // 정답 연속성이 깨지면 탐색을 중단
         }
+    }
+
+    const limit = config.CONSECUTIVE_CORRECT_LIMIT || 3;
+    const penaltyUnit = config.CONSECUTIVE_CORRECT_PENALTY || 1.0;
+    const maxPenalty = config.MAX_CONSECUTIVE_PENALTY || 5.0;
+
+    if (consecutiveCount >= limit) {
+        // 연속 정답 3회차부터 매 1회 증가마다 가중치가 추가 차감되며 최대 maxPenalty(5.0) 한도까지 가중 감점됨
+        const cumulativePenalty = Math.min((consecutiveCount - limit + 1) * penaltyUnit, maxPenalty);
+        weight -= cumulativePenalty;
     }
 
     // 4. 하한값 제한

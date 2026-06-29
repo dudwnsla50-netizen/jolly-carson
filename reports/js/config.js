@@ -40,8 +40,8 @@ window.APP_CONFIG = {
 
     // 🔄 문제 롤링 가중치 기준 설정
     ROLLING_WEIGHT_CONFIG: {
-        // 1. 미학습 문제 가중치 (+1)
-        UNSTUDIED_ADDITIVE_WEIGHT: 1.0,
+        // 1. 미학습 문제 가중치 (+3)
+        UNSTUDIED_ADDITIVE_WEIGHT: 3.0,
 
         // 2. 학습한 문제 가중치 공식 설정
         // 가중치 계산 식 = (오답 갯수 * wrongMultiplier) - (정답 갯수 * correctMultiplier)
@@ -52,8 +52,9 @@ window.APP_CONFIG = {
         },
 
         // 3. 최근 연속 정답에 따른 가중치 차감 설정
-        // 최근 연속 3회 이상 정답을 맞춘 문항은 가중치를 -1 차감합니다.
+        // 최근 연속 3회 이상 정답을 맞춘 문항은 가중치 감점을 누적 차감하되, 최대 -5.0까지 가중됩니다.
         CONSECUTIVE_CORRECT_LIMIT: 3,
-        CONSECUTIVE_CORRECT_PENALTY: 1.0
+        CONSECUTIVE_CORRECT_PENALTY: 1.0,
+        MAX_CONSECUTIVE_PENALTY: 5.0
     }
 };
