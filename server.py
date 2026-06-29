@@ -173,8 +173,23 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_total_exp(query)
         elif path == "/api/db-mode":
             self.get_db_mode(query)
+        elif path == "/api/analytics/concept-diagnostics":
+            self.get_concept_diagnostics(query)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
+
+    def get_concept_diagnostics(self, query):
+        try:
+            with get_db_connection() as conn:
+                # [설계 의도] 
+                # 순환 참조 문제를 완벽하게 회피하고, 초기 구동 성능을 위해 
+                # 분석 모듈을 호출 함수 시점에 지연 임포트(Lazy Import)합니다.
+                from analytics import analyze_student_history
+                result = analyze_student_history(conn, DB_TYPE)
+                self.send_json_response(result)
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Database analytics error: {str(e)}")
 
     def get_db_mode(self, query):
         self.send_json_response({"db_type": DB_TYPE})

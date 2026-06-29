@@ -1746,4 +1746,14 @@ input:checked+.slider:before {
     100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
+@media (max-width: 600px) {
+    /* 모바일 가로폭에서 일별 학습이력 테이블의 덜 중요한 열을 숨겨 반응형 최적화 */
+    .history-table th:nth-child(4),
+    .history-table td:nth-child(4),
+    .history-table th:nth-child(5),
+    .history-table td:nth-child(5) {
+        display: none !important;
+    }
+}
+
 

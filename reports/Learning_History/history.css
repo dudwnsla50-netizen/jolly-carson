@@ -713,5 +713,326 @@ body {
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+/* ==========================================================================
+   [NEW] AI 학습 분석 및 추천 예측 영역 프리미엄 스타일
+   ========================================================================== */
+
+.analytics-container {
+    width: 100%;
+    margin-bottom: 2.2rem;
+}
+
+/* 과목별 탭 버튼 바 */
+.analytics-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Inter', sans-serif;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tab-btn.active {
+    color: var(--text-primary);
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+/* 분석 컨텐츠 2열 그리드 */
+.analytics-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 992px) {
+    .analytics-content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.analytics-card {
+    background: var(--bg-card);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 1.5rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 380px;
+}
+
+/* 강점/약점 리스트 */
+.diagnostics-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.diagnostics-group {
+    flex: 1;
+}
+
+.diag-group-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.diag-group-title.text-success {
+    color: #10b981;
+}
+
+.diag-group-title.text-error {
+    color: #ef4444;
+}
+
+.diag-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.diag-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.diag-list-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateX(4px);
+}
+
+.diag-list-item.strength {
+    border-left: 3px solid #10b981;
+}
+
+.diag-list-item.weakness {
+    border-left: 3px solid #ef4444;
+}
+
+.topic-name {
+    color: var(--text-primary);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 75%;
+}
+
+.topic-accuracy {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+}
+
+.topic-accuracy.success {
+    background: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+}
+
+.topic-accuracy.error {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+.empty-list-item {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 1.5rem 0;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px dashed rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+}
+
+/* AI 학습 우선순위 추천 카드 */
+.highlight-card {
+    border: 1px solid rgba(139, 92, 246, 0.18);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.03);
+}
+
+.recommendations-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    overflow-y: auto;
+    max-height: 420px;
+    padding-right: 0.25rem;
+}
+
+.recommendations-wrap::-webkit-scrollbar {
+    width: 4px;
+}
+
+.recommendations-wrap::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+}
+
+.rec-item-card {
+    background: rgba(139, 92, 246, 0.03);
+    border: 1px solid rgba(139, 92, 246, 0.08);
+    border-radius: 12px;
+    padding: 0.95rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rec-item-card:hover {
+    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(139, 92, 246, 0.18);
+    transform: translateY(-2px);
+}
+
+.rec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.rec-topic-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rec-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    text-transform: uppercase;
+}
+
+.rec-badge.rank-1 {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.rec-badge.rank-2 {
+    background: rgba(139, 92, 246, 0.12);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.rec-badge.rank-3 {
+    background: rgba(99, 102, 241, 0.1);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.rec-reason {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.rec-score-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.rec-score-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.rec-score-label strong {
+    color: var(--text-primary);
+}
+
+.rec-gauge-bg {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.rec-gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    border-radius: 2px;
+}
+
+.empty-recommendation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    height: 100%;
+}
+
+.empty-recommendation h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.4rem;
+}
+
+.empty-recommendation p {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    max-width: 250px;
+    line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+    /* 모바일 가로폭에서 일별 학습이력 테이블의 덜 중요한 열을 숨겨 반응형 최적화 */
+    .history-table th:nth-child(4),
+    .history-table td:nth-child(4),
+    .history-table th:nth-child(5),
+    .history-table td:nth-child(5) {
+        display: none !important;
+    }
+}
+
+
 
 

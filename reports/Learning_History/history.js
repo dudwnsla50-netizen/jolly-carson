@@ -10,7 +10,9 @@ const HistoryState = {
     dailyHistory: [],    // 일별 그룹화 학습 데이터
     currentPage: 1,      // 현재 페이징 인덱스
     pageSize: 30,        // 페이징 당 행 개수
-    charts: {}           // 차트 객체 버퍼 (인스턴스 소멸용)
+    charts: {},          // 차트 객체 버퍼 (인스턴스 소멸용)
+    analyticsData: null, // [NEW] AI 중단원 분석 데이터 버퍼
+    currentSubject: 'DB' // [NEW] 현재 활성화된 분석 탭 과목
 };
 
 const SUBJECT_NAMES = {
@@ -66,9 +68,14 @@ function loadAllHistoryData() {
     Promise.all([Promise.all(fetchPromises), expPromise])
         .then(([results, expData]) => {
             const merged = [];
+            const subjectAccuracies = {};
 
             results.forEach((data, index) => {
                 const sub = subjects[index];
+                
+                // 과목별 요약 정보로부터 평균 정답률(avg_score) 추출 (데이터가 없는 경우 0.0)
+                subjectAccuracies[sub] = (data.summary && data.summary.avg_score) ? data.summary.avg_score : 0.0;
+                
                 const sLogs = data.logs || [];
                 sLogs.forEach(log => {
                     merged.push({
@@ -83,8 +90,8 @@ function loadAllHistoryData() {
             merged.sort((a, b) => b.parsedDate - a.parsedDate);
             HistoryState.allLogs = merged;
 
-            // 과목별 레벨/경험치 카드 UI 렌더링
-            renderSubjectExpCards(expData);
+            // 과목별 레벨/경험치 카드 UI 렌더링 (평균 정답률 데이터 전달)
+            renderSubjectExpCards(expData, subjectAccuracies);
 
             if (merged.length === 0) {
                 renderEmptyState();
@@ -406,12 +413,16 @@ function renderHistoryTable() {
             ? `<span class="goal-badge success">성공 🎉</span>` 
             : `<span class="goal-badge fail">실패 😢 (${row.totalSolved}/${goalLimit})</span>`;
 
+        const reportUrl = "../../analytics/output/diagnostics_report.html";
+        const reportLinkHtml = `<a href="${reportUrl}" target="_blank" class="back-btn" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; margin: 0; background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa; text-decoration: none;" onclick="event.stopPropagation();">리포트 보기 🔍</a>`;
+
         tr.innerHTML = `
             <td>${dateFormatted}</td>
             <td><strong>${row.totalSolved}개</strong></td>
             <td>${acc}%</td>
             <td>${timeStr}</td>
             <td>${statusHtml}</td>
+            <td>${reportLinkHtml}</td>
         `;
 
         // 행 클릭 이벤트 바인딩: 과목별 상세 레이어 팝업 노출
@@ -539,7 +550,7 @@ function renderEmptyState() {
  * - 각 과목에 부합하는 응원 펫 캐릭터 이미지와 독립 레벨, 경험치 게이지를 렌더링합니다.
  * - 글래스모피즘 테마를 입혀 수려한 프리미엄 UI 디자인으로 사용자의 학습 의욕을 고취시킵니다.
  */
-function renderSubjectExpCards(expData) {
+function renderSubjectExpCards(expData, subjectAccuracies = {}) {
     const container = document.getElementById('subject-exp-grid');
     if (!container) return;
 
@@ -563,10 +574,13 @@ function renderSubjectExpCards(expData) {
         const expPercent = (subData.exp_in_level / 10) * 100;
         const nextLevelExp = subData.level * 10;
         
+        // 평균 정답률 값 획득 (포맷 지정)
+        const accRate = subjectAccuracies[sub] !== undefined ? subjectAccuracies[sub] : 0.0;
+        
         card.innerHTML = `
             <div class="sub-exp-header">
                 <span class="sub-exp-title">${SUBJECT_NAMES[sub]}</span>
-                <span class="sub-exp-badge">${sub}</span>
+                <span class="sub-exp-badge ${sub}">${sub}</span>
             </div>
             <div class="sub-exp-body">
                 <div class="sub-exp-pet-avatar" title="${pet.name}">
@@ -579,8 +593,8 @@ function renderSubjectExpCards(expData) {
             </div>
             <div class="sub-exp-bar-wrap">
                 <div class="sub-exp-bar-info">
-                    <span>${subData.total_exp} EXP</span>
-                    <span>${subData.exp_in_level} / 10 EXP</span>
+                    <span>${subData.total_exp} EXP (${subData.exp_in_level} / 10)</span>
+                    <span style="color: var(--success); font-weight: 700;">정답률: ${accRate}%</span>
                 </div>
                 <div class="sub-exp-bar-bg">
                     <div class="sub-exp-bar-fill" style="width: ${expPercent}%"></div>
@@ -591,6 +605,196 @@ function renderSubjectExpCards(expData) {
     });
 
     // 동적 아이콘 리프레시
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+/**
+ * ==========================================================================
+ * [NEW] AI 중단원별 취약점 진단 및 추천 예측 로직
+ * ==========================================================================
+ */
+
+/**
+ * 11. 백엔드 분석 API로부터 데이터를 호출하여 캐싱합니다.
+ */
+function loadAnalyticsData() {
+    fetch('/api/analytics/concept-diagnostics')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+            if (data && data.subjects) {
+                HistoryState.analyticsData = data.subjects;
+                // 최초 진입 시 지정된 기본 과목(DB) 렌더링
+                renderAnalytics(HistoryState.currentSubject);
+            } else {
+                console.warn("[Analytics] 학습 분석 데이터를 불러오지 못했거나 포맷이 유효하지 않습니다.");
+                renderEmptyAnalytics();
+            }
+        })
+        .catch(err => {
+            console.error("[Analytics] 분석 API 호출 실패:", err);
+            renderEmptyAnalytics();
+        });
+}
+
+/**
+ * 12. 과목 탭 전환 핸들러
+ */
+function switchAnalyticsTab(subject) {
+    HistoryState.currentSubject = subject;
+    
+    // active 탭 버튼 클래스 교환
+    const tabIds = {
+        'DB': 'tab-btn-db',
+        'SE': 'tab-btn-se',
+        'PM': 'tab-btn-pm',
+        'SA': 'tab-btn-sa',
+        'SC': 'tab-btn-sc'
+    };
+    
+    Object.keys(tabIds).forEach(sub => {
+        const btn = document.getElementById(tabIds[sub]);
+        if (btn) {
+            if (sub === subject) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+    
+    renderAnalytics(subject);
+}
+
+/**
+ * 13. 선택된 과목의 분석 결과를 화면에 렌더링합니다.
+ */
+function renderAnalytics(subject) {
+    const data = HistoryState.analyticsData;
+    if (!data || !data[subject]) {
+        renderEmptyAnalytics();
+        return;
+    }
+    
+    const subjectInfo = data[subject];
+    const strengthList = document.getElementById('strength-list');
+    const weaknessList = document.getElementById('weakness-list');
+    const recContainer = document.getElementById('recommendation-container');
+    
+    if (!strengthList || !weaknessList || !recContainer) return;
+    
+    // 13-A. 강점(Strengths) 렌더링
+    strengthList.innerHTML = '';
+    if (subjectInfo.strengths && subjectInfo.strengths.length > 0) {
+        subjectInfo.strengths.forEach(topic => {
+            const li = document.createElement('li');
+            li.className = 'diag-list-item strength';
+            const acc = Math.round((subjectInfo.concepts[topic].accuracy) * 100);
+            li.innerHTML = `
+                <span class="topic-name">${topic}</span>
+                <span class="topic-accuracy success">${acc}% 정답</span>
+            `;
+            strengthList.appendChild(li);
+        });
+    } else {
+        strengthList.innerHTML = '<li class="empty-list-item">아직 숙달된 강점 단원이 없습니다. 더 많은 문제를 맞춰보세요!</li>';
+    }
+    
+    // 13-B. 약점(Weaknesses) 렌더링
+    weaknessList.innerHTML = '';
+    if (subjectInfo.weaknesses && subjectInfo.weaknesses.length > 0) {
+        subjectInfo.weaknesses.forEach(topic => {
+            const li = document.createElement('li');
+            li.className = 'diag-list-item weakness';
+            const acc = Math.round((subjectInfo.concepts[topic].accuracy) * 100);
+            li.innerHTML = `
+                <span class="topic-name">${topic}</span>
+                <span class="topic-accuracy error">${acc}% 정답</span>
+            `;
+            weaknessList.appendChild(li);
+        });
+    } else {
+        weaknessList.innerHTML = '<li class="empty-list-item">분석된 약점 단원이 없습니다. 아주 훌륭한 학습 성과입니다!</li>';
+    }
+    
+    // 13-C. 추천 학습 순서 예측(Recommendations) 렌더링
+    recContainer.innerHTML = '';
+    
+    // 유효한 추천 항목만 필터링 (학습 이력이 없는 중단원은 리스트에 포함되지 않거나 기본값 처리)
+    const recs = subjectInfo.recommendations || [];
+    
+    if (recs.length > 0) {
+        recs.forEach((rec, idx) => {
+            const card = document.createElement('div');
+            card.className = 'rec-item-card';
+            
+            // 점수에 비례해 우선순위 뱃지 설정
+            let priorityBadge = '';
+            if (idx === 0) {
+                priorityBadge = '<span class="rec-badge rank-1">🏆 최우선 순위</span>';
+            } else if (rec.score >= 5.0) {
+                priorityBadge = '<span class="rec-badge rank-2">🔥 중요 추천</span>';
+            } else {
+                priorityBadge = '<span class="rec-badge rank-3">📘 일반 권장</span>';
+            }
+            
+            // 추천 게이지 진행률 바 백분율 계산 (최대치 15점 기준 환산)
+            const gaugePercent = Math.min(100, Math.round((rec.score / 15.0) * 100));
+            
+            card.innerHTML = `
+                <div class="rec-header">
+                    <span class="rec-topic-title">${rec.concept}</span>
+                    ${priorityBadge}
+                </div>
+                <div class="rec-body">
+                    <p class="rec-reason">${rec.reason}</p>
+                    <div class="rec-score-row">
+                        <span class="rec-score-label">AI 학습 우선순위 지수: <strong>${rec.score} / 15.0</strong></span>
+                        <div class="rec-gauge-bg">
+                            <div class="rec-gauge-fill" style="width: ${gaugePercent}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            recContainer.appendChild(card);
+        });
+    } else {
+        recContainer.innerHTML = `
+            <div class="empty-recommendation">
+                <i data-lucide="info" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 0.8rem;"></i>
+                <h3>추천 예측을 위한 데이터 부족</h3>
+                <p>현재 과목에서 푼 문제가 너무 적어 추천 대상을 예측할 수 없습니다.<br>문제를 더 풀면 실시간으로 분석이 개시됩니다.</p>
+            </div>
+        `;
+    }
+    
+    // 동적 아이콘 리프레시
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+/**
+ * 14. 학습 이력 혹은 분석 데이터가 완전 공백일 때 렌더러
+ */
+function renderEmptyAnalytics() {
+    const strengthList = document.getElementById('strength-list');
+    const weaknessList = document.getElementById('weakness-list');
+    const recContainer = document.getElementById('recommendation-container');
+    
+    if (strengthList) strengthList.innerHTML = '<li class="empty-list-item">충분한 풀이 정보가 없습니다.</li>';
+    if (weaknessList) weaknessList.innerHTML = '<li class="empty-list-item">충분한 풀이 정보가 없습니다.</li>';
+    if (recContainer) {
+        recContainer.innerHTML = `
+            <div class="empty-recommendation">
+                <i data-lucide="database" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 0.8rem;"></i>
+                <h3>데이터 가용성 대기 중</h3>
+                <p>서버 데이터베이스에서 기출 퀴즈 풀이 이력(quiz_history)을 읽는 중이거나 데이터가 부족합니다.</p>
+            </div>
+        `;
+    }
+    
     if (window.lucide) {
         lucide.createIcons();
     }

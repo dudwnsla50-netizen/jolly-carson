@@ -1,0 +1,812 @@
+{
+  "subjects": {
+    "DB": {
+      "concepts": {
+        "1-a. 데이터베이스 시스템 개념 및 이론": {
+          "solved": 21,
+          "correct": 17,
+          "accuracy": 0.81,
+          "status": "STRENGTH"
+        },
+        "1-b. 데이터 모델의 개념, 관계형/객체지향 DB": {
+          "solved": 3,
+          "correct": 3,
+          "accuracy": 1.0,
+          "status": "STRENGTH"
+        },
+        "2-a. 관계대수": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "2-b. SQL, 내장SQL, 절차형 SQL, ODBC/JDBC 등": {
+          "solved": 6,
+          "correct": 5,
+          "accuracy": 0.83,
+          "status": "STRENGTH"
+        },
+        "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)": {
+          "solved": 2,
+          "correct": 1,
+          "accuracy": 0.5,
+          "status": "IN_PROGRESS"
+        },
+        "SQL 쿼리 구문 (DDL/DML/DCL)": {
+          "solved": 1,
+          "correct": 0,
+          "accuracy": 0.0,
+          "status": "IN_PROGRESS"
+        },
+        "기타": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        }
+      },
+      "strengths": [
+        "1-a. 데이터베이스 시스템 개념 및 이론",
+        "1-b. 데이터 모델의 개념, 관계형/객체지향 DB",
+        "2-b. SQL, 내장SQL, 절차형 SQL, ODBC/JDBC 등"
+      ],
+      "weaknesses": [],
+      "in_progress": [
+        "2-a. 관계대수",
+        "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)",
+        "SQL 쿼리 구문 (DDL/DML/DCL)",
+        "기타"
+      ],
+      "recommendations": [
+        {
+          "concept": "SQL 쿼리 구문 (DDL/DML/DCL)",
+          "score": 10.0,
+          "reason": "정답률이 0%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)",
+          "score": 5.0,
+          "reason": "정답률이 50%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "1-a. 데이터베이스 시스템 개념 및 이론",
+          "score": 1.9,
+          "reason": "이해도(81%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "2-b. SQL, 내장SQL, 절차형 SQL, ODBC/JDBC 등",
+          "score": 1.7,
+          "reason": "이해도(83%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-b. 데이터 모델의 개념, 관계형/객체지향 DB",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "2-a. 관계대수",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "기타",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        }
+      ]
+    },
+    "SE": {
+      "concepts": {
+        "1-a. 요구사항 도출, 요구사항 분석, 요구사항 명세, 요구사항 추적": {
+          "solved": 77,
+          "correct": 69,
+          "accuracy": 0.9,
+          "status": "STRENGTH"
+        },
+        "1-b. 객체지향 개념": {
+          "solved": 50,
+          "correct": 47,
+          "accuracy": 0.94,
+          "status": "STRENGTH"
+        },
+        "1-c. 설계원리": {
+          "solved": 22,
+          "correct": 21,
+          "accuracy": 0.95,
+          "status": "STRENGTH"
+        },
+        "1-d. UML/SysML 모델링": {
+          "solved": 41,
+          "correct": 32,
+          "accuracy": 0.78,
+          "status": "IN_PROGRESS"
+        },
+        "1-e. 아키텍처 스타일(계층구조, 클라이언트 서버, 트랜잭션 처리, mvc, 이벤트 중심 등)": {
+          "solved": 16,
+          "correct": 15,
+          "accuracy": 0.94,
+          "status": "STRENGTH"
+        },
+        "1-f. 설계패턴": {
+          "solved": 6,
+          "correct": 4,
+          "accuracy": 0.67,
+          "status": "IN_PROGRESS"
+        },
+        "1-g. 사용자 인터페이스 설계": {
+          "solved": 14,
+          "correct": 11,
+          "accuracy": 0.79,
+          "status": "IN_PROGRESS"
+        },
+        "2-a. 프로그래밍언어 및 환경(코딩원리, 코딩오류, 코딩 스타일, uml과 코딩)": {
+          "solved": 17,
+          "correct": 15,
+          "accuracy": 0.88,
+          "status": "STRENGTH"
+        },
+        "2-e. 테스팅 방법 및 도구": {
+          "solved": 22,
+          "correct": 19,
+          "accuracy": 0.86,
+          "status": "STRENGTH"
+        },
+        "3-a. 유지관리 개념 및 방법": {
+          "solved": 7,
+          "correct": 7,
+          "accuracy": 1.0,
+          "status": "STRENGTH"
+        },
+        "3-b. 형상관리": {
+          "solved": 14,
+          "correct": 10,
+          "accuracy": 0.71,
+          "status": "IN_PROGRESS"
+        },
+        "3-c. ITSM, ITIL(SLA, SLM 등)": {
+          "solved": 2,
+          "correct": 0,
+          "accuracy": 0.0,
+          "status": "IN_PROGRESS"
+        },
+        "3-d. 재사용, 재공학, 역공학, Refactoring": {
+          "solved": 22,
+          "correct": 16,
+          "accuracy": 0.73,
+          "status": "IN_PROGRESS"
+        },
+        "4-b. CBD, Agile, 데브 옵스, aop 등": {
+          "solved": 12,
+          "correct": 9,
+          "accuracy": 0.75,
+          "status": "IN_PROGRESS"
+        },
+        "4-c. 프로세스 모델 : 폭포수, 프로타이핑, 점진적, 진화적, 나선형, v 모델, 스크럼 등": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "4-d. 클린 아키텍처": {
+          "solved": 2,
+          "correct": 1,
+          "accuracy": 0.5,
+          "status": "IN_PROGRESS"
+        },
+        "4-f. 분산커포넌트 기술, xml 등": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "4-g. 전자정부표준프레임워크, 스프링 프레임워크": {
+          "solved": 3,
+          "correct": 3,
+          "accuracy": 1.0,
+          "status": "STRENGTH"
+        },
+        "4-h. SOA, MSA": {
+          "solved": 2,
+          "correct": 2,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "4-i. 웹서비스(SOAP, REST)": {
+          "solved": 5,
+          "correct": 5,
+          "accuracy": 1.0,
+          "status": "STRENGTH"
+        },
+        "4-j. 오픈소스 개념 및 활용방법": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "5-a. SW Product 품질": {
+          "solved": 16,
+          "correct": 15,
+          "accuracy": 0.94,
+          "status": "STRENGTH"
+        },
+        "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)": {
+          "solved": 9,
+          "correct": 7,
+          "accuracy": 0.78,
+          "status": "IN_PROGRESS"
+        },
+        "5-e. 기능점수산정": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "ISO/IEC 25010 품질 표준": {
+          "solved": 2,
+          "correct": 2,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "[기타]": {
+          "solved": 41,
+          "correct": 33,
+          "accuracy": 0.8,
+          "status": "STRENGTH"
+        },
+        "기타": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "리팩토링 기법 (Refactoring)": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "애자일 및 스크럼 방법론": {
+          "solved": 2,
+          "correct": 1,
+          "accuracy": 0.5,
+          "status": "IN_PROGRESS"
+        },
+        "요구사항 분석 및 명세": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "클래스 다이어그램 (UML)": {
+          "solved": 3,
+          "correct": 1,
+          "accuracy": 0.33,
+          "status": "WEAKNESS"
+        },
+        "클린 아키텍처 (Clean Architecture)": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "형상 관리 활동 (식별/통제/감사/기록)": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        }
+      },
+      "strengths": [
+        "1-a. 요구사항 도출, 요구사항 분석, 요구사항 명세, 요구사항 추적",
+        "1-b. 객체지향 개념",
+        "1-c. 설계원리",
+        "1-e. 아키텍처 스타일(계층구조, 클라이언트 서버, 트랜잭션 처리, mvc, 이벤트 중심 등)",
+        "2-a. 프로그래밍언어 및 환경(코딩원리, 코딩오류, 코딩 스타일, uml과 코딩)",
+        "2-e. 테스팅 방법 및 도구",
+        "3-a. 유지관리 개념 및 방법",
+        "4-g. 전자정부표준프레임워크, 스프링 프레임워크",
+        "4-i. 웹서비스(SOAP, REST)",
+        "5-a. SW Product 품질",
+        "[기타]"
+      ],
+      "weaknesses": [
+        "클래스 다이어그램 (UML)"
+      ],
+      "in_progress": [
+        "1-d. UML/SysML 모델링",
+        "1-f. 설계패턴",
+        "1-g. 사용자 인터페이스 설계",
+        "3-b. 형상관리",
+        "3-c. ITSM, ITIL(SLA, SLM 등)",
+        "3-d. 재사용, 재공학, 역공학, Refactoring",
+        "4-b. CBD, Agile, 데브 옵스, aop 등",
+        "4-c. 프로세스 모델 : 폭포수, 프로타이핑, 점진적, 진화적, 나선형, v 모델, 스크럼 등",
+        "4-d. 클린 아키텍처",
+        "4-f. 분산커포넌트 기술, xml 등",
+        "4-h. SOA, MSA",
+        "4-j. 오픈소스 개념 및 활용방법",
+        "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)",
+        "5-e. 기능점수산정",
+        "ISO/IEC 25010 품질 표준",
+        "기타",
+        "리팩토링 기법 (Refactoring)",
+        "애자일 및 스크럼 방법론",
+        "요구사항 분석 및 명세",
+        "클린 아키텍처 (Clean Architecture)",
+        "형상 관리 활동 (식별/통제/감사/기록)"
+      ],
+      "recommendations": [
+        {
+          "concept": "3-c. ITSM, ITIL(SLA, SLM 등)",
+          "score": 10.0,
+          "reason": "정답률이 0%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "클래스 다이어그램 (UML)",
+          "score": 6.7,
+          "reason": "정답률이 33%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "4-d. 클린 아키텍처",
+          "score": 5.0,
+          "reason": "정답률이 50%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "애자일 및 스크럼 방법론",
+          "score": 5.0,
+          "reason": "정답률이 50%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "1-f. 설계패턴",
+          "score": 3.3,
+          "reason": "이해도(67%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "3-b. 형상관리",
+          "score": 2.9,
+          "reason": "이해도(71%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "3-d. 재사용, 재공학, 역공학, Refactoring",
+          "score": 2.7,
+          "reason": "이해도(73%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-b. CBD, Agile, 데브 옵스, aop 등",
+          "score": 2.5,
+          "reason": "이해도(75%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-d. UML/SysML 모델링",
+          "score": 2.2,
+          "reason": "이해도(78%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "5-b. SW Process 품질(CMMi, SPICE, SP인증 등)",
+          "score": 2.2,
+          "reason": "이해도(78%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-g. 사용자 인터페이스 설계",
+          "score": 2.1,
+          "reason": "이해도(79%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "[기타]",
+          "score": 2.0,
+          "reason": "이해도(80%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "2-a. 프로그래밍언어 및 환경(코딩원리, 코딩오류, 코딩 스타일, uml과 코딩)",
+          "score": 1.2,
+          "reason": "이해도(88%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-a. 요구사항 도출, 요구사항 분석, 요구사항 명세, 요구사항 추적",
+          "score": 1.0,
+          "reason": "이해도(90%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-b. 객체지향 개념",
+          "score": 0.6,
+          "reason": "이해도(94%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-e. 아키텍처 스타일(계층구조, 클라이언트 서버, 트랜잭션 처리, mvc, 이벤트 중심 등)",
+          "score": 0.6,
+          "reason": "이해도(94%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "5-a. SW Product 품질",
+          "score": 0.6,
+          "reason": "이해도(94%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-c. 설계원리",
+          "score": 0.5,
+          "reason": "이해도(95%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "2-e. 테스팅 방법 및 도구",
+          "score": 0.1,
+          "reason": "이해도(86%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "3-a. 유지관리 개념 및 방법",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-c. 프로세스 모델 : 폭포수, 프로타이핑, 점진적, 진화적, 나선형, v 모델, 스크럼 등",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-f. 분산커포넌트 기술, xml 등",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-g. 전자정부표준프레임워크, 스프링 프레임워크",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-h. SOA, MSA",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-i. 웹서비스(SOAP, REST)",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-j. 오픈소스 개념 및 활용방법",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "5-e. 기능점수산정",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "ISO/IEC 25010 품질 표준",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "기타",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "리팩토링 기법 (Refactoring)",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "요구사항 분석 및 명세",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "클린 아키텍처 (Clean Architecture)",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "형상 관리 활동 (식별/통제/감사/기록)",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        }
+      ]
+    },
+    "PM": {
+      "concepts": {
+        "1-a. 정보화 및 소프트웨어 관련 법령 및 고시, 가이드": {
+          "solved": 17,
+          "correct": 14,
+          "accuracy": 0.82,
+          "status": "STRENGTH"
+        },
+        "1-b. 계약 관련 법령 및 예규": {
+          "solved": 5,
+          "correct": 3,
+          "accuracy": 0.6,
+          "status": "IN_PROGRESS"
+        },
+        "1-c. 대가산정 관련 고시 및 가이드": {
+          "solved": 3,
+          "correct": 1,
+          "accuracy": 0.33,
+          "status": "WEAKNESS"
+        },
+        "2-a. 전자정부법, 정보시스템 감리기준 등 감리 법제도": {
+          "solved": 33,
+          "correct": 27,
+          "accuracy": 0.82,
+          "status": "STRENGTH"
+        },
+        "2-c. 정보시스템 감리 관련 가이드": {
+          "solved": 10,
+          "correct": 6,
+          "accuracy": 0.6,
+          "status": "IN_PROGRESS"
+        },
+        "3-a. 조직구조, 조직이론, 조직설계": {
+          "solved": 4,
+          "correct": 2,
+          "accuracy": 0.5,
+          "status": "WEAKNESS"
+        },
+        "3-b. 인적 자원관리, 의사소통관리": {
+          "solved": 3,
+          "correct": 2,
+          "accuracy": 0.67,
+          "status": "IN_PROGRESS"
+        },
+        "4-a. 프로젝트관리 관련 표준 및 가이드": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "4-b. 통합/범위/자원/일정/위험/품질/성과/조달/변화 관리 등": {
+          "solved": 18,
+          "correct": 14,
+          "accuracy": 0.78,
+          "status": "IN_PROGRESS"
+        },
+        "PMBOK 프로젝트 관리 10대 지식 영역": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "[기타]": {
+          "solved": 40,
+          "correct": 29,
+          "accuracy": 0.72,
+          "status": "IN_PROGRESS"
+        },
+        "소프트웨어 진흥법": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "소프트웨어사업 대가산정 가이드": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "정보시스템 감리기준 & 감리 수행 규격": {
+          "solved": 2,
+          "correct": 2,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        }
+      },
+      "strengths": [
+        "1-a. 정보화 및 소프트웨어 관련 법령 및 고시, 가이드",
+        "2-a. 전자정부법, 정보시스템 감리기준 등 감리 법제도"
+      ],
+      "weaknesses": [
+        "1-c. 대가산정 관련 고시 및 가이드",
+        "3-a. 조직구조, 조직이론, 조직설계"
+      ],
+      "in_progress": [
+        "1-b. 계약 관련 법령 및 예규",
+        "2-c. 정보시스템 감리 관련 가이드",
+        "3-b. 인적 자원관리, 의사소통관리",
+        "4-a. 프로젝트관리 관련 표준 및 가이드",
+        "4-b. 통합/범위/자원/일정/위험/품질/성과/조달/변화 관리 등",
+        "PMBOK 프로젝트 관리 10대 지식 영역",
+        "[기타]",
+        "소프트웨어 진흥법",
+        "소프트웨어사업 대가산정 가이드",
+        "정보시스템 감리기준 & 감리 수행 규격"
+      ],
+      "recommendations": [
+        {
+          "concept": "1-b. 계약 관련 법령 및 예규",
+          "score": 7.0,
+          "reason": "이 단원은 [1-c. 대가산정 관련 고시 및 가이드] 단원의 핵심 선행 개념입니다. 기초를 먼저 다지는 것이 장기적으로 고득점에 유리합니다."
+        },
+        {
+          "concept": "1-c. 대가산정 관련 고시 및 가이드",
+          "score": 6.7,
+          "reason": "정답률이 33%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "3-a. 조직구조, 조직이론, 조직설계",
+          "score": 5.0,
+          "reason": "정답률이 50%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "1-a. 정보화 및 소프트웨어 관련 법령 및 고시, 가이드",
+          "score": 4.8,
+          "reason": "이 단원은 [1-c. 대가산정 관련 고시 및 가이드] 단원의 핵심 선행 개념입니다. 기초를 먼저 다지는 것이 장기적으로 고득점에 유리합니다."
+        },
+        {
+          "concept": "2-c. 정보시스템 감리 관련 가이드",
+          "score": 4.0,
+          "reason": "이해도(60%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "3-b. 인적 자원관리, 의사소통관리",
+          "score": 3.3,
+          "reason": "이해도(67%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "[기타]",
+          "score": 2.8,
+          "reason": "이해도(72%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-b. 통합/범위/자원/일정/위험/품질/성과/조달/변화 관리 등",
+          "score": 2.2,
+          "reason": "이해도(78%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "2-a. 전자정부법, 정보시스템 감리기준 등 감리 법제도",
+          "score": 1.8,
+          "reason": "이해도(82%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "4-a. 프로젝트관리 관련 표준 및 가이드",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "PMBOK 프로젝트 관리 10대 지식 영역",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "소프트웨어 진흥법",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "소프트웨어사업 대가산정 가이드",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "정보시스템 감리기준 & 감리 수행 규격",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        }
+      ]
+    },
+    "SA": {
+      "concepts": {},
+      "strengths": [],
+      "weaknesses": [],
+      "in_progress": [],
+      "recommendations": []
+    },
+    "SC": {
+      "concepts": {
+        "1-a. 암호 알고리즘, 해쉬함수, 키관리, 암호 프로토콜 등 암호시스템": {
+          "solved": 2,
+          "correct": 1,
+          "accuracy": 0.5,
+          "status": "IN_PROGRESS"
+        },
+        "1-b. 전자서명, PKI, 생체인식 등 인증기술": {
+          "solved": 2,
+          "correct": 2,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "1-c. 접근권한, SSO, OTP 등 접근제어 기술": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "2-a. 파이어월, IPS, VPN, ESM, NAC, 망분리, 무선보안 등 유무선 네트워크 보안 기술": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "2-c. 네트워크/시스템 보안 공격, 해킹 및 침해사고 대응 기술": {
+          "solved": 1,
+          "correct": 1,
+          "accuracy": 1.0,
+          "status": "IN_PROGRESS"
+        },
+        "3-c. 디지털 포렌식, 블록체인, AI 연계 등 보안 신기술": {
+          "solved": 1,
+          "correct": 0,
+          "accuracy": 0.0,
+          "status": "IN_PROGRESS"
+        },
+        "4-b. SW취약점 진단, 도구, 최신 공격 및 대응 기술": {
+          "solved": 1,
+          "correct": 0,
+          "accuracy": 0.0,
+          "status": "IN_PROGRESS"
+        },
+        "5-a. 정보보호 및 개인정보보호 관련 법규, 표준, 지침, 평가/인증제도": {
+          "solved": 1,
+          "correct": 0,
+          "accuracy": 0.0,
+          "status": "IN_PROGRESS"
+        },
+        "[기타]": {
+          "solved": 4,
+          "correct": 3,
+          "accuracy": 0.75,
+          "status": "IN_PROGRESS"
+        }
+      },
+      "strengths": [],
+      "weaknesses": [],
+      "in_progress": [
+        "1-a. 암호 알고리즘, 해쉬함수, 키관리, 암호 프로토콜 등 암호시스템",
+        "1-b. 전자서명, PKI, 생체인식 등 인증기술",
+        "1-c. 접근권한, SSO, OTP 등 접근제어 기술",
+        "2-a. 파이어월, IPS, VPN, ESM, NAC, 망분리, 무선보안 등 유무선 네트워크 보안 기술",
+        "2-c. 네트워크/시스템 보안 공격, 해킹 및 침해사고 대응 기술",
+        "3-c. 디지털 포렌식, 블록체인, AI 연계 등 보안 신기술",
+        "4-b. SW취약점 진단, 도구, 최신 공격 및 대응 기술",
+        "5-a. 정보보호 및 개인정보보호 관련 법규, 표준, 지침, 평가/인증제도",
+        "[기타]"
+      ],
+      "recommendations": [
+        {
+          "concept": "3-c. 디지털 포렌식, 블록체인, AI 연계 등 보안 신기술",
+          "score": 10.0,
+          "reason": "정답률이 0%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "4-b. SW취약점 진단, 도구, 최신 공격 및 대응 기술",
+          "score": 10.0,
+          "reason": "정답률이 0%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "5-a. 정보보호 및 개인정보보호 관련 법규, 표준, 지침, 평가/인증제도",
+          "score": 10.0,
+          "reason": "정답률이 0%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "1-a. 암호 알고리즘, 해쉬함수, 키관리, 암호 프로토콜 등 암호시스템",
+          "score": 5.0,
+          "reason": "정답률이 50%로 취약한 상태입니다. 기출 오답노트를 다시 복습해 보시는 것을 권장합니다."
+        },
+        {
+          "concept": "[기타]",
+          "score": 2.5,
+          "reason": "이해도(75%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-b. 전자서명, PKI, 생체인식 등 인증기술",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "1-c. 접근권한, SSO, OTP 등 접근제어 기술",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "2-a. 파이어월, IPS, VPN, ESM, NAC, 망분리, 무선보안 등 유무선 네트워크 보안 기술",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        },
+        {
+          "concept": "2-c. 네트워크/시스템 보안 공격, 해킹 및 침해사고 대응 기술",
+          "score": 0.1,
+          "reason": "이해도(100%)를 조금 더 보강하여 안정적인 합격권 강점 단원으로 격상시킬 수 있는 대상입니다."
+        }
+      ]
+    }
+  }
+}
