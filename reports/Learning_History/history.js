@@ -413,8 +413,9 @@ function renderHistoryTable() {
             ? `<span class="goal-badge success">성공 🎉</span>` 
             : `<span class="goal-badge fail">실패 😢 (${row.totalSolved}/${goalLimit})</span>`;
 
-        const reportUrl = "../../analytics/output/diagnostics_report.html";
-        const reportLinkHtml = `<a href="${reportUrl}" target="_blank" class="back-btn" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; margin: 0; background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa; text-decoration: none;" onclick="event.stopPropagation();">리포트 보기 🔍</a>`;
+        const datePart = row.dateStr.replace(/-/g, '').slice(2); // '2026-06-29' -> '260629'
+        const reportUrl = `../../analytics/output/diagnostics_report_${datePart}.html`;
+        const reportCellId = `report-cell-${row.dateStr}`;
 
         tr.innerHTML = `
             <td>${dateFormatted}</td>
@@ -422,8 +423,20 @@ function renderHistoryTable() {
             <td>${acc}%</td>
             <td>${timeStr}</td>
             <td>${statusHtml}</td>
-            <td>${reportLinkHtml}</td>
+            <td id="${reportCellId}"><span style="color: var(--text-muted); font-size: 0.75rem;">-</span></td>
         `;
+
+        // 비동기적으로 해당 날짜의 오답분석 파일이 존재하는지 검증 (HEAD 요청으로 리소스 낭비 최소화)
+        fetch(reportUrl, { method: 'HEAD' })
+            .then(res => {
+                if (res.ok) {
+                    const cell = document.getElementById(reportCellId);
+                    if (cell) {
+                        cell.innerHTML = `<a href="${reportUrl}" target="_blank" class="back-btn" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; margin: 0; background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa; text-decoration: none;" onclick="event.stopPropagation();">리포트 보기 🔍</a>`;
+                    }
+                }
+            })
+            .catch(() => {});
 
         // 행 클릭 이벤트 바인딩: 과목별 상세 레이어 팝업 노출
         tr.addEventListener('click', () => {
