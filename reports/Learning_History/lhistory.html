@@ -204,6 +204,19 @@
         </div>
     </div>
 
+    <!-- 년도별 모의고사 상세 분석 모달 레이어 -->
+    <div id="yearly-detail-modal" class="modal-overlay" onclick="closeYearlyModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()" style="max-width: 800px; width: 95%;">
+            <div class="modal-card-header">
+                <h2 class="modal-card-title" id="yearly-modal-title">📅 모의고사 풀이 상세 분석</h2>
+                <button class="modal-close-x" onclick="closeYearlyModal()">✕</button>
+            </div>
+            <div class="modal-card-body" id="yearly-modal-body" style="max-height: 75vh; overflow-y: auto; padding-right: 0.5rem;">
+                <!-- JS를 통해 동적 생성 -->
+            </div>
+        </div>
+    </div>
+
     <!-- 비즈니스 스크립트 연결 -->
     <script src="../js/config.js"></script>
     <script src="history.js"></script>

@@ -879,6 +879,9 @@ function renderYearlyExamHistoryTable(historyList) {
     tbody.innerHTML = '';
     historyList.forEach(item => {
         const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.title = '클릭하면 상세 채점 분석 및 문항별 풀이 시간 리포트 팝업이 열립니다.';
+        tr.onclick = () => openYearlyModal(item);
         
         // 날짜 변환
         const formattedDate = formatYearlyKoreanDateTime(item.created_at);
@@ -932,4 +935,209 @@ function formatSecondsToKorean(totalSeconds) {
     if (s > 0 || result.length === 0) result.push(`${s}초`);
     
     return result.join(' ');
+}
+
+/**
+ * [설계 의도] 년도별 모의고사 상세 분석 모달 오픈 및 취약 과목 진단, 장시간 소요 문항 Top 3, OMR 시간 그리드 시각화
+ */
+function openYearlyModal(item) {
+    const modal = document.getElementById('yearly-detail-modal');
+    const body = document.getElementById('yearly-modal-body');
+    if (!modal || !body) return;
+
+    // details 파싱
+    let details = [];
+    try {
+        details = (typeof item.details === 'string') 
+            ? JSON.parse(item.details) 
+            : (item.details || []);
+    } catch (e) {
+        console.error("details 파싱 에러:", e);
+    }
+
+    // 1. 과목별 통계 및 풀이 시간 집계
+    const SUBJECTS = {
+        'PM': { name: '감리 및 사업관리', range: [1, 25] },
+        'SE': { name: '소프트웨어공학', range: [26, 50] },
+        'DB': { name: '데이터베이스', range: [51, 75] },
+        'SA': { name: '시스템 아키텍처', range: [76, 100] },
+        'SC': { name: '보안', range: [101, 120] }
+    };
+
+    const subStats = {};
+    for (let code in SUBJECTS) {
+        subStats[code] = { correct: 0, total: 0, timeSum: 0 };
+    }
+
+    details.forEach(d => {
+        const qNum = d.question_num;
+        let subCode = null;
+        for (let code in SUBJECTS) {
+            const range = SUBJECTS[code].range;
+            if (qNum >= range[0] && qNum <= range[1]) {
+                subCode = code;
+                break;
+            }
+        }
+        if (subCode && subStats[subCode]) {
+            subStats[subCode].total++;
+            subStats[subCode].timeSum += (d.elapsed_time || 0);
+            if (d.is_correct) {
+                subStats[subCode].correct++;
+            }
+        }
+    });
+
+    // 2. 가장 오래 고민한 문항 Top 3 (시간 정렬)
+    const sortedByTime = [...details].sort((a, b) => (b.elapsed_time || 0) - (a.elapsed_time || 0));
+    const top3 = sortedByTime.slice(0, 3);
+
+    // 3. 과목별 분석 카드 HTML 작성
+    let subCardsHtml = '';
+    let weaknessAlertHtml = '';
+    for (let code in subStats) {
+        const stat = subStats[code];
+        if (stat.total === 0) continue; // 해당 과목 풀이 데이터가 없으면 패스
+
+        const pct = Math.round((stat.correct / stat.total) * 100);
+        const avgTime = Math.round(stat.timeSum / stat.total);
+        const isLow = pct < 60;
+        
+        if (isLow) {
+            weaknessAlertHtml += `
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.8rem; color: #f87171; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <i data-lucide="alert-triangle" style="width: 14px; height: 14px; flex-shrink: 0;"></i>
+                    <span><strong>${SUBJECTS[code].name}</strong> 과목의 정답률이 <strong>${pct}%</strong>로 취약 상태입니다. 핵심 개념 요약 회독을 추천합니다.</span>
+                </div>
+            `;
+        }
+
+        subCardsHtml += `
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 1rem; text-align: center;">
+                <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">${SUBJECTS[code].name}</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.2rem;">${stat.correct} / ${stat.total}문항</div>
+                <div style="font-size: 0.88rem; font-weight: 700; color: ${isLow ? 'var(--error)' : 'var(--success)'}; margin-bottom: 0.4rem;">정답률: ${pct}%</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">문항당 평균: ${avgTime}초</div>
+            </div>
+        `;
+    }
+
+    // 4. Top 3 문항 리스트 HTML
+    let top3Html = '';
+    top3.forEach((d, idx) => {
+        let subName = '';
+        for (let code in SUBJECTS) {
+            const range = SUBJECTS[code].range;
+            if (d.question_num >= range[0] && d.question_num <= range[1]) {
+                subName = SUBJECTS[code].name;
+                break;
+            }
+        }
+        const timeStr = formatSecondsToKorean(d.elapsed_time);
+        const stBadge = d.is_correct 
+            ? '<span style="color: var(--success); font-weight: 600;">정답</span>' 
+            : '<span style="color: var(--error); font-weight: 600;">오답</span>';
+
+        top3Html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.82rem;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="background: rgba(139, 92, 246, 0.15); color: #c084fc; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;">Top ${idx+1}</span>
+                    <span style="font-weight: 600; color: #ffffff;">${d.question_num}번 문제</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">[${subName}]</span>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span style="color: var(--text-secondary); font-family: monospace;">소요 시간: ${timeStr}</span>
+                    <span>${stBadge}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    // 5. 전체 OMR 바둑판 그리드 HTML
+    let gridHtml = '';
+    details.forEach(d => {
+        const isCorrect = d.is_correct;
+        const color = isCorrect ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+        const borderColor = isCorrect ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+        const txtColor = isCorrect ? '#34d399' : '#f87171';
+        const timeStr = d.elapsed_time ? `${d.elapsed_time}초` : '0초';
+
+        gridHtml += `
+            <div style="background: ${color}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 0.4rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-height: 48px;">
+                <span style="font-size: 0.72rem; color: var(--text-secondary); font-family: monospace; font-weight: 600;">Q.${d.question_num}</span>
+                <span style="font-size: 0.78rem; font-weight: 700; color: ${txtColor};">${isCorrect ? 'O' : 'X'}</span>
+                <span style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace;">${timeStr}</span>
+            </div>
+        `;
+    });
+
+    // 6. 모달 바디 렌더링 조립
+    const formattedTotalTime = formatSecondsToKorean(item.total_time);
+    body.innerHTML = `
+        <!-- 요약 정보 바 -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 12px; padding: 1rem; text-align: center;">
+            <div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">시험 구분</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #ffffff;">${item.exam_year}년도 기출</div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">최종 점수</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: var(--success);">${parseFloat(item.score).toFixed(1)}점</div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">정답 현황</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #ffffff;">${item.correct_count} / ${item.total_questions}문항</div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">총 소요 시간</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #ffffff; font-family: monospace;">${formattedTotalTime}</div>
+            </div>
+        </div>
+
+        <!-- 팝업 인사이트 영역 1: 과목별 분석 -->
+        <div style="margin-bottom: 1.5rem;">
+            <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: #c084fc;">
+                <i data-lucide="bar-chart-2" style="width: 16px; height: 16px;"></i> 과목별 취약 도메인 및 시간 정밀 분석
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; margin-bottom: 0.8rem;">
+                ${subCardsHtml}
+            </div>
+            ${weaknessAlertHtml}
+        </div>
+
+        <!-- 팝업 인사이트 영역 2: 가장 오래 고민한 문제 Top 3 -->
+        <div style="margin-bottom: 1.5rem;">
+            <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: #3b82f6;">
+                <i data-lucide="timer" style="width: 16px; height: 16px;"></i> 가장 오래 고민한 문항 Top 3 (시간 초과 주의군)
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                ${top3Html}
+            </div>
+        </div>
+
+        <!-- 팝업 인사이트 영역 3: OMR 바둑판 보드 -->
+        <div>
+            <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: var(--text-primary);">
+                <i data-lucide="grid" style="width: 16px; height: 16px;"></i> 전체 문항 반응 및 풀이 소요 시간 보드 (바둑판)
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 0.4rem;">
+                ${gridHtml}
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+/**
+ * 모달 클로즈
+ */
+function closeYearlyModal(event) {
+    const modal = document.getElementById('yearly-detail-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
