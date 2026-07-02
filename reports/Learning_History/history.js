@@ -90,6 +90,44 @@ function loadAllHistoryData() {
                 });
             });
 
+            // [설계 의도] 
+            // 년도별 모의고사 연습 이력(yearlyHistory)을 문항 단위로 쪼개어 5대 과목 분류에 맞춰 merged에 병합합니다.
+            // 이를 통해 학습 이력 분석 센터의 일별 학습량(150문항 잔디밭 및 달력 통계)에 모의고사로 푼 문제 수도 자연스럽게 합산됩니다.
+            if (yearlyHistory && yearlyHistory.length > 0) {
+                yearlyHistory.forEach(exam => {
+                    let examDetails = [];
+                    try {
+                        examDetails = (typeof exam.details === 'string') 
+                            ? JSON.parse(exam.details) 
+                            : (exam.details || []);
+                    } catch (e) {
+                        console.error("모의고사 details 파싱 에러:", e);
+                    }
+
+                    const examDate = parseDate(exam.created_at);
+
+                    examDetails.forEach(detail => {
+                        const qNum = detail.question_num;
+                        let sub = 'DB'; // default fallback
+                        if (qNum >= 1 && qNum <= 25) sub = 'PM';
+                        else if (qNum >= 26 && qNum <= 50) sub = 'SE';
+                        else if (qNum >= 51 && qNum <= 75) sub = 'DB';
+                        else if (qNum >= 76 && qNum <= 100) sub = 'SA';
+                        else if (qNum >= 101 && qNum <= 120) sub = 'SC';
+
+                        merged.push({
+                            id: `yearly-${exam.id}-${qNum}`,
+                            total_questions: 1,
+                            correct_count: detail.is_correct ? 1 : 0,
+                            wrong_count: detail.is_correct ? 0 : 1,
+                            created_at: exam.created_at,
+                            subject: sub,
+                            parsedDate: examDate
+                        });
+                    });
+                });
+            }
+
             // 시간 최신순 정렬
             merged.sort((a, b) => b.parsedDate - a.parsedDate);
             HistoryState.allLogs = merged;

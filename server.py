@@ -505,7 +505,23 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     """
                     execute_query(cursor, sql_today, (today_start_str,))
                     row_today = cursor.fetchone()
-                    today_solved = dict(row_today)["today_solved"] if row_today else 0
+                    today_solved_quiz = dict(row_today)["today_solved"] if row_today else 0
+
+                    # 년도별 모의고사 오늘 푼 문제 수 조회 (테이블 부재 시 에러 방지용 예외 처리)
+                    today_solved_yearly = 0
+                    try:
+                        sql_today_yearly = """
+                            SELECT COALESCE(SUM(total_questions), 0) as today_solved
+                            FROM yearly_exam_history
+                            WHERE created_at >= %s
+                        """
+                        execute_query(cursor, sql_today_yearly, (today_start_str,))
+                        row_yearly = cursor.fetchone()
+                        today_solved_yearly = dict(row_yearly)["today_solved"] if row_yearly else 0
+                    except Exception:
+                        pass
+
+                    today_solved = today_solved_quiz + today_solved_yearly
 
                     # 특정 과목의 경험치만 조회할 경우
                     if subject:
