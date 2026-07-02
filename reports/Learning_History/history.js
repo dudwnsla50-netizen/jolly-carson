@@ -471,10 +471,11 @@ function renderHistoryTable() {
             <td id="${reportCellId}"><span style="color: var(--text-muted); font-size: 0.75rem;">-</span></td>
         `;
 
-        // 비동기적으로 해당 날짜의 오답분석 파일이 존재하는지 검증 (HEAD 요청으로 리소스 낭비 최소화)
-        fetch(reportUrl, { method: 'HEAD' })
-            .then(res => {
-                if (res.ok) {
+        // 비동기적으로 해당 날짜의 오답분석 파일이 존재하는지 검증 (전용 API를 활용하여 404 콘솔 로그 노출 차단)
+        fetch(`/api/analytics/check-report?date=${datePart}`)
+            .then(res => res.ok ? res.json() : { exists: false })
+            .then(data => {
+                if (data.exists) {
                     const cell = document.getElementById(reportCellId);
                     if (cell) {
                         cell.innerHTML = `<a href="${reportUrl}" target="_blank" class="back-btn" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; margin: 0; background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); color: #a78bfa; text-decoration: none;" onclick="event.stopPropagation();">리포트 보기 🔍</a>`;

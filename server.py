@@ -177,6 +177,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_db_mode(query)
         elif path == "/api/analytics/concept-diagnostics":
             self.get_concept_diagnostics(query)
+        elif path == "/api/analytics/check-report":
+            self.check_analytics_report(query)
         elif path == "/api/yearly-exams":
             self.get_yearly_exams(query)
         elif path == "/api/yearly-exam/questions":
@@ -198,6 +200,24 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database analytics error: {str(e)}")
+
+    def check_analytics_report(self, query):
+        """[설계 의도] 오답 분석 리포트 HTML 파일의 존재 여부를 확인합니다 (404 콘솔 로그 노출 차단 방지 목적)."""
+        try:
+            date_str = query.get("date", [None])[0]
+            if not date_str:
+                self.send_json_response({"exists": False})
+                return
+            
+            # 파일 규칙: diagnostics_report_YYMMDD.html
+            filename = f"diagnostics_report_{date_str}.html"
+            filepath = os.path.join(BASE_DIR, "analytics", "output", filename)
+            
+            exists = os.path.exists(filepath)
+            self.send_json_response({"exists": exists})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_json_response({"exists": False})
 
     def get_db_mode(self, query):
         self.send_json_response({"db_type": DB_TYPE})
