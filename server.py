@@ -157,6 +157,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.update_question(data)
         elif path == "/api/quiz/submit":
             self.submit_quiz(data)
+        elif path == "/api/yearly-exam/submit":
+            self.submit_yearly_exam(data)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
 
@@ -175,6 +177,12 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_db_mode(query)
         elif path == "/api/analytics/concept-diagnostics":
             self.get_concept_diagnostics(query)
+        elif path == "/api/yearly-exams":
+            self.get_yearly_exams(query)
+        elif path == "/api/yearly-exam/questions":
+            self.get_yearly_exam_questions(query)
+        elif path == "/api/yearly-exam/history":
+            self.get_yearly_exam_history(query)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
 
@@ -588,6 +596,157 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
+    def get_yearly_exams(self, query):
+        """[설계 의도] 기출문제 연도 목록과 유저의 풀이 연습 통계를 요약하여 반환합니다."""
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    sql = """
+                        SELECT eq.year, 
+                               COUNT(eq.id) as question_count,
+                               COALESCE(MAX(h.score), 0.0) as max_score,
+                               COALESCE(COUNT(h.id), 0) as practice_count,
+                               MAX(h.created_at) as last_attempt_at
+                        FROM exam_questions eq
+                        LEFT JOIN yearly_exam_history h ON eq.year = h.exam_year
+                        GROUP BY eq.year
+                        ORDER BY eq.year DESC
+                    """
+                    execute_query(cursor, sql)
+                    rows = cursor.fetchall()
+                    
+                    data_list = []
+                    for row in rows:
+                        item = dict(row)
+                        if item["last_attempt_at"]:
+                            if not isinstance(item["last_attempt_at"], str):
+                                item["last_attempt_at"] = item["last_attempt_at"].isoformat()
+                        data_list.append(item)
+                        
+                    self.send_json_response(data_list)
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Database error: {str(e)}")
+
+    def get_yearly_exam_questions(self, query):
+        """[설계 의도] 특정 연도의 모든 기출문제(120문항)를 번호 순서대로 조회합니다."""
+        year_str = query.get("year", [None])[0]
+        if not year_str or not year_str.isdigit():
+            self.send_error_response(400, "Missing or invalid parameter (year)")
+            return
+            
+        year = int(year_str)
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    sql = """
+                        SELECT id, year, subject, question_num, question, options, answer, explanation 
+                        FROM exam_questions 
+                        WHERE year = %s 
+                        ORDER BY question_num ASC
+                    """
+                    execute_query(cursor, sql, (year,))
+                    rows = cursor.fetchall()
+                    
+                    data_list = []
+                    for row in rows:
+                        item = dict(row)
+                        item["options"] = json.loads(item["options"]) if item["options"] else []
+                        
+                        raw_answer = item["answer"]
+                        if isinstance(raw_answer, int):
+                            item["answer"] = [raw_answer]
+                        elif isinstance(raw_answer, str) and raw_answer.strip():
+                            try:
+                                parsed_ans = json.loads(raw_answer)
+                                if isinstance(parsed_ans, int):
+                                    item["answer"] = [parsed_ans]
+                                else:
+                                    item["answer"] = parsed_ans
+                            except Exception:
+                                if raw_answer.isdigit():
+                                    item["answer"] = [int(raw_answer)]
+                                else:
+                                    item["answer"] = []
+                        else:
+                            item["answer"] = []
+                        data_list.append(item)
+                        
+                    self.send_json_response(data_list)
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Database error: {str(e)}")
+
+    def submit_yearly_exam(self, data):
+        """[설계 의도] 사용자가 제출한 모의고사 풀이 기록을 저장하고, 몇 회차인지 계산하여 DB에 기록합니다."""
+        exam_year = data.get("exam_year")
+        score = data.get("score")
+        correct_count = data.get("correct_count")
+        total_questions = data.get("total_questions")
+        total_time = data.get("total_time")
+        question_times = data.get("question_times")
+        details = data.get("details")
+        
+        if exam_year is None or score is None or correct_count is None or total_questions is None or total_time is None:
+            self.send_error_response(400, "Missing parameters for yearly exam submission")
+            return
+            
+        try:
+            question_times_json = json.dumps(question_times) if question_times is not None else None
+            details_json = json.dumps(details, ensure_ascii=False) if details else None
+            
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    # 1. 기존 연습 횟수(practice_count) 구하기
+                    sql_count = "SELECT COUNT(*) as practice_count FROM yearly_exam_history WHERE exam_year = %s"
+                    execute_query(cursor, sql_count, (exam_year,))
+                    row_count = cursor.fetchone()
+                    existing_count = dict(row_count)["practice_count"] if row_count else 0
+                    practice_count = existing_count + 1
+                    
+                    # 2. 결과 삽입
+                    sql_insert = """
+                        INSERT INTO yearly_exam_history (exam_year, practice_count, score, correct_count, total_questions, total_time, question_times, details)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    execute_query(cursor, sql_insert, (exam_year, practice_count, score, correct_count, total_questions, total_time, question_times_json, details_json))
+                    conn.commit()
+                    
+                    self.send_json_response({
+                        "success": True, 
+                        "message": "Yearly exam attempt saved successfully",
+                        "practice_count": practice_count
+                    })
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Database error: {str(e)}")
+
+    def get_yearly_exam_history(self, query):
+        """[설계 의도] 전체 모의고사 연습 이력 목록을 반환합니다."""
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    sql = """
+                        SELECT id, created_at, exam_year, practice_count, score, correct_count, total_questions, total_time 
+                        FROM yearly_exam_history 
+                        ORDER BY created_at DESC
+                    """
+                    execute_query(cursor, sql)
+                    rows = cursor.fetchall()
+                    
+                    data_list = []
+                    for row in rows:
+                        item = dict(row)
+                        if item["created_at"]:
+                            if not isinstance(item["created_at"], str):
+                                item["created_at"] = item["created_at"].isoformat()
+                        data_list.append(item)
+                        
+                    self.send_json_response(data_list)
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Database error: {str(e)}")
+
     def send_json_response(self, data):
         try:
             response_content = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -645,6 +804,47 @@ def init_quiz_history_table():
         print(f"[{DB_TYPE}] 경고 - 퀴즈 이력 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
 
 
+def init_yearly_exam_history_table():
+    """[설계 의도] SQLite 또는 PostgreSQL 등 기종에 맞는 년도별 모의고사 연습 이력 테이블을 생성/검증합니다."""
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                if DB_TYPE == "POSTGRES":
+                    cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS yearly_exam_history (
+                        id SERIAL PRIMARY KEY,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        exam_year INTEGER NOT NULL,
+                        practice_count INTEGER NOT NULL,
+                        score REAL NOT NULL,
+                        correct_count INTEGER NOT NULL,
+                        total_questions INTEGER NOT NULL,
+                        total_time INTEGER NOT NULL,
+                        question_times TEXT,
+                        details TEXT
+                    );
+                    """)
+                else:
+                    cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS yearly_exam_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        exam_year INTEGER NOT NULL,
+                        practice_count INTEGER NOT NULL,
+                        score REAL NOT NULL,
+                        correct_count INTEGER NOT NULL,
+                        total_questions INTEGER NOT NULL,
+                        total_time INTEGER NOT NULL,
+                        question_times TEXT,
+                        details TEXT
+                    );
+                    """)
+                conn.commit()
+        print(f"[{DB_TYPE}] 년도별 모의고사 이력(yearly_exam_history) 테이블 검증/초기화 완료.")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - 년도별 모의고사 이력 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
+
+
 def main():
     global DB_TYPE
     os.chdir(BASE_DIR)
@@ -680,6 +880,7 @@ def main():
         
     try:
         init_quiz_history_table()
+        init_yearly_exam_history_table()
     except Exception as e:
         print(f"[Server] 경고: DB 연결 제한 상황에서 구동을 대기합니다. -> {e}")
         

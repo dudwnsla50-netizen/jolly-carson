@@ -697,6 +697,34 @@ function initDashboardNav() {
         }
     }
 
+    // 년도별 120제 모의고사 배지 동적 삽입 연동
+    if (navBadges && !document.getElementById('yearly-exam-badge')) {
+        const yearlyBadge = document.createElement('a');
+        yearlyBadge.id = 'yearly-exam-badge';
+        yearlyBadge.href = 'yearly_exam.html';
+        yearlyBadge.className = 'badge';
+        yearlyBadge.style.textDecoration = 'none';
+        yearlyBadge.style.background = 'rgba(59, 130, 246, 0.15)';
+        yearlyBadge.style.borderColor = 'rgba(59, 130, 246, 0.35)';
+        yearlyBadge.style.color = '#60a5fa';
+        yearlyBadge.style.fontWeight = '700';
+        yearlyBadge.style.borderStyle = 'solid';
+        yearlyBadge.style.borderWidth = '1px';
+        yearlyBadge.innerHTML = '📅 년도별 120제';
+
+        const wrongBadge = document.getElementById('wrong-answers-badge');
+        if (wrongBadge) {
+            wrongBadge.parentNode.insertBefore(yearlyBadge, wrongBadge.nextSibling);
+        } else {
+            const homeBadge = navBadges.querySelector('.home-badge');
+            if (homeBadge) {
+                homeBadge.parentNode.insertBefore(yearlyBadge, homeBadge.nextSibling);
+            } else {
+                navBadges.appendChild(yearlyBadge);
+            }
+        }
+    }
+
     const badges = document.querySelectorAll('.subject-badge');
     badges.forEach(badge => {
         const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');

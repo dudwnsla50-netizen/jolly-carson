@@ -65,8 +65,12 @@ function loadAllHistoryData() {
         .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0, subjects_exp: {} })
         .catch(() => ({ total_exp: 0, level: 1, exp_in_level: 0, subjects_exp: {} }));
 
-    Promise.all([Promise.all(fetchPromises), expPromise])
-        .then(([results, expData]) => {
+    const yearlyExamPromise = fetch('/api/yearly-exam/history')
+        .then(res => res.ok ? res.json() : [])
+        .catch(() => []);
+
+    Promise.all([Promise.all(fetchPromises), expPromise, yearlyExamPromise])
+        .then(([results, expData, yearlyHistory]) => {
             const merged = [];
             const subjectAccuracies = {};
 
@@ -92,6 +96,9 @@ function loadAllHistoryData() {
 
             // 과목별 레벨/경험치 카드 UI 렌더링 (평균 정답률 데이터 전달)
             renderSubjectExpCards(expData, subjectAccuracies);
+
+            // [NEW] 년도별 모의고사 연습 이력 렌더링 수행
+            renderYearlyExamHistoryTable(yearlyHistory);
 
             if (merged.length === 0) {
                 renderEmptyState();
@@ -811,4 +818,80 @@ function renderEmptyAnalytics() {
     if (window.lucide) {
         lucide.createIcons();
     }
+}
+
+/**
+ * [설계 의도] 년도별 120제 모의고사 연습 이력 테이블을 동적으로 렌더링합니다.
+ */
+function renderYearlyExamHistoryTable(historyList) {
+    const tbody = document.getElementById('yearly-history-tbody');
+    if (!tbody) return;
+
+    if (!historyList || historyList.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2.5rem; font-size: 0.9rem;">
+                    📢 아직 완료된 년도별 모의고사 연습 이력이 없습니다.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    historyList.forEach(item => {
+        const tr = document.createElement('tr');
+        
+        // 날짜 변환
+        const formattedDate = formatYearlyKoreanDateTime(item.created_at);
+        const score = item.score !== undefined ? parseFloat(item.score).toFixed(1) : '0.0';
+        
+        // 시간 가독성 개선
+        const timeStr = formatSecondsToKorean(item.total_time);
+
+        tr.innerHTML = `
+            <td style="font-size: 0.85rem; color: var(--text-secondary);">${formattedDate}</td>
+            <td style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #ffffff; font-size: 0.9rem;">${item.exam_year}년도 기출</td>
+            <td><span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">${item.practice_count}회차</span></td>
+            <td style="font-size: 0.88rem; font-weight: 500;">${item.correct_count} / ${item.total_questions}</td>
+            <td style="font-size: 0.85rem; color: var(--text-secondary);">${timeStr}</td>
+            <td style="font-weight: 700; color: var(--success); font-size: 0.95rem;">${score}점</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+/**
+ * 년도별 모의고사 날짜 일시 포맷팅 헬퍼
+ */
+function formatYearlyKoreanDateTime(dateStr) {
+    if (!dateStr) return '';
+    const d = parseDate(dateStr);
+    const yy = String(d.getFullYear()).slice(-2);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${yy}.${mm}.${dd} ${hh}:${min}`;
+}
+
+/**
+ * 초(seconds)를 한국어 시간 형태 문자열로 포맷팅
+ */
+function formatSecondsToKorean(totalSeconds) {
+    if (!totalSeconds) return '0초';
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    
+    let result = [];
+    if (h > 0) result.push(`${h}시간`);
+    if (m > 0) result.push(`${m}분`);
+    if (s > 0 || result.length === 0) result.push(`${s}초`);
+    
+    return result.join(' ');
 }
