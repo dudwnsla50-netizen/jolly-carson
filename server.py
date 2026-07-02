@@ -743,7 +743,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, created_at, exam_year, practice_count, score, correct_count, total_questions, total_time 
+                        SELECT id, created_at, exam_year, practice_count, score, correct_count, total_questions, total_time, details 
                         FROM yearly_exam_history 
                         ORDER BY created_at DESC
                     """
