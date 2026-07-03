@@ -445,20 +445,33 @@
         .question-img-wrap {
             display: none;
             justify-content: center;
+            align-items: center;
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--card-border);
             border-radius: 12px;
             padding: 1rem;
             margin-bottom: 1.5rem;
-            max-height: 350px;
-            overflow: hidden;
+            max-height: 78vh;
+            overflow: auto;
         }
 
         .question-img {
             max-width: 100%;
-            max-height: 320px;
+            width: auto;
+            max-height: 72vh;
             object-fit: contain;
             border-radius: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .question-img-wrap {
+                max-height: 62vh;
+                padding: 0.75rem;
+            }
+
+            .question-img {
+                max-height: 56vh;
+            }
         }
 
         /* 4지선다 보기 */
