@@ -190,6 +190,14 @@ body[data-theme="light"] .year-btn:hover {
     box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.12);
 }
 
+/* 라이트 테마에서 선택된 출제 문항 버튼(active)의 가독성 보정 */
+body[data-theme="light"] .year-btn.active-btn {
+    background: #dbeeff;
+    border-color: #7fb5e7;
+    color: #0b3e63 !important;
+    box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.12);
+}
+
 body[data-theme="light"] .dashboard-theme-select {
     border-color: #aeb8c4;
     background: #ffffff;
@@ -233,7 +241,6 @@ body[data-theme="light"] .home-badge,
 body[data-theme="light"] .history-badge,
 body[data-theme="light"] #wrong-answers-badge,
 body[data-theme="light"] #yearly-exam-badge,
-body[data-theme="light"] .year-btn.active-btn,
 body[data-theme="light"] .inline-quiz-submit-btn,
 body[data-theme="light"] .viewer-edit-btn,
 body[data-theme="light"] .gam-levelup-badge,
