@@ -29,25 +29,21 @@ const SUBJECT_NAMES = {
 const YEARLY_SUBJECT_ORDER = ['PM', 'SE', 'DB', 'SA', 'SC'];
 
 document.addEventListener('DOMContentLoaded', () => {
-    initThemeController();
+    initThemeFromStorage();
     loadAllHistoryData();
     updateTabTitleWithDbMode();
 });
 
 /**
- * 테마 토글 버튼 초기화
+ * 메인 대시보드에서 선택된 테마(jc_theme)를 읽어 적용합니다.
  */
-function initThemeController() {
-    const btn = document.getElementById('theme-toggle-btn');
-    if (!btn) return;
-
-    btn.addEventListener('click', () => {
-        const nextTheme = HistoryState.theme === 'light' ? 'dark' : 'light';
-        applyTheme(nextTheme, true);
-    });
-
-    // 초기 라벨 placeholder
-    updateThemeToggleLabel();
+function initThemeFromStorage() {
+    const savedTheme = localStorage.getItem('jc_theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+        applyTheme(savedTheme, false);
+    } else {
+        applyTheme('dark', false);
+    }
 }
 
 /**
@@ -57,7 +53,6 @@ function applyTheme(theme, persist = false) {
     const normalized = (theme === 'light') ? 'light' : 'dark';
     document.body.setAttribute('data-theme', normalized);
     HistoryState.theme = normalized;
-    updateThemeToggleLabel();
 
     if (persist) {
         localStorage.setItem('jc_theme', normalized);
@@ -67,15 +62,6 @@ function applyTheme(theme, persist = false) {
     if (HistoryState.allLogs && HistoryState.allLogs.length > 0) {
         renderCharts();
     }
-}
-
-/**
- * 테마 토글 버튼 텍스트 갱신
- */
-function updateThemeToggleLabel() {
-    const btn = document.getElementById('theme-toggle-btn');
-    if (!btn) return;
-    btn.textContent = HistoryState.theme === 'light' ? '테마: 라이트' : '테마: 다크';
 }
 
 /**
@@ -90,30 +76,10 @@ function updateTabTitleWithDbMode() {
                 if (!document.title.includes(`[${dbTypeStr}]`)) {
                     document.title = `${document.title} [${dbTypeStr}]`;
                 }
-
-                // [설계 의도]
-                // 사용자가 저장한 테마가 없으면 DB 모드 기준으로 기본 테마를 자동 선택합니다.
-                // - SQLITE: 라이트 테마 기본
-                // - 그 외(POSTGRES 등): 다크 테마 기본
-                const savedTheme = localStorage.getItem('jc_theme');
-                if (savedTheme === 'light' || savedTheme === 'dark') {
-                    applyTheme(savedTheme, false);
-                } else {
-                    const defaultTheme = (dbTypeStr === 'SQLITE') ? 'light' : 'dark';
-                    applyTheme(defaultTheme, false);
-                }
             }
         })
         .catch(err => {
             console.warn("[경고] DB 모드 정보 조회 실패:", err);
-
-            // DB 모드 조회 실패 시에는 안전 기본값으로 다크 테마를 적용합니다.
-            const savedTheme = localStorage.getItem('jc_theme');
-            if (savedTheme === 'light' || savedTheme === 'dark') {
-                applyTheme(savedTheme, false);
-            } else {
-                applyTheme('dark', false);
-            }
         });
 }
 

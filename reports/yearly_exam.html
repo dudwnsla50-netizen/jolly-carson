@@ -1327,16 +1327,8 @@
                 return;
             }
 
-            // 저장값이 없으면 DB 모드 기준 기본 테마 적용
-            fetch('/api/db-mode')
-                .then(res => res.ok ? res.json() : null)
-                .then(data => {
-                    const dbType = data && data.db_type ? String(data.db_type).toUpperCase() : 'POSTGRES';
-                    applyYearlyTheme(dbType === 'SQLITE' ? 'light' : 'dark');
-                })
-                .catch(() => {
-                    applyYearlyTheme('dark');
-                });
+            // 메인 화면 선택 이력이 없는 경우 안전 기본값
+            applyYearlyTheme('dark');
         }
 
         // 도큐먼트 로드 완료 시 구동
