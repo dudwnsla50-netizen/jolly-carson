@@ -647,9 +647,9 @@ function updateRunnerExpUI() {
             <div class="gam-pet-avatar-wrapper" style="width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
                 <img id="gam-runner-pet-img" src="${activePet.src}" alt="${activePet.name}" style="width: 85%; height: 85%; object-fit: contain; transform: scale(1.1);" />
             </div>
-            <div class="gam-pet-bubble" style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.25); color: #e9d5ff; font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 6px; position: relative; max-width: 120px; line-height: 1.3; font-weight: 500; min-height: 28px; display: flex; align-items: center;">
+            <div class="gam-pet-bubble" style="background: var(--gam-pet-bubble-bg); border: 1px solid var(--gam-pet-bubble-border); color: var(--gam-pet-bubble-text); font-size: 0.65rem; padding: 0.25rem 0.5rem; border-radius: 6px; position: relative; max-width: 120px; line-height: 1.3; font-weight: 500; min-height: 28px; display: flex; align-items: center;">
                 <span id="gam-runner-pet-bubble-text">${activePet.defaultMsg}</span>
-                <div style="position: absolute; left: -5px; top: 50%; transform: translateY(-50%) rotate(45deg); width: 6px; height: 6px; background: #0c0f1d; border-left: 1px solid rgba(139, 92, 246, 0.25); border-bottom: 1px solid rgba(139, 92, 246, 0.25);"></div>
+                <div style="position: absolute; left: -5px; top: 50%; transform: translateY(-50%) rotate(45deg); width: 6px; height: 6px; background: var(--gam-pet-bubble-tail-bg); border-left: 1px solid var(--gam-pet-bubble-border); border-bottom: 1px solid var(--gam-pet-bubble-border);"></div>
             </div>
         `;
 

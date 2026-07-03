@@ -20,6 +20,12 @@
     --accent-glow: rgba(139, 92, 246, 0.12);
     --success: #10b981;
     --card-hover-border: rgba(139, 92, 246, 0.3);
+
+    /* 포켓몬 응원 말풍선 기본(다크) */
+    --gam-pet-bubble-bg: rgba(139, 92, 246, 0.12);
+    --gam-pet-bubble-border: rgba(139, 92, 246, 0.25);
+    --gam-pet-bubble-text: #e9d5ff;
+    --gam-pet-bubble-tail-bg: #0c0f1d;
 }
 
 /* 2. 전역 마크업 초기화 및 공통 레이아웃 */
@@ -56,6 +62,12 @@ body[data-theme="light"] {
     --accent-glow: rgba(0, 122, 204, 0.16);
     --success: #2da44e;
     --card-hover-border: rgba(0, 122, 204, 0.35);
+
+    /* 포켓몬 응원 말풍선(라이트) 가독성 보정 */
+    --gam-pet-bubble-bg: #e8f2ff;
+    --gam-pet-bubble-border: #9cc8ef;
+    --gam-pet-bubble-text: #16344c;
+    --gam-pet-bubble-tail-bg: #e8f2ff;
 }
 
 body[data-theme="light"] {
