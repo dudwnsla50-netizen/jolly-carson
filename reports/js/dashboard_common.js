@@ -774,7 +774,7 @@ function initDashboardNav() {
     if (navBadges && !document.getElementById('yearly-exam-badge')) {
         const yearlyBadge = document.createElement('a');
         yearlyBadge.id = 'yearly-exam-badge';
-        yearlyBadge.href = 'yearly_exam.html';
+        yearlyBadge.href = 'exam_mock/yearly_exam.html';
         yearlyBadge.className = 'badge';
         yearlyBadge.style.textDecoration = 'none';
         yearlyBadge.style.background = 'rgba(59, 130, 246, 0.15)';

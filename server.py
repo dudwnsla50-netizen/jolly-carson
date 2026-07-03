@@ -639,9 +639,9 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                 with get_db_cursor(conn) as cursor:
                     sql = """
                         SELECT eq.year, 
-                               COUNT(eq.id) as question_count,
+                               COUNT(DISTINCT eq.id) as question_count,
                                COALESCE(MAX(h.score), 0.0) as max_score,
-                               COALESCE(COUNT(h.id), 0) as practice_count,
+                               COALESCE(COUNT(DISTINCT h.id), 0) as practice_count,
                                MAX(h.created_at) as last_attempt_at
                         FROM exam_questions eq
                         LEFT JOIN yearly_exam_history h ON eq.year = h.exam_year

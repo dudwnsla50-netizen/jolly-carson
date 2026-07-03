@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jolly-Carson 년도별 120제 모의고사</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="yearly_exam.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 상단 헤더 -->
+        <header>
+            <a href="../db_official_scopes.html" class="back-btn" id="home-link">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> 대시보드로 돌아가기
+            </a>
+            <h1 id="view-title">년도별 120제 모의고사</h1>
+            <p class="subtitle" id="view-subtitle">연도별 1회분 기출문제(120문항) 전체 또는 과목 범위를 선택해 타이머 측정과 함께 응시합니다.</p>
+        </header>
+
+        <!-- [미동기화 데이터 싱크 알림 배너] -->
+        <div class="sync-banner" id="sync-banner-element">
+            <div class="sync-banner-text">
+                <i data-lucide="cloud-lightning" style="width: 18px; height: 18px; color: #a78bfa;"></i>
+                <span>로컬 장치에 데이터베이스와 동기화되지 않은 풀이 결과가 <strong id="pending-sync-count">0</strong>건 있습니다.</span>
+            </div>
+            <button class="sync-banner-btn" onclick="syncPendingSubmits()">
+                <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> DB에 즉시 반영하기
+            </button>
+        </div>
+
+        <!-- [로딩 화면] -->
+        <div id="loading-screen" class="status-screen">
+            <div class="spinner"></div>
+            <h3 style="color: #ffffff; font-weight: 600; margin-bottom: 0.5rem;">데이터를 불러오는 중입니다</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">잠시만 기다려 주십시오...</p>
+        </div>
+
+        <!-- [1. 연도 선택 화면] -->
+        <div id="selection-view">
+            <div class="exam-grid" id="exam-card-container">
+                <!-- API 조회를 통해 연도별 카드가 동적으로 주입됩니다. -->
+            </div>
+        </div>
+
+        <!-- [2. 시험 풀이 화면] -->
+        <div id="practice-view">
+            <div class="practice-layout">
+                <!-- 왼쪽 문제 풀이 패널 -->
+                <div class="question-panel">
+                    <div class="panel-header">
+                        <div class="question-meta">
+                            <span class="subject-tag" id="current-subject-tag">과목</span>
+                            <span class="q-number-label" id="current-q-num-label">문항 번호</span>
+                        </div>
+                        <div class="timer-container">
+                            <div class="timer-box q-timer" title="현재 문제 풀이 시간">
+                                <i data-lucide="stopwatch" style="width: 14px; height: 14px;"></i>
+                                <span id="q-timer-val">00:00</span>
+                            </div>
+                            <div class="timer-box total-timer" title="총 풀이 경과 시간">
+                                <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                                <span id="total-timer-val">00:00:00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 진행률 표시줄 -->
+                    <div class="progress-container">
+                        <div class="progress-text">
+                            <span id="progress-text-label">진행도: 0 / 120 문항</span>
+                            <span id="progress-pct-label">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                        </div>
+                    </div>
+
+                    <!-- 문제 지문 -->
+                    <div class="question-body" id="question-text-content">
+                        문제 지문을 불러오고 있습니다...
+                    </div>
+
+                    <!-- 4지선다 보기 -->
+                    <div class="options-container" id="options-button-container">
+                        <!-- 동적으로 주입 -->
+                    </div>
+
+                    <!-- 기출 원본 이미지 토글 버튼 -->
+                    <div style="margin-bottom: 1.5rem; text-align: left; display: none;" id="toggle-img-btn-wrap">
+                        <button class="ctrl-btn" id="toggle-img-btn" onclick="toggleQuestionImage()" style="width: 100%; justify-content: center; gap: 0.4rem; background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.06); color: var(--text-secondary);">
+                            <i data-lucide="image" style="width: 15px; height: 15px;"></i> 기출 원본 이미지 펼치기 (펼치기)
+                        </button>
+                    </div>
+
+                    <!-- 문제 이미지 (있는 경우만 표시 및 토글 동작) -->
+                    <div class="question-img-wrap" id="question-img-container" style="display: none; margin-bottom: 1.5rem;">
+                        <img src="" alt="문제 이미지" class="question-img" id="question-img-element">
+                    </div>
+
+                    <!-- 제어 버튼 -->
+                    <div class="control-buttons">
+                        <button class="ctrl-btn" id="prev-q-btn" onclick="goToPrevQuestion()">
+                            <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i> 이전
+                        </button>
+                        <div style="display: flex; gap: 0.4rem;">
+                            <button class="ctrl-btn danger" id="quit-btn" onclick="quitExam()" title="이력을 저장하지 않고 홈으로 나갑니다.">
+                                <i data-lucide="log-out" style="width: 15px; height: 15px;"></i> 이탈
+                            </button>
+                            <button class="ctrl-btn success-outline" id="interim-submit-btn" onclick="interimSubmitExam()" title="풀던 도중 현재까지의 마킹 정보만 채점하여 DB에 영구 반영합니다.">
+                                <i data-lucide="save" style="width: 15px; height: 15px;"></i> 중간 제출 (DB반영)
+                            </button>
+                        </div>
+                        <button class="ctrl-btn primary" id="next-q-btn" onclick="goToNextQuestion()">
+                            다음 <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 오른쪽 OMR 카드 패널 -->
+                <div class="omr-panel">
+                    <div class="omr-header">
+                        <span>📝 OMR 마킹 카드</span>
+                        <span style="font-size: 0.8rem; color: var(--success); font-weight: 600;" id="omr-marked-count">0 / 120 완료</span>
+                    </div>
+                    <div class="omr-grid-container">
+                        <div class="omr-grid" id="omr-grid-container">
+                            <!-- 1~120 노드가 동적으로 배치됩니다. -->
+                        </div>
+                    </div>
+                    <button class="submit-btn" onclick="confirmSubmitExam()">
+                        <i data-lucide="send" style="width: 18px; height: 18px;"></i> 답안 최종 제출
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- [3. 시험 결과 화면] -->
+        <div id="result-view">
+            <div class="result-summary-card">
+                <div class="result-score-title" id="result-exam-title">2026년도 모의고사 결과</div>
+                <div class="result-score-val" id="result-score-display">0.0점</div>
+                
+                <div class="result-meta-grid">
+                    <div class="result-meta-box">
+                        <div class="result-meta-label">맞춘 문제</div>
+                        <div class="result-meta-val" id="result-correct-count">0 / 120</div>
+                    </div>
+                    <div class="result-meta-box">
+                        <div class="result-meta-label">총 소요 시간</div>
+                        <div class="result-meta-val" id="result-total-time">00:00:00</div>
+                    </div>
+                    <div class="result-meta-box">
+                        <div class="result-meta-label">연습 회차</div>
+                        <div class="result-meta-val" id="result-practice-count">-</div>
+                    </div>
+                </div>
+
+                <!-- 과목별 성적 분석 -->
+                <div class="subject-analysis-title">📊 과목별 취약 진단</div>
+                <div class="subject-analysis-grid" id="subject-analysis-container">
+                    <!-- 과목별 점수가 동적으로 렌더링됩니다. -->
+                </div>
+            </div>
+
+            <!-- 하단 액션 -->
+            <div class="result-actions">
+                <button class="ctrl-btn primary" onclick="reloadSelectionView()">
+                    <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i> 연도 선택으로 돌아가기
+                </button>
+            </div>
+
+            <!-- 상세 오답 분석 리뷰 리스트 -->
+            <div class="review-section">
+                <div class="review-header">
+                    <span class="review-title">🔍 상세 기출 오답 리뷰</span>
+                    <div class="filter-toggle-container">
+                        <button class="filter-toggle-btn active" id="btn-filter-all" onclick="filterReview('all')">전체 문항</button>
+                        <button class="filter-toggle-btn" id="btn-filter-wrong" onclick="filterReview('wrong')">틀린 문항만</button>
+                    </div>
+                </div>
+
+                <div class="review-list" id="review-list-container">
+                    <!-- 오답 및 전체 문항 해설이 동적으로 렌더링됩니다. -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비즈니스 로직 스크립트 -->
+    <script src="yearly_exam.js"></script>
+</body>
+</html>
