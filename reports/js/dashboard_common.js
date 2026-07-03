@@ -1284,7 +1284,7 @@ function renderLoadedQuestion(idx, qId) {
                 if (isSelected) optClass += " selected";
             }
 
-            const clickHandler = isSubmitted ? '' : `onclick="handleInlineOptionClick('${idx}', '${qId}', ${optNum}, event)"`;
+            const clickHandler = isSubmitted ? '' : `onclick="handleInlineOptionClick('${idx}', '${qId}', ${optNum}, event, this)"`;
 
             htmlContent += `
                 <button class="${optClass}" ${clickHandler} style="width: 100%; outline: none; font-family: inherit; text-align: left;">
@@ -1421,17 +1421,24 @@ window.quizSubmittedResults = window.quizSubmittedResults || {};
 /**
  * 9-A-0. 보기 텍스트를 드래그 선택 중일 때는 답안 토글을 막아 복사를 우선합니다.
  */
-function handleInlineOptionClick(idx, qId, optNum, event) {
+function handleInlineOptionClick(idx, qId, optNum, event, buttonEl) {
     if (event) event.stopPropagation();
 
-    const selectedText = (window.getSelection && window.getSelection().toString)
-        ? window.getSelection().toString().trim()
-        : '';
+    const sel = (window.getSelection && window.getSelection()) ? window.getSelection() : null;
+    const hasSelection = !!(sel && !sel.isCollapsed && sel.toString && sel.toString().trim().length > 0);
+    const clickedTextNode = !!(event && event.target && event.target.closest && event.target.closest('.inline-opt-text'));
 
-    // 텍스트를 선택한 상태라면 클릭을 답안 선택으로 처리하지 않습니다.
-    if (selectedText.length > 0) {
-        return;
+    // 보기 텍스트 영역에서 실제 드래그 선택이 발생한 경우에만 토글을 차단합니다.
+    if (hasSelection && clickedTextNode && buttonEl && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const selectionInsideButton = buttonEl.contains(range.startContainer) || buttonEl.contains(range.endContainer);
+        if (selectionInsideButton) {
+            return;
+        }
     }
+
+    // 이전 선택 범위를 정리해 다음 클릭이 안정적으로 동작하도록 합니다.
+    if (sel && sel.removeAllRanges) sel.removeAllRanges();
 
     toggleInlineAnswer(idx, qId, optNum, event);
 }

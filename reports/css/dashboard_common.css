@@ -1075,8 +1075,8 @@ input:checked+.slider:before {
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--text-primary);
-    user-select: text;
-    -webkit-user-select: text;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .inline-opt-btn:hover:not(.opt-correct):not(.opt-wrong):not(.opt-disabled) {
@@ -1103,6 +1103,8 @@ input:checked+.slider:before {
     color: var(--text-secondary);
     flex-shrink: 0;
     transition: all 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .inline-opt-btn.selected .inline-opt-num {
