@@ -13,7 +13,9 @@ const HistoryState = {
     charts: {},          // 차트 객체 버퍼 (인스턴스 소멸용)
     analyticsData: null, // [NEW] AI 중단원 분석 데이터 버퍼
     currentSubject: 'DB', // [NEW] 현재 활성화된 분석 탭 과목
-    theme: 'dark'        // 현재 테마 상태(light/dark)
+    theme: 'dark',       // 현재 테마 상태(light/dark)
+    yearlyExamHistory: [],
+    yearlyQuestionCache: {}
 };
 
 const SUBJECT_NAMES = {
@@ -23,6 +25,8 @@ const SUBJECT_NAMES = {
     'SA': '시스템구조',
     'SC': '보안'
 };
+
+const YEARLY_SUBJECT_ORDER = ['PM', 'SE', 'DB', 'SA', 'SC'];
 
 document.addEventListener('DOMContentLoaded', () => {
     initThemeController();
@@ -139,6 +143,8 @@ function loadAllHistoryData() {
         .then(([results, expData, yearlyHistory]) => {
             const merged = [];
             const subjectAccuracies = {};
+
+            HistoryState.yearlyExamHistory = Array.isArray(yearlyHistory) ? yearlyHistory : [];
 
             results.forEach((data, index) => {
                 const sub = subjects[index];
@@ -946,7 +952,7 @@ function renderYearlyExamHistoryTable(historyList) {
     if (!historyList || historyList.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2.5rem; font-size: 0.9rem;">
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem; font-size: 0.9rem;">
                     📢 아직 완료된 년도별 모의고사 연습 이력이 없습니다.
                 </td>
             </tr>
@@ -964,6 +970,7 @@ function renderYearlyExamHistoryTable(historyList) {
         // 날짜 변환
         const formattedDate = formatYearlyKoreanDateTime(item.created_at);
         const score = item.score !== undefined ? parseFloat(item.score).toFixed(1) : '0.0';
+        const subjectSummary = summarizeYearlyExamSubjects(item);
 
         // 시간 가독성 개선
         const timeStr = formatSecondsToKorean(item.total_time);
@@ -971,6 +978,7 @@ function renderYearlyExamHistoryTable(historyList) {
         tr.innerHTML = `
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${formattedDate}</td>
             <td style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #ffffff; font-size: 0.9rem;">${item.exam_year}년도 기출</td>
+            <td style="font-size: 0.8rem; color: var(--text-primary);">${subjectSummary}</td>
             <td><span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">${item.practice_count}회차</span></td>
             <td style="font-size: 0.88rem; font-weight: 500;">${item.correct_count} / ${item.total_questions}</td>
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${timeStr}</td>
@@ -981,6 +989,221 @@ function renderYearlyExamHistoryTable(historyList) {
 
     if (window.lucide) {
         lucide.createIcons();
+    }
+}
+
+function getYearlySubjectCodeByQuestionNum(questionNum) {
+    const q = Number(questionNum);
+    if (q >= 1 && q <= 25) return 'PM';
+    if (q >= 26 && q <= 50) return 'SE';
+    if (q >= 51 && q <= 75) return 'DB';
+    if (q >= 76 && q <= 100) return 'SA';
+    if (q >= 101 && q <= 120) return 'SC';
+    return null;
+}
+
+function summarizeYearlyExamSubjects(item) {
+    let details = [];
+    try {
+        details = (typeof item.details === 'string')
+            ? JSON.parse(item.details)
+            : (item.details || []);
+    } catch (e) {
+        details = [];
+    }
+
+    if (!details || details.length === 0) {
+        return '전체';
+    }
+
+    const codeSet = new Set();
+    details.forEach(d => {
+        const code = getYearlySubjectCodeByQuestionNum(d.question_num);
+        if (code) codeSet.add(code);
+    });
+
+    const ordered = YEARLY_SUBJECT_ORDER.filter(code => codeSet.has(code));
+    if (ordered.length === 0) return '전체';
+    if (ordered.length === YEARLY_SUBJECT_ORDER.length) return '전체';
+    return ordered.map(code => SUBJECT_NAMES[code]).join(', ');
+}
+
+function parseYearlyDetails(item) {
+    try {
+        return (typeof item.details === 'string')
+            ? JSON.parse(item.details)
+            : (item.details || []);
+    } catch (e) {
+        return [];
+    }
+}
+
+function getWeaknessScoreLabel(score) {
+    if (score >= 70) return '높음';
+    if (score >= 45) return '주의';
+    return '양호';
+}
+
+function getWeaknessScoreColor(score) {
+    if (score >= 70) return '#f87171';
+    if (score >= 45) return '#facc15';
+    return '#34d399';
+}
+
+function calculateSubjectWeaknessScores(subStats, recurrenceBySubject, globalAvgTime) {
+    const results = {};
+    Object.keys(subStats).forEach(code => {
+        const stat = subStats[code] || { correct: 0, total: 0, timeSum: 0 };
+        if (stat.total <= 0) {
+            results[code] = {
+                weaknessScore: 0,
+                wrongRate: 0,
+                avgTime: 0,
+                recurrenceRate: 0
+            };
+            return;
+        }
+
+        const wrongRate = ((stat.total - stat.correct) / stat.total) * 100;
+        const avgTime = stat.timeSum / stat.total;
+        const timeRisk = globalAvgTime > 0 ? Math.min(100, (avgTime / globalAvgTime) * 100) : 0;
+        const recurrenceRate = Math.min(100, ((recurrenceBySubject[code] || 0) / stat.total) * 100);
+
+        // 취약도 점수(0~100): 오답률 중심 + 시간 병목 + 재발 오답 가중치
+        const weaknessScore = Math.round(
+            (wrongRate * 0.60) +
+            (timeRisk * 0.25) +
+            (recurrenceRate * 0.15)
+        );
+
+        results[code] = {
+            weaknessScore,
+            wrongRate,
+            avgTime,
+            recurrenceRate
+        };
+    });
+
+    return results;
+}
+
+function getYearlyWrongRecurrenceInsight(item, details) {
+    const allHistory = Array.isArray(HistoryState.yearlyExamHistory) ? HistoryState.yearlyExamHistory : [];
+    const currentDate = parseDate(item.created_at);
+
+    const previousSameYear = allHistory.filter(h => {
+        if (String(h.exam_year) !== String(item.exam_year)) return false;
+        if (item.id !== undefined && h.id !== undefined && String(h.id) === String(item.id)) return false;
+        const d = parseDate(h.created_at);
+        return d < currentDate;
+    });
+
+    const prevWrongSet = new Set();
+    previousSameYear.forEach(h => {
+        const dList = parseYearlyDetails(h);
+        dList.forEach(d => {
+            if (!d.is_correct) {
+                prevWrongSet.add(Number(d.question_num));
+            }
+        });
+    });
+
+    const currentWrong = details
+        .filter(d => !d.is_correct)
+        .map(d => Number(d.question_num));
+
+    const recurringWrong = currentWrong.filter(qNum => prevWrongSet.has(qNum));
+    const recurringSet = new Set(recurringWrong);
+
+    const improvedFromPast = Array.from(prevWrongSet).filter(qNum => !recurringSet.has(qNum));
+    const recurrenceRate = currentWrong.length > 0
+        ? Math.round((recurringWrong.length / currentWrong.length) * 100)
+        : 0;
+
+    const recurrenceBySubject = { PM: 0, SE: 0, DB: 0, SA: 0, SC: 0 };
+    recurringWrong.forEach(qNum => {
+        const code = getYearlySubjectCodeByQuestionNum(qNum);
+        if (code && recurrenceBySubject[code] !== undefined) {
+            recurrenceBySubject[code] += 1;
+        }
+    });
+
+    return {
+        previousAttemptCount: previousSameYear.length,
+        currentWrongCount: currentWrong.length,
+        recurringWrong,
+        recurrenceRate,
+        improvedCount: Math.max(0, improvedFromPast.length),
+        recurrenceBySubject
+    };
+}
+
+async function showYearlyWrongQuestionDetail(item, detail) {
+    const container = document.getElementById('yearly-wrong-detail-box');
+    if (!container) return;
+
+    const qNum = detail.question_num;
+    const qIdCandidate = detail.q_id || `${item.exam_year}_${qNum}`;
+    container.innerHTML = `<div style="font-size:0.82rem; color: var(--text-secondary);">${qNum}번 문제 지문을 불러오는 중...</div>`;
+
+    HistoryState.yearlyQuestionCache = HistoryState.yearlyQuestionCache || {};
+
+    try {
+        let questionData = HistoryState.yearlyQuestionCache[qIdCandidate];
+        if (!questionData) {
+            let resp = await fetch(`/api/question?id=${encodeURIComponent(qIdCandidate)}`);
+
+            // q_id 포맷이 다를 경우를 대비한 폴백 (예: q_id 누락 시 연도_문항)
+            if (!resp.ok && detail.q_id) {
+                const fallbackId = `${item.exam_year}_${qNum}`;
+                resp = await fetch(`/api/question?id=${encodeURIComponent(fallbackId)}`);
+            }
+
+            if (!resp.ok) {
+                throw new Error(`문항 조회 실패 (HTTP ${resp.status})`);
+            }
+
+            questionData = await resp.json();
+            HistoryState.yearlyQuestionCache[qIdCandidate] = questionData;
+        }
+
+        const options = Array.isArray(questionData.options) ? questionData.options : [];
+        const answerArr = Array.isArray(questionData.answer) ? questionData.answer : [];
+        const userAnswerArr = Array.isArray(detail.user_answer) ? detail.user_answer : [];
+
+        const optionHtml = options.map((opt, idx) => {
+            const optNo = idx + 1;
+            const isCorrect = answerArr.includes(optNo);
+            const isUser = userAnswerArr.includes(optNo);
+            const border = isCorrect ? '1px solid rgba(16,185,129,0.5)' : (isUser ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.08)');
+            const bg = isCorrect ? 'rgba(16,185,129,0.10)' : (isUser ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)');
+            const marker = isCorrect ? '✅ 정답' : (isUser ? '❌ 선택' : '');
+
+            return `
+                <div style="padding: 0.45rem 0.6rem; border-radius: 8px; border: ${border}; background: ${bg}; display:flex; justify-content:space-between; gap:0.6rem;">
+                    <span style="font-size:0.8rem; color: var(--text-primary);">${optNo}. ${opt}</span>
+                    <span style="font-size:0.72rem; color: var(--text-secondary); white-space:nowrap;">${marker}</span>
+                </div>
+            `;
+        }).join('');
+
+        const correctStr = answerArr.length > 0 ? answerArr.join(', ') : '-';
+        const userStr = userAnswerArr.length > 0 ? userAnswerArr.join(', ') : '미선택';
+
+        container.innerHTML = `
+            <div style="border:1px solid rgba(59,130,246,0.28); background: rgba(59,130,246,0.08); border-radius: 10px; padding: 0.8rem; margin-bottom: 0.9rem;">
+                <div style="font-size:0.82rem; font-weight:700; color:#60a5fa; margin-bottom:0.45rem;">📌 오답 선택 문항 상세: ${qNum}번</div>
+                <div style="font-size:0.84rem; color: var(--text-primary); line-height:1.55; white-space: pre-wrap; margin-bottom:0.7rem;">${questionData.question || '지문 정보 없음'}</div>
+                <div style="display:flex; gap:1rem; font-size:0.78rem; margin-bottom:0.55rem;">
+                    <span style="color: var(--text-secondary);">내 답: <strong style="color:#f87171;">${userStr}</strong></span>
+                    <span style="color: var(--text-secondary);">정답: <strong style="color:#34d399;">${correctStr}</strong></span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.4rem;">${optionHtml}</div>
+                ${questionData.explanation ? `<div style="margin-top:0.7rem; font-size:0.78rem; color: var(--text-secondary); line-height:1.5;"><strong style="color: var(--text-primary);">해설</strong><br>${questionData.explanation}</div>` : ''}
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `<div style="font-size:0.8rem; color:#f87171;">오답 문항 상세를 불러오지 못했습니다: ${err.message}</div>`;
     }
 }
 
@@ -1025,14 +1248,7 @@ function openYearlyModal(item) {
         if (!modal || !body) return;
 
         // details 파싱
-        let details = [];
-        try {
-            details = (typeof item.details === 'string')
-                ? JSON.parse(item.details)
-                : (item.details || []);
-        } catch (e) {
-            console.error("details 파싱 에러:", e);
-        }
+        const details = parseYearlyDetails(item);
 
         // 1. 과목별 통계 및 풀이 시간 집계
         const SUBJECTS = {
@@ -1067,6 +1283,15 @@ function openYearlyModal(item) {
             }
         });
 
+        const totalElapsed = details.reduce((acc, d) => acc + (d.elapsed_time || 0), 0);
+        const globalAvgTime = details.length > 0 ? (totalElapsed / details.length) : 0;
+        const recurrenceInsight = getYearlyWrongRecurrenceInsight(item, details);
+        const weaknessScores = calculateSubjectWeaknessScores(
+            subStats,
+            recurrenceInsight.recurrenceBySubject,
+            globalAvgTime
+        );
+
         // 2. 가장 오래 고민한 문항 Top 3 (시간 정렬)
         const sortedByTime = [...details].sort((a, b) => (b.elapsed_time || 0) - (a.elapsed_time || 0));
         const top3 = sortedByTime.slice(0, 3);
@@ -1081,6 +1306,9 @@ function openYearlyModal(item) {
             const pct = Math.round((stat.correct / stat.total) * 100);
             const avgTime = Math.round(stat.timeSum / stat.total);
             const isLow = pct < 60;
+            const weakness = weaknessScores[code] || { weaknessScore: 0, recurrenceRate: 0 };
+            const weaknessColor = getWeaknessScoreColor(weakness.weaknessScore);
+            const weaknessLabel = getWeaknessScoreLabel(weakness.weaknessScore);
 
             if (isLow) {
                 weaknessAlertHtml += `
@@ -1096,10 +1324,20 @@ function openYearlyModal(item) {
                     <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">${SUBJECTS[code].name}</div>
                     <div style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.2rem;">${stat.correct} / ${stat.total}문항</div>
                     <div style="font-size: 0.88rem; font-weight: 700; color: ${isLow ? 'var(--error)' : 'var(--success)'}; margin-bottom: 0.4rem;">정답률: ${pct}%</div>
+                    <div style="font-size: 0.78rem; font-weight: 700; color: ${weaknessColor}; margin-bottom: 0.3rem;">취약도 점수: ${weakness.weaknessScore}점 (${weaknessLabel})</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.3rem;">오답 재발률: ${Math.round(weakness.recurrenceRate)}%</div>
                     <div style="font-size: 0.72rem; color: var(--text-muted);">문항당 평균: ${avgTime}초</div>
                 </div>
             `;
         }
+
+        const recurringWrongHtml = recurrenceInsight.recurringWrong.length > 0
+            ? recurrenceInsight.recurringWrong
+                .sort((a, b) => a - b)
+                .slice(0, 12)
+                .map(qNum => `<span style="display:inline-flex; align-items:center; padding:0.18rem 0.5rem; border-radius:999px; font-size:0.72rem; border:1px solid rgba(239,68,68,0.28); background:rgba(239,68,68,0.10); color:#fca5a5; margin-right:0.35rem; margin-bottom:0.35rem;">Q.${qNum}</span>`)
+                .join('')
+            : '<span style="font-size:0.78rem; color: var(--text-secondary);">현재 회차에서 재발 오답은 없습니다.</span>';
 
         // 4. Top 3 문항 리스트 HTML
         let top3Html = '';
@@ -1134,15 +1372,16 @@ function openYearlyModal(item) {
 
         // 5. 전체 OMR 바둑판 그리드 HTML
         let gridHtml = '';
-        details.forEach(d => {
+        details.forEach((d, dIdx) => {
             const isCorrect = d.is_correct;
             const color = isCorrect ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)';
             const borderColor = isCorrect ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)';
             const txtColor = isCorrect ? '#34d399' : '#f87171';
             const timeStr = d.elapsed_time ? `${d.elapsed_time}초` : '0초';
+            const clickHint = !isCorrect ? '클릭하여 지문/정답 보기' : '정답 문항';
 
             gridHtml += `
-                <div style="background: ${color}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 0.4rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-height: 48px;">
+                <div class="yearly-omr-cell ${isCorrect ? '' : 'wrong'}" data-detail-index="${dIdx}" title="${clickHint}" style="background: ${color}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 0.4rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-height: 48px; cursor: ${isCorrect ? 'default' : 'pointer'};">
                     <span style="font-size: 0.72rem; color: var(--text-secondary); font-family: monospace; font-weight: 600;">Q.${d.question_num}</span>
                     <span style="font-size: 0.78rem; font-weight: 700; color: ${txtColor};">${isCorrect ? 'O' : 'X'}</span>
                     <span style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace;">${timeStr}</span>
@@ -1184,6 +1423,35 @@ function openYearlyModal(item) {
                 ${weaknessAlertHtml}
             </div>
 
+            <!-- 팝업 인사이트 영역 1-확장: 오답 재발 추적 -->
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: #f97316;">
+                    <i data-lucide="repeat" style="width: 16px; height: 16px;"></i> 오답 재발 추적
+                </h3>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:0.65rem; margin-bottom:0.7rem;">
+                    <div style="background: rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.25); border-radius:10px; padding:0.7rem; text-align:center;">
+                        <div style="font-size:0.72rem; color: var(--text-secondary); margin-bottom:0.2rem;">이전 동일연도 풀이</div>
+                        <div style="font-size:0.95rem; font-weight:700; color:#fdba74;">${recurrenceInsight.previousAttemptCount}회</div>
+                    </div>
+                    <div style="background: rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.24); border-radius:10px; padding:0.7rem; text-align:center;">
+                        <div style="font-size:0.72rem; color: var(--text-secondary); margin-bottom:0.2rem;">이번 회차 오답 수</div>
+                        <div style="font-size:0.95rem; font-weight:700; color:#fca5a5;">${recurrenceInsight.currentWrongCount}문항</div>
+                    </div>
+                    <div style="background: rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.24); border-radius:10px; padding:0.7rem; text-align:center;">
+                        <div style="font-size:0.72rem; color: var(--text-secondary); margin-bottom:0.2rem;">재발 오답 수</div>
+                        <div style="font-size:0.95rem; font-weight:700; color:#fcd34d;">${recurrenceInsight.recurringWrong.length}문항</div>
+                    </div>
+                    <div style="background: rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.24); border-radius:10px; padding:0.7rem; text-align:center;">
+                        <div style="font-size:0.72rem; color: var(--text-secondary); margin-bottom:0.2rem;">재발률 / 개선 문항</div>
+                        <div style="font-size:0.95rem; font-weight:700; color:#93c5fd;">${recurrenceInsight.recurrenceRate}% / ${recurrenceInsight.improvedCount}개</div>
+                    </div>
+                </div>
+                <div style="background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0.65rem 0.75rem;">
+                    <div style="font-size:0.76rem; color: var(--text-secondary); margin-bottom:0.45rem;">재발 오답 문항</div>
+                    <div>${recurringWrongHtml}</div>
+                </div>
+            </div>
+
             <!-- 팝업 인사이트 영역 2: 가장 오래 고민한 문제 Top 3 -->
             <div style="margin-bottom: 1.5rem;">
                 <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: #3b82f6;">
@@ -1199,11 +1467,24 @@ function openYearlyModal(item) {
                 <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: var(--text-primary);">
                     <i data-lucide="grid" style="width: 16px; height: 16px;"></i> 전체 문항 반응 및 풀이 소요 시간 보드 (바둑판)
                 </h3>
+                <div id="yearly-wrong-detail-box" style="margin-bottom: 0.8rem;">
+                    <div style="font-size:0.78rem; color: var(--text-secondary);">오답 문항(X)을 클릭하면 해당 문제 지문과 정답을 볼 수 있습니다.</div>
+                </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 0.4rem;">
                     ${gridHtml}
                 </div>
             </div>
         `;
+
+        // 오답 문항 클릭 시 상세 지문/정답 뷰어 연동
+        body.querySelectorAll('.yearly-omr-cell.wrong').forEach(el => {
+            el.addEventListener('click', () => {
+                const detailIndex = Number(el.getAttribute('data-detail-index'));
+                if (!Number.isNaN(detailIndex) && details[detailIndex]) {
+                    showYearlyWrongQuestionDetail(item, details[detailIndex]);
+                }
+            });
+        });
 
         // [버그 수정]
         // history.css의 modal-overlay는 `.show` 클래스가 있어야만
