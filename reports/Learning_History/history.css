@@ -426,6 +426,12 @@ body[data-theme="light"] .bg-glow-left {
     background: rgba(255, 255, 255, 0.01);
 }
 
+/* 라이트 테마에서 년도별 120제 이력의 기출연도 텍스트 대비를 강제 보정 */
+body[data-theme="light"] #yearly-history-tbody td:nth-child(2) {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
 .subject-badge {
     display: inline-block;
     padding: 0.2rem 0.5rem;
@@ -529,21 +535,29 @@ body[data-theme="light"] .bg-glow-left {
     transition: opacity 0.25s ease;
 }
 
+body[data-theme="light"] .modal-overlay {
+    background: rgba(15, 23, 42, 0.42);
+}
+
 .modal-overlay.show {
     opacity: 1;
     pointer-events: auto;
 }
 
 .modal-card {
-    background: #0f132c;
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: var(--bg-card);
+    border: 1px solid var(--card-border);
     border-radius: 20px;
     width: 90%;
     max-width: 450px;
     padding: 1.5rem;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.32);
     transform: translateY(20px);
     transition: transform 0.25s ease;
+}
+
+body[data-theme="light"] .modal-card {
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.20);
 }
 
 .modal-overlay.show .modal-card {
@@ -554,7 +568,7 @@ body[data-theme="light"] .bg-glow-left {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--card-border);
     padding-bottom: 0.8rem;
     margin-bottom: 1.2rem;
 }
@@ -563,7 +577,7 @@ body[data-theme="light"] .bg-glow-left {
     font-family: 'Outfit', sans-serif;
     font-size: 1.15rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .modal-close-x {
@@ -577,7 +591,7 @@ body[data-theme="light"] .bg-glow-left {
 }
 
 .modal-close-x:hover {
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .modal-card-body {
@@ -604,7 +618,11 @@ body[data-theme="light"] .bg-glow-left {
     background: rgba(255, 255, 255, 0.02);
     padding: 0.6rem 1rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--card-border);
+}
+
+body[data-theme="light"] .modal-subject-row {
+    background: rgba(15, 23, 42, 0.03);
 }
 
 /* ==========================================

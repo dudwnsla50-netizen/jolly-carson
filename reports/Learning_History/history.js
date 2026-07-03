@@ -619,7 +619,7 @@ function showDailyDetail(row) {
         rowEl.className = 'modal-subject-row';
         rowEl.innerHTML = `
             <span class="subject-badge ${sub}">${SUBJECT_NAMES[sub]}</span>
-            <span style="font-weight: 600; color: #ffffff;">${count}개 문항 풀이</span>
+            <span style="font-weight: 600; color: var(--text-primary);">${count}개 문항 풀이</span>
         `;
         modalBody.appendChild(rowEl);
     });
@@ -977,7 +977,7 @@ function renderYearlyExamHistoryTable(historyList) {
 
         tr.innerHTML = `
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${formattedDate}</td>
-            <td style="font-family: 'Outfit', sans-serif; font-weight: 700; color: #ffffff; font-size: 0.9rem;">${item.exam_year}년도 기출</td>
+            <td style="font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-primary); font-size: 0.9rem;">${item.exam_year}년도 기출</td>
             <td style="font-size: 0.8rem; color: var(--text-primary);">${subjectSummary}</td>
             <td><span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">${item.practice_count}회차</span></td>
             <td style="font-size: 0.88rem; font-weight: 500;">${item.correct_count} / ${item.total_questions}</td>
@@ -1147,6 +1147,12 @@ async function showYearlyWrongQuestionDetail(item, detail) {
     container.innerHTML = `<div style="font-size:0.82rem; color: var(--text-secondary);">${qNum}번 문제 지문을 불러오는 중...</div>`;
 
     HistoryState.yearlyQuestionCache = HistoryState.yearlyQuestionCache || {};
+    const neutralBorder = HistoryState.theme === 'light'
+        ? '1px solid rgba(15,23,42,0.14)'
+        : '1px solid rgba(255,255,255,0.08)';
+    const neutralBg = HistoryState.theme === 'light'
+        ? 'rgba(15,23,42,0.03)'
+        : 'rgba(255,255,255,0.02)';
 
     try {
         let questionData = HistoryState.yearlyQuestionCache[qIdCandidate];
@@ -1175,8 +1181,8 @@ async function showYearlyWrongQuestionDetail(item, detail) {
             const optNo = idx + 1;
             const isCorrect = answerArr.includes(optNo);
             const isUser = userAnswerArr.includes(optNo);
-            const border = isCorrect ? '1px solid rgba(16,185,129,0.5)' : (isUser ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.08)');
-            const bg = isCorrect ? 'rgba(16,185,129,0.10)' : (isUser ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)');
+            const border = isCorrect ? '1px solid rgba(16,185,129,0.5)' : (isUser ? '1px solid rgba(239,68,68,0.45)' : neutralBorder);
+            const bg = isCorrect ? 'rgba(16,185,129,0.10)' : (isUser ? 'rgba(239,68,68,0.08)' : neutralBg);
             const marker = isCorrect ? '✅ 정답' : (isUser ? '❌ 선택' : '');
 
             return `
@@ -1249,6 +1255,18 @@ function openYearlyModal(item) {
 
         // details 파싱
         const details = parseYearlyDetails(item);
+        const neutralCardBg = HistoryState.theme === 'light'
+            ? 'rgba(15,23,42,0.03)'
+            : 'rgba(255, 255, 255, 0.02)';
+        const neutralCardBorder = HistoryState.theme === 'light'
+            ? '1px solid rgba(15,23,42,0.14)'
+            : '1px solid rgba(255, 255, 255, 0.06)';
+        const summaryBg = HistoryState.theme === 'light'
+            ? 'rgba(56, 83, 216, 0.06)'
+            : 'rgba(139, 92, 246, 0.05)';
+        const summaryBorder = HistoryState.theme === 'light'
+            ? '1px solid rgba(56, 83, 216, 0.18)'
+            : '1px solid rgba(139, 92, 246, 0.15)';
 
         // 1. 과목별 통계 및 풀이 시간 집계
         const SUBJECTS = {
@@ -1320,9 +1338,9 @@ function openYearlyModal(item) {
             }
 
             subCardsHtml += `
-                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 1rem; text-align: center;">
+                <div style="background: ${neutralCardBg}; border: ${neutralCardBorder}; border-radius: 12px; padding: 1rem; text-align: center;">
                     <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">${SUBJECTS[code].name}</div>
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.2rem;">${stat.correct} / ${stat.total}문항</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">${stat.correct} / ${stat.total}문항</div>
                     <div style="font-size: 0.88rem; font-weight: 700; color: ${isLow ? 'var(--error)' : 'var(--success)'}; margin-bottom: 0.4rem;">정답률: ${pct}%</div>
                     <div style="font-size: 0.78rem; font-weight: 700; color: ${weaknessColor}; margin-bottom: 0.3rem;">취약도 점수: ${weakness.weaknessScore}점 (${weaknessLabel})</div>
                     <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.3rem;">오답 재발률: ${Math.round(weakness.recurrenceRate)}%</div>
@@ -1356,10 +1374,10 @@ function openYearlyModal(item) {
                 : '<span style="color: var(--error); font-weight: 600;">오답</span>';
 
             top3Html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.82rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: ${neutralCardBg}; border: ${neutralCardBorder}; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.82rem;">
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
                         <span style="background: rgba(139, 92, 246, 0.15); color: #c084fc; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;">Top ${idx + 1}</span>
-                        <span style="font-weight: 600; color: #ffffff;">${d.question_num}번 문제</span>
+                        <span style="font-weight: 600; color: var(--text-primary);">${d.question_num}번 문제</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">[${subName}]</span>
                     </div>
                     <div style="display: flex; gap: 1rem; align-items: center;">
@@ -1393,10 +1411,10 @@ function openYearlyModal(item) {
         const formattedTotalTime = formatSecondsToKorean(item.total_time);
         body.innerHTML = `
             <!-- 요약 정보 바 -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 12px; padding: 1rem; text-align: center;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; background: ${summaryBg}; border: ${summaryBorder}; border-radius: 12px; padding: 1rem; text-align: center;">
                 <div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">시험 구분</div>
-                    <div style="font-size: 0.95rem; font-weight: 700; color: #ffffff;">${item.exam_year}년도 기출</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">${item.exam_year}년도 기출</div>
                 </div>
                 <div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">최종 점수</div>
@@ -1404,11 +1422,11 @@ function openYearlyModal(item) {
                 </div>
                 <div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">정답 현황</div>
-                    <div style="font-size: 0.95rem; font-weight: 700; color: #ffffff;">${item.correct_count} / ${item.total_questions}문항</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">${item.correct_count} / ${item.total_questions}문항</div>
                 </div>
                 <div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">총 소요 시간</div>
-                    <div style="font-size: 0.95rem; font-weight: 700; color: #ffffff; font-family: monospace;">${formattedTotalTime}</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); font-family: monospace;">${formattedTotalTime}</div>
                 </div>
             </div>
 
@@ -1446,7 +1464,7 @@ function openYearlyModal(item) {
                         <div style="font-size:0.95rem; font-weight:700; color:#93c5fd;">${recurrenceInsight.recurrenceRate}% / ${recurrenceInsight.improvedCount}개</div>
                     </div>
                 </div>
-                <div style="background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0.65rem 0.75rem;">
+                <div style="background: ${neutralCardBg}; border:${neutralCardBorder}; border-radius:10px; padding:0.65rem 0.75rem;">
                     <div style="font-size:0.76rem; color: var(--text-secondary); margin-bottom:0.45rem;">재발 오답 문항</div>
                     <div>${recurringWrongHtml}</div>
                 </div>
@@ -1467,11 +1485,11 @@ function openYearlyModal(item) {
                 <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: var(--text-primary);">
                     <i data-lucide="grid" style="width: 16px; height: 16px;"></i> 전체 문항 반응 및 풀이 소요 시간 보드 (바둑판)
                 </h3>
-                <div id="yearly-wrong-detail-box" style="margin-bottom: 0.8rem;">
-                    <div style="font-size:0.78rem; color: var(--text-secondary);">오답 문항(X)을 클릭하면 해당 문제 지문과 정답을 볼 수 있습니다.</div>
-                </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 0.4rem;">
                     ${gridHtml}
+                </div>
+                <div id="yearly-wrong-detail-box" style="margin-top: 0.85rem;">
+                    <div style="font-size:0.78rem; color: var(--text-secondary);">오답 문항(X)을 클릭하면 해당 문제 지문과 정답을 볼 수 있습니다.</div>
                 </div>
             </div>
         `;
