@@ -29,6 +29,66 @@
             --card-hover-border: rgba(139, 92, 246, 0.35);
         }
 
+        body[data-theme="light"] {
+            --bg-color: #edf1f5;
+            --card-bg: #f8fafc;
+            --card-border: #d8dee4;
+            --text-primary: #1f2328;
+            --text-secondary: #3c434d;
+            --text-muted: #6e7781;
+            --accent-violet: #0e639c;
+            --accent-blue: #007acc;
+            --accent-gradient: linear-gradient(135deg, #0e639c 0%, #007acc 100%);
+            --accent-glow: rgba(0, 122, 204, 0.14);
+            --success: #2da44e;
+            --warning: #b26b00;
+            --error: #cf222e;
+            --card-hover-border: rgba(0, 122, 204, 0.28);
+        }
+
+        body[data-theme="light"] {
+            background-image:
+                radial-gradient(at 0% 0%, rgba(0, 122, 204, 0.12) 0px, transparent 55%),
+                radial-gradient(at 100% 100%, rgba(14, 99, 156, 0.1) 0px, transparent 55%);
+        }
+
+        /* 라이트 테마 전역 가시성 보정 (인라인 하드코딩 화이트 텍스트 대응) */
+        body[data-theme="light"] [style*="color: #ffffff"],
+        body[data-theme="light"] [style*="color:#ffffff"],
+        body[data-theme="light"] [style*="color: #fff"],
+        body[data-theme="light"] [style*="color:#fff"],
+        body[data-theme="light"] [style*="color: rgba(255,255,255"],
+        body[data-theme="light"] [style*="color: rgba(255, 255, 255"] {
+            color: var(--text-primary) !important;
+        }
+
+        body[data-theme="light"] .back-btn,
+        body[data-theme="light"] .ctrl-btn,
+        body[data-theme="light"] .option-btn,
+        body[data-theme="light"] .exam-card,
+        body[data-theme="light"] .status-screen,
+        body[data-theme="light"] .question-img-wrap,
+        body[data-theme="light"] .omr-panel,
+        body[data-theme="light"] .summary-card,
+        body[data-theme="light"] .result-main-card,
+        body[data-theme="light"] .review-item,
+        body[data-theme="light"] .review-options,
+        body[data-theme="light"] .review-answer-box {
+            border-color: var(--card-border) !important;
+        }
+
+        body[data-theme="light"] .option-btn:hover {
+            background: rgba(14, 99, 156, 0.08);
+            border-color: rgba(14, 99, 156, 0.24);
+        }
+
+        body[data-theme="light"] .option-btn.selected {
+            background: rgba(14, 99, 156, 0.14);
+            border-color: rgba(14, 99, 156, 0.38);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(14, 99, 156, 0.12);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -1253,9 +1313,35 @@
         // 로컬스토리지 백업 키 및 미동기화 보류 리스트 키
         const BACKUP_KEY = 'jolly_carson_yearly_exam_backup';
         const PENDING_KEY = 'jolly_carson_pending_submits';
+        const THEME_STORAGE_KEY = 'jc_theme';
+
+        function applyYearlyTheme(theme) {
+            const normalized = theme === 'light' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', normalized);
+        }
+
+        function initYearlyTheme() {
+            const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                applyYearlyTheme(savedTheme);
+                return;
+            }
+
+            // 저장값이 없으면 DB 모드 기준 기본 테마 적용
+            fetch('/api/db-mode')
+                .then(res => res.ok ? res.json() : null)
+                .then(data => {
+                    const dbType = data && data.db_type ? String(data.db_type).toUpperCase() : 'POSTGRES';
+                    applyYearlyTheme(dbType === 'SQLITE' ? 'light' : 'dark');
+                })
+                .catch(() => {
+                    applyYearlyTheme('dark');
+                });
+        }
 
         // 도큐먼트 로드 완료 시 구동
         document.addEventListener('DOMContentLoaded', () => {
+            initYearlyTheme();
             initLucide();
             checkBackupAndInit();
             
