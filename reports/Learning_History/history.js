@@ -1103,19 +1103,58 @@ function getYearlyWrongRecurrenceInsight(item, details) {
         const dList = parseYearlyDetails(h);
         dList.forEach(d => {
             if (!d.is_correct) {
-                prevWrongSet.add(Number(d.question_num));
+                prevWrongSet.add(`${item.exam_year}_${Number(d.question_num)}`);
             }
         });
+    });
+
+    // 일반 퀴즈 이력(quiz_history)도 통합하여 재발 오답 집합을 생성합니다.
+    // details 내부 q_id(예: 2025_17) 또는 question_num + 년도 추정값을 키로 사용합니다.
+    const normalQuizLogs = Array.isArray(HistoryState.allLogs) ? HistoryState.allLogs : [];
+    normalQuizLogs.forEach(log => {
+        if (!log || !log.created_at) return;
+        const logDate = parseDate(log.created_at);
+        if (logDate >= currentDate) return;
+
+        let dObj = null;
+        if (typeof log.details === 'object' && log.details) {
+            dObj = log.details;
+        } else if (typeof log.details === 'string' && log.details.trim()) {
+            try {
+                dObj = JSON.parse(log.details);
+            } catch (e) {
+                dObj = null;
+            }
+        }
+        if (!dObj) return;
+
+        const isCorrect = !!dObj.is_correct;
+        if (isCorrect) return;
+
+        let qKey = null;
+        if (typeof dObj.q_id === 'string' && dObj.q_id.includes('_')) {
+            qKey = dObj.q_id;
+        } else if (dObj.question_num !== undefined && dObj.question_num !== null) {
+            qKey = `${item.exam_year}_${Number(dObj.question_num)}`;
+        }
+
+        if (qKey) {
+            prevWrongSet.add(qKey);
+        }
     });
 
     const currentWrong = details
         .filter(d => !d.is_correct)
         .map(d => Number(d.question_num));
 
-    const recurringWrong = currentWrong.filter(qNum => prevWrongSet.has(qNum));
-    const recurringSet = new Set(recurringWrong);
+    const currentWrongKeyList = currentWrong.map(qNum => `${item.exam_year}_${qNum}`);
+    const recurringWrongKeyList = currentWrongKeyList.filter(qKey => prevWrongSet.has(qKey));
+    const recurringWrong = recurringWrongKeyList
+        .map(qKey => Number(String(qKey).split('_')[1]))
+        .filter(qNum => !Number.isNaN(qNum));
+    const recurringSet = new Set(recurringWrongKeyList);
 
-    const improvedFromPast = Array.from(prevWrongSet).filter(qNum => !recurringSet.has(qNum));
+    const improvedFromPast = Array.from(prevWrongSet).filter(qKey => !recurringSet.has(qKey));
     const recurrenceRate = currentWrong.length > 0
         ? Math.round((recurringWrong.length / currentWrong.length) * 100)
         : 0;
@@ -1198,7 +1237,7 @@ async function showYearlyWrongQuestionDetail(item, detail) {
 
         container.innerHTML = `
             <div style="border:1px solid rgba(59,130,246,0.28); background: rgba(59,130,246,0.08); border-radius: 10px; padding: 0.8rem; margin-bottom: 0.9rem;">
-                <div style="font-size:0.82rem; font-weight:700; color:#60a5fa; margin-bottom:0.45rem;">📌 오답 선택 문항 상세: ${qNum}번</div>
+                <div style="font-size:0.82rem; font-weight:700; color:#60a5fa; margin-bottom:0.45rem;">📌 선택 문항 상세: ${qNum}번</div>
                 <div style="font-size:0.84rem; color: var(--text-primary); line-height:1.55; white-space: pre-wrap; margin-bottom:0.7rem;">${questionData.question || '지문 정보 없음'}</div>
                 <div style="display:flex; gap:1rem; font-size:0.78rem; margin-bottom:0.55rem;">
                     <span style="color: var(--text-secondary);">내 답: <strong style="color:#f87171;">${userStr}</strong></span>
@@ -1360,6 +1399,7 @@ function openYearlyModal(item) {
         // 4. Top 3 문항 리스트 HTML
         let top3Html = '';
         top3.forEach((d, idx) => {
+            const detailIndex = details.findIndex(x => Number(x.question_num) === Number(d.question_num));
             let subName = '';
             for (let code in SUBJECTS) {
                 const range = SUBJECTS[code].range;
@@ -1374,7 +1414,7 @@ function openYearlyModal(item) {
                 : '<span style="color: var(--error); font-weight: 600;">오답</span>';
 
             top3Html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: ${neutralCardBg}; border: ${neutralCardBorder}; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.82rem;">
+                <div class="yearly-top3-item" data-detail-index="${detailIndex}" title="클릭하여 지문/정답 보기" style="display: flex; justify-content: space-between; align-items: center; background: ${neutralCardBg}; border: ${neutralCardBorder}; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.82rem; cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
                         <span style="background: rgba(139, 92, 246, 0.15); color: #c084fc; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;">Top ${idx + 1}</span>
                         <span style="font-weight: 600; color: var(--text-primary);">${d.question_num}번 문제</span>
@@ -1396,10 +1436,10 @@ function openYearlyModal(item) {
             const borderColor = isCorrect ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)';
             const txtColor = isCorrect ? '#34d399' : '#f87171';
             const timeStr = d.elapsed_time ? `${d.elapsed_time}초` : '0초';
-            const clickHint = !isCorrect ? '클릭하여 지문/정답 보기' : '정답 문항';
+            const clickHint = isCorrect ? '정답 문항 - 클릭하여 지문/정답 보기' : '오답 문항 - 클릭하여 지문/정답 보기';
 
             gridHtml += `
-                <div class="yearly-omr-cell ${isCorrect ? '' : 'wrong'}" data-detail-index="${dIdx}" title="${clickHint}" style="background: ${color}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 0.4rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-height: 48px; cursor: ${isCorrect ? 'default' : 'pointer'};">
+                <div class="yearly-omr-cell ${isCorrect ? '' : 'wrong'}" data-detail-index="${dIdx}" title="${clickHint}" style="background: ${color}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 0.4rem 0.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; min-height: 48px; cursor: pointer;">
                     <span style="font-size: 0.72rem; color: var(--text-secondary); font-family: monospace; font-weight: 600;">Q.${d.question_num}</span>
                     <span style="font-size: 0.78rem; font-weight: 700; color: ${txtColor};">${isCorrect ? 'O' : 'X'}</span>
                     <span style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace;">${timeStr}</span>
@@ -1444,7 +1484,7 @@ function openYearlyModal(item) {
             <!-- 팝업 인사이트 영역 1-확장: 오답 재발 추적 -->
             <div style="margin-bottom: 1.5rem;">
                 <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.3rem; color: #f97316;">
-                    <i data-lucide="repeat" style="width: 16px; height: 16px;"></i> 오답 재발 추적
+                    <i data-lucide="repeat" style="width: 16px; height: 16px;"></i> 오답 재발 추적 (일반 퀴즈 + 모의고사 통합)
                 </h3>
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:0.65rem; margin-bottom:0.7rem;">
                     <div style="background: rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.25); border-radius:10px; padding:0.7rem; text-align:center;">
@@ -1489,13 +1529,23 @@ function openYearlyModal(item) {
                     ${gridHtml}
                 </div>
                 <div id="yearly-wrong-detail-box" style="margin-top: 0.85rem;">
-                    <div style="font-size:0.78rem; color: var(--text-secondary);">오답 문항(X)을 클릭하면 해당 문제 지문과 정답을 볼 수 있습니다.</div>
+                    <div style="font-size:0.78rem; color: var(--text-secondary);">문항(정답/오답)을 클릭하면 해당 문제 지문과 정답을 볼 수 있습니다. Top 3 문항도 클릭 가능합니다.</div>
                 </div>
             </div>
         `;
 
-        // 오답 문항 클릭 시 상세 지문/정답 뷰어 연동
-        body.querySelectorAll('.yearly-omr-cell.wrong').forEach(el => {
+        // 바둑판 문항(정답/오답) 클릭 시 상세 지문/정답 뷰어 연동
+        body.querySelectorAll('.yearly-omr-cell').forEach(el => {
+            el.addEventListener('click', () => {
+                const detailIndex = Number(el.getAttribute('data-detail-index'));
+                if (!Number.isNaN(detailIndex) && details[detailIndex]) {
+                    showYearlyWrongQuestionDetail(item, details[detailIndex]);
+                }
+            });
+        });
+
+        // Top3 항목 클릭 시 상세 지문/정답 뷰어 연동
+        body.querySelectorAll('.yearly-top3-item').forEach(el => {
             el.addEventListener('click', () => {
                 const detailIndex = Number(el.getAttribute('data-detail-index'));
                 if (!Number.isNaN(detailIndex) && details[detailIndex]) {
