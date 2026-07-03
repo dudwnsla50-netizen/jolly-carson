@@ -270,6 +270,7 @@ header h1 {
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.6rem;
     letter-spacing: -0.03em;
+    display: none;
 }
 
 header p.subtitle {
