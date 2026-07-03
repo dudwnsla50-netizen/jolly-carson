@@ -1284,7 +1284,7 @@ function renderLoadedQuestion(idx, qId) {
                 if (isSelected) optClass += " selected";
             }
 
-            const clickHandler = isSubmitted ? '' : `onclick="toggleInlineAnswer('${idx}', '${qId}', ${optNum}, event)"`;
+            const clickHandler = isSubmitted ? '' : `onclick="handleInlineOptionClick('${idx}', '${qId}', ${optNum}, event)"`;
 
             htmlContent += `
                 <button class="${optClass}" ${clickHandler} style="width: 100%; outline: none; font-family: inherit; text-align: left;">
@@ -1417,6 +1417,24 @@ function renderLoadedQuestion(idx, qId) {
 
 window.currentDraftAnswers = window.currentDraftAnswers || {};
 window.quizSubmittedResults = window.quizSubmittedResults || {};
+
+/**
+ * 9-A-0. 보기 텍스트를 드래그 선택 중일 때는 답안 토글을 막아 복사를 우선합니다.
+ */
+function handleInlineOptionClick(idx, qId, optNum, event) {
+    if (event) event.stopPropagation();
+
+    const selectedText = (window.getSelection && window.getSelection().toString)
+        ? window.getSelection().toString().trim()
+        : '';
+
+    // 텍스트를 선택한 상태라면 클릭을 답안 선택으로 처리하지 않습니다.
+    if (selectedText.length > 0) {
+        return;
+    }
+
+    toggleInlineAnswer(idx, qId, optNum, event);
+}
 
 /**
  * 9-A. 인라인 문제 풀이에서 보기 선택을 토글합니다. (단일 선택 방식)

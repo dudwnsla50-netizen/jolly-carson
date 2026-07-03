@@ -1075,6 +1075,8 @@ input:checked+.slider:before {
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--text-primary);
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .inline-opt-btn:hover:not(.opt-correct):not(.opt-wrong):not(.opt-disabled) {
@@ -1141,6 +1143,9 @@ input:checked+.slider:before {
     line-height: 1.4;
     white-space: pre-wrap;
     padding-top: 1px;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
 }
 
 /* 제출 버튼 스타일 */
