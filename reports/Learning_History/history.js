@@ -76,10 +76,10 @@ function loadAllHistoryData() {
 
             results.forEach((data, index) => {
                 const sub = subjects[index];
-                
+
                 // 과목별 요약 정보로부터 평균 정답률(avg_score) 추출 (데이터가 없는 경우 0.0)
                 subjectAccuracies[sub] = (data.summary && data.summary.avg_score) ? data.summary.avg_score : 0.0;
-                
+
                 const sLogs = data.logs || [];
                 sLogs.forEach(log => {
                     merged.push({
@@ -97,8 +97,8 @@ function loadAllHistoryData() {
                 yearlyHistory.forEach(exam => {
                     let examDetails = [];
                     try {
-                        examDetails = (typeof exam.details === 'string') 
-                            ? JSON.parse(exam.details) 
+                        examDetails = (typeof exam.details === 'string')
+                            ? JSON.parse(exam.details)
                             : (exam.details || []);
                     } catch (e) {
                         console.error("모의고사 details 파싱 에러:", e);
@@ -243,7 +243,7 @@ function calculateSummaryStats() {
             }
         }
     }
-    
+
     // [설계 의도]
     // 전체 일별 학습 이력을 순회하여 일일 권장 학습 목표(APP_CONFIG에 정의)를 
     // 돌파한 성공(Success) 일수를 합산해 누적 정보 서브텍스트에 노출시킵니다.
@@ -454,8 +454,8 @@ function renderHistoryTable() {
         // 시인성이 뛰어난 성공(success)/실패(fail) 뱃지 레이아웃을 생성합니다.
         const goalLimit = (window.APP_CONFIG && window.APP_CONFIG.DAILY_STUDY_GOAL) || 150;
         const isSuccess = row.totalSolved >= goalLimit;
-        const statusHtml = isSuccess 
-            ? `<span class="goal-badge success">성공 🎉</span>` 
+        const statusHtml = isSuccess
+            ? `<span class="goal-badge success">성공 🎉</span>`
             : `<span class="goal-badge fail">실패 😢 (${row.totalSolved}/${goalLimit})</span>`;
 
         const datePart = row.dateStr.replace(/-/g, '').slice(2); // '2026-06-29' -> '260629'
@@ -482,7 +482,7 @@ function renderHistoryTable() {
                     }
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
 
         // 행 클릭 이벤트 바인딩: 과목별 상세 레이어 팝업 노출
         tr.addEventListener('click', () => {
@@ -615,7 +615,7 @@ function renderSubjectExpCards(expData, subjectAccuracies = {}) {
 
     container.innerHTML = '';
     const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
-    
+
     const subExps = expData.subjects_exp || {};
     const config = window.APP_CONFIG || {};
     const defaultPets = config.SUBJECT_DEFAULT_PETS || {};
@@ -625,17 +625,17 @@ function renderSubjectExpCards(expData, subjectAccuracies = {}) {
         const subData = subExps[sub] || { total_exp: 0, level: 1, exp_in_level: 0, exp_to_next: 10 };
         const petKey = defaultPets[sub] || 'pikachu';
         const pet = petProfiles[petKey] || { name: '피카츄', src: '/reports/images_game/pikachuRun.gif' };
-        
+
         const card = document.createElement('div');
         card.className = 'subject-exp-card';
-        
+
         // 경험치바 백분율 계산
         const expPercent = (subData.exp_in_level / 10) * 100;
         const nextLevelExp = subData.level * 10;
-        
+
         // 평균 정답률 값 획득 (포맷 지정)
         const accRate = subjectAccuracies[sub] !== undefined ? subjectAccuracies[sub] : 0.0;
-        
+
         card.innerHTML = `
             <div class="sub-exp-header">
                 <span class="sub-exp-title">${SUBJECT_NAMES[sub]}</span>
@@ -702,7 +702,7 @@ function loadAnalyticsData() {
  */
 function switchAnalyticsTab(subject) {
     HistoryState.currentSubject = subject;
-    
+
     // active 탭 버튼 클래스 교환
     const tabIds = {
         'DB': 'tab-btn-db',
@@ -711,7 +711,7 @@ function switchAnalyticsTab(subject) {
         'SA': 'tab-btn-sa',
         'SC': 'tab-btn-sc'
     };
-    
+
     Object.keys(tabIds).forEach(sub => {
         const btn = document.getElementById(tabIds[sub]);
         if (btn) {
@@ -722,7 +722,7 @@ function switchAnalyticsTab(subject) {
             }
         }
     });
-    
+
     renderAnalytics(subject);
 }
 
@@ -735,14 +735,14 @@ function renderAnalytics(subject) {
         renderEmptyAnalytics();
         return;
     }
-    
+
     const subjectInfo = data[subject];
     const strengthList = document.getElementById('strength-list');
     const weaknessList = document.getElementById('weakness-list');
     const recContainer = document.getElementById('recommendation-container');
-    
+
     if (!strengthList || !weaknessList || !recContainer) return;
-    
+
     // 13-A. 강점(Strengths) 렌더링
     strengthList.innerHTML = '';
     if (subjectInfo.strengths && subjectInfo.strengths.length > 0) {
@@ -759,7 +759,7 @@ function renderAnalytics(subject) {
     } else {
         strengthList.innerHTML = '<li class="empty-list-item">아직 숙달된 강점 단원이 없습니다. 더 많은 문제를 맞춰보세요!</li>';
     }
-    
+
     // 13-B. 약점(Weaknesses) 렌더링
     weaknessList.innerHTML = '';
     if (subjectInfo.weaknesses && subjectInfo.weaknesses.length > 0) {
@@ -776,18 +776,18 @@ function renderAnalytics(subject) {
     } else {
         weaknessList.innerHTML = '<li class="empty-list-item">분석된 약점 단원이 없습니다. 아주 훌륭한 학습 성과입니다!</li>';
     }
-    
+
     // 13-C. 추천 학습 순서 예측(Recommendations) 렌더링
     recContainer.innerHTML = '';
-    
+
     // 유효한 추천 항목만 필터링 (학습 이력이 없는 중단원은 리스트에 포함되지 않거나 기본값 처리)
     const recs = subjectInfo.recommendations || [];
-    
+
     if (recs.length > 0) {
         recs.forEach((rec, idx) => {
             const card = document.createElement('div');
             card.className = 'rec-item-card';
-            
+
             // 점수에 비례해 우선순위 뱃지 설정
             let priorityBadge = '';
             if (idx === 0) {
@@ -797,10 +797,10 @@ function renderAnalytics(subject) {
             } else {
                 priorityBadge = '<span class="rec-badge rank-3">📘 일반 권장</span>';
             }
-            
+
             // 추천 게이지 진행률 바 백분율 계산 (최대치 15점 기준 환산)
             const gaugePercent = Math.min(100, Math.round((rec.score / 15.0) * 100));
-            
+
             card.innerHTML = `
                 <div class="rec-header">
                     <span class="rec-topic-title">${rec.concept}</span>
@@ -827,7 +827,7 @@ function renderAnalytics(subject) {
             </div>
         `;
     }
-    
+
     // 동적 아이콘 리프레시
     if (window.lucide) {
         lucide.createIcons();
@@ -841,7 +841,7 @@ function renderEmptyAnalytics() {
     const strengthList = document.getElementById('strength-list');
     const weaknessList = document.getElementById('weakness-list');
     const recContainer = document.getElementById('recommendation-container');
-    
+
     if (strengthList) strengthList.innerHTML = '<li class="empty-list-item">충분한 풀이 정보가 없습니다.</li>';
     if (weaknessList) weaknessList.innerHTML = '<li class="empty-list-item">충분한 풀이 정보가 없습니다.</li>';
     if (recContainer) {
@@ -853,7 +853,7 @@ function renderEmptyAnalytics() {
             </div>
         `;
     }
-    
+
     if (window.lucide) {
         lucide.createIcons();
     }
@@ -883,11 +883,11 @@ function renderYearlyExamHistoryTable(historyList) {
         tr.style.cursor = 'pointer';
         tr.title = '클릭하면 상세 채점 분석 및 문항별 풀이 시간 리포트 팝업이 열립니다.';
         tr.onclick = () => openYearlyModal(item);
-        
+
         // 날짜 변환
         const formattedDate = formatYearlyKoreanDateTime(item.created_at);
         const score = item.score !== undefined ? parseFloat(item.score).toFixed(1) : '0.0';
-        
+
         // 시간 가독성 개선
         const timeStr = formatSecondsToKorean(item.total_time);
 
@@ -929,12 +929,12 @@ function formatSecondsToKorean(totalSeconds) {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
-    
+
     let result = [];
     if (h > 0) result.push(`${h}시간`);
     if (m > 0) result.push(`${m}분`);
     if (s > 0 || result.length === 0) result.push(`${s}초`);
-    
+
     return result.join(' ');
 }
 
@@ -950,8 +950,8 @@ function openYearlyModal(item) {
         // details 파싱
         let details = [];
         try {
-            details = (typeof item.details === 'string') 
-                ? JSON.parse(item.details) 
+            details = (typeof item.details === 'string')
+                ? JSON.parse(item.details)
                 : (item.details || []);
         } catch (e) {
             console.error("details 파싱 에러:", e);
@@ -1004,7 +1004,7 @@ function openYearlyModal(item) {
             const pct = Math.round((stat.correct / stat.total) * 100);
             const avgTime = Math.round(stat.timeSum / stat.total);
             const isLow = pct < 60;
-            
+
             if (isLow) {
                 weaknessAlertHtml += `
                     <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.8rem; color: #f87171; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
@@ -1036,14 +1036,14 @@ function openYearlyModal(item) {
                 }
             }
             const timeStr = formatSecondsToKorean(d.elapsed_time);
-            const stBadge = d.is_correct 
-                ? '<span style="color: var(--success); font-weight: 600;">정답</span>' 
+            const stBadge = d.is_correct
+                ? '<span style="color: var(--success); font-weight: 600;">정답</span>'
                 : '<span style="color: var(--error); font-weight: 600;">오답</span>';
 
             top3Html += `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.82rem;">
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
-                        <span style="background: rgba(139, 92, 246, 0.15); color: #c084fc; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;">Top ${idx+1}</span>
+                        <span style="background: rgba(139, 92, 246, 0.15); color: #c084fc; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; font-family: monospace;">Top ${idx + 1}</span>
                         <span style="font-weight: 600; color: #ffffff;">${d.question_num}번 문제</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">[${subName}]</span>
                     </div>
@@ -1128,7 +1128,12 @@ function openYearlyModal(item) {
             </div>
         `;
 
-        modal.style.display = 'flex';
+        // [버그 수정]
+        // history.css의 modal-overlay는 `.show` 클래스가 있어야만
+        // opacity/pointer-events가 활성화되므로, display 직접 제어 대신
+        // 클래스 토글 방식으로 일관되게 오픈합니다.
+        modal.classList.add('show');
+
         if (window.lucide) {
             lucide.createIcons();
         }
@@ -1144,6 +1149,6 @@ function openYearlyModal(item) {
 function closeYearlyModal(event) {
     const modal = document.getElementById('yearly-detail-modal');
     if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('show');
     }
 }
