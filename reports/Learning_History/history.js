@@ -1038,6 +1038,30 @@ function parseYearlyDetails(item) {
     }
 }
 
+function normalizeAnswerArray(ans) {
+    const arr = Array.isArray(ans) ? ans : (ans === null || ans === undefined ? [] : [ans]);
+    return Array.from(new Set(arr.map(v => Number(v)).filter(v => !Number.isNaN(v)))).sort((a, b) => a - b);
+}
+
+function answerArrayToText(ans) {
+    const normalized = normalizeAnswerArray(ans);
+    return normalized.length > 0 ? normalized.join(', ') : '미선택';
+}
+
+function isExactAnswerMatch(a, b) {
+    const aa = normalizeAnswerArray(a);
+    const bb = normalizeAnswerArray(b);
+    if (aa.length !== bb.length) return false;
+    for (let i = 0; i < aa.length; i++) {
+        if (aa[i] !== bb[i]) return false;
+    }
+    return true;
+}
+
+function isCorrectByAnswer(userAnswer, correctAnswer) {
+    return isExactAnswerMatch(userAnswer, correctAnswer);
+}
+
 function getWeaknessScoreLabel(score) {
     if (score >= 70) return '높음';
     if (score >= 45) return '주의';
@@ -1177,15 +1201,171 @@ function getYearlyWrongRecurrenceInsight(item, details) {
     };
 }
 
+async function fetchYearlyQuestionData(item, detail) {
+    const qNum = detail.question_num;
+    const qIdCandidate = detail.q_id || `${item.exam_year}_${qNum}`;
+
+    HistoryState.yearlyQuestionCache = HistoryState.yearlyQuestionCache || {};
+    let questionData = HistoryState.yearlyQuestionCache[qIdCandidate];
+    if (questionData) return questionData;
+
+    let resp = await fetch(`/api/question?id=${encodeURIComponent(qIdCandidate)}`);
+
+    if (!resp.ok && detail.q_id) {
+        const fallbackId = `${item.exam_year}_${qNum}`;
+        resp = await fetch(`/api/question?id=${encodeURIComponent(fallbackId)}`);
+    }
+
+    if (!resp.ok) {
+        throw new Error(`문항 조회 실패 (HTTP ${resp.status})`);
+    }
+
+    questionData = await resp.json();
+    HistoryState.yearlyQuestionCache[qIdCandidate] = questionData;
+    return questionData;
+}
+
+function collectPastAnswerAttempts(item, detail) {
+    const qNum = Number(detail.question_num);
+    const qKey = `${item.exam_year}_${qNum}`;
+    const currentDate = parseDate(item.created_at);
+    const attempts = [];
+
+    const allYearly = Array.isArray(HistoryState.yearlyExamHistory) ? HistoryState.yearlyExamHistory : [];
+    allYearly.forEach(h => {
+        if (String(h.exam_year) !== String(item.exam_year)) return;
+        if (item.id !== undefined && h.id !== undefined && String(h.id) === String(item.id)) return;
+        const hDate = parseDate(h.created_at);
+        if (hDate >= currentDate) return;
+
+        const hDetails = parseYearlyDetails(h);
+        const matched = hDetails.find(d => Number(d.question_num) === qNum);
+        if (!matched) return;
+
+        attempts.push({
+            source: '모의고사',
+            created_at: h.created_at,
+            user_answer: normalizeAnswerArray(matched.user_answer),
+            is_correct: !!matched.is_correct
+        });
+    });
+
+    const allLogs = Array.isArray(HistoryState.allLogs) ? HistoryState.allLogs : [];
+    allLogs.forEach(log => {
+        if (!log || !log.created_at) return;
+        const lDate = parseDate(log.created_at);
+        if (lDate >= currentDate) return;
+
+        let dObj = null;
+        if (typeof log.details === 'object' && log.details) {
+            dObj = log.details;
+        } else if (typeof log.details === 'string' && log.details.trim()) {
+            try {
+                dObj = JSON.parse(log.details);
+            } catch (e) {
+                dObj = null;
+            }
+        }
+        if (!dObj) return;
+
+        let isMatch = false;
+        if (typeof dObj.q_id === 'string' && dObj.q_id.includes('_')) {
+            isMatch = dObj.q_id === qKey;
+        } else if (dObj.question_num !== undefined && dObj.question_num !== null) {
+            isMatch = Number(dObj.question_num) === qNum;
+        }
+        if (!isMatch) return;
+
+        const inferredCorrect = (dObj.is_correct !== undefined)
+            ? !!dObj.is_correct
+            : (Number(log.correct_count || 0) > 0);
+
+        attempts.push({
+            source: '일반퀴즈',
+            created_at: log.created_at,
+            user_answer: normalizeAnswerArray(dObj.user_answer),
+            is_correct: inferredCorrect
+        });
+    });
+
+    attempts.sort((a, b) => parseDate(b.created_at) - parseDate(a.created_at));
+    return attempts;
+}
+
+async function renderRecurrenceAnswerComparison(item, detail) {
+    const container = document.getElementById('yearly-recurrence-compare-box');
+    if (!container) return;
+
+    container.innerHTML = `<div style="font-size:0.78rem; color: var(--text-secondary);">${detail.question_num}번 문항의 과거 답안 이력을 분석 중...</div>`;
+
+    try {
+        const questionData = await fetchYearlyQuestionData(item, detail);
+        const correctAnswer = normalizeAnswerArray(questionData.answer);
+        const currentAnswer = normalizeAnswerArray(detail.user_answer);
+        const currentIsCorrect = isCorrectByAnswer(currentAnswer, correctAnswer);
+
+        const attempts = collectPastAnswerAttempts(item, detail);
+        const prev = attempts.length > 0 ? attempts[0] : null;
+
+        let transitionBadge = '<span style="font-size:0.7rem; color: var(--text-secondary);">비교 데이터 없음</span>';
+        if (prev) {
+            const prevIsCorrect = isCorrectByAnswer(prev.user_answer, correctAnswer);
+            const sameChoice = isExactAnswerMatch(prev.user_answer, currentAnswer);
+
+            if (!prevIsCorrect && !currentIsCorrect && sameChoice) {
+                transitionBadge = '<span style="font-size:0.7rem; color:#f87171; font-weight:700;">동일 오답 반복</span>';
+            } else if (!prevIsCorrect && !currentIsCorrect && !sameChoice) {
+                transitionBadge = '<span style="font-size:0.7rem; color:#f59e0b; font-weight:700;">오답 이동</span>';
+            } else if (!prevIsCorrect && currentIsCorrect) {
+                transitionBadge = '<span style="font-size:0.7rem; color:#34d399; font-weight:700;">정답 전환</span>';
+            } else if (prevIsCorrect && currentIsCorrect) {
+                transitionBadge = '<span style="font-size:0.7rem; color:#60a5fa; font-weight:700;">정답 유지</span>';
+            }
+        }
+
+        const timelineHtml = attempts.slice(0, 3).map((a, idx) => {
+            const dateText = formatKoreanDate(a.created_at);
+            const answerText = answerArrayToText(a.user_answer);
+            const mark = a.is_correct ? '정답' : '오답';
+            const markColor = a.is_correct ? '#34d399' : '#f87171';
+            return `
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:0.6rem; background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.45rem 0.55rem;">
+                    <span style="font-size:0.72rem; color: var(--text-secondary);">${idx + 1}회 전 · ${a.source}</span>
+                    <span style="font-size:0.72rem; color: var(--text-primary);">선택: ${answerText}</span>
+                    <span style="font-size:0.7rem; color:${markColor}; font-weight:700;">${mark}</span>
+                    <span style="font-size:0.68rem; color: var(--text-muted);">${dateText}</span>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div style="border:1px solid rgba(56,189,248,0.28); background: rgba(56,189,248,0.08); border-radius:10px; padding:0.7rem;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.45rem; gap:0.8rem;">
+                    <div style="font-size:0.78rem; font-weight:700; color:#38bdf8;">${detail.question_num}번 문항 답안 변화 비교</div>
+                    ${transitionBadge}
+                </div>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:0.74rem; margin-bottom:0.55rem;">
+                    <span style="color: var(--text-secondary);">이번 답: <strong style="color:#f87171;">${answerArrayToText(currentAnswer)}</strong></span>
+                    <span style="color: var(--text-secondary);">정답: <strong style="color:#34d399;">${answerArrayToText(correctAnswer)}</strong></span>
+                    <span style="color: var(--text-secondary);">직전 답: <strong style="color: var(--text-primary);">${prev ? answerArrayToText(prev.user_answer) : '기록 없음'}</strong></span>
+                </div>
+                <div style="font-size:0.72rem; color: var(--text-secondary); margin-bottom:0.35rem;">최근 선택 이력 (최대 3회)</div>
+                <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                    ${timelineHtml || '<div style="font-size:0.72rem; color: var(--text-muted);">과거 선택 이력이 없습니다.</div>'}
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `<div style="font-size:0.76rem; color:#f87171;">답안 변화 비교 정보를 불러오지 못했습니다: ${err.message}</div>`;
+    }
+}
+
 async function showYearlyWrongQuestionDetail(item, detail) {
     const container = document.getElementById('yearly-wrong-detail-box');
     if (!container) return;
 
     const qNum = detail.question_num;
-    const qIdCandidate = detail.q_id || `${item.exam_year}_${qNum}`;
     container.innerHTML = `<div style="font-size:0.82rem; color: var(--text-secondary);">${qNum}번 문제 지문을 불러오는 중...</div>`;
-
-    HistoryState.yearlyQuestionCache = HistoryState.yearlyQuestionCache || {};
     const neutralBorder = HistoryState.theme === 'light'
         ? '1px solid rgba(15,23,42,0.14)'
         : '1px solid rgba(255,255,255,0.08)';
@@ -1194,23 +1374,7 @@ async function showYearlyWrongQuestionDetail(item, detail) {
         : 'rgba(255,255,255,0.02)';
 
     try {
-        let questionData = HistoryState.yearlyQuestionCache[qIdCandidate];
-        if (!questionData) {
-            let resp = await fetch(`/api/question?id=${encodeURIComponent(qIdCandidate)}`);
-
-            // q_id 포맷이 다를 경우를 대비한 폴백 (예: q_id 누락 시 연도_문항)
-            if (!resp.ok && detail.q_id) {
-                const fallbackId = `${item.exam_year}_${qNum}`;
-                resp = await fetch(`/api/question?id=${encodeURIComponent(fallbackId)}`);
-            }
-
-            if (!resp.ok) {
-                throw new Error(`문항 조회 실패 (HTTP ${resp.status})`);
-            }
-
-            questionData = await resp.json();
-            HistoryState.yearlyQuestionCache[qIdCandidate] = questionData;
-        }
+        const questionData = await fetchYearlyQuestionData(item, detail);
 
         const options = Array.isArray(questionData.options) ? questionData.options : [];
         const answerArr = Array.isArray(questionData.answer) ? questionData.answer : [];
@@ -1392,7 +1556,7 @@ function openYearlyModal(item) {
             ? recurrenceInsight.recurringWrong
                 .sort((a, b) => a - b)
                 .slice(0, 12)
-                .map(qNum => `<span style="display:inline-flex; align-items:center; padding:0.18rem 0.5rem; border-radius:999px; font-size:0.72rem; border:1px solid rgba(239,68,68,0.28); background:rgba(239,68,68,0.10); color:#fca5a5; margin-right:0.35rem; margin-bottom:0.35rem;">Q.${qNum}</span>`)
+                .map(qNum => `<button type="button" class="yearly-recurring-chip" data-qnum="${qNum}" style="display:inline-flex; align-items:center; padding:0.18rem 0.5rem; border-radius:999px; font-size:0.72rem; border:1px solid rgba(239,68,68,0.28); background:rgba(239,68,68,0.10); color:#fca5a5; margin-right:0.35rem; margin-bottom:0.35rem; cursor:pointer;">Q.${qNum}</button>`)
                 .join('')
             : '<span style="font-size:0.78rem; color: var(--text-secondary);">현재 회차에서 재발 오답은 없습니다.</span>';
 
@@ -1505,8 +1669,11 @@ function openYearlyModal(item) {
                     </div>
                 </div>
                 <div style="background: ${neutralCardBg}; border:${neutralCardBorder}; border-radius:10px; padding:0.65rem 0.75rem;">
-                    <div style="font-size:0.76rem; color: var(--text-secondary); margin-bottom:0.45rem;">재발 오답 문항</div>
+                    <div style="font-size:0.76rem; color: var(--text-secondary); margin-bottom:0.45rem;">재발 오답 문항 (클릭 시 과거답/이번답 비교)</div>
                     <div>${recurringWrongHtml}</div>
+                    <div id="yearly-recurrence-compare-box" style="margin-top:0.6rem;">
+                        <div style="font-size:0.74rem; color: var(--text-muted);">재발 오답 문항을 클릭하면 답안 변화 비교를 표시합니다.</div>
+                    </div>
                 </div>
             </div>
 
@@ -1550,6 +1717,17 @@ function openYearlyModal(item) {
                 const detailIndex = Number(el.getAttribute('data-detail-index'));
                 if (!Number.isNaN(detailIndex) && details[detailIndex]) {
                     showYearlyWrongQuestionDetail(item, details[detailIndex]);
+                }
+            });
+        });
+
+        body.querySelectorAll('.yearly-recurring-chip').forEach(el => {
+            el.addEventListener('click', () => {
+                const qNum = Number(el.getAttribute('data-qnum'));
+                const targetDetail = details.find(d => Number(d.question_num) === qNum);
+                if (targetDetail) {
+                    showYearlyWrongQuestionDetail(item, targetDetail);
+                    renderRecurrenceAnswerComparison(item, targetDetail);
                 }
             });
         });
