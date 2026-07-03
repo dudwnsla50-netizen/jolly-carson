@@ -10,8 +10,59 @@
 // 페이지 로드 완료 시 초기화 구동
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboardDataAndInit();
+    initDashboardThemeSelector();
     updateTabTitleWithDbMode();
 });
+
+// 대시보드 공통 테마 상태
+const DashboardThemeState = {
+    currentTheme: 'dark',
+    dbType: null
+};
+
+/**
+ * 대시보드 공통 테마를 적용합니다.
+ */
+function applyDashboardTheme(theme) {
+    const normalized = theme === 'light' ? 'light' : 'dark';
+    DashboardThemeState.currentTheme = normalized;
+    document.body.setAttribute('data-theme', normalized);
+
+    const selector = document.getElementById('dashboard-theme-select');
+    if (selector) {
+        selector.value = normalized;
+    }
+}
+
+/**
+ * 메인 대시보드 테마 셀렉터 초기화
+ */
+function initDashboardThemeSelector() {
+    if (document.getElementById('dashboard-theme-select')) return;
+
+    const navBadges = document.getElementById('dynamic-nav-badges');
+    if (!navBadges) return;
+
+    const wrapper = document.createElement('span');
+    wrapper.className = 'badge dashboard-theme-badge';
+    wrapper.id = 'dashboard-theme-selector-wrap';
+    wrapper.innerHTML = `
+        <span class="theme-label">🎨 테마</span>
+        <select id="dashboard-theme-select" class="dashboard-theme-select" aria-label="대시보드 테마 선택">
+            <option value="light">라이트</option>
+            <option value="dark">다크</option>
+        </select>
+    `;
+
+    navBadges.appendChild(wrapper);
+
+    const selector = document.getElementById('dashboard-theme-select');
+    if (selector) {
+        selector.addEventListener('change', (e) => {
+            applyDashboardTheme(e.target.value);
+        });
+    }
+}
 
 /**
  * 서버에 설정된 DB 타입(SQLite / Postgres) 정보를 가져와 브라우저 타이틀 및 헤더 부제목에 주입합니다.
@@ -22,6 +73,8 @@ function updateTabTitleWithDbMode() {
         .then(data => {
             if (data && data.db_type) {
                 const dbTypeStr = data.db_type.toUpperCase();
+                DashboardThemeState.dbType = dbTypeStr;
+
                 // 이미 추가되어 있는 경우 중복 추가 방지
                 if (!document.title.includes(`[${dbTypeStr}]`)) {
                     document.title = `${document.title} [${dbTypeStr}]`;
@@ -32,10 +85,14 @@ function updateTabTitleWithDbMode() {
                 if (subtitleEl) {
                     subtitleEl.textContent = `데이터베이스 연결 모드: ${dbTypeStr}`;
                 }
+
+                // 요구사항: SQLITE 연결이면 라이트 테마 기본, 그 외는 다크 테마 기본
+                applyDashboardTheme(dbTypeStr === 'SQLITE' ? 'light' : 'dark');
             }
         })
         .catch(err => {
             console.warn("[경고] DB 모드 정보 조회 실패:", err);
+            applyDashboardTheme('dark');
         });
 }
 
@@ -627,8 +684,8 @@ function toggleDashboardMode(toggleEl) {
     // 라벨 텍스트 하이라이트 색상 교체
     const freqLabel = document.getElementById('label-freq');
     const officialLabel = document.getElementById('label-official');
-    if (freqLabel) freqLabel.style.color = isOfficial ? 'var(--text-secondary)' : '#ffffff';
-    if (officialLabel) officialLabel.style.color = isOfficial ? '#ffffff' : 'var(--text-secondary)';
+    if (freqLabel) freqLabel.style.color = isOfficial ? 'var(--text-secondary)' : 'var(--text-primary)';
+    if (officialLabel) officialLabel.style.color = isOfficial ? 'var(--text-primary)' : 'var(--text-secondary)';
 
     // 상단 과목 배지들의 링크 이동 타겟 정보 갱신
     const badges = document.querySelectorAll('.subject-badge');
@@ -669,8 +726,8 @@ function initDashboardNav() {
         toggle.checked = isOfficialPage;
         const freqLabel = document.getElementById('label-freq');
         const officialLabel = document.getElementById('label-official');
-        if (freqLabel) freqLabel.style.color = isOfficialPage ? 'var(--text-secondary)' : '#ffffff';
-        if (officialLabel) officialLabel.style.color = isOfficialPage ? '#ffffff' : 'var(--text-secondary)';
+        if (freqLabel) freqLabel.style.color = isOfficialPage ? 'var(--text-secondary)' : 'var(--text-primary)';
+        if (officialLabel) officialLabel.style.color = isOfficialPage ? 'var(--text-primary)' : 'var(--text-secondary)';
     }
 
     // 오답 복습 배지 동적 삽입 연동

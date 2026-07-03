@@ -12,7 +12,8 @@ const HistoryState = {
     pageSize: 30,        // 페이징 당 행 개수
     charts: {},          // 차트 객체 버퍼 (인스턴스 소멸용)
     analyticsData: null, // [NEW] AI 중단원 분석 데이터 버퍼
-    currentSubject: 'DB' // [NEW] 현재 활성화된 분석 탭 과목
+    currentSubject: 'DB', // [NEW] 현재 활성화된 분석 탭 과목
+    theme: 'dark'        // 현재 테마 상태(light/dark)
 };
 
 const SUBJECT_NAMES = {
@@ -24,9 +25,54 @@ const SUBJECT_NAMES = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    initThemeController();
     loadAllHistoryData();
     updateTabTitleWithDbMode();
 });
+
+/**
+ * 테마 토글 버튼 초기화
+ */
+function initThemeController() {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        const nextTheme = HistoryState.theme === 'light' ? 'dark' : 'light';
+        applyTheme(nextTheme, true);
+    });
+
+    // 초기 라벨 placeholder
+    updateThemeToggleLabel();
+}
+
+/**
+ * 테마 적용 및 선택 저장
+ */
+function applyTheme(theme, persist = false) {
+    const normalized = (theme === 'light') ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', normalized);
+    HistoryState.theme = normalized;
+    updateThemeToggleLabel();
+
+    if (persist) {
+        localStorage.setItem('jc_theme', normalized);
+    }
+
+    // 테마가 바뀌면 차트 색상도 즉시 재렌더링합니다.
+    if (HistoryState.allLogs && HistoryState.allLogs.length > 0) {
+        renderCharts();
+    }
+}
+
+/**
+ * 테마 토글 버튼 텍스트 갱신
+ */
+function updateThemeToggleLabel() {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    btn.textContent = HistoryState.theme === 'light' ? '테마: 라이트' : '테마: 다크';
+}
 
 /**
   * 서버의 DB 타입 정보를 탭 타이틀에 주입하는 함수
@@ -40,10 +86,30 @@ function updateTabTitleWithDbMode() {
                 if (!document.title.includes(`[${dbTypeStr}]`)) {
                     document.title = `${document.title} [${dbTypeStr}]`;
                 }
+
+                // [설계 의도]
+                // 사용자가 저장한 테마가 없으면 DB 모드 기준으로 기본 테마를 자동 선택합니다.
+                // - SQLITE: 라이트 테마 기본
+                // - 그 외(POSTGRES 등): 다크 테마 기본
+                const savedTheme = localStorage.getItem('jc_theme');
+                if (savedTheme === 'light' || savedTheme === 'dark') {
+                    applyTheme(savedTheme, false);
+                } else {
+                    const defaultTheme = (dbTypeStr === 'SQLITE') ? 'light' : 'dark';
+                    applyTheme(defaultTheme, false);
+                }
             }
         })
         .catch(err => {
             console.warn("[경고] DB 모드 정보 조회 실패:", err);
+
+            // DB 모드 조회 실패 시에는 안전 기본값으로 다크 테마를 적용합니다.
+            const savedTheme = localStorage.getItem('jc_theme');
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                applyTheme(savedTheme, false);
+            } else {
+                applyTheme('dark', false);
+            }
         });
 }
 
@@ -311,6 +377,17 @@ function renderCharts() {
     if (HistoryState.charts.radar) HistoryState.charts.radar.destroy();
 
     const logs = HistoryState.allLogs;
+    const cssVars = getComputedStyle(document.body);
+    const accentColor = cssVars.getPropertyValue('--accent-primary').trim() || '#8b5cf6';
+    const textSecondary = cssVars.getPropertyValue('--text-secondary').trim() || '#64748b';
+
+    // 다크/라이트 테마별 차트 배경 보조 톤
+    const lineFillColor = HistoryState.theme === 'light'
+        ? 'rgba(56, 83, 216, 0.12)'
+        : 'rgba(139, 92, 246, 0.08)';
+    const gridColor = HistoryState.theme === 'light'
+        ? 'rgba(15, 23, 42, 0.10)'
+        : 'rgba(255,255,255,0.03)';
 
     // 6-A. 최근 30일 간의 트렌드 차트용 데이터 가공
     const dailyTrend = {};
@@ -342,12 +419,12 @@ function renderCharts() {
             datasets: [{
                 label: '일별 푼 문항 수',
                 data: trendValues,
-                borderColor: '#8b5cf6',
+                borderColor: accentColor,
                 borderWidth: 2,
-                backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                backgroundColor: lineFillColor,
                 fill: true,
                 tension: 0.35,
-                pointBackgroundColor: '#8b5cf6',
+                pointBackgroundColor: accentColor,
                 pointRadius: 1.5,
                 pointHoverRadius: 4
             }]
@@ -361,11 +438,11 @@ function renderCharts() {
             scales: {
                 x: {
                     grid: { display: false },
-                    ticks: { color: '#64748b', font: { size: 9 } }
+                    ticks: { color: textSecondary, font: { size: 9 } }
                 },
                 y: {
-                    grid: { color: 'rgba(255,255,255,0.03)' },
-                    ticks: { color: '#64748b', font: { size: 9 }, stepSize: 5 }
+                    grid: { color: gridColor },
+                    ticks: { color: textSecondary, font: { size: 9 }, stepSize: 5 }
                 }
             }
         }
@@ -405,7 +482,7 @@ function renderCharts() {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        color: '#94a3b8',
+                        color: textSecondary,
                         font: { size: 10 },
                         boxWidth: 10,
                         padding: 10
