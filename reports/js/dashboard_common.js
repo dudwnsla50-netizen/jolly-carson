@@ -20,10 +20,12 @@ const DashboardThemeState = {
     dbType: null
 };
 
+const DASHBOARD_THEME_STORAGE_KEY = 'jc_theme';
+
 /**
  * 대시보드 공통 테마를 적용합니다.
  */
-function applyDashboardTheme(theme) {
+function applyDashboardTheme(theme, persist = false) {
     const normalized = theme === 'light' ? 'light' : 'dark';
     DashboardThemeState.currentTheme = normalized;
     document.body.setAttribute('data-theme', normalized);
@@ -31,6 +33,10 @@ function applyDashboardTheme(theme) {
     const selector = document.getElementById('dashboard-theme-select');
     if (selector) {
         selector.value = normalized;
+    }
+
+    if (persist) {
+        localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, normalized);
     }
 }
 
@@ -59,7 +65,7 @@ function initDashboardThemeSelector() {
     const selector = document.getElementById('dashboard-theme-select');
     if (selector) {
         selector.addEventListener('change', (e) => {
-            applyDashboardTheme(e.target.value);
+            applyDashboardTheme(e.target.value, true);
         });
     }
 }
@@ -87,12 +93,22 @@ function updateTabTitleWithDbMode() {
                 }
 
                 // 요구사항: SQLITE 연결이면 라이트 테마 기본, 그 외는 다크 테마 기본
-                applyDashboardTheme(dbTypeStr === 'SQLITE' ? 'light' : 'dark');
+                const savedTheme = localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY);
+                if (savedTheme === 'light' || savedTheme === 'dark') {
+                    applyDashboardTheme(savedTheme, false);
+                } else {
+                    applyDashboardTheme(dbTypeStr === 'SQLITE' ? 'light' : 'dark', false);
+                }
             }
         })
         .catch(err => {
             console.warn("[경고] DB 모드 정보 조회 실패:", err);
-            applyDashboardTheme('dark');
+            const savedTheme = localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY);
+            if (savedTheme === 'light' || savedTheme === 'dark') {
+                applyDashboardTheme(savedTheme, false);
+            } else {
+                applyDashboardTheme('dark', false);
+            }
         });
 }
 
@@ -1224,7 +1240,7 @@ function renderLoadedQuestion(idx, qId) {
     }
 
     // 질문 본문 렌더링
-    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: #ffffff; margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
+    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
 
     // 이 문항의 풀이 완료(제출) 이력이 전역 버퍼에 있는지 확인
     const submittedResult = window.quizSubmittedResults && window.quizSubmittedResults[qId];

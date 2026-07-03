@@ -216,6 +216,32 @@ body[data-theme="light"] .modal-topic-count {
     color: #0e639c;
 }
 
+/* 2-2. 라이트 테마 전역 가시성 보정
+   - JS 템플릿 문자열에 하드코딩된 밝은 폰트(#fff 계열)를 일괄 보정합니다.
+   - 다만 강조 버튼/배지처럼 진한 배경 위 텍스트는 예외로 유지합니다. */
+body[data-theme="light"] [style*="color: #ffffff"],
+body[data-theme="light"] [style*="color:#ffffff"],
+body[data-theme="light"] [style*="color: #fff"],
+body[data-theme="light"] [style*="color:#fff"],
+body[data-theme="light"] [style*="color: rgba(255,255,255"],
+body[data-theme="light"] [style*="color: rgba(255, 255, 255"] {
+    color: var(--text-primary) !important;
+}
+
+/* 액션 버튼/강조 배지는 밝은 텍스트 유지 */
+body[data-theme="light"] .home-badge,
+body[data-theme="light"] .history-badge,
+body[data-theme="light"] #wrong-answers-badge,
+body[data-theme="light"] #yearly-exam-badge,
+body[data-theme="light"] .year-btn.active-btn,
+body[data-theme="light"] .inline-quiz-submit-btn,
+body[data-theme="light"] .viewer-edit-btn,
+body[data-theme="light"] .gam-levelup-badge,
+body[data-theme="light"] .gam-levelup-title,
+body[data-theme="light"] button[style*="background: var(--accent-gradient)"] {
+    color: #ffffff !important;
+}
+
 .container {
     max-width: 1050px;
     margin: 0 auto;
