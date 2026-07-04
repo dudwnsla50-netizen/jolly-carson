@@ -159,25 +159,41 @@
 
             <!-- 2-4. 년도별 120제 모의고사 연습 이력 -->
             <div class="card" style="grid-column: 1 / -1; margin-top: 1.5rem;">
-                <div class="card-header">
-                    <span class="card-title">
-                        <i data-lucide="award"></i> 년도별 120제 모의고사 연습 이력
-                    </span>
-                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
-                        연도별 기출문제 120문항 전체 풀이에 대한 연습 내역입니다.
-                    </span>
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <span class="card-title">
+                            <i data-lucide="award"></i> 년도별 120제 모의고사 연습 이력
+                        </span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                            연도별 기출문제 120문항 전체 풀이에 대한 연습 내역입니다.
+                        </span>
+                    </div>
+                    <!-- 기출연도 및 풀이과목 필터 드롭다운 -->
+                    <div style="display: flex; gap: 0.6rem; align-items: center;">
+                        <select id="filter-exam-year" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-primary); padding: 0.35rem 0.7rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer; outline: none; transition: border 0.2s;">
+                            <option value="all">기출 연도 (전체)</option>
+                        </select>
+                        <select id="filter-exam-subject" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-primary); padding: 0.35rem 0.7rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer; outline: none; transition: border 0.2s;">
+                            <option value="all">풀이 과목 (전체)</option>
+                            <option value="PM">감리 및 사업관리</option>
+                            <option value="SE">소프트웨어공학</option>
+                            <option value="DB">데이터베이스</option>
+                            <option value="SA">시스템 아키텍처</option>
+                            <option value="SC">보안</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="history-table">
                         <thead>
-                            <tr>
-                                <th>풀이 일자 (KST)</th>
-                                <th>기출 연도</th>
-                                <th>풀이 과목</th>
-                                <th>연습 회차</th>
-                                <th>맞춘 문항 수</th>
-                                <th>총 소요 시간</th>
-                                <th>100점 환산 점수</th>
+                            <tr id="yearly-history-th-row">
+                                <th data-sort-key="created_at" style="cursor: pointer; user-select: none; white-space: nowrap;">풀이 일자 (KST)<span class="sort-icon" style="color: var(--accent-primary); font-size: 0.75rem;"> ▼</span></th>
+                                <th data-sort-key="exam_year" style="cursor: pointer; user-select: none; white-space: nowrap;">기출 연도<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
+                                <th data-sort-key="subject_summary" style="cursor: pointer; user-select: none; white-space: nowrap;">풀이 과목<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
+                                <th data-sort-key="practice_count" style="cursor: pointer; user-select: none; white-space: nowrap;">연습 회차<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
+                                <th data-sort-key="correct_count" style="cursor: pointer; user-select: none; white-space: nowrap;">맞춘 문항 수<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
+                                <th data-sort-key="total_time" style="cursor: pointer; user-select: none; white-space: nowrap;">총 소요 시간<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
+                                <th data-sort-key="score" style="cursor: pointer; user-select: none; white-space: nowrap;">100점 환산 점수<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
                             </tr>
                         </thead>
                         <tbody id="yearly-history-tbody">
@@ -209,13 +225,12 @@
 
     <!-- 년도별 모의고사 상세 분석 모달 레이어 -->
     <div id="yearly-detail-modal" class="modal-overlay" onclick="closeYearlyModal(event)">
-        <div class="modal-card" onclick="event.stopPropagation()" style="max-width: 800px; width: 95%;">
+        <div class="modal-card full-screen-modal" onclick="event.stopPropagation()">
             <div class="modal-card-header">
                 <h2 class="modal-card-title" id="yearly-modal-title">📅 모의고사 풀이 상세 분석</h2>
                 <button class="modal-close-x" onclick="closeYearlyModal()">✕</button>
             </div>
-            <div class="modal-card-body" id="yearly-modal-body"
-                style="max-height: 75vh; overflow-y: auto; padding-right: 0.5rem;">
+            <div class="modal-card-body" id="yearly-modal-body">
                 <!-- JS를 통해 동적 생성 -->
             </div>
         </div>

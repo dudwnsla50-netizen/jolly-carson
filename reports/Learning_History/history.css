@@ -1108,6 +1108,117 @@ body[data-theme="light"] .modal-subject-row {
     }
 }
 
+/* ==========================================================================
+   [NEW] 100% 전체화면 모달 & 2열 컴팩트 레이아웃 스타일
+   ========================================================================== */
+.modal-card.full-screen-modal {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 1.25rem 1.5rem !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-card.full-screen-modal .modal-card-body {
+    flex: 1;
+    max-height: calc(100vh - 65px) !important;
+    overflow: hidden !important; /* 모달 전체 스크롤을 막고 내부 양쪽 스크롤 사용 */
+    padding: 0 !important;
+}
+
+.yearly-detail-layout {
+    display: grid;
+    grid-template-columns: 1.1fr 1.2fr;
+    gap: 1.5rem;
+    height: 100%;
+    min-height: 0;
+}
+
+.yearly-left-panel, .yearly-right-panel {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    min-height: 0;
+}
+
+/* 스크롤바 정밀화 */
+.yearly-left-panel::-webkit-scrollbar, .yearly-right-panel::-webkit-scrollbar {
+    width: 6px;
+}
+.yearly-left-panel::-webkit-scrollbar-thumb, .yearly-right-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+}
+
+/* 탭 버튼 스타일 */
+.viewer-tab-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0.4rem;
+}
+
+.viewer-tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.45rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.viewer-tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.viewer-tab-btn.active {
+    color: var(--text-primary);
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+/* 오답 리스트 아이템 */
+.wrong-all-item {
+    border: 1px solid rgba(239, 68, 68, 0.18);
+    background: rgba(239, 68, 68, 0.03);
+    border-radius: 10px;
+    padding: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.wrong-all-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    padding-bottom: 0.4rem;
+}
+
+@media (max-width: 768px) {
+    .modal-card.full-screen-modal .modal-card-body {
+        overflow-y: auto !important;
+    }
+    .yearly-detail-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+    }
+    .yearly-left-panel, .yearly-right-panel {
+        height: auto;
+        overflow: visible;
+    }
+}
+
 
 
 

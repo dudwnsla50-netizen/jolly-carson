@@ -543,6 +543,39 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 
                     today_solved = today_solved_quiz + today_solved_yearly
 
+                    # 모의고사 이력(details)에서 과목별 맞춘 정답 개수를 미리 산출
+                    yearly_correct_by_sub = { 'PM': 0, 'SE': 0, 'DB': 0, 'SA': 0, 'SC': 0 }
+                    try:
+                        sql_yearly_all = "SELECT details FROM yearly_exam_history"
+                        execute_query(cursor, sql_yearly_all)
+                        yearly_rows = cursor.fetchall()
+                        for row in yearly_rows:
+                            details_raw = dict(row)["details"]
+                            if details_raw:
+                                if isinstance(details_raw, str):
+                                    try:
+                                        exam_details = json.loads(details_raw)
+                                    except Exception:
+                                        exam_details = []
+                                else:
+                                    exam_details = details_raw
+                                
+                                for item_det in exam_details:
+                                    q_num = item_det.get("question_num")
+                                    is_corr = item_det.get("is_correct", False)
+                                    if is_corr and q_num is not None:
+                                        sub_code = None
+                                        if 1 <= q_num <= 25: sub_code = 'PM'
+                                        elif 26 <= q_num <= 50: sub_code = 'SE'
+                                        elif 51 <= q_num <= 75: sub_code = 'DB'
+                                        elif 76 <= q_num <= 100: sub_code = 'SA'
+                                        elif 101 <= q_num <= 120: sub_code = 'SC'
+                                        
+                                        if sub_code:
+                                            yearly_correct_by_sub[sub_code] += 1
+                    except Exception as ex_yearly:
+                        print("[경고] yearly_exam_history EXP 수집 오류 방어:", ex_yearly)
+
                     # 특정 과목의 경험치만 조회할 경우
                     if subject:
                         subject = subject.upper()
@@ -553,7 +586,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         """
                         execute_query(cursor, sql, (subject,))
                         row = cursor.fetchone()
-                        total_exp = dict(row)["total_exp"] if row else 0
+                        total_exp_quiz = dict(row)["total_exp"] if row else 0
+                        
+                        # 모의고사 맞춘 개수 합산
+                        total_exp = total_exp_quiz + yearly_correct_by_sub.get(subject, 0)
                         
                         # 레벨링 계산 공식: 누적 정답 10개당 1 레벨업 (기본 레벨 1)
                         level = (total_exp // 10) + 1
@@ -578,7 +614,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         """
                         execute_query(cursor, sql_all)
                         row_all = cursor.fetchone()
-                        total_exp = dict(row_all)["total_exp"] if row_all else 0
+                        total_exp_quiz = dict(row_all)["total_exp"] if row_all else 0
+                        
+                        # 모의고사 전체 맞춘 문항 합산
+                        total_exp = total_exp_quiz + sum(yearly_correct_by_sub.values())
                         
                         level = (total_exp // 10) + 1
                         exp_in_level = total_exp % 10
@@ -593,26 +632,32 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         execute_query(cursor, sql_subjects)
                         rows_sub = cursor.fetchall()
                         
-                        # 데이터가 없는 과목도 1레벨(0 EXP)로 안전하게 초기화
+                        # 데이터가 없는 과목도 1레벨(0 EXP)로 안전하게 초기화하며 모의고사 데이터 기본 반영
                         subjects_exp = {}
                         for sub_code in ['DB', 'SE', 'PM', 'SA', 'SC']:
+                            sub_exp_init = yearly_correct_by_sub[sub_code]
+                            sub_lvl_init = (sub_exp_init // 10) + 1
+                            sub_exp_in_lvl_init = sub_exp_init % 10
+                            
                             subjects_exp[sub_code] = {
-                                "total_exp": 0,
-                                "level": 1,
-                                "exp_in_level": 0,
+                                "total_exp": sub_exp_init,
+                                "level": sub_lvl_init,
+                                "exp_in_level": sub_exp_in_lvl_init,
                                 "exp_to_next": 10
                             }
                             
-                        # 조회된 과목별 실 데이터를 바인딩
+                        # 조회된 과목별 실 데이터를 바인딩하여 합산
                         for r in rows_sub:
                             d = dict(r)
                             sub_name = d["subject"].upper()
-                            sub_exp = d["sub_exp"]
-                            sub_level = (sub_exp // 10) + 1
-                            sub_exp_in_level = sub_exp % 10
+                            sub_exp_quiz = d["sub_exp"]
                             
-                            # 정의된 5대 과목 매핑 내에 있을 경우에만 갱신
+                            # 정의된 5대 과목 매핑 내에 있을 경우에만 합산 갱신
                             if sub_name in subjects_exp:
+                                sub_exp = sub_exp_quiz + yearly_correct_by_sub.get(sub_name, 0)
+                                sub_level = (sub_exp // 10) + 1
+                                sub_exp_in_level = sub_exp % 10
+                                
                                 subjects_exp[sub_name] = {
                                     "total_exp": sub_exp,
                                     "level": sub_level,
