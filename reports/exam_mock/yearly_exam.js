@@ -14,7 +14,13 @@ const SUBJECT_RANGES = {
     'SE': { name: '소프트웨어공학 (25문항)', range: [26, 50] },
     'DB': { name: '데이터베이스 (25문항)', range: [51, 75] },
     'SA': { name: '시스템 아키텍처 (25문항)', range: [76, 100] },
-    'SC': { name: '보안 (20문항)', range: [101, 120] }
+    'SC': { name: '보안 (20문항)', range: [101, 120] },
+    'NEW_TREND_ALL': { name: '신규 기출 전체', range: [1, 120] },
+    'NEW_TREND_PM': { name: '신규 기출 감리 및 사업관리', range: [1, 25] },
+    'NEW_TREND_SE': { name: '신규 기출 소프트웨어공학', range: [26, 50] },
+    'NEW_TREND_DB': { name: '신규 기출 데이터베이스', range: [51, 75] },
+    'NEW_TREND_SA': { name: '신규 기출 시스템 아키텍처', range: [76, 100] },
+    'NEW_TREND_SC': { name: '신규 기출 보안', range: [101, 120] }
 };
 
 // 전역 상태 변수
@@ -181,38 +187,51 @@ function renderYearSelection(data) {
         const saMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.SA).toFixed(0) : '0';
         const scMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.SC).toFixed(0) : '0';
 
+        // 신규 기출 문항 수 계산
+        const pmTrend = item.new_trends ? item.new_trends.subjects.PM.count : 0;
+        const seTrend = item.new_trends ? item.new_trends.subjects.SE.count : 0;
+        const dbTrend = item.new_trends ? item.new_trends.subjects.DB.count : 0;
+        const saTrend = item.new_trends ? item.new_trends.subjects.SA.count : 0;
+        const scTrend = item.new_trends ? item.new_trends.subjects.SC.count : 0;
+        const totalTrend = item.new_trends ? item.new_trends.total_count : 0;
+
         card.innerHTML = `
                     <div class="exam-card-header">
                         <span class="exam-year-title">${item.year}년도</span>
                         <span class="exam-badge">${item.question_count}문항 완비</span>
                     </div>
                     <div class="exam-stats">
-                        <!-- 과목별 최고 점수 격자 패널 -->
+                        <!-- 과목별 최고 점수 & 신규 비중 통합 격자 패널 -->
                         <div style="margin-top: 0.2rem; margin-bottom: 0.8rem; background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.5rem 0.6rem;">
                             <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.2rem; display: flex; justify-content: space-between;">
                                 <span>과목별 최고점</span>
-                                <span style="color: var(--success); font-weight: 700;">종합 최고: ${maxScore}점</span>
+                                <span style="color: var(--success); font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'ALL')" title="클릭 시 전체 신규 기출 모의고사 풀기 시작">종합 최고: ${maxScore}점, <span style="color: var(--success);">신규: ${totalTrend}개</span></span>
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; text-align: center;">
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#f472b6; font-weight:700;">PM</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${pmMax}</span>
+                                    <span style="font-size:0.58rem; color:#f472b6; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'PM')" title="클릭 시 PM 신규 기출 모의고사 시작">${pmTrend}개</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#60a5fa; font-weight:700;">SE</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${seMax}</span>
+                                    <span style="font-size:0.58rem; color:#60a5fa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SE')" title="클릭 시 SE 신규 기출 모의고사 시작">${seTrend}개</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#a78bfa; font-weight:700;">DB</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${dbMax}</span>
+                                    <span style="font-size:0.58rem; color:#a78bfa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'DB')" title="클릭 시 DB 신규 기출 모의고사 시작">${dbTrend}개</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#fbbf24; font-weight:700;">SA</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${saMax}</span>
+                                    <span style="font-size:0.58rem; color:#fbbf24; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SA')" title="클릭 시 SA 신규 기출 모의고사 시작">${saTrend}개</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#34d399; font-weight:700;">SC</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${scMax}</span>
+                                    <span style="font-size:0.58rem; color:#34d399; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SC')" title="클릭 시 SC 신규 기출 모의고사 시작">${scTrend}개</span>
                                 </div>
                             </div>
                         </div>
@@ -275,12 +294,16 @@ function showScreen(screenId) {
 }
 
 // 시험 시작
-function startYearlyExam(year) {
+function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
     examYear = year;
 
-    // 드롭다운 과목 필터 값 로드
-    const selectEl = document.getElementById(`subject-select-${year}`);
-    selectedSubjectRange = selectEl ? selectEl.value : 'ALL';
+    if (isNewTrendOnly) {
+        selectedSubjectRange = 'NEW_TREND_' + trendSubject;
+    } else {
+        // 드롭다운 과목 필터 값 로드
+        const selectEl = document.getElementById(`subject-select-${year}`);
+        selectedSubjectRange = selectEl ? selectEl.value : 'ALL';
+    }
 
     showScreen('loading-screen');
 
@@ -296,12 +319,24 @@ function startYearlyExam(year) {
                 return;
             }
 
-            // 과목별 슬라이싱 필터링 적용
-            const rangeInfo = SUBJECT_RANGES[selectedSubjectRange].range;
-            const filteredData = data.filter(q => q.question_num >= rangeInfo[0] && q.question_num <= rangeInfo[1]);
+            // 과목별 슬라이싱 필터링 또는 신규 기출 필터 적용
+            let filteredData;
+            if (isNewTrendOnly) {
+                filteredData = data.filter(q => {
+                    const isNew = (q.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[`${year}_${q.question_num}`] === 1);
+                    if (!isNew) return false;
+                    if (trendSubject === 'ALL') return true;
+                    
+                    const qSub = getSubjectInfo(q.question_num).code;
+                    return qSub === trendSubject;
+                });
+            } else {
+                const rangeInfo = SUBJECT_RANGES[selectedSubjectRange].range;
+                filteredData = data.filter(q => q.question_num >= rangeInfo[0] && q.question_num <= rangeInfo[1]);
+            }
 
             if (filteredData.length === 0) {
-                alert("선택한 과목 범위에 해당하는 문제가 존재하지 않습니다.");
+                alert("선택한 범위에 해당하는 문제가 존재하지 않습니다.");
                 loadYearlyExams();
                 return;
             }
@@ -449,7 +484,12 @@ function renderQuestion() {
     tag.style.background = getSubjectGradient(subInfo.code);
 
     document.getElementById('current-q-num-label').innerText = `${q.question_num}번 문항`;
-    document.getElementById('question-text-content').innerText = q.question;
+    
+    // 신규 기출 뱃지 처리 (window.NEW_TREND_MAPPING 캐시 또는 q.is_new_trend 검출)
+    const isNewTrend = (q.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[`${q.year}_${q.question_num}`] === 1);
+    const newTrendBadge = isNewTrend ? `<span class="new-trend-badge" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #ffffff; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);">✨ 신규 기출</span>` : '';
+    
+    document.getElementById('question-text-content').innerHTML = newTrendBadge + q.question;
 
     // 새 문항 로드 시 이미지 접기 상태로 리셋
     isImageExpanded = false;
@@ -771,7 +811,97 @@ function renderResultReport(result, practiceCount) {
         analysisContainer.appendChild(box);
     }
 
+    // [신규 기출 vs 일반 기출 분리 정답률 계산]
+    let normalTotal = 0;
+    let normalCorrect = 0;
+    let newTrendTotal = 0;
+    let newTrendCorrect = 0;
+
+    result.details.forEach(item => {
+        const qid = `${result.exam_year}_${item.question_num}`;
+        const isNew = (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[qid] === 1);
+        if (isNew) {
+            newTrendTotal++;
+            if (item.is_correct) newTrendCorrect++;
+        } else {
+            normalTotal++;
+            if (item.is_correct) normalCorrect++;
+        }
+    });
+
+    const normalPct = normalTotal > 0 ? Math.round((normalCorrect / normalTotal) * 100) : 0;
+    const newTrendPct = newTrendTotal > 0 ? Math.round((newTrendCorrect / newTrendTotal) * 100) : 0;
+
+    // 학습자 맞춤형 취약점 진단 및 2가지 유형 분석
+    let userTypeLabel = "";
+    let userTypeDesc = "";
+    let recommendation = "";
+    
+    if (normalPct >= 80 && newTrendPct < 50) {
+        userTypeLabel = "유형 A (기출 완성형 학습자)";
+        userTypeDesc = "기존 기출 회독 상태는 양호하나 최신 법제도 개정이나 생소한 신규 기술 트렌드에 약점을 보입니다.";
+        recommendation = "💡 <b>처방 가이드:</b> <code>감리사_시험대비/가이드및법규</code> 폴더의 최신 고시 준수 가이드 및 공공데이터 지침서 등을 중심으로 신기술 트렌드를 집중 보완하십시오.";
+    } else {
+        userTypeLabel = "유형 B (개념/직관형 학습자)";
+        userTypeDesc = "디테일한 암기(수식 계산, 표준 표기 규칙 등)의 정확성이 부족하여 전형적인 기출 패턴에서 오답이 잦습니다.";
+        recommendation = "💡 <b>처방 가이드:</b> 확실한 득점원 확보를 위해 데이터베이스 정규화 공식, PMBOK 임계경로(Critical Path) 계산식 및 오답 노트를 중심으로 회독 수를 높이십시오.";
+    }
+    if (normalPct >= 80 && newTrendPct >= 80) {
+        userTypeLabel = "🏆 합격 안정권 마스터";
+        userTypeDesc = "기출의 완성도와 최신 트렌드 대응력이 균형 있게 최상위권에 도달했습니다.";
+        recommendation = "💡 <b>처방 가이드:</b> 실전 모드 하에서 실수를 방지하고 소요 시간을 80분 이내로 타이트하게 단축하는 훈련에 힘쓰십시오.";
+    }
+
+    // 모의고사 출제 난이도 예측 및 시뮬레이션
+    const difficultyLevel = newTrendTotal > 24 ? "상 (체감 난이도 높음)" : "중 (보통 수준)";
+    const predictedScore = (normalPct * 0.8 + newTrendPct * 0.2).toFixed(1);
+
+    const trendContainer = document.getElementById('trend-analysis-container');
+    if (trendContainer) {
+        trendContainer.innerHTML = `
+            <div style="font-size: 0.95rem; font-weight: 700; color: #ec4899; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.3rem;">
+                <i data-lucide="brain-circuit" style="width: 18px; height: 18px;"></i> AI 신규 기출 분석 & 학습 취약 진단
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 0.75rem;">
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0.35rem;">기출 구분별 정답률</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                            <span>일반 기출 유형:</span>
+                            <span style="font-weight: 700; color: #c084fc;">${normalCorrect} / ${normalTotal} (${normalPct}%)</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                            <span>신규 기출 유형:</span>
+                            <span style="font-weight: 700; color: #ec4899;">${newTrendCorrect} / ${newTrendTotal} (${newTrendPct}%)</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 0.75rem;">
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0.35rem;">출제 난이도 예측 및 시뮬레이션</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                            <span>모의고사 체감 난이도:</span>
+                            <span style="font-weight: 700; color: #fbbf24;">${difficultyLevel}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                            <span>본 시험 예상 환산 점수:</span>
+                            <span style="font-weight: 700; color: var(--success);">${predictedScore}점 / 88점 목표</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="background: rgba(139,92,246,0.04); border: 1px solid rgba(139,92,246,0.12); border-radius: 10px; padding: 0.8rem; font-size: 0.85rem;">
+                <div style="font-weight: 700; color: #a78bfa; margin-bottom: 0.25rem;">🔍 학습자 맞춤형 취약점 진단: ${userTypeLabel}</div>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; margin-bottom: 0.45rem;">${userTypeDesc}</p>
+                <div style="font-size: 0.82rem; color: var(--text-primary); line-height: 1.5;">${recommendation}</div>
+            </div>
+        `;
+    }
+
     renderReviewList(result.details);
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
 // 오답/전체 상세 리뷰 리스트 렌더링
@@ -914,4 +1044,16 @@ function getSubjectGradient(code) {
         case 'SC': return 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)'; // Red
         default: return 'var(--accent-gradient)';
     }
+}
+
+// 과목 코드로 과목명을 매핑해주는 서브 헬퍼
+function getSubjectNameByCode(code) {
+    const map = {
+        'PM': '감리 및 사업관리',
+        'SE': '소프트웨어공학',
+        'DB': '데이터베이스',
+        'SA': '시스템 아키텍처',
+        'SC': '보안'
+    };
+    return map[code] || code;
 }

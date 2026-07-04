@@ -692,6 +692,14 @@ function renderSubjectExpCards(expData, subjectAccuracies = {}) {
         // 평균 정답률 값 획득 (포맷 지정)
         const accRate = subjectAccuracies[sub] !== undefined ? subjectAccuracies[sub] : 0.0;
 
+        const NEW_TREND_RATIOS = {
+            'DB': '17.0% (51/300)',
+            'SE': '21.3% (64/300)',
+            'PM': '21.0% (63/300)',
+            'SA': '23.7% (71/300)',
+            'SC': '17.5% (42/240)'
+        };
+
         card.innerHTML = `
             <div class="sub-exp-header">
                 <span class="sub-exp-title">${SUBJECT_NAMES[sub]}</span>
@@ -710,6 +718,10 @@ function renderSubjectExpCards(expData, subjectAccuracies = {}) {
                 <div class="sub-exp-bar-info">
                     <span>${subData.total_exp} EXP (${subData.exp_in_level} / 10)</span>
                     <span style="color: var(--success); font-weight: 700;">정답률: ${accRate}%</span>
+                </div>
+                <div style="font-size: 0.72rem; color: #ec4899; font-weight: 600; margin-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span>신규 기출 비중:</span>
+                    <span>${NEW_TREND_RATIOS[sub]}</span>
                 </div>
                 <div class="sub-exp-bar-bg">
                     <div class="sub-exp-bar-fill" style="width: ${expPercent}%"></div>
@@ -1096,6 +1108,39 @@ function renderYearlyExamHistoryTable(historyList) {
         const subjectSummary = summarizeYearlyExamSubjects(item);
         const timeStr = formatSecondsToKorean(item.total_time);
 
+        // details 문자열 또는 객체 파싱
+        let details = [];
+        try {
+            details = (typeof item.details === 'string') ? JSON.parse(item.details) : (item.details || []);
+        } catch (e) {
+            details = [];
+        }
+
+        let normalTotal = 0;
+        let normalCorr = 0;
+        let newTotal = 0;
+        let newCorr = 0;
+
+        details.forEach(d => {
+            const qid = `${item.exam_year}_${d.question_num}`;
+            const isNew = (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[qid] === 1);
+            if (isNew) {
+                newTotal++;
+                if (d.is_correct) newCorr++;
+            } else {
+                normalTotal++;
+                if (d.is_correct) normalCorr++;
+            }
+        });
+
+        const normalPct = normalTotal > 0 ? Math.round((normalCorr / normalTotal) * 100) : 0;
+        const newPct = newTotal > 0 ? Math.round((newCorr / newTotal) * 100) : 0;
+
+        const trendStatsHtml = `
+            <span style="color: #c084fc; font-weight: 600;">일반 ${normalPct}%</span> / 
+            <span style="color: #ec4899; font-weight: 600;">신규 ${newPct}%</span>
+        `;
+
         tr.innerHTML = `
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${formattedDate}</td>
             <td style="font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-primary); font-size: 0.9rem;">${item.exam_year}년도 기출</td>
@@ -1104,6 +1149,7 @@ function renderYearlyExamHistoryTable(historyList) {
             <td style="font-size: 0.88rem; font-weight: 500;">${item.correct_count} / ${item.total_questions}</td>
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${timeStr}</td>
             <td style="font-weight: 700; color: var(--success); font-size: 0.95rem;">${score}점</td>
+            <td style="font-size: 0.82rem; white-space: nowrap;">${trendStatsHtml}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -1580,6 +1626,8 @@ function formatSecondsToKorean(totalSeconds) {
 /**
  * [설계 의도] 년도별 모의고사 상세 분석 모달 오픈 및 취약 과목 진단, 장시간 소요 문항 Top 3, OMR 시간 그리드 시각화
  */
+
+
 function openYearlyModal(item) {
     try {
         const modal = document.getElementById('yearly-detail-modal');
@@ -1615,6 +1663,10 @@ function openYearlyModal(item) {
             subStats[code] = { correct: 0, total: 0, timeSum: 0 };
         }
 
+        // 신규/일반 기출별 정답률 및 통계 집계
+        let normalCorrect = 0, normalTotal = 0;
+        let newTrendCorrect = 0, newTrendTotal = 0;
+
         details.forEach(d => {
             const qNum = d.question_num;
             let subCode = null;
@@ -1632,7 +1684,45 @@ function openYearlyModal(item) {
                     subStats[subCode].correct++;
                 }
             }
+
+            // 신규 기출 판정
+            const mappingKey = `${item.exam_year}_${qNum}`;
+            const isNew = (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[mappingKey] === 1);
+            if (isNew) {
+                newTrendTotal++;
+                if (d.is_correct) newTrendCorrect++;
+            } else {
+                normalTotal++;
+                if (d.is_correct) normalCorrect++;
+            }
         });
+
+        const normalPct = normalTotal > 0 ? Math.round((normalCorrect / normalTotal) * 100) : 0;
+        const newTrendPct = newTrendTotal > 0 ? Math.round((newTrendCorrect / newTrendTotal) * 100) : 0;
+
+        // 학습자 맞춤형 취약점 진단 (2가지 유형 분석)
+        let userTypeLabel = "";
+        let userTypeDesc = "";
+        let recommendation = "";
+        
+        if (normalPct >= 80 && newTrendPct < 50) {
+            userTypeLabel = "유형 A (기출 완성형 학습자)";
+            userTypeDesc = "기존 기출 회독 상태는 양호하나 최신 법제도 개정이나 생소한 신규 기술 트렌드에 약점을 보입니다.";
+            recommendation = "💡 <b>처방 가이드:</b> <code>감리사_시험대비/가이드및법규</code> 폴더의 최신 고시 준수 가이드 및 공공데이터 지침서 등을 중심으로 신기술 트렌드를 집중 보완하십시오.";
+        } else {
+            userTypeLabel = "유형 B (개념/직관형 학습자)";
+            userTypeDesc = "디테일한 암기(수식 계산, 표준 표기 규칙 등)의 정확성이 부족하여 전형적인 기출 패턴에서 오답이 잦습니다.";
+            recommendation = "💡 <b>처방 가이드:</b> 확실한 득점원 확보를 위해 데이터베이스 정규화 공식, PMBOK 임계경로(Critical Path) 계산식 및 오답 노트를 중심으로 회독 수를 높이십시오.";
+        }
+        if (normalPct >= 80 && newTrendPct >= 80) {
+            userTypeLabel = "🏆 합격 안정권 마스터";
+            userTypeDesc = "기출의 완성도와 최신 트렌드 대응력이 균형 있게 최상위권에 도달했습니다.";
+            recommendation = "💡 <b>처방 가이드:</b> 실전 모드 하에서 실수를 방지하고 소요 시간을 80분 이내로 타이트하게 단축하는 훈련에 힘쓰십시오.";
+        }
+
+        // 모의고사 출제 난이도 예측 및 시뮬레이션
+        const difficultyLevel = newTrendTotal > 24 ? "상 (체감 난이도 높음)" : "중 (보통 수준)";
+        const predictedScore = (normalPct * 0.8 + newTrendPct * 0.2).toFixed(1);
 
         const totalElapsed = details.reduce((acc, d) => acc + (d.elapsed_time || 0), 0);
         const globalAvgTime = details.length > 0 ? (totalElapsed / details.length) : 0;
@@ -1663,7 +1753,7 @@ function openYearlyModal(item) {
 
             if (isLow) {
                 weaknessAlertHtml += `
-                    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 0.5rem 0.8rem; font-size: 0.76rem; color: #f87171; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 0.5rem 0.8rem; font-size: 0.76rem; color: #f87171; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
                         <i data-lucide="alert-triangle" style="width: 13px; height: 13px; flex-shrink: 0;"></i>
                         <span><strong>${SUBJECTS[code].name}</strong> 과목의 정답률이 <strong>${pct}%</strong>로 취약 상태입니다.</span>
                     </div>
@@ -1688,6 +1778,48 @@ function openYearlyModal(item) {
                 .map(qNum => `<button type="button" class="yearly-recurring-chip" data-qnum="${qNum}" style="display:inline-flex; align-items:center; padding:0.18rem 0.5rem; border-radius:999px; font-size:0.72rem; border:1px solid rgba(239,68,68,0.28); background:rgba(239,68,68,0.10); color:#fca5a5; margin-right:0.35rem; margin-bottom:0.35rem; cursor:pointer;">Q.${qNum}</button>`)
                 .join('')
             : '<span style="font-size:0.78rem; color: var(--text-secondary);">재발 오답은 없습니다.</span>';
+
+        // AI 신규 기출 분석 & 취약 진단 HTML 카드 조립
+        const aiTrendDiagnosticHtml = `
+            <div style="background: ${neutralCardBg}; border: ${neutralCardBorder}; border-radius: 10px; padding: 0.8rem; margin-bottom: 1rem;">
+                <div style="font-size: 0.85rem; font-weight: 700; color: #ec4899; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.3rem;">
+                    <i data-lucide="brain-circuit" style="width: 16px; height: 16px;"></i> AI 신규 기출 분석 & 학습 취약 진단
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.6rem;">
+                    <div style="background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 0.6rem;">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.25rem;">기출 구분별 정답률</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.76rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">일반 기출:</span>
+                                <span style="font-weight: 700; color: #c084fc;">${normalCorrect} / ${normalTotal} (${normalPct}%)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">신규 기출:</span>
+                                <span style="font-weight: 700; color: #ec4899;">${newTrendCorrect} / ${newTrendTotal} (${newTrendPct}%)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 0.6rem;">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.25rem;">출제 난이도 예측 및 시뮬레이션</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.76rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">체감 난이도:</span>
+                                <span style="font-weight: 700; color: #fbbf24;">${difficultyLevel}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">예상 환산 스코어:</span>
+                                <span style="font-weight: 700; color: var(--success);">${predictedScore}점</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="background: rgba(139, 92, 246, 0.03); border: 1px solid rgba(139, 92, 246, 0.1); border-radius: 8px; padding: 0.65rem; font-size: 0.78rem;">
+                    <div style="font-weight: 700; color: #a78bfa; margin-bottom: 0.2rem;">🔍 취약점 진단: ${userTypeLabel}</div>
+                    <p style="color: var(--text-secondary); font-size: 0.74rem; line-height: 1.4; margin-bottom: 0.35rem; margin-top: 0;">${userTypeDesc}</p>
+                    <div style="font-size: 0.74rem; color: var(--text-primary); line-height: 1.4;">${recommendation}</div>
+                </div>
+            </div>
+        `;
 
         // 4. Top 3 문항 리스트 HTML
         let top3Html = '';
@@ -1765,6 +1897,9 @@ function openYearlyModal(item) {
                             <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); font-family: monospace;">${formattedTotalTime}</div>
                         </div>
                     </div>
+
+                    <!-- AI 신규 기출 분석 & 취약 진단 패널 -->
+                    ${aiTrendDiagnosticHtml}
 
                     <!-- 과목별 성적 분석 카드가 모인 영역 -->
                     <div style="margin-bottom: 1rem;">

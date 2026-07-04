@@ -272,7 +272,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT question, options, answer, explanation, subject 
+                        SELECT question, options, answer, explanation, subject, is_new_trend, similar_past_questions 
                         FROM exam_questions 
                         WHERE id = %s
                     """
@@ -297,13 +297,25 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         else:
                             answer_val = []
 
+                        # similar_past_questions JSON 파싱 처리
+                        sim_past = row_dict.get("similar_past_questions")
+                        if sim_past:
+                            try:
+                                sim_past_val = json.loads(sim_past)
+                            except:
+                                sim_past_val = []
+                        else:
+                            sim_past_val = []
+
                         self.send_json_response({
                             "id": q_id, 
                             "question": row_dict["question"],
                             "options": json.loads(row_dict["options"]) if row_dict["options"] else [],
                             "answer": answer_val,
                             "explanation": row_dict["explanation"],
-                            "subject": row_dict["subject"]
+                            "subject": row_dict["subject"],
+                            "is_new_trend": row_dict.get("is_new_trend", 0),
+                            "similar_past_questions": sim_past_val
                         })
                     else:
                         self.send_error_response(404, f"Question {q_id} Not Found")
@@ -322,7 +334,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, subject, question, options, answer, explanation 
+                        SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions 
                         FROM exam_questions 
                         WHERE subject = %s
                     """
@@ -351,6 +363,17 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                     item["answer"] = []
                         else:
                             item["answer"] = []
+                            
+                        # similar_past_questions JSON 파싱
+                        sim_past = item.get("similar_past_questions")
+                        if sim_past:
+                            try:
+                                item["similar_past_questions"] = json.loads(sim_past)
+                            except:
+                                item["similar_past_questions"] = []
+                        else:
+                            item["similar_past_questions"] = []
+                            
                         data_dict[item["id"]] = item
                         
                     self.send_json_response(data_dict)
@@ -692,6 +715,15 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     execute_query(cursor, sql_years)
                     year_rows = cursor.fetchall()
                     
+                    # 1.5. 신규 기출문제 통계 조회 (연도별/과목별)
+                    sql_trends = """
+                        SELECT year, subject, COALESCE(SUM(is_new_trend), 0) as new_trend_count, COUNT(*) as total_count
+                        FROM exam_questions
+                        GROUP BY year, subject
+                    """
+                    execute_query(cursor, sql_trends)
+                    trend_rows = cursor.fetchall()
+                    
                     # 2. 모든 모의고사 연습 이력 조회
                     sql_history = """
                         SELECT id, exam_year, score, details, created_at
@@ -725,8 +757,57 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                 "DB": 0.0,
                                 "SA": 0.0,
                                 "SC": 0.0
+                            },
+                            "new_trends": {
+                                "total_ratio": 0.0,
+                                "total_count": 0,
+                                "subjects": {
+                                    "PM": {"count": 0, "ratio": 0.0},
+                                    "SE": {"count": 0, "ratio": 0.0},
+                                    "DB": {"count": 0, "ratio": 0.0},
+                                    "SA": {"count": 0, "ratio": 0.0},
+                                    "SC": {"count": 0, "ratio": 0.0}
+                                }
                             }
                         }
+                        
+                    # 신규 기출 통계 집계 매핑
+                    trends_by_year = {}
+                    for row in trend_rows:
+                        yr = row["year"]
+                        sub = row["subject"]
+                        count = row["new_trend_count"]
+                        total = row["total_count"]
+                        
+                        if yr not in trends_by_year:
+                            trends_by_year[yr] = {
+                                "total_new": 0,
+                                "total_questions": 0,
+                                "subjects": {}
+                            }
+                        trends_by_year[yr]["total_new"] += count
+                        trends_by_year[yr]["total_questions"] += total
+                        trends_by_year[yr]["subjects"][sub] = {
+                            "count": count,
+                            "total": total,
+                            "ratio": round((count / total) * 100.0, 1) if total > 0 else 0.0
+                        }
+                        
+                    for yr in stats_by_year.keys():
+                        if yr in trends_by_year:
+                            trend_data = trends_by_year[yr]
+                            t_new = trend_data["total_new"]
+                            t_q = trend_data["total_questions"]
+                            
+                            stats_by_year[yr]["new_trends"]["total_ratio"] = round((t_new / t_q) * 100.0, 1) if t_q > 0 else 0.0
+                            stats_by_year[yr]["new_trends"]["total_count"] = t_new
+                            
+                            for sub in ["PM", "SE", "DB", "SA", "SC"]:
+                                sub_data = trend_data["subjects"].get(sub, {"count": 0, "total": 0, "ratio": 0.0})
+                                stats_by_year[yr]["new_trends"]["subjects"][sub] = {
+                                    "count": sub_data["count"],
+                                    "ratio": sub_data["ratio"]
+                                }
                     
                     for hist in history_rows:
                         yr = hist["exam_year"]
@@ -802,7 +883,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, year, subject, question_num, question, options, answer, explanation 
+                        SELECT id, year, subject, question_num, question, options, answer, explanation, is_new_trend, similar_past_questions 
                         FROM exam_questions 
                         WHERE year = %s 
                         ORDER BY question_num ASC
@@ -832,6 +913,17 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                     item["answer"] = []
                         else:
                             item["answer"] = []
+                            
+                        # similar_past_questions JSON 파싱
+                        sim_past = item.get("similar_past_questions")
+                        if sim_past:
+                            try:
+                                item["similar_past_questions"] = json.loads(sim_past)
+                            except:
+                                item["similar_past_questions"] = []
+                        else:
+                            item["similar_past_questions"] = []
+                            
                         data_list.append(item)
                         
                     self.send_json_response(data_list)

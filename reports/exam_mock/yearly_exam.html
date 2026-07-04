@@ -9,6 +9,7 @@
     <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="yearly_exam.css">
+    <script src="../js/data/new_trend_mapping.js"></script>
 </head>
 <body>
     <div class="container">
@@ -163,6 +164,11 @@
                 <div class="subject-analysis-title">📊 과목별 취약 진단</div>
                 <div class="subject-analysis-grid" id="subject-analysis-container">
                     <!-- 과목별 점수가 동적으로 렌더링됩니다. -->
+                </div>
+
+                <!-- [신규 기능] 신규 기출 분석 및 난이도 시뮬레이션 -->
+                <div class="trend-analysis-card" id="trend-analysis-container" style="margin-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1.5rem;">
+                    <!-- JS에서 동적으로 진단 결과가 주입됩니다. -->
                 </div>
             </div>
 

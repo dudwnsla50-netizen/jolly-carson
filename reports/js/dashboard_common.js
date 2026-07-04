@@ -1239,8 +1239,10 @@ function renderLoadedQuestion(idx, qId) {
         }
     }
 
-    // 질문 본문 렌더링
-    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${data.question}</div>`;
+    // 질문 본문 렌더링 (신규 기출 뱃지 추가)
+    const isNewTrend = (data.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[qId] === 1);
+    const newTrendBadge = isNewTrend ? `<span class="new-trend-badge" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #ffffff; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);">✨ 신규 기출</span>` : '';
+    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${newTrendBadge}${data.question}</div>`;
 
     // 이 문항의 풀이 완료(제출) 이력이 전역 버퍼에 있는지 확인
     const submittedResult = window.quizSubmittedResults && window.quizSubmittedResults[qId];

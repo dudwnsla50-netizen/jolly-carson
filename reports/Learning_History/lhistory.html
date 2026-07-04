@@ -12,6 +12,7 @@
     <!-- Chart.js 및 Lucide Icons CDN 탑재 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../js/data/new_trend_mapping.js"></script>
 </head>
 
 <body>
@@ -194,11 +195,12 @@
                                 <th data-sort-key="correct_count" style="cursor: pointer; user-select: none; white-space: nowrap;">맞춘 문항 수<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
                                 <th data-sort-key="total_time" style="cursor: pointer; user-select: none; white-space: nowrap;">총 소요 시간<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
                                 <th data-sort-key="score" style="cursor: pointer; user-select: none; white-space: nowrap;">100점 환산 점수<span class="sort-icon" style="font-size: 0.75rem;"></span></th>
+                                <th style="white-space: nowrap;">기출 구분 (일반 / 신규)</th>
                             </tr>
                         </thead>
                         <tbody id="yearly-history-tbody">
                             <tr>
-                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                                     로딩 중이거나 아직 완료된 연습 이력이 없습니다.
                                 </td>
                             </tr>
