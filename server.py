@@ -678,27 +678,108 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def get_yearly_exams(self, query):
-        """[설계 의도] 기출문제 연도 목록과 유저의 풀이 연습 통계를 요약하여 반환합니다."""
+        """[설계 의도] 기출문제 연도 목록과 유저의 과목별 최고 점수 및 풀이 연습 통계를 요약하여 반환합니다."""
         try:
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
-                    sql = """
-                        SELECT eq.year, 
-                               COUNT(DISTINCT eq.id) as question_count,
-                               COALESCE(MAX(h.score), 0.0) as max_score,
-                               COALESCE(COUNT(DISTINCT h.id), 0) as practice_count,
-                               MAX(h.created_at) as last_attempt_at
-                        FROM exam_questions eq
-                        LEFT JOIN yearly_exam_history h ON eq.year = h.exam_year
-                        GROUP BY eq.year
-                        ORDER BY eq.year DESC
+                    # 1. 기출 연도 및 문항 수 목록 조회
+                    sql_years = """
+                        SELECT year, COUNT(DISTINCT id) as question_count
+                        FROM exam_questions
+                        GROUP BY year
+                        ORDER BY year DESC
                     """
-                    execute_query(cursor, sql)
-                    rows = cursor.fetchall()
+                    execute_query(cursor, sql_years)
+                    year_rows = cursor.fetchall()
                     
+                    # 2. 모든 모의고사 연습 이력 조회
+                    sql_history = """
+                        SELECT id, exam_year, score, details, created_at
+                        FROM yearly_exam_history
+                    """
+                    execute_query(cursor, sql_history)
+                    history_rows = cursor.fetchall()
+                    
+                    # 3. 파이썬 단에서 연도별/과목별 최고 점수 및 통계 집계
+                    SUBJECT_RANGES = {
+                        'PM': (1, 25, 25.0),
+                        'SE': (26, 50, 25.0),
+                        'DB': (51, 75, 25.0),
+                        'SA': (76, 100, 25.0),
+                        'SC': (101, 120, 20.0)
+                    }
+                    
+                    # 연도별 통계 버퍼 초기화
+                    stats_by_year = {}
+                    for row in year_rows:
+                        yr = row["year"]
+                        stats_by_year[yr] = {
+                            "year": yr,
+                            "question_count": row["question_count"],
+                            "max_score": 0.0,
+                            "practice_count": 0,
+                            "last_attempt_at": None,
+                            "subject_max_scores": {
+                                "PM": 0.0,
+                                "SE": 0.0,
+                                "DB": 0.0,
+                                "SA": 0.0,
+                                "SC": 0.0
+                            }
+                        }
+                    
+                    for hist in history_rows:
+                        yr = hist["exam_year"]
+                        score = float(hist["score"]) if hist["score"] is not None else 0.0
+                        details_raw = hist["details"]
+                        created_at = hist["created_at"]
+                        
+                        if yr not in stats_by_year:
+                            continue
+                            
+                        # 통계 기본값 누적
+                        stats_by_year[yr]["practice_count"] += 1
+                        if score > stats_by_year[yr]["max_score"]:
+                            stats_by_year[yr]["max_score"] = score
+                            
+                        if not stats_by_year[yr]["last_attempt_at"] or created_at > stats_by_year[yr]["last_attempt_at"]:
+                            stats_by_year[yr]["last_attempt_at"] = created_at
+                            
+                        # 과목별 점수 산출
+                        if details_raw:
+                            if isinstance(details_raw, str):
+                                try:
+                                    exam_details = json.loads(details_raw)
+                                except Exception:
+                                    exam_details = []
+                            else:
+                                    exam_details = details_raw
+                                
+                            correct_counts = { 'PM': 0, 'SE': 0, 'DB': 0, 'SA': 0, 'SC': 0 }
+                            for d in exam_details:
+                                q_num = d.get("question_num")
+                                is_corr = d.get("is_correct", False)
+                                if is_corr and q_num is not None:
+                                    sub_code = None
+                                    if 1 <= q_num <= 25: sub_code = 'PM'
+                                    elif 26 <= q_num <= 50: sub_code = 'SE'
+                                    elif 51 <= q_num <= 75: sub_code = 'DB'
+                                    elif 76 <= q_num <= 100: sub_code = 'SA'
+                                    elif 101 <= q_num <= 120: sub_code = 'SC'
+                                    
+                                    if sub_code:
+                                        correct_counts[sub_code] += 1
+                                        
+                            for sub, (start, end, total_num) in SUBJECT_RANGES.items():
+                                # 이 풀이 시도의 과목별 100점 환산 점수
+                                sub_score = round((correct_counts[sub] / total_num) * 100.0, 1)
+                                if sub_score > stats_by_year[yr]["subject_max_scores"][sub]:
+                                    stats_by_year[yr]["subject_max_scores"][sub] = sub_score
+                                    
+                    # 4. JSON 직렬화에 적합한 데이터 포맷팅
                     data_list = []
-                    for row in rows:
-                        item = dict(row)
+                    for yr in sorted(stats_by_year.keys(), reverse=True):
+                        item = stats_by_year[yr]
                         if item["last_attempt_at"]:
                             if not isinstance(item["last_attempt_at"], str):
                                 item["last_attempt_at"] = item["last_attempt_at"].isoformat()
