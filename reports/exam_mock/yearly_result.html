@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jolly-Carson 모의고사 결과</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="yearly_exam.css">
+    <script src="../js/data/new_trend_mapping.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 상단 헤더 -->
+        <header>
+            <a href="yearly_exam.html" class="back-btn" id="home-link">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> 연도 선택으로 돌아가기
+            </a>
+            <h1 id="view-title">모의고사 성적 진단</h1>
+            <p class="subtitle" id="view-subtitle">채점 완료된 최종 성적표 및 과목 도메인 취약성 진단서입니다.</p>
+        </header>
+
+        <!-- [3. 시험 결과 화면] -->
+        <div id="result-view" style="display: block;">
+            <div class="result-summary-card">
+                <div class="result-score-title" id="result-exam-title">모의고사 결과</div>
+                <div class="result-score-main">
+                    <div class="result-score-box">
+                        <span class="score-label">환산 점수</span>
+                        <span class="score-val" id="result-score-val">0.0</span>
+                    </div>
+                    <div class="result-meta-grid">
+                        <div class="result-meta-item">
+                            <span class="meta-label">맞춘 문항</span>
+                            <span class="meta-val" id="result-correct-val">0 / 120</span>
+                        </div>
+                        <div class="result-meta-item">
+                            <span class="meta-label">총 소요 시간</span>
+                            <span class="meta-val" id="result-time-val">00:00:00</span>
+                        </div>
+                        <div class="result-meta-item">
+                            <span class="meta-label">응시 차차</span>
+                            <span class="meta-val" id="result-attempt-val">1회차</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [신규 기출 분석 / 난이도 예측 및 시뮬레이션 진단 카드] -->
+                <div class="trend-analysis-card" id="trend-analysis-card-container">
+                    <!-- JS에서 동적으로 진단 결과가 주입됩니다. -->
+                </div>
+            </div>
+
+            <!-- 하단 액션 -->
+            <div class="result-actions">
+                <button class="ctrl-btn primary" onclick="reloadSelectionView()">
+                    <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i> 연도 선택으로 돌아가기
+                </button>
+            </div>
+
+            <!-- 상세 오답 분석 리뷰 리스트 -->
+            <div class="review-section">
+                <div class="review-header">
+                    <span class="review-title">🔍 상세 기출 오답 리뷰</span>
+                    <div class="filter-toggle-container">
+                        <button class="filter-toggle-btn active" id="btn-filter-all" onclick="filterReview('all')">전체 문항</button>
+                        <button class="filter-toggle-btn" id="btn-filter-wrong" onclick="filterReview('wrong')">틀린 문항만</button>
+                    </div>
+                </div>
+
+                <div class="review-list" id="review-list-container">
+                    <!-- 오답 및 전체 문항 해설이 동적으로 렌더링됩니다. -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비즈니스 로직 스크립트 -->
+    <script src="yearly_exam.js"></script>
+</body>
+</html>

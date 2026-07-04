@@ -58,18 +58,28 @@ function initYearlyTheme() {
     applyYearlyTheme('dark');
 }
 
-// 도큐먼트 로드 완료 시 구동
+// 도큐먼트 로드 완료 시 구동 (독립 페이지별 분기 라우터)
 document.addEventListener('DOMContentLoaded', () => {
     initYearlyTheme();
     initLucide();
-    checkBackupAndInit();
 
     // 로컬 파일 프로토콜과 서버에 따른 홈 링크 대응
     const homeLink = document.getElementById('home-link');
-    if (window.location.protocol === 'file:') {
-        homeLink.href = '../db_official_scopes.html';
+    if (homeLink) {
+        if (window.location.protocol === 'file:') {
+            homeLink.href = '../db_official_scopes.html';
+        } else {
+            homeLink.href = '/reports/db_official_scopes.html';
+        }
+    }
+
+    const path = window.location.pathname;
+    if (path.includes('yearly_practice.html')) {
+        initPracticePage();
+    } else if (path.includes('yearly_result.html')) {
+        initResultPage();
     } else {
-        homeLink.href = '/reports/db_official_scopes.html';
+        initSelectionPage();
     }
 });
 
@@ -125,7 +135,7 @@ function checkBackupAndInit() {
             const backup = JSON.parse(backupData);
             let scopeText = SUBJECT_RANGES[backup.selectedSubjectRange || 'ALL'].name;
             if (confirm(`${backup.examYear}년도 [ ${scopeText} ] 시험을 풀던 기록이 있습니다. 이어서 푸시겠습니까?`)) {
-                restoreBackup(backup);
+                window.location.href = 'yearly_practice.html';
                 return;
             } else {
                 localStorage.removeItem(BACKUP_KEY);
@@ -136,6 +146,59 @@ function checkBackupAndInit() {
         }
     }
     loadYearlyExams();
+}
+
+/**
+ * [신설] 3대 스크린별 독립 로드 초기화 함수군
+ */
+function initSelectionPage() {
+    checkBackupAndInit();
+}
+
+function initPracticePage() {
+    // 1. 임시 OMR 백업 존재 시 즉각 복원
+    const backupData = localStorage.getItem(BACKUP_KEY);
+    if (backupData) {
+        try {
+            const backup = JSON.parse(backupData);
+            restoreBackup(backup);
+            return;
+        } catch (e) {
+            console.error("백업 복원 에러:", e);
+            localStorage.removeItem(BACKUP_KEY);
+        }
+    }
+
+    // 2. 세션 선택 값 기반으로 실시간 시험 시작
+    const year = localStorage.getItem('session_exam_year');
+    const isNewTrend = localStorage.getItem('session_is_new_trend') === 'true';
+    const trendSubject = localStorage.getItem('session_trend_subject') || 'ALL';
+
+    if (!year) {
+        alert("선택된 시험 정보가 없습니다. 연도 선택 화면으로 이동합니다.");
+        window.location.href = 'yearly_exam.html';
+        return;
+    }
+
+    startYearlyExam(year, isNewTrend, trendSubject);
+}
+
+function initResultPage() {
+    const rawResult = localStorage.getItem('session_result_data');
+    if (!rawResult) {
+        alert("분석 결과가 존재하지 않습니다. 연도 선택 화면으로 이동합니다.");
+        window.location.href = 'yearly_exam.html';
+        return;
+    }
+
+    try {
+        const result = JSON.parse(rawResult);
+        renderResultReport(result.payload, result.practice_count);
+    } catch (e) {
+        console.error("결과 복원 에러:", e);
+        alert("결과 상세 분석 데이터를 로드하는 중 오류가 발생했습니다.");
+        window.location.href = 'yearly_exam.html';
+    }
 }
 
 // 연도 목록 API 로드
@@ -266,35 +329,45 @@ function renderYearSelection(data) {
     initLucide();
 }
 
-// 화면 전환 헬퍼
+// 화면 전환 헬퍼 (존재하지 않는 뷰 엘리먼트에 대한 크래시 예방 조치 적용)
 function showScreen(screenId) {
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('selection-view').style.display = 'none';
-    document.getElementById('practice-view').style.display = 'none';
-    document.getElementById('result-view').style.display = 'none';
+    const screens = ['loading-screen', 'selection-view', 'practice-view', 'result-view'];
+    screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
 
-    document.getElementById(screenId).style.display = 'block';
+    const target = document.getElementById(screenId);
+    if (target) target.style.display = 'block';
 
     const subtitle = document.getElementById('view-subtitle');
     if (screenId === 'selection-view') {
-        document.getElementById('view-title').innerText = "년도별 120제 모의고사";
-        subtitle.innerText = "연도별 1회분 기출문제(120문항) 전체 또는 과목 범위를 선택해 타이머 측정과 함께 응시합니다.";
-        document.getElementById('home-link').style.display = 'inline-flex';
+        if (subtitle) subtitle.innerText = "연도별 1회분 기출문제(120문항) 전체 또는 과목 범위를 선택해 타이머 측정과 함께 응시합니다.";
+        const homeLink = document.getElementById('home-link');
+        if (homeLink) homeLink.style.display = 'inline-flex';
         checkPendingSubmits();
     } else if (screenId === 'practice-view') {
-        const scopeName = SUBJECT_RANGES[selectedSubjectRange].name;
-        document.getElementById('view-title').innerText = `${examYear}년도 기출 [ ${scopeName} ]`;
-        subtitle.innerText = "문항당 머무른 시간 및 총 소요 시간이 실시간 기록됩니다. 중도 이탈 시 자동 저장 기능이 적용됩니다.";
-        document.getElementById('home-link').style.display = 'none';
+        if (subtitle) subtitle.innerText = "문항당 머무른 시간 및 총 소요 시간이 실시간 기록됩니다. 중도 이탈 시 자동 저장 기능이 적용됩니다.";
+        const homeLink = document.getElementById('home-link');
+        if (homeLink) homeLink.style.display = 'none';
     } else if (screenId === 'result-view') {
-        document.getElementById('view-title').innerText = `${examYear}년도 모의고사 결과 리포트`;
-        subtitle.innerText = "응시가 완료되었습니다. 전체 문항 분석 결과 및 과목별 취약 보완 포인트를 점검하세요.";
-        document.getElementById('home-link').style.display = 'inline-flex';
+        if (subtitle) subtitle.innerText = "응시가 완료되었습니다. 전체 문항 분석 결과 및 과목별 취약 보완 포인트를 점검하세요.";
+        const homeLink = document.getElementById('home-link');
+        if (homeLink) homeLink.style.display = 'inline-flex';
     }
 }
 
 // 시험 시작
 function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
+    // 1. 선택 화면(yearly_exam.html)에서 호출 시 풀이 페이지(yearly_practice.html)로 던지며 리다이렉트
+    if (!window.location.pathname.includes('yearly_practice.html')) {
+        localStorage.setItem('session_exam_year', year);
+        localStorage.setItem('session_is_new_trend', isNewTrendOnly ? 'true' : 'false');
+        localStorage.setItem('session_trend_subject', trendSubject);
+        window.location.href = 'yearly_practice.html';
+        return;
+    }
+
     examYear = year;
 
     if (isNewTrendOnly) {
@@ -326,7 +399,7 @@ function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
                     const isNew = (q.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[`${year}_${q.question_num}`] === 1);
                     if (!isNew) return false;
                     if (trendSubject === 'ALL') return true;
-                    
+
                     const qSub = getSubjectInfo(q.question_num).code;
                     return qSub === trendSubject;
                 });
@@ -342,6 +415,13 @@ function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
             }
 
             questions = filteredData;
+            // 각 문항의 보기 셔플용 인덱스 배열 생성 (대시보드와 동일 기법)
+            questions.forEach(q => {
+                if (q.options && q.options.length > 0) {
+                    const indices = Array.from({ length: q.options.length }, (_, i) => i);
+                    q.shuffledIndices = shuffleArray(indices);
+                }
+            });
             currentIdx = 0;
             userAnswers = {};
             totalSeconds = 0;
@@ -484,11 +564,11 @@ function renderQuestion() {
     tag.style.background = getSubjectGradient(subInfo.code);
 
     document.getElementById('current-q-num-label').innerText = `${q.question_num}번 문항`;
-    
+
     // 신규 기출 뱃지 처리 (window.NEW_TREND_MAPPING 캐시 또는 q.is_new_trend 검출)
     const isNewTrend = (q.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[`${q.year}_${q.question_num}`] === 1);
     const newTrendBadge = isNewTrend ? `<span class="new-trend-badge" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #ffffff; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);">✨ 신규 기출</span>` : '';
-    
+
     document.getElementById('question-text-content').innerHTML = newTrendBadge + q.question;
 
     // 새 문항 로드 시 이미지 접기 상태로 리셋
@@ -519,8 +599,13 @@ function renderQuestion() {
 
     const markedVal = userAnswers[q.question_num];
 
-    q.options.forEach((optText, optIdx) => {
-        const optNum = optIdx + 1;
+    const indices = q.shuffledIndices || Array.from({ length: q.options.length }, (_, i) => i);
+
+    indices.forEach((originalOptIdx, displayOptIdx) => {
+        const optNum = originalOptIdx + 1;
+        const displayNum = displayOptIdx + 1;
+        const optText = q.options[originalOptIdx];
+
         const btn = document.createElement('button');
         btn.className = 'option-btn';
         if (markedVal === optNum) {
@@ -529,7 +614,7 @@ function renderQuestion() {
         btn.onclick = () => selectOption(q.question_num, optNum);
 
         btn.innerHTML = `
-                    <span class="option-num">${optNum}</span>
+                    <span class="option-num">${displayNum}</span>
                     <span class="option-text">${optText}</span>
                 `;
         optionsContainer.appendChild(btn);
@@ -603,7 +688,7 @@ function quitExam() {
     if (confirm("정말 시험을 종료하시겠습니까? 기록 중인 데이터와 타이머는 백업에서 완전히 소멸하며, 저장되지 않습니다.")) {
         stopTimers();
         localStorage.removeItem(BACKUP_KEY);
-        loadYearlyExams();
+        window.location.href = 'yearly_exam.html';
     }
 }
 
@@ -681,8 +766,11 @@ function submitExam(isInterim = false) {
         })
         .then(data => {
             localStorage.removeItem(BACKUP_KEY);
-            renderResultReport(payload, data.practice_count);
-            showScreen('result-view');
+            localStorage.setItem('session_result_data', JSON.stringify({
+                payload: payload,
+                practice_count: data.practice_count || 1
+            }));
+            window.location.href = 'yearly_result.html';
         })
         .catch(err => {
             console.error("제출 실패. 로컬스토리지 임시 대기열에 저장합니다:", err);
@@ -693,8 +781,11 @@ function submitExam(isInterim = false) {
             alert("네트워크 통신 불안정으로 인해 서버 DB 반영에 실패했습니다.\n채점 결과는 브라우저 로컬 저장소에 안전하게 백업되었으며, 연결 복구 후 메인 화면 상단 배너를 통해 언제든지 수동으로 DB에 전송(반영)할 수 있습니다.");
 
             localStorage.removeItem(BACKUP_KEY);
-            renderResultReport(payload, 1);
-            showScreen('result-view');
+            localStorage.setItem('session_result_data', JSON.stringify({
+                payload: payload,
+                practice_count: 1
+            }));
+            window.location.href = 'yearly_result.html';
         });
 }
 
@@ -831,12 +922,14 @@ function renderResultReport(result, practiceCount) {
 
     const normalPct = normalTotal > 0 ? Math.round((normalCorrect / normalTotal) * 100) : 0;
     const newTrendPct = newTrendTotal > 0 ? Math.round((newTrendCorrect / newTrendTotal) * 100) : 0;
+    const normalPctText = normalTotal > 0 ? `${normalPct}%` : '-';
+    const newTrendPctText = newTrendTotal > 0 ? `${newTrendPct}%` : '-';
 
     // 학습자 맞춤형 취약점 진단 및 2가지 유형 분석
     let userTypeLabel = "";
     let userTypeDesc = "";
     let recommendation = "";
-    
+
     if (normalPct >= 80 && newTrendPct < 50) {
         userTypeLabel = "유형 A (기출 완성형 학습자)";
         userTypeDesc = "기존 기출 회독 상태는 양호하나 최신 법제도 개정이나 생소한 신규 기술 트렌드에 약점을 보입니다.";
@@ -868,11 +961,11 @@ function renderResultReport(result, practiceCount) {
                     <div style="display: flex; flex-direction: column; gap: 0.4rem;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
                             <span>일반 기출 유형:</span>
-                            <span style="font-weight: 700; color: #c084fc;">${normalCorrect} / ${normalTotal} (${normalPct}%)</span>
+                            <span style="font-weight: 700; color: #c084fc;">${normalCorrect} / ${normalTotal} (${normalPctText})</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
                             <span>신규 기출 유형:</span>
-                            <span style="font-weight: 700; color: #ec4899;">${newTrendCorrect} / ${newTrendTotal} (${newTrendPct}%)</span>
+                            <span style="font-weight: 700; color: #ec4899;">${newTrendCorrect} / ${newTrendTotal} (${newTrendPctText})</span>
                         </div>
                     </div>
                 </div>
@@ -1004,7 +1097,7 @@ function filterReview(status) {
 
 // 연도 선택 화면 리로딩
 function reloadSelectionView() {
-    loadYearlyExams();
+    window.location.href = 'yearly_exam.html';
 }
 
 // --- 헬퍼 유틸 함수 ---
@@ -1056,4 +1149,14 @@ function getSubjectNameByCode(code) {
         'SC': '보안'
     };
     return map[code] || code;
+}
+
+// Fisher-Yates Shuffle 헬퍼 함수
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
