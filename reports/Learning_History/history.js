@@ -1529,7 +1529,16 @@ async function showYearlyWrongQuestionDetail(item, detail) {
                     <span style="color: var(--text-secondary);">정답: <strong style="color:#34d399;">${correctStr}</strong></span>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:0.4rem;">${optionHtml}</div>
-                ${questionData.explanation ? `<div style="margin-top:0.7rem; font-size:0.78rem; color: var(--text-secondary); line-height:1.5;"><strong style="color: var(--text-primary);">해설</strong><br>${questionData.explanation}</div>` : ''}
+                ${questionData.explanation ? `
+                <div class="explanation-toggle-container" style="margin-top: 0.7rem;">
+                    <button type="button" class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none; transition: all 0.2s;">
+                        <span>💡 해설보기</span>
+                    </button>
+                    <div class="explanation-box" style="display: none; margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
+                        <strong style="color: var(--text-primary);">해설</strong><br>${questionData.explanation}
+                    </div>
+                </div>
+                ` : ''}
             </div>
         `;
     } catch (err) {
@@ -1953,7 +1962,16 @@ function openYearlyModal(item) {
                             <div style="display:flex; flex-direction:column; gap:0.25rem; margin-bottom:0.6rem;">
                                 ${optionHtml}
                             </div>
-                            ${qData.explanation ? `<div style="margin-top:0.6rem; padding-top:0.6rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.76rem; color: var(--text-secondary); line-height:1.5; white-space: pre-wrap;"><strong style="color: var(--text-primary);">해설:</strong><br>${qData.explanation}</div>` : ''}
+                            ${qData.explanation ? `
+                            <div class="explanation-toggle-container" style="margin-top:0.6rem; padding-top:0.6rem; border-top:1px solid rgba(255,255,255,0.08);">
+                                <button type="button" class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none; transition: all 0.2s;">
+                                    <span>💡 해설보기</span>
+                                </button>
+                                <div class="explanation-box" style="display: none; margin-top: 0.5rem; font-size: 0.76rem; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap;">
+                                    <strong style="color: var(--text-primary);">해설:</strong><br>${qData.explanation}
+                                </div>
+                            </div>
+                            ` : ''}
                         </div>
                     `;
                 });
@@ -2027,3 +2045,25 @@ function closeYearlyModal(event) {
         modal.classList.remove('show');
     }
 }
+
+/**
+ * 해설 영역 접기/펼치기 토글 헬퍼 함수
+ */
+window.toggleExplanationCollapse = function (btn) {
+    const box = btn.nextElementSibling;
+    if (!box) return;
+    const isHidden = box.style.display === 'none';
+    if (isHidden) {
+        box.style.display = 'block';
+        btn.querySelector('span').textContent = '💡 해설접기';
+        btn.style.background = 'rgba(239, 68, 68, 0.12)';
+        btn.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+        btn.style.color = '#fca5a5';
+    } else {
+        box.style.display = 'none';
+        btn.querySelector('span').textContent = '💡 해설보기';
+        btn.style.background = 'rgba(139, 92, 246, 0.15)';
+        btn.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+        btn.style.color = '#c084fc';
+    }
+};

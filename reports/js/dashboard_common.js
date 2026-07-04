@@ -1384,8 +1384,13 @@ function renderLoadedQuestion(idx, qId) {
 
         htmlContent += `
             ${data.explanation ? `
-                <div class="inline-explanation-box">
-                    <strong>💡 정답 해설:</strong><br>${data.explanation}
+                <div class="explanation-toggle-container" style="margin-top: 0.7rem;">
+                    <button class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none; transition: all 0.2s;">
+                        <span>💡 해설보기</span>
+                    </button>
+                    <div class="inline-explanation-box" style="display: none; margin-top: 0.5rem;">
+                        <strong>💡 정답 해설:</strong><br>${data.explanation}
+                    </div>
                 </div>
             ` : ''}
             ${historyHtml}
@@ -3021,5 +3026,33 @@ window.toggleMoreHistory = function (qId, btnElement) {
         if (accordionItem && typeof updateAccordionContentHeight === 'function') {
             updateAccordionContentHeight(accordionItem);
         }
+    }
+};
+
+/**
+ * 해설 영역 접기/펼치기 토글 전역 헬퍼 함수
+ */
+window.toggleExplanationCollapse = function (btn) {
+    const box = btn.nextElementSibling;
+    if (!box) return;
+    const isHidden = box.style.display === 'none';
+    if (isHidden) {
+        box.style.display = 'block';
+        btn.querySelector('span').textContent = '💡 해설접기';
+        btn.style.background = 'rgba(239, 68, 68, 0.12)';
+        btn.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+        btn.style.color = '#fca5a5';
+    } else {
+        box.style.display = 'none';
+        btn.querySelector('span').textContent = '💡 해설보기';
+        btn.style.background = 'rgba(139, 92, 246, 0.15)';
+        btn.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+        btn.style.color = '#c084fc';
+    }
+
+    // 부모 아코디언이 있을 경우 아코디언 높이 동적 조정
+    const accordionItem = btn.closest('.accordion-item');
+    if (accordionItem && typeof updateAccordionContentHeight === 'function') {
+        updateAccordionContentHeight(accordionItem);
     }
 };
