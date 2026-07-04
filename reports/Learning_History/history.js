@@ -9,7 +9,7 @@ const HistoryState = {
     allLogs: [],         // 전체 과목의 로그 목록 병합 데이터
     dailyHistory: [],    // 일별 그룹화 학습 데이터
     currentPage: 1,      // 현재 페이징 인덱스
-    pageSize: 30,        // 페이징 당 행 개수
+    pageSize: 15,        // 페이징 당 행 개수
     charts: {},          // 차트 객체 버퍼 (인스턴스 소멸용)
     analyticsData: null, // [NEW] AI 중단원 분석 데이터 버퍼
     currentSubject: 'DB', // [NEW] 현재 활성화된 분석 탭 과목
@@ -19,7 +19,11 @@ const HistoryState = {
     yearlySortKey: 'created_at',
     yearlySortOrder: 'desc',
     yearlyFilterYear: 'all',
-    yearlyFilterSubject: 'all'
+    yearlyFilterSubject: 'all',
+    yearlyCurrentPage: 1,
+    yearlyPageSize: 15,
+    yearlyTotalPages: 1,
+    yearlySelectedChartSubject: null
 };
 
 const SUBJECT_NAMES = {
@@ -92,11 +96,11 @@ function updateTabTitleWithDbMode() {
  */
 function loadAllHistoryData() {
     const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
-    const fetchPromises = subjects.map(sub => {
-        return fetch(`/api/quiz/stats?subject=${sub}`)
-            .then(res => res.ok ? res.json() : { logs: [] })
-            .catch(() => ({ logs: [] }));
-    });
+    
+    // 개별 과목의 API 요청 5번을 subject=all 배치 쿼리 1회로 간소화
+    const statsAllPromise = fetch('/api/quiz/stats?subject=all')
+        .then(res => res.ok ? res.json() : subjects.map(() => ({ logs: [] })))
+        .catch(() => subjects.map(() => ({ logs: [] })));
 
     // [설계 의도]
     // 과목별 학습 현황 통계 데이터와 게이미피케이션 경험치 데이터를 병합 호출하여
@@ -109,7 +113,7 @@ function loadAllHistoryData() {
         .then(res => res.ok ? res.json() : [])
         .catch(() => []);
 
-    Promise.all([Promise.all(fetchPromises), expPromise, yearlyExamPromise])
+    Promise.all([statsAllPromise, expPromise, yearlyExamPromise])
         .then(([results, expData, yearlyHistory]) => {
             const merged = [];
             const subjectAccuracies = {};
@@ -468,9 +472,95 @@ function renderCharts() {
                     }
                 }
             },
-            cutout: '60%'
+            cutout: '60%',
+            onClick: (event, activeElements) => {
+                if (activeElements && activeElements.length > 0) {
+                    const index = activeElements[0].index;
+                    const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
+                    const clickedSubject = subjects[index];
+
+                    if (HistoryState.yearlySelectedChartSubject === clickedSubject) {
+                        HistoryState.yearlySelectedChartSubject = null;
+                        restoreTrendChartToTotalQuestions();
+                    } else {
+                        HistoryState.yearlySelectedChartSubject = clickedSubject;
+                        updateTrendChartToSubjectScore(clickedSubject);
+                    }
+                } else {
+                    HistoryState.yearlySelectedChartSubject = null;
+                    restoreTrendChartToTotalQuestions();
+                }
+            }
         }
     });
+}
+
+/**
+ * 최근 30일 학습 추이 차트를 특정 과목의 일별 평균 점수(정답률)로 변경합니다.
+ */
+function updateTrendChartToSubjectScore(clickedSubject) {
+    const logs = HistoryState.allLogs;
+    const dailySubCorrect = {};
+    const dailySubSolved = {};
+    
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = formatDateKey(d);
+        dailySubCorrect[key] = 0;
+        dailySubSolved[key] = 0;
+    }
+
+    logs.forEach(log => {
+        const key = formatDateKey(log.parsedDate);
+        if (log.subject === clickedSubject && dailySubSolved[key] !== undefined) {
+            dailySubCorrect[key] += (log.correct_count || 0);
+            dailySubSolved[key] += (log.total_questions || 0);
+        }
+    });
+
+    const trendValues = Object.keys(dailySubSolved).map(key => {
+        const solved = dailySubSolved[key];
+        const correct = dailySubCorrect[key];
+        return solved > 0 ? Math.round((correct / solved) * 100) : 0;
+    });
+
+    const chart = HistoryState.charts.trend;
+    if (chart) {
+        chart.data.datasets[0].data = trendValues;
+        chart.data.datasets[0].label = `${SUBJECT_NAMES[clickedSubject]} 일별 평균 점수 (%)`;
+        chart.update();
+    }
+}
+
+/**
+ * 최근 30일 학습 추이 차트를 전체 푼 문제 수 기본 트렌드로 복원합니다.
+ */
+function restoreTrendChartToTotalQuestions() {
+    const logs = HistoryState.allLogs;
+    const dailyTrend = {};
+    
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = formatDateKey(d);
+        dailyTrend[key] = 0;
+    }
+
+    logs.forEach(log => {
+        const key = formatDateKey(log.parsedDate);
+        if (dailyTrend[key] !== undefined) {
+            dailyTrend[key] += (log.total_questions || 0);
+        }
+    });
+
+    const trendValues = Object.values(dailyTrend);
+    const chart = HistoryState.charts.trend;
+    if (chart) {
+        chart.data.datasets[0].data = trendValues;
+        chart.data.datasets[0].label = '일별 푼 문항 수';
+        chart.update();
+    }
 }
 
 /**
@@ -975,12 +1065,14 @@ function initYearlyExamFiltersAndSorting(historyList) {
     if (yearSelect) {
         yearSelect.addEventListener('change', (e) => {
             HistoryState.yearlyFilterYear = e.target.value;
+            HistoryState.yearlyCurrentPage = 1;
             renderYearlyExamHistoryTable(HistoryState.yearlyExamHistory);
         });
     }
     if (subSelect) {
         subSelect.addEventListener('change', (e) => {
             HistoryState.yearlyFilterSubject = e.target.value;
+            HistoryState.yearlyCurrentPage = 1;
             renderYearlyExamHistoryTable(HistoryState.yearlyExamHistory);
         });
     }
@@ -992,6 +1084,8 @@ function initYearlyExamFiltersAndSorting(historyList) {
             th.addEventListener('click', () => {
                 const key = th.getAttribute('data-sort-key');
                 if (!key) return;
+
+                HistoryState.yearlyCurrentPage = 1;
 
                 if (HistoryState.yearlySortKey === key) {
                     HistoryState.yearlySortOrder = (HistoryState.yearlySortOrder === 'desc') ? 'asc' : 'desc';
@@ -1042,6 +1136,42 @@ function renderYearlyExamHistoryTable(historyList) {
         `;
         return;
     }
+
+    // [설계 의도]
+    // 동일 년도 + 동일 과목 풀이 구성에 한해서 회차를 매기기 위해
+    // 전체 historyList를 시간 오름차순(과거 순)으로 정렬하여 회차 카운트 맵을 동적으로 생성합니다.
+    const getSubjectKey = (item) => {
+        let details = [];
+        try {
+            details = (typeof item.details === 'string') ? JSON.parse(item.details) : (item.details || []);
+        } catch (e) {
+            details = [];
+        }
+        if (!details || details.length === 0) return 'ALL';
+        
+        const codeSet = new Set();
+        details.forEach(d => {
+            const code = getYearlySubjectCodeByQuestionNum(d.question_num);
+            if (code) codeSet.add(code);
+        });
+        const ordered = ['PM', 'SE', 'DB', 'SA', 'SC'].filter(code => codeSet.has(code));
+        if (ordered.length === 0 || ordered.length === 5) return 'ALL';
+        return ordered.join(',');
+    };
+
+    const sortedByTimeAsc = [...historyList].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const counterMap = {};
+    const computedPracticeCounts = {};
+
+    sortedByTimeAsc.forEach(item => {
+        const subKey = getSubjectKey(item);
+        const compositeKey = `${item.exam_year}_${subKey}`;
+        if (!counterMap[compositeKey]) {
+            counterMap[compositeKey] = 0;
+        }
+        counterMap[compositeKey]++;
+        computedPracticeCounts[item.id] = counterMap[compositeKey];
+    });
 
     // 1. 필터링 수행
     let data = [...historyList];
@@ -1109,17 +1239,32 @@ function renderYearlyExamHistoryTable(historyList) {
     if (data.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2.5rem; font-size: 0.88rem;">
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2.5rem; font-size: 0.88rem;">
                     📢 선택한 기출 연도 및 과목 필터에 부합하는 모의고사 연습 기록이 없습니다.
                 </td>
             </tr>
         `;
+        updateYearlyPagination(0);
         return;
     }
 
+    const totalCount = data.length;
+    HistoryState.yearlyTotalPages = Math.ceil(totalCount / HistoryState.yearlyPageSize) || 1;
+
+    if (HistoryState.yearlyCurrentPage > HistoryState.yearlyTotalPages) {
+        HistoryState.yearlyCurrentPage = HistoryState.yearlyTotalPages;
+    }
+    if (HistoryState.yearlyCurrentPage < 1) {
+        HistoryState.yearlyCurrentPage = 1;
+    }
+
+    const startIndex = (HistoryState.yearlyCurrentPage - 1) * HistoryState.yearlyPageSize;
+    const endIndex = startIndex + HistoryState.yearlyPageSize;
+    const pagedData = data.slice(startIndex, endIndex);
+
     // 4. 테이블 행 그리기
     tbody.innerHTML = '';
-    data.forEach(item => {
+    pagedData.forEach(item => {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.title = '클릭하면 상세 채점 분석 및 문항별 풀이 시간 리포트 팝업이 열립니다.';
@@ -1163,11 +1308,13 @@ function renderYearlyExamHistoryTable(historyList) {
             <span style="color: var(--text-secondary); font-size: 0.74rem;">(${newTotal}개)</span>
         `;
 
+        const displayPracticeCount = computedPracticeCounts[item.id] || item.practice_count || 1;
+
         tr.innerHTML = `
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${formattedDate}</td>
             <td style="font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-primary); font-size: 0.9rem;">${item.exam_year}</td>
             <td style="font-size: 0.8rem; color: var(--text-primary);">${subjectSummary}</td>
-            <td><span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">${item.practice_count}회차</span></td>
+            <td><span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">${displayPracticeCount}회차</span></td>
             <td style="font-size: 0.88rem; font-weight: 500;">${item.correct_count} / ${item.total_questions}</td>
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${timeStr}</td>
             <td style="font-weight: 700; color: var(--success); font-size: 0.95rem;">${score}점</td>
@@ -1179,6 +1326,7 @@ function renderYearlyExamHistoryTable(historyList) {
     if (window.lucide) {
         lucide.createIcons();
     }
+    updateYearlyPagination(HistoryState.yearlyTotalPages);
 }
 
 function getYearlySubjectCodeByQuestionNum(questionNum) {
@@ -1684,3 +1832,49 @@ window.toggleExplanationCollapse = function (btn) {
         btn.style.color = '#c084fc';
     }
 };
+
+/**
+ * 년도별 모의고사 페이징 UI 상태 업데이트
+ */
+function updateYearlyPagination(totalPages) {
+    const prevBtn = document.getElementById('btn-prev-yearly-page');
+    const nextBtn = document.getElementById('btn-next-yearly-page');
+    const pageInfo = document.getElementById('yearly-page-info');
+
+    if (!prevBtn || !nextBtn || !pageInfo) return;
+
+    if (totalPages <= 0) {
+        pageInfo.textContent = '0 / 0';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+    }
+
+    pageInfo.textContent = `${HistoryState.yearlyCurrentPage} / ${totalPages}`;
+    prevBtn.disabled = (HistoryState.yearlyCurrentPage === 1);
+    nextBtn.disabled = (HistoryState.yearlyCurrentPage === totalPages);
+}
+
+/**
+ * 년도별 모의고사 이전 페이지 이동
+ */
+function prevYearlyPage() {
+    if (HistoryState.yearlyCurrentPage > 1) {
+        HistoryState.yearlyCurrentPage--;
+        renderYearlyExamHistoryTable(HistoryState.yearlyExamHistory);
+    }
+}
+
+/**
+ * 년도별 모의고사 다음 페이지 이동
+ */
+function nextYearlyPage() {
+    if (HistoryState.yearlyCurrentPage < HistoryState.yearlyTotalPages) {
+        HistoryState.yearlyCurrentPage++;
+        renderYearlyExamHistoryTable(HistoryState.yearlyExamHistory);
+    }
+}
+
+// 전역 스코프 노출
+window.prevYearlyPage = prevYearlyPage;
+window.nextYearlyPage = nextYearlyPage;

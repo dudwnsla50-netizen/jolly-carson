@@ -14,7 +14,14 @@ import urllib.parse
 import traceback
 import psycopg2
 import psycopg2.extras
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler
+try:
+    from http.server import ThreadingHTTPServer
+except ImportError:
+    from socketserver import ThreadingTCPServer
+    from http.server import HTTPServer
+    class ThreadingHTTPServer(ThreadingTCPServer, HTTPServer):
+        allow_reuse_address = True
 
 PORT = int(os.environ.get("PORT", 8000))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -441,80 +448,88 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
+    def _fetch_stats_for_subject(self, cursor, subject):
+        sql_concept = """
+            SELECT concept, 
+                   COUNT(*) as attempt_count,
+                   SUM(correct_count) as total_correct,
+                   SUM(total_questions) as total_solved,
+                   MAX(created_at) as last_attempt_at
+            FROM quiz_history
+            WHERE subject = %s
+            GROUP BY concept
+        """
+        execute_query(cursor, sql_concept, (subject,))
+        rows = cursor.fetchall()
+        stats_list = []
+        for row in rows:
+            item = dict(row)
+            if item["last_attempt_at"]:
+                if isinstance(item["last_attempt_at"], str):
+                    pass
+                else:
+                    item["last_attempt_at"] = item["last_attempt_at"].isoformat()
+            total_solved = item["total_solved"]
+            item["avg_score"] = round((item["total_correct"] * 100.0 / total_solved), 1) if total_solved > 0 else 0.0
+            stats_list.append(item)
+            
+        sql_summary = """
+            SELECT COUNT(*) as total_attempts,
+                   SUM(correct_count) as total_correct,
+                   SUM(total_questions) as total_solved
+            FROM quiz_history
+            WHERE subject = %s
+        """
+        execute_query(cursor, sql_summary, (subject,))
+        summary_row = cursor.fetchone()
+        summary = dict(summary_row) if summary_row else {"total_attempts": 0, "total_correct": 0, "total_solved": 0}
+        
+        if summary["total_attempts"] is None: summary["total_attempts"] = 0
+        if summary["total_correct"] is None: summary["total_correct"] = 0
+        if summary["total_solved"] is None: summary["total_solved"] = 0
+        
+        summary["avg_score"] = round((summary["total_correct"] * 100.0 / summary["total_solved"]), 1) if summary["total_solved"] > 0 else 0.0
+        
+        sql_logs = """
+            SELECT created_at, concept, total_questions, correct_count, wrong_count, details
+            FROM quiz_history
+            WHERE subject = %s
+            ORDER BY created_at DESC
+        """
+        execute_query(cursor, sql_logs, (subject,))
+        log_rows = cursor.fetchall()
+        logs_list = []
+        for r in log_rows:
+            d = dict(r)
+            if d["created_at"]:
+                if not isinstance(d["created_at"], str):
+                    d["created_at"] = d["created_at"].isoformat()
+            logs_list.append(d)
+            
+        return {
+            "summary": summary,
+            "concepts": stats_list,
+            "logs": logs_list
+        }
+
     def get_quiz_stats(self, query):
         subject = query.get("subject", [None])[0]
         if not subject:
-            self.send_error_response(400, "Missing parameter (subject)")
-            return
+            subject = "ALL"
             
         subject = subject.upper()
         try:
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
-                    sql_concept = """
-                        SELECT concept, 
-                               COUNT(*) as attempt_count,
-                               SUM(correct_count) as total_correct,
-                               SUM(total_questions) as total_solved,
-                               MAX(created_at) as last_attempt_at
-                        FROM quiz_history
-                        WHERE subject = %s
-                        GROUP BY concept
-                    """
-                    execute_query(cursor, sql_concept, (subject,))
-                    rows = cursor.fetchall()
-                    stats_list = []
-                    for row in rows:
-                        item = dict(row)
-                        # SQLite3는 Datetime 컬럼을 문자열로, psycopg2는 datetime 객체로 반환하므로 유연한 호환 포맷팅 적용
-                        if item["last_attempt_at"]:
-                            if isinstance(item["last_attempt_at"], str):
-                                # SQLite의 기존 문자열 날짜 유지
-                                pass
-                            else:
-                                item["last_attempt_at"] = item["last_attempt_at"].isoformat()
-                        total_solved = item["total_solved"]
-                        item["avg_score"] = round((item["total_correct"] * 100.0 / total_solved), 1) if total_solved > 0 else 0.0
-                        stats_list.append(item)
-                        
-                    sql_summary = """
-                        SELECT COUNT(*) as total_attempts,
-                               SUM(correct_count) as total_correct,
-                               SUM(total_questions) as total_solved
-                        FROM quiz_history
-                        WHERE subject = %s
-                    """
-                    execute_query(cursor, sql_summary, (subject,))
-                    summary_row = cursor.fetchone()
-                    summary = dict(summary_row) if summary_row else {"total_attempts": 0, "total_correct": 0, "total_solved": 0}
-                    
-                    if summary["total_attempts"] is None: summary["total_attempts"] = 0
-                    if summary["total_correct"] is None: summary["total_correct"] = 0
-                    if summary["total_solved"] is None: summary["total_solved"] = 0
-                    
-                    summary["avg_score"] = round((summary["total_correct"] * 100.0 / summary["total_solved"]), 1) if summary["total_solved"] > 0 else 0.0
-                    
-                    sql_logs = """
-                        SELECT created_at, concept, total_questions, correct_count, wrong_count, details
-                        FROM quiz_history
-                        WHERE subject = %s
-                        ORDER BY created_at DESC
-                    """
-                    execute_query(cursor, sql_logs, (subject,))
-                    log_rows = cursor.fetchall()
-                    logs_list = []
-                    for r in log_rows:
-                        d = dict(r)
-                        if d["created_at"]:
-                            if not isinstance(d["created_at"], str):
-                                d["created_at"] = d["created_at"].isoformat()
-                        logs_list.append(d)
-                    
-                    self.send_json_response({
-                        "summary": summary,
-                        "concepts": stats_list,
-                        "logs": logs_list
-                    })
+                    if subject == "ALL":
+                        subjects = ['DB', 'SE', 'PM', 'SA', 'SC']
+                        all_results = []
+                        for sub in subjects:
+                            all_results.append(self._fetch_stats_for_subject(cursor, sub))
+                        self.send_json_response(all_results)
+                    else:
+                        result = self._fetch_stats_for_subject(cursor, subject)
+                        self.send_json_response(result)
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
@@ -566,36 +581,26 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 
                     today_solved = today_solved_quiz + today_solved_yearly
 
-                    # 모의고사 이력(details)에서 과목별 맞춘 정답 개수를 미리 산출
+                    # 모의고사 이력에서 과목별 맞춘 정답 개수를 집계
                     yearly_correct_by_sub = { 'PM': 0, 'SE': 0, 'DB': 0, 'SA': 0, 'SC': 0 }
                     try:
-                        sql_yearly_all = "SELECT details FROM yearly_exam_history"
-                        execute_query(cursor, sql_yearly_all)
-                        yearly_rows = cursor.fetchall()
-                        for row in yearly_rows:
-                            details_raw = dict(row)["details"]
-                            if details_raw:
-                                if isinstance(details_raw, str):
-                                    try:
-                                        exam_details = json.loads(details_raw)
-                                    except Exception:
-                                        exam_details = []
-                                else:
-                                    exam_details = details_raw
-                                
-                                for item_det in exam_details:
-                                    q_num = item_det.get("question_num")
-                                    is_corr = item_det.get("is_correct", False)
-                                    if is_corr and q_num is not None:
-                                        sub_code = None
-                                        if 1 <= q_num <= 25: sub_code = 'PM'
-                                        elif 26 <= q_num <= 50: sub_code = 'SE'
-                                        elif 51 <= q_num <= 75: sub_code = 'DB'
-                                        elif 76 <= q_num <= 100: sub_code = 'SA'
-                                        elif 101 <= q_num <= 120: sub_code = 'SC'
-                                        
-                                        if sub_code:
-                                            yearly_correct_by_sub[sub_code] += 1
+                        sql_yearly_sums = """
+                            SELECT COALESCE(SUM(pm_correct), 0) as pm_sum,
+                                   COALESCE(SUM(se_correct), 0) as se_sum,
+                                   COALESCE(SUM(db_correct), 0) as db_sum,
+                                   COALESCE(SUM(sa_correct), 0) as sa_sum,
+                                   COALESCE(SUM(sc_correct), 0) as sc_sum
+                            FROM yearly_exam_history
+                        """
+                        execute_query(cursor, sql_yearly_sums)
+                        sum_row = cursor.fetchone()
+                        if sum_row:
+                            sum_dict = dict(sum_row)
+                            yearly_correct_by_sub['PM'] = sum_dict['pm_sum']
+                            yearly_correct_by_sub['SE'] = sum_dict['se_sum']
+                            yearly_correct_by_sub['DB'] = sum_dict['db_sum']
+                            yearly_correct_by_sub['SA'] = sum_dict['sa_sum']
+                            yearly_correct_by_sub['SC'] = sum_dict['sc_sum']
                     except Exception as ex_yearly:
                         print("[경고] yearly_exam_history EXP 수집 오류 방어:", ex_yearly)
 
@@ -726,7 +731,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     
                     # 2. 모든 모의고사 연습 이력 조회
                     sql_history = """
-                        SELECT id, exam_year, score, details, created_at
+                        SELECT id, exam_year, score, created_at, pm_correct, se_correct, db_correct, sa_correct, sc_correct
                         FROM yearly_exam_history
                     """
                     execute_query(cursor, sql_history)
@@ -812,7 +817,6 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     for hist in history_rows:
                         yr = hist["exam_year"]
                         score = float(hist["score"]) if hist["score"] is not None else 0.0
-                        details_raw = hist["details"]
                         created_at = hist["created_at"]
                         
                         if yr not in stats_by_year:
@@ -827,35 +831,19 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             stats_by_year[yr]["last_attempt_at"] = created_at
                             
                         # 과목별 점수 산출
-                        if details_raw:
-                            if isinstance(details_raw, str):
-                                try:
-                                    exam_details = json.loads(details_raw)
-                                except Exception:
-                                    exam_details = []
-                            else:
-                                    exam_details = details_raw
-                                
-                            correct_counts = { 'PM': 0, 'SE': 0, 'DB': 0, 'SA': 0, 'SC': 0 }
-                            for d in exam_details:
-                                q_num = d.get("question_num")
-                                is_corr = d.get("is_correct", False)
-                                if is_corr and q_num is not None:
-                                    sub_code = None
-                                    if 1 <= q_num <= 25: sub_code = 'PM'
-                                    elif 26 <= q_num <= 50: sub_code = 'SE'
-                                    elif 51 <= q_num <= 75: sub_code = 'DB'
-                                    elif 76 <= q_num <= 100: sub_code = 'SA'
-                                    elif 101 <= q_num <= 120: sub_code = 'SC'
-                                    
-                                    if sub_code:
-                                        correct_counts[sub_code] += 1
+                        correct_counts = {
+                            'PM': hist.get("pm_correct") or 0,
+                            'SE': hist.get("se_correct") or 0,
+                            'DB': hist.get("db_correct") or 0,
+                            'SA': hist.get("sa_correct") or 0,
+                            'SC': hist.get("sc_correct") or 0
+                        }
                                         
-                            for sub, (start, end, total_num) in SUBJECT_RANGES.items():
-                                # 이 풀이 시도의 과목별 100점 환산 점수
-                                sub_score = round((correct_counts[sub] / total_num) * 100.0, 1)
-                                if sub_score > stats_by_year[yr]["subject_max_scores"][sub]:
-                                    stats_by_year[yr]["subject_max_scores"][sub] = sub_score
+                        for sub, (start, end, total_num) in SUBJECT_RANGES.items():
+                            # 이 풀이 시도의 과목별 100점 환산 점수
+                            sub_score = round((correct_counts[sub] / total_num) * 100.0, 1)
+                            if sub_score > stats_by_year[yr]["subject_max_scores"][sub]:
+                                stats_by_year[yr]["subject_max_scores"][sub] = sub_score
                                     
                     # 4. JSON 직렬화에 적합한 데이터 포맷팅
                     data_list = []
@@ -931,6 +919,24 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
+    def _get_yearly_subject_key(self, details):
+        if not details:
+            return 'ALL'
+        code_set = set()
+        for item in details:
+            q_num = item.get("question_num")
+            if q_num is not None:
+                if 1 <= q_num <= 25: code_set.add('PM')
+                elif 26 <= q_num <= 50: code_set.add('SE')
+                elif 51 <= q_num <= 75: code_set.add('DB')
+                elif 76 <= q_num <= 100: code_set.add('SA')
+                elif 101 <= q_num <= 120: code_set.add('SC')
+        
+        ordered = [c for c in ['PM', 'SE', 'DB', 'SA', 'SC'] if c in code_set]
+        if not ordered or len(ordered) == 5:
+            return 'ALL'
+        return ','.join(ordered)
+
     def submit_yearly_exam(self, data):
         """[설계 의도] 사용자가 제출한 모의고사 풀이 기록을 저장하고, 몇 회차인지 계산하여 DB에 기록합니다."""
         exam_year = data.get("exam_year")
@@ -945,25 +951,54 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.send_error_response(400, "Missing parameters for yearly exam submission")
             return
             
+        # 과목별 정답수 산출
+        pm_c = se_c = db_c = sa_c = sc_c = 0
+        if details:
+            for item in details:
+                q_num = item.get("question_num")
+                is_corr = item.get("is_correct", False)
+                if is_corr and q_num is not None:
+                    if 1 <= q_num <= 25: pm_c += 1
+                    elif 26 <= q_num <= 50: se_c += 1
+                    elif 51 <= q_num <= 75: db_c += 1
+                    elif 76 <= q_num <= 100: sa_c += 1
+                    elif 101 <= q_num <= 120: sc_c += 1
+
         try:
             question_times_json = json.dumps(question_times) if question_times is not None else None
             details_json = json.dumps(details, ensure_ascii=False) if details else None
             
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
-                    # 1. 기존 연습 횟수(practice_count) 구하기
-                    sql_count = "SELECT COUNT(*) as practice_count FROM yearly_exam_history WHERE exam_year = %s"
-                    execute_query(cursor, sql_count, (exam_year,))
-                    row_count = cursor.fetchone()
-                    existing_count = dict(row_count)["practice_count"] if row_count else 0
-                    practice_count = existing_count + 1
+                    # 1. 기존 연습 횟수(practice_count) 구하기 - 같은 년도 및 같은 과목 필터링
+                    current_sub_key = self._get_yearly_subject_key(details)
+                    sql_hist = "SELECT details FROM yearly_exam_history WHERE exam_year = %s"
+                    execute_query(cursor, sql_hist, (exam_year,))
+                    hist_rows = cursor.fetchall()
+                    
+                    matching_count = 0
+                    for row in hist_rows:
+                        row_details_raw = dict(row)["details"]
+                        if row_details_raw:
+                            if isinstance(row_details_raw, str):
+                                try:
+                                    row_details = json.loads(row_details_raw)
+                                except Exception:
+                                    row_details = []
+                            else:
+                                row_details = row_details_raw
+                            
+                            if self._get_yearly_subject_key(row_details) == current_sub_key:
+                                matching_count += 1
+                                
+                    practice_count = matching_count + 1
                     
                     # 2. 결과 삽입
                     sql_insert = """
-                        INSERT INTO yearly_exam_history (exam_year, practice_count, score, correct_count, total_questions, total_time, question_times, details)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO yearly_exam_history (exam_year, practice_count, score, correct_count, total_questions, total_time, question_times, details, pm_correct, se_correct, db_correct, sa_correct, sc_correct)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
-                    execute_query(cursor, sql_insert, (exam_year, practice_count, score, correct_count, total_questions, total_time, question_times_json, details_json))
+                    execute_query(cursor, sql_insert, (exam_year, practice_count, score, correct_count, total_questions, total_time, question_times_json, details_json, pm_c, se_c, db_c, sa_c, sc_c))
                     conn.commit()
                     
                     self.send_json_response({
@@ -1075,7 +1110,12 @@ def init_yearly_exam_history_table():
                         total_questions INTEGER NOT NULL,
                         total_time INTEGER NOT NULL,
                         question_times TEXT,
-                        details TEXT
+                        details TEXT,
+                        pm_correct INTEGER DEFAULT 0,
+                        se_correct INTEGER DEFAULT 0,
+                        db_correct INTEGER DEFAULT 0,
+                        sa_correct INTEGER DEFAULT 0,
+                        sc_correct INTEGER DEFAULT 0
                     );
                     """)
                 else:
@@ -1090,10 +1130,76 @@ def init_yearly_exam_history_table():
                         total_questions INTEGER NOT NULL,
                         total_time INTEGER NOT NULL,
                         question_times TEXT,
-                        details TEXT
+                        details TEXT,
+                        pm_correct INTEGER DEFAULT 0,
+                        se_correct INTEGER DEFAULT 0,
+                        db_correct INTEGER DEFAULT 0,
+                        sa_correct INTEGER DEFAULT 0,
+                        sc_correct INTEGER DEFAULT 0
                     );
                     """)
                 conn.commit()
+                
+                # 기존 테이블 호환성을 위한 캐시 컬럼 유무 확인 및 자동 추가
+                columns_to_add = ["pm_correct", "se_correct", "db_correct", "sa_correct", "sc_correct"]
+                for col in columns_to_add:
+                    try:
+                        cursor.execute(f"SELECT {col} FROM yearly_exam_history LIMIT 1")
+                    except Exception:
+                        conn.rollback()
+                        alter_sql = f"ALTER TABLE yearly_exam_history ADD COLUMN {col} INTEGER DEFAULT 0"
+                        cursor.execute(alter_sql)
+                        conn.commit()
+                        print(f"[{DB_TYPE}] yearly_exam_history 테이블에 컬럼 추가 완료: {col}")
+                
+                # 기존 데이터에 대해 과목별 점수 데이터 복원 및 업데이트 수행
+                # pm_correct, se_correct, db_correct, sa_correct, sc_correct가 모두 0이고, 맞춘 정답 수가 0보다 큰 대상들을 필터링
+                select_sql = """
+                    SELECT id, details FROM yearly_exam_history 
+                    WHERE correct_count > 0 AND (pm_correct + se_correct + db_correct + sa_correct + sc_correct) = 0
+                """
+                cursor.execute(select_sql)
+                rows = cursor.fetchall()
+                migration_count = 0
+                for r in rows:
+                    row_dict = dict(r)
+                    row_id = row_dict["id"]
+                    details_raw = row_dict["details"]
+                    if details_raw:
+                        if isinstance(details_raw, str):
+                            try:
+                                exam_details = json.loads(details_raw)
+                            except Exception:
+                                exam_details = []
+                        else:
+                            exam_details = details_raw
+                        
+                        counts = { 'PM': 0, 'SE': 0, 'DB': 0, 'SA': 0, 'SC': 0 }
+                        for item in exam_details:
+                            q_num = item.get("question_num")
+                            is_corr = item.get("is_correct", False)
+                            if is_corr and q_num is not None:
+                                sub_code = None
+                                if 1 <= q_num <= 25: sub_code = 'PM'
+                                elif 26 <= q_num <= 50: sub_code = 'SE'
+                                elif 51 <= q_num <= 75: sub_code = 'DB'
+                                elif 76 <= q_num <= 100: sub_code = 'SA'
+                                elif 101 <= q_num <= 120: sub_code = 'SC'
+                                if sub_code:
+                                    counts[sub_code] += 1
+                        
+                        update_sql = """
+                            UPDATE yearly_exam_history 
+                            SET pm_correct = %s, se_correct = %s, db_correct = %s, sa_correct = %s, sc_correct = %s
+                            WHERE id = %s
+                        """
+                        execute_query(cursor, update_sql, (counts['PM'], counts['SE'], counts['DB'], counts['SA'], counts['SC'], row_id))
+                        migration_count += 1
+                
+                if migration_count > 0:
+                    conn.commit()
+                    print(f"[{DB_TYPE}] 기존 모의고사 이력 데이터 {migration_count}건에 대한 과목별 정답수 마이그레이션 완료.")
+                    
         print(f"[{DB_TYPE}] 년도별 모의고사 이력(yearly_exam_history) 테이블 검증/초기화 완료.")
     except Exception as e:
         print(f"[{DB_TYPE}] 경고 - 년도별 모의고사 이력 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
@@ -1139,7 +1245,7 @@ def main():
         print(f"[Server] 경고: DB 연결 제한 상황에서 구동을 대기합니다. -> {e}")
         
     server_address = ("", PORT)
-    httpd = HTTPServer(server_address, JollyCarsonRequestHandler)
+    httpd = ThreadingHTTPServer(server_address, JollyCarsonRequestHandler)
     print(f"========================================================")
     print(f"[Server] Jolly-Carson Hybrid Server Started Successfully")
     print(f"[Dashboard URL] http://localhost:{PORT}/reports/db_official_scopes.html")
