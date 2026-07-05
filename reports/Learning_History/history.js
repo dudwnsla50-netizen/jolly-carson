@@ -1805,7 +1805,7 @@ function openYearlyModal(item) {
             localStorage.setItem('selected_history_list', JSON.stringify(HistoryState.yearlyExamHistory));
         }
         // 독립된 html 팝업창을 새 탭/새 창으로 띄우기
-        window.open('yearly_detail.html', '_blank');
+        window.open('../exam_mock/yearly_result.html?from_history=true', '_blank');
     } catch (e) {
         console.error("Yearly modal redirect failed:", e);
     }

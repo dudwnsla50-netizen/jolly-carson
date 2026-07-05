@@ -192,8 +192,42 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_yearly_exam_questions(query)
         elif path == "/api/yearly-exam/history":
             self.get_yearly_exam_history(query)
+        elif path == "/api/law-guide":
+            self.get_law_guide_content(query)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
+
+    def get_law_guide_content(self, query):
+        """[설계 의도] 지정된 법규/가이드 요약 파일의 한글 텍스트 내용을 안전하게 읽어 반환합니다."""
+        try:
+            file_name = query.get("file", [None])[0]
+            if not file_name:
+                self.send_error_response(400, "Missing parameter (file)")
+                return
+            
+            # 디렉토리 순회(Directory Traversal) 공격 차단 유효성 검증
+            if ".." in file_name or "/" in file_name or "\\" in file_name:
+                self.send_error_response(400, "Invalid file path")
+                return
+
+            base_path = "d:/100.lyj/anti_workspace/감리사_시험대비/가이드및법규"
+            filepath = os.path.join(base_path, file_name)
+            
+            if not os.path.exists(filepath):
+                self.send_error_response(404, "Law/Guide file not found")
+                return
+
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            self.send_json_response({
+                "success": True,
+                "file": file_name,
+                "content": content
+            })
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Error reading law file: {str(e)}")
 
     def get_concept_diagnostics(self, query):
         try:

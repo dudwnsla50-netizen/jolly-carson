@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jolly-Carson 모의고사 결과</title>
+    <title>Jolly-Carson 학습상세분석</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- Lucide Icons CDN -->
@@ -15,64 +15,121 @@
     <div class="container">
         <!-- 상단 헤더 -->
         <header>
-            <a href="yearly_exam.html" class="back-btn" id="home-link">
-                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> 연도 선택으로 돌아가기
-            </a>
-            <h1 id="view-title">모의고사 성적 진단</h1>
+            <button type="button" class="back-btn" onclick="closeResultWindow()" style="background:none; border:none; cursor:pointer; color:var(--text-secondary); display:inline-flex; align-items:center; gap:0.3rem; font-size:0.85rem; padding:0;">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i> 창 닫기
+            </button>
+            <h1 id="view-title">학습상세분석</h1>
             <p class="subtitle" id="view-subtitle">채점 완료된 최종 성적표 및 과목 도메인 취약성 진단서입니다.</p>
         </header>
 
         <!-- [3. 시험 결과 화면] -->
         <div id="result-view" style="display: block;">
-            <div class="result-summary-card">
-                <div class="result-score-title" id="result-exam-title">모의고사 결과</div>
-                <div class="result-score-main">
-                    <div class="result-score-box">
-                        <span class="score-label">환산 점수</span>
-                        <span class="score-val" id="result-score-val">0.0</span>
+            <div class="yearly-detail-layout">
+                <!-- 왼쪽 패널 (요약 정보 및 분석 차트, OMR 반응 분석판) -->
+                <div class="yearly-left-panel">
+                    <div class="result-summary-card" style="margin-bottom: 0;">
+                        <div class="result-score-title" id="result-exam-title">모의고사 결과</div>
+                        <div class="result-score-main">
+                            <div class="result-score-box">
+                                <span class="score-label">환산 점수</span>
+                                <span class="score-val" id="result-score-val">0.0</span>
+                            </div>
+                            <div class="result-meta-grid">
+                                <div class="result-meta-item">
+                                    <span class="meta-label">맞춘 문항</span>
+                                    <span class="meta-val" id="result-correct-val">0 / 120</span>
+                                </div>
+                                <div class="result-meta-item">
+                                    <span class="meta-label">총 소요 시간</span>
+                                    <span class="meta-val" id="result-time-val">00:00:00</span>
+                                </div>
+                                <div class="result-meta-item">
+                                    <span class="meta-label">응시 회차</span>
+                                    <span class="meta-val" id="result-attempt-val">1회차</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- [신규 기출 분석 / 난이도 예측 및 시뮬레이션 진단 카드] -->
+                        <div class="trend-analysis-card" id="trend-analysis-card-container">
+                            <!-- JS에서 동적으로 진단 결과가 주입됩니다. -->
+                        </div>
                     </div>
-                    <div class="result-meta-grid">
-                        <div class="result-meta-item">
-                            <span class="meta-label">맞춘 문항</span>
-                            <span class="meta-val" id="result-correct-val">0 / 120</span>
+
+                    <!-- 과목별 점수/시간 통계 영역 -->
+                    <div id="subject-stats-card-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem;">
+                        <!-- JS에서 동적 주입 -->
+                    </div>
+
+                    <!-- 오답 재발 추적 카드 (from_history 시 활성화) -->
+                    <div id="recurrence-tracking-card" style="display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 0.7rem;">
+                        <!-- JS에서 동적 주입 -->
+                    </div>
+
+                    <div class="result-summary-card" style="padding: 0.8rem; margin-bottom: 0;">
+                        <h3 style="font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.3rem; color: var(--text-primary);">
+                            <i data-lucide="grid" style="width: 14px; height: 14px;"></i> OMR 반응 보드
+                        </h3>
+                        <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 0.25rem;" id="omr-board-grid">
+                            <!-- JS에서 동적 주입 -->
                         </div>
-                        <div class="result-meta-item">
-                            <span class="meta-label">총 소요 시간</span>
-                            <span class="meta-val" id="result-time-val">00:00:00</span>
-                        </div>
-                        <div class="result-meta-item">
-                            <span class="meta-label">응시 차차</span>
-                            <span class="meta-val" id="result-attempt-val">1회차</span>
-                        </div>
+                    </div>
+
+                    <!-- 하단 액션 -->
+                    <div class="result-actions" style="margin-top: 0; display: flex; justify-content: flex-start; gap: 0.6rem;">
+                        <button class="ctrl-btn primary" onclick="closeResultWindow()">
+                            <i data-lucide="x" style="width: 16px; height: 16px;"></i> 창 닫기
+                        </button>
                     </div>
                 </div>
 
-                <!-- [신규 기출 분석 / 난이도 예측 및 시뮬레이션 진단 카드] -->
-                <div class="trend-analysis-card" id="trend-analysis-card-container">
-                    <!-- JS에서 동적으로 진단 결과가 주입됩니다. -->
+                <!-- 오른쪽 패널 (문제 상세 조회 및 오답 모아보기 탭 뷰어 - 상시 고정) -->
+                <div class="yearly-right-panel">
+                    <!-- 탭 헤더 바 -->
+                    <div class="viewer-tab-bar">
+                        <button type="button" class="viewer-tab-btn active" id="viewer-tab-detail" onclick="switchViewerTab('detail')">선택 문항 상세</button>
+                        <button type="button" class="viewer-tab-btn" id="viewer-tab-wrong-all" onclick="switchViewerTab('wrong-all')">오답 모아보기 (0)</button>
+                    </div>
+
+                    <!-- 탭 컨텐츠 패널 -->
+                    <div id="viewer-tab-content" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                        <!-- 탭 1. 선택 문항 상세 -->
+                        <div id="viewer-panel-detail" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                            <div id="yearly-wrong-detail-box" style="flex: 1; overflow-y: auto; scrollbar-width: thin; padding-right: 0.2rem;">
+                                <div style="font-size:0.82rem; color: var(--text-secondary); text-align:center; padding:4rem 1.5rem; border:1px dashed rgba(255,255,255,0.08); border-radius:10px; line-height: 1.6;">
+                                    💡 왼쪽 OMR 바둑판 보드의 각 셀을 클릭하시면 지문과 해설이 여기에 즉시 표시됩니다.
+                                </div>
+                            </div>
+                            <!-- 오답 재발 이력 비교를 위한 영역 -->
+                            <div id="yearly-recurrence-compare-box" style="margin-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; display: none;"></div>
+                        </div>
+
+                        <!-- 탭 2. 오답 모아보기 (기본 숨김) -->
+                        <div id="viewer-panel-wrong-all" style="display: none; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin;">
+                            <div id="yearly-wrong-all-box">
+                                <!-- JS에 의해 동적 렌더링 -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- 하단 액션 -->
-            <div class="result-actions">
-                <button class="ctrl-btn primary" onclick="reloadSelectionView()">
-                    <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i> 연도 선택으로 돌아가기
-                </button>
+    <!-- 고시·가이드 스마트 연계 요약 카드 모달 레이어 -->
+    <div id="law-guide-modal" class="modal-overlay" onclick="closeLawGuideModal(event)" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 11, 19, 0.85); backdrop-filter: blur(12px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="modal-card" onclick="event.stopPropagation()" style="background: var(--card-bg); border: 1px solid var(--accent-violet); border-radius: 20px; width: 100%; max-width: 650px; padding: 2rem; box-shadow: 0 15px 45px rgba(139, 92, 246, 0.25); display: flex; flex-direction: column; gap: 1.5rem; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.8rem;">
+                <h3 id="law-modal-title" style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <i data-lucide="scroll" style="color: var(--accent-violet); width: 22px; height: 22px;"></i> 법규/가이드 조항 요약
+                </h3>
+                <button onclick="closeLawGuideModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.3rem; cursor: pointer; line-height: 1; outline: none; padding: 0.2rem 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='var(--text-secondary)'">✕</button>
             </div>
-
-            <!-- 상세 오답 분석 리뷰 리스트 -->
-            <div class="review-section">
-                <div class="review-header">
-                    <span class="review-title">🔍 상세 기출 오답 리뷰</span>
-                    <div class="filter-toggle-container">
-                        <button class="filter-toggle-btn active" id="btn-filter-all" onclick="filterReview('all')">전체 문항</button>
-                        <button class="filter-toggle-btn" id="btn-filter-wrong" onclick="filterReview('wrong')">틀린 문항만</button>
-                    </div>
-                </div>
-
-                <div class="review-list" id="review-list-container">
-                    <!-- 오답 및 전체 문항 해설이 동적으로 렌더링됩니다. -->
-                </div>
+            <div id="law-modal-body" style="font-size: 0.92rem; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; max-height: 380px; overflow-y: auto; padding-right: 0.5rem; scrollbar-width: thin;">
+                내용을 불러오는 중입니다...
+            </div>
+            <div style="text-align: right; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.8rem;">
+                <button onclick="closeLawGuideModal()" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.55rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">확인 완료</button>
             </div>
         </div>
     </div>
