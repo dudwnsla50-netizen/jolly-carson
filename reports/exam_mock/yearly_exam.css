@@ -1202,10 +1202,9 @@
             backdrop-filter: blur(12px);
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 100px);
-            position: sticky;
-            top: 1rem;
-            overflow: hidden;
+            height: auto;
+            position: relative;
+            overflow: visible;
         }
 
         .viewer-tab-bar {

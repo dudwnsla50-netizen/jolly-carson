@@ -1273,10 +1273,16 @@ function renderQuestionDetailHtml(item, detail, q) {
     const rangeInfo = getSubjectInfo(detail.question_num);
     const reviewImgPath = `images/${item.exam_year}_${detail.question_num}.png`;
     const imageHtml = `
-        <div id="yearly-q-img-wrap-${detail.question_num}" style="display:none; margin-top:0.8rem; justify-content:center;">
-            <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:6px;"
-                 onload="document.getElementById('yearly-q-img-wrap-${detail.question_num}').style.display='flex';"
-                 onerror="this.style.display='none';">
+        <div id="yearly-q-img-btn-wrap-${detail.question_num}" style="display:none; background:rgba(59,130,246,0.02); border:1px solid rgba(59,130,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.6rem; margin-bottom:0.6rem;">
+            <div onclick="toggleDetailTabImage(${detail.question_num})" style="color:#60a5fa; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none;">
+                <i data-lucide="image" style="width:12px; height:12px;"></i> 기출 지문 크롭 이미지 (시험지 원본)
+                <i data-lucide="chevron-down" id="detail-img-chevron-${detail.question_num}" style="width:12px; height:12px; margin-left:auto;"></i>
+            </div>
+            <div id="yearly-q-img-wrap-${detail.question_num}" style="display:none; margin-top:0.4rem; justify-content:center; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.04); border-radius:4px; padding:0.4rem;">
+                <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:4px;"
+                     onload="document.getElementById('yearly-q-img-btn-wrap-${detail.question_num}').style.display='block';"
+                     onerror="this.style.display='none';">
+            </div>
         </div>
     `;
 
@@ -1367,15 +1373,16 @@ function renderYearlyWrongAllTab(item, details) {
 
         const reviewImgPath = `images/${item.exam_year}_${d.question_num}.png`;
         const imageHtml = `
-            <div id="yearly-q-all-img-btn-wrap-${d.question_num}" style="display:none; margin-top:0.4rem; margin-bottom:0.4rem;">
-                <button class="ctrl-btn" onclick="toggleAllTabImage(${d.question_num})" style="padding:0.25rem 0.5rem; font-size:0.7rem; border-radius:4px; display:inline-flex; align-items:center; gap:0.2rem; cursor:pointer; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:var(--text-secondary); outline:none;">
-                    <i data-lucide="image" style="width:12px; height:12px;"></i> 크롭 이미지 보기/접기
-                </button>
-            </div>
-            <div id="yearly-q-all-img-wrap-${d.question_num}" style="display:none; margin-top:0.4rem; justify-content:center; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.04); border-radius:6px; padding:0.4rem;">
-                <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:4px;"
-                     onload="document.getElementById('yearly-q-all-img-btn-wrap-${d.question_num}').style.display='block';"
-                     onerror="this.style.display='none';">
+            <div id="yearly-q-all-img-btn-wrap-${d.question_num}" style="display:none; background:rgba(59,130,246,0.02); border:1px solid rgba(59,130,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.4rem; margin-bottom:0.4rem;">
+                <div onclick="toggleAllTabImage(${d.question_num})" style="color:#60a5fa; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none;">
+                    <i data-lucide="image" style="width:12px; height:12px;"></i> 기출 지문 크롭 이미지
+                    <i data-lucide="chevron-down" id="img-chevron-${d.question_num}" style="width:12px; height:12px; margin-left:auto;"></i>
+                </div>
+                <div id="yearly-q-all-img-wrap-${d.question_num}" style="display:none; margin-top:0.4rem; justify-content:center; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.04); border-radius:4px; padding:0.4rem;">
+                    <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:4px;"
+                         onload="document.getElementById('yearly-q-all-img-btn-wrap-${d.question_num}').style.display='block';"
+                         onerror="this.style.display='none';">
+                </div>
             </div>
         `;
 
@@ -1623,14 +1630,21 @@ function formatSecondsToKorean(totalSeconds) {
 
 // 결과 화면 창 닫기 (window.close 불가 시 이전 화면으로 폴백)
 function closeResultWindow() {
-    // window.open()으로 열린 경우 window.close()로 닫기
-    if (window.opener || window.history.length <= 1) {
-        window.close();
-    }
-    // 닫히지 않으면 이전 화면으로 이동
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromHistory = urlParams.get('from_history') === 'true';
+
+    // 1. 우선 창 닫기 시도
+    window.close();
+
+    // 2. 만약 창이 닫히지 않은 경우를 대비한 폴백 처리
     setTimeout(() => {
-        window.history.back();
-    }, 100);
+        // fromHistory로 새 창 팝업이 띄워진 경우 뒤로가기를 하면 엉뚱한 페이지(모의고사 메인 등)로 갈 수 있으므로 폴백하지 않음
+        if (!fromHistory) {
+            window.history.back();
+        } else {
+            console.log("상세 분석 팝업 창이 닫히지 않았습니다. 브라우저 탭을 직접 닫을 수 있습니다.");
+        }
+    }, 300); // 100ms -> 300ms로 상향하여 창이 닫히는 비동기 처리 타이밍 이슈 차단
 }
 
 // 연도 선택 화면 리로딩
@@ -1801,12 +1815,16 @@ function closeLawGuideModal(event) {
 
 function toggleAllTabImage(qNum) {
     const imgWrap = document.getElementById(`yearly-q-all-img-wrap-${qNum}`);
+    const chevron = document.getElementById(`img-chevron-${qNum}`);
     if (!imgWrap) return;
     if (imgWrap.style.display === 'none' || imgWrap.style.display === '') {
         imgWrap.style.display = 'flex';
+        if (chevron) chevron.setAttribute('data-lucide', 'chevron-up');
     } else {
         imgWrap.style.display = 'none';
+        if (chevron) chevron.setAttribute('data-lucide', 'chevron-down');
     }
+    if (window.lucide) lucide.createIcons();
 }
 
 function toggleAllTabExplanation(qNum) {
@@ -1823,6 +1841,20 @@ function toggleAllTabExplanation(qNum) {
     if (window.lucide) lucide.createIcons();
 }
 
+function toggleDetailTabImage(qNum) {
+    const imgWrap = document.getElementById(`yearly-q-img-wrap-${qNum}`);
+    const chevron = document.getElementById(`detail-img-chevron-${qNum}`);
+    if (!imgWrap) return;
+    if (imgWrap.style.display === 'none' || imgWrap.style.display === '') {
+        imgWrap.style.display = 'flex';
+        if (chevron) chevron.setAttribute('data-lucide', 'chevron-up');
+    } else {
+        imgWrap.style.display = 'none';
+        if (chevron) chevron.setAttribute('data-lucide', 'chevron-down');
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
 // 전역 바인딩
 window.showLawGuideCard = showLawGuideCard;
 window.closeLawGuideModal = closeLawGuideModal;
@@ -1830,6 +1862,7 @@ window.switchViewerTab = switchViewerTab;
 window.clickRecurrenceChip = clickRecurrenceChip;
 window.toggleAllTabImage = toggleAllTabImage;
 window.toggleAllTabExplanation = toggleAllTabExplanation;
+window.toggleDetailTabImage = toggleDetailTabImage;
 window.closeResultWindow = closeResultWindow;
 
 
