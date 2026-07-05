@@ -1271,17 +1271,18 @@ function renderQuestionDetailHtml(item, detail, q) {
     });
 
     const rangeInfo = getSubjectInfo(detail.question_num);
-    const reviewImgPath = `images/${item.exam_year}_${detail.question_num}.png`;
+    const imgYear = String(item.exam_year).replace(/[^0-9]/g, '');
+    const imgQNum = Number(detail.question_num);
+    const reviewImgPath = `../images/${imgYear}_${imgQNum}.png`;
     const imageHtml = `
-        <div id="yearly-q-img-btn-wrap-${detail.question_num}" style="display:none; background:rgba(59,130,246,0.02); border:1px solid rgba(59,130,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.6rem; margin-bottom:0.6rem;">
+        <div id="yearly-q-img-btn-wrap-${detail.question_num}" style="background:rgba(59,130,246,0.02); border:1px solid rgba(59,130,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.6rem; margin-bottom:0.6rem;">
             <div onclick="toggleDetailTabImage(${detail.question_num})" style="color:#60a5fa; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none;">
                 <i data-lucide="image" style="width:12px; height:12px;"></i> 기출 지문 크롭 이미지 (시험지 원본)
                 <i data-lucide="chevron-down" id="detail-img-chevron-${detail.question_num}" style="width:12px; height:12px; margin-left:auto;"></i>
             </div>
             <div id="yearly-q-img-wrap-${detail.question_num}" style="display:none; margin-top:0.4rem; justify-content:center; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.04); border-radius:4px; padding:0.4rem;">
-                <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:4px;"
-                     onload="document.getElementById('yearly-q-img-btn-wrap-${detail.question_num}').style.display='block';"
-                     onerror="this.style.display='none';">
+                <img src="${reviewImgPath}" alt="시험지 원본 이미지" style="max-width:100%; border-radius:4px;"
+                     onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=\'color:var(--text-muted); font-size:0.72rem; text-align:center; padding:0.4rem;\'>이 문항은 수식 또는 다이어그램 이미지가 필요 없는 일반 텍스트 문항입니다.</div>';">
             </div>
         </div>
     `;
@@ -1309,17 +1310,17 @@ function renderQuestionDetailHtml(item, detail, q) {
             </div>
             <div style="font-size:0.88rem; line-height:1.45; color:var(--text-primary); white-space:pre-wrap; margin-bottom:0.8rem;">${q.question}</div>
             
-            ${imageHtml}
-            
             <div style="margin-bottom:0.8rem;">${optionsHtml}</div>
             
-            <div style="background:rgba(16,185,129,0.02); border:1px solid rgba(16,185,129,0.08); border-radius:8px; padding:0.6rem 0.8rem; font-size:0.8rem; line-height:1.45;">
+            <div style="background:rgba(16,185,129,0.02); border:1px solid rgba(16,185,129,0.08); border-radius:8px; padding:0.6rem 0.8rem; font-size:0.8rem; line-height:1.45; margin-bottom:0.6rem;">
                 <div style="color:#c084fc; font-weight:700; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.25rem;">
                     <i data-lucide="book-open" style="width:13px; height:13px;"></i> 정답 및 상세 해설
                 </div>
                 <div style="color:var(--text-secondary); margin-bottom:0.3rem;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
                 ${lawBtnHtml}
             </div>
+
+            ${imageHtml}
         </div>
     `;
     if (window.lucide) lucide.createIcons();
@@ -1371,17 +1372,18 @@ function renderYearlyWrongAllTab(item, details) {
             `;
         });
 
-        const reviewImgPath = `images/${item.exam_year}_${d.question_num}.png`;
+        const imgYear = String(item.exam_year).replace(/[^0-9]/g, '');
+        const imgQNum = Number(d.question_num);
+        const reviewImgPath = `../images/${imgYear}_${imgQNum}.png`;
         const imageHtml = `
-            <div id="yearly-q-all-img-btn-wrap-${d.question_num}" style="display:none; background:rgba(59,130,246,0.02); border:1px solid rgba(59,130,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.4rem; margin-bottom:0.4rem;">
+            <div id="yearly-q-all-img-btn-wrap-${d.question_num}" style="background:rgba(59,130,246,0.02); border:1px solid rgba(59,130,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.4rem; margin-bottom:0.4rem;">
                 <div onclick="toggleAllTabImage(${d.question_num})" style="color:#60a5fa; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none;">
-                    <i data-lucide="image" style="width:12px; height:12px;"></i> 기출 지문 크롭 이미지
+                    <i data-lucide="image" style="width:12px; height:12px;"></i> 기출 지문 크롭 이미지 (시험지 원본)
                     <i data-lucide="chevron-down" id="img-chevron-${d.question_num}" style="width:12px; height:12px; margin-left:auto;"></i>
                 </div>
                 <div id="yearly-q-all-img-wrap-${d.question_num}" style="display:none; margin-top:0.4rem; justify-content:center; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.04); border-radius:4px; padding:0.4rem;">
-                    <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:4px;"
-                         onload="document.getElementById('yearly-q-all-img-btn-wrap-${d.question_num}').style.display='block';"
-                         onerror="this.style.display='none';">
+                    <img src="${reviewImgPath}" alt="시험지 원본 이미지" style="max-width:100%; border-radius:4px;"
+                         onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=\'color:var(--text-muted); font-size:0.72rem; text-align:center; padding:0.4rem;\'>이 문항은 수식 또는 다이어그램 이미지가 필요 없는 일반 텍스트 문항입니다.</div>';">
                 </div>
             </div>
         `;
@@ -1409,11 +1411,9 @@ function renderYearlyWrongAllTab(item, details) {
                 </div>
                 <div style="font-size:0.8rem; line-height:1.45; color:var(--text-secondary); white-space:pre-wrap; margin-bottom:0.6rem;">${q.question}</div>
                 
-                ${imageHtml}
-                
                 <div style="margin-bottom:0.6rem;">${optionsHtml}</div>
                 
-                <div style="background:rgba(139,92,246,0.02); border:1px solid rgba(139,92,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.6rem;">
+                <div style="background:rgba(139,92,246,0.02); border:1px solid rgba(139,92,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.6rem; margin-bottom:0.6rem;">
                     <div onclick="toggleAllTabExplanation(${d.question_num})" style="color:#c084fc; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none;">
                         <i data-lucide="book-open" style="width:12px; height:12px;"></i> 정답 및 상세 해설
                         <i data-lucide="chevron-down" id="exp-chevron-${d.question_num}" style="width:12px; height:12px; margin-left:auto;"></i>
@@ -1423,6 +1423,8 @@ function renderYearlyWrongAllTab(item, details) {
                         ${lawBtnHtml}
                     </div>
                 </div>
+
+                ${imageHtml}
             </div>
         `;
     });
