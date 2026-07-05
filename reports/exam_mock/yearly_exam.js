@@ -1640,12 +1640,8 @@ function closeResultWindow() {
 
     // 2. 만약 창이 닫히지 않은 경우를 대비한 폴백 처리
     setTimeout(() => {
-        // fromHistory로 새 창 팝업이 띄워진 경우 뒤로가기를 하면 엉뚱한 페이지(모의고사 메인 등)로 갈 수 있으므로 폴백하지 않음
-        if (!fromHistory) {
-            window.history.back();
-        } else {
-            console.log("상세 분석 팝업 창이 닫히지 않았습니다. 브라우저 탭을 직접 닫을 수 있습니다.");
-        }
+        // 창 닫기가 안 닫혔을 경우(동일 탭 내 이동 등) 학습이력 화면으로 리다이렉트합니다.
+        window.location.href = "../Learning_History/lhistory.html";
     }, 300); // 100ms -> 300ms로 상향하여 창이 닫히는 비동기 처리 타이밍 이슈 차단
 }
 
