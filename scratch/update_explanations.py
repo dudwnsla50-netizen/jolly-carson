@@ -95,10 +95,10 @@ def get_discrepancies_and_diffs():
         is_target = False
         reason = ""
         
-        # 조건 A: SQLite의 answer와 Postgres의 answer가 다름 (정답 수정 문항)
-        if sl_ans is not None and sl_norm != pg_norm:
+        # 조건 A: SQLite의 answer와 Postgres의 answer가 다르고, 동시에 Postgres 내 해설이 없음 (신규 생성 타겟)
+        if sl_ans is not None and sl_norm != pg_norm and (not explanation or not explanation.strip()):
             is_target = True
-            reason = f"정답 수정 감지 (SQLite: {sl_norm} -> Postgres: {pg_norm})"
+            reason = f"정답 수정 및 해설 미등록 감지 (SQLite: {sl_norm} -> Postgres: {pg_norm})"
             
         # 조건 B: Postgres 내 해설은 존재하지만, 해설 내 정답 표기와 DB answer가 불일치함
         elif explanation and explanation.strip():
@@ -156,35 +156,43 @@ def call_gemini_api(prompt, api_key):
         method="POST"
     )
     try:
-        with urllib.request.urlopen(req) as res:
+        # timeout=30초를 설정하여 무한 대기 현상 방지
+        with urllib.request.urlopen(req, timeout=30) as res:
             data = json.loads(res.read().decode("utf-8"))
-            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            return text, 200
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return None, 429
+        else:
+            print(f"[API 에러] Gemini 호출 실패 (HTTP {e.code}): {e}", flush=True)
+            return None, e.code
     except Exception as e:
-        print(f"[API 에러] Gemini 호출 실패: {e}")
-        return None
+        print(f"[API 에러] Gemini 호출 실패: {e}", flush=True)
+        return None, 500
 
 def process_targets(targets, api_key, args):
     if not targets:
-        print("업데이트할 대상 문항이 없습니다.")
+        print("업데이트할 대상 문항이 없습니다.", flush=True)
         return
         
-    print(f"\n총 {len(targets)}개의 대상 문항이 발견되었습니다.")
+    print(f"\n총 {len(targets)}개의 대상 문항이 발견되었습니다.", flush=True)
     if args.dry_run:
-        print("[Dry-run 모드] 실제 DB 업데이트를 실행하지 않습니다.")
+        print("[Dry-run 모드] 실제 DB 업데이트를 실행하지 않습니다.", flush=True)
         for idx, t in enumerate(targets[:15]):
-            print(f"  [{idx+1}] ID: {t['id']} ({t['year']}년 {t['subject']} {t['qnum']}번) | 사유: {t['reason']} | 해설 유무: {bool(t['explanation'])}")
+            print(f"  [{idx+1}] ID: {t['id']} ({t['year']}년 {t['subject']} {t['qnum']}번) | 사유: {t['reason']} | 해설 유무: {bool(t['explanation'])}", flush=True)
         if len(targets) > 15:
-            print(f"  ...외 {len(targets) - 15}개 문항")
+            print(f"  ...외 {len(targets) - 15}개 문항", flush=True)
         return
         
     if not api_key:
-        print("[오류] Gemini API Key가 제공되지 않아 업데이트를 중단합니다.")
+        print("[오류] Gemini API Key가 제공되지 않아 업데이트를 중단합니다.", flush=True)
         return
         
     limit = args.limit
     if limit > 0:
         targets = targets[:limit]
-        print(f"[테스트 모드] 최초 {limit}개 문항만 처리를 시작합니다.")
+        print(f"[테스트 모드] 최초 {limit}개 문항만 처리를 시작합니다.", flush=True)
         
     # PostgreSQL 연결
     parsed = urllib.parse.urlparse(DATABASE_URL)
@@ -204,8 +212,9 @@ def process_targets(targets, api_key, args):
     
     success_count = 0
     fail_count = 0
+    current_delay = 10.0  # 기본 딜레이 설정 (제한 극복을 위해 안전하게 10.0초 시작)
     
-    print("\n--- [해설 업데이트 루프 가동] ---")
+    print("\n--- [해설 업데이트 루프 가동] ---", flush=True)
     for idx, t in enumerate(targets):
         qid = t['id']
         year = t['year']
@@ -216,12 +225,11 @@ def process_targets(targets, api_key, args):
         answer = t['answer']
         existing_exp = t['explanation']
         
-        print(f"[{idx+1}/{len(targets)}] ID: {qid} ({year}년 {subject} {qnum}번) 처리 중...")
-        print(f"  - 변경 이유: {t['reason']}")
+        print(f"[{idx+1}/{len(targets)}] ID: {qid} ({year}년 {subject} {qnum}번) 처리 중... (현재 대기 설정: {current_delay:.1f}초)", flush=True)
+        print(f"  - 변경 이유: {t['reason']}", flush=True)
         
         # 프롬프트 설계
         if existing_exp and existing_exp.strip():
-            # 기존 해설 보정 모드
             prompt = f"""
 이 기출문제의 정답이 새로운 정답({answer})으로 최종 수정 및 확정되었습니다.
 기존의 해설 텍스트({existing_exp})를 분석하여, 새로운 정답 번호와 논리에 완벽히 부합하도록 정답 표기 및 상세 설명 구성을 올바르게 교정해 주세요.
@@ -239,7 +247,6 @@ def process_targets(targets, api_key, args):
 - 수정된 올바른 정답: {answer}
 """
         else:
-            # 신규 해설 생성 모드
             prompt = f"""
 이 정보시스템 감리사 기출문제에 대한 고품질의 상세한 정답 및 해설을 작성해 주세요.
 
@@ -261,9 +268,27 @@ def process_targets(targets, api_key, args):
 """
         
         # Gemini API 호출
-        new_exp = call_gemini_api(prompt, api_key)
+        new_exp, status_code = call_gemini_api(prompt, api_key)
         
-        if new_exp:
+        # 429 에러(Rate Limit) 대응 백오프 및 자동 조절 로직
+        if status_code == 429:
+            current_delay = min(current_delay + 2.0, 20.0)  # 딜레이 2초 상향 조정
+            print(f"  [경고] HTTP 429 Too Many Requests 감지! 70초 쿨다운을 실행하며 대기 설정을 {current_delay:.1f}초로 상향합니다.", flush=True)
+            for remain in range(70, 0, -10):
+                print(f"    -> 쿨다운 남은 시간: {remain}초...", flush=True)
+                time.sleep(10)
+            
+            # 1차 재시도
+            new_exp, status_code = call_gemini_api(prompt, api_key)
+            if status_code == 429:
+                print(f"  [경고] 재시도에서도 HTTP 429 감지! 70초 추가 쿨다운 후 2차 재시도합니다.", flush=True)
+                for remain in range(70, 0, -10):
+                    print(f"    -> 쿨다운 남은 시간: {remain}초...", flush=True)
+                    time.sleep(10)
+                # 2차 재시도
+                new_exp, status_code = call_gemini_api(prompt, api_key)
+            
+        if status_code == 200 and new_exp:
             try:
                 # DB 업데이트
                 cur.execute(
@@ -272,25 +297,27 @@ def process_targets(targets, api_key, args):
                 )
                 conn.commit()
                 success_count += 1
-                print(f"  -> [성공] 해설 업데이트 완료.")
+                print(f"  -> [성공] 해설 업데이트 완료.", flush=True)
+                # 성공 시 딜레이 서서히 하향 (최소 6.0초 유지)
+                current_delay = max(current_delay - 0.2, 6.0)
             except Exception as update_err:
                 conn.rollback()
-                print(f"  -> [실패] DB 업데이트 중 오류: {update_err}")
+                print(f"  -> [실패] DB 업데이트 중 오류: {update_err}", flush=True)
                 fail_count += 1
         else:
-            print("  -> [실패] Gemini API로부터 해설을 수신하지 못했습니다.")
+            print(f"  -> [실패] Gemini API로부터 해설을 수신하지 못했습니다. (응답 코드: {status_code})", flush=True)
             fail_count += 1
             
-        # 속도 제한(Rate Limit) 예방 및 도중 정지 가능성 고려용 딜레이
-        time.sleep(1.0)
+        # 속도 제한 예방용 동적 딜레이
+        time.sleep(current_delay)
         
     cur.close()
     conn.close()
     
-    print("\n--- [업데이트 완료 보고] ---")
-    print(f"처리 대상 문항: {len(targets)}")
-    print(f"성공: {success_count}건")
-    print(f"실패: {fail_count}건")
+    print("\n--- [업데이트 완료 보고] ---", flush=True)
+    print(f"처리 대상 문항: {len(targets)}", flush=True)
+    print(f"성공: {success_count}건", flush=True)
+    print(f"실패: {fail_count}건", flush=True)
 
 if __name__ == "__main__":
     args = parse_args()
