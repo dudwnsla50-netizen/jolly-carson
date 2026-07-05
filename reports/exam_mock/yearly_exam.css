@@ -1284,8 +1284,9 @@
                 border-color: var(--card-border);
             }
             
+            /* 모바일 높이 제한 제거를 통해 내부 스크롤 완전 억제 */
             #yearly-wrong-detail-box, #viewer-panel-wrong-all {
-                max-height: 500px;
-                overflow-y: auto;
+                max-height: none !important;
+                overflow-y: visible !important;
             }
         }
