@@ -846,8 +846,14 @@ function submitExam(isInterim = false) {
 
     questions.forEach((q, idx) => {
         const uAns = userAnswers[q.question_num] || null;
-        const correctAns = Array.isArray(q.answer) ? q.answer[0] : q.answer;
-        const isCorrect = (uAns === correctAns);
+        let isCorrect = false;
+        if (uAns !== null) {
+            if (Array.isArray(q.answer)) {
+                isCorrect = q.answer.map(Number).includes(Number(uAns));
+            } else {
+                isCorrect = (Number(uAns) === Number(q.answer));
+            }
+        }
         if (isCorrect) correctCount++;
 
         details.push({
@@ -1044,41 +1050,47 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
     const trendContainer = document.getElementById('trend-analysis-card-container');
     if (trendContainer) {
         trendContainer.innerHTML = `
-            <div style="font-size: 0.95rem; font-weight: 700; color: #ec4899; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.3rem;">
-                <i data-lucide="brain-circuit" style="width: 18px; height: 18px;"></i> AI 신규 기출 분석 & 학습 취약 진단
+            <div style="font-size: 0.88rem; font-weight: 700; color: #ec4899; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.3rem; text-align: left;">
+                <i data-lucide="brain-circuit" style="width: 15px; height: 15px;"></i> AI 신규 기출 분석 & 학습 취약 진단
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 0.75rem;">
-                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0.35rem;">기출 구분별 정답률</div>
-                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                            <span>일반 기출 유형:</span>
-                            <span style="font-weight: 700; color: #c084fc;">${normalCorrect} / ${normalTotal} (${normalPctText})</span>
+            <div style="display: grid; grid-template-columns: 1fr 1.1fr; gap: 0.6rem; margin-top: 0.4rem; text-align: left;">
+                <!-- 왼쪽 컬럼: 정답률 및 시뮬레이션 박스 -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <!-- 기출 구분별 정답률 -->
+                    <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.5rem 0.6rem;">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem; font-weight:700;">기출 구분별 정답률</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.76rem;">
+                                <span>일반 기출:</span>
+                                <span style="font-weight: 700; color: #c084fc;">${normalCorrect}/${normalTotal} (${normalPctText})</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.76rem;">
+                                <span>신규 기출:</span>
+                                <span style="font-weight: 700; color: #ec4899;">${newTrendCorrect}/${newTrendTotal} (${newTrendPctText})</span>
+                            </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                            <span>신규 기출 유형:</span>
-                            <span style="font-weight: 700; color: #ec4899;">${newTrendCorrect} / ${newTrendTotal} (${newTrendPctText})</span>
+                    </div>
+                    <!-- 출제 난이도 예측 및 시뮬레이션 -->
+                    <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.5rem 0.6rem;">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem; font-weight:700;">출제 난이도 예측 및 시뮬레이션</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.76rem;">
+                                <span>체감 난이도:</span>
+                                <span style="font-weight: 700; color: #fbbf24;">${difficultyLevel}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.76rem;">
+                                <span>예상 환산점수:</span>
+                                <span style="font-weight: 700; color: var(--success);">${predictedScore}점 / 88점 목표</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 0.75rem;">
-                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0.35rem;">출제 난이도 예측 및 시뮬레이션</div>
-                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                            <span>모의고사 체감 난이도:</span>
-                            <span style="font-weight: 700; color: #fbbf24;">${difficultyLevel}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                            <span>본 시험 예상 환산 점수:</span>
-                            <span style="font-weight: 700; color: var(--success);">${predictedScore}점 / 88점 목표</span>
-                        </div>
-                    </div>
+                <!-- 오른쪽 컬럼: 학습자 맞춤형 취약점 진단 박스 -->
+                <div style="background: rgba(139,92,246,0.04); border: 1px solid rgba(139,92,246,0.12); border-radius: 8px; padding: 0.6rem 0.7rem; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="font-weight: 700; color: #a78bfa; margin-bottom: 0.2rem; font-size: 0.76rem;">🔍 맞춤형 취약점 진단: ${userTypeLabel}</div>
+                    <p style="color: var(--text-secondary); font-size: 0.7rem; line-height: 1.4; margin: 0 0 0.3rem 0;">${userTypeDesc}</p>
+                    <div style="font-size: 0.72rem; color: var(--text-primary); line-height: 1.4; font-weight: 500;">${recommendation}</div>
                 </div>
-            </div>
-            <div style="background: rgba(139,92,246,0.04); border: 1px solid rgba(139,92,246,0.12); border-radius: 10px; padding: 0.8rem; font-size: 0.85rem;">
-                <div style="font-weight: 700; color: #a78bfa; margin-bottom: 0.25rem;">🔍 학습자 맞춤형 취약점 진단: ${userTypeLabel}</div>
-                <p style="color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; margin-bottom: 0.45rem; margin-top:0;">${userTypeDesc}</p>
-                <div style="font-size: 0.82rem; color: var(--text-primary); line-height: 1.5;">${recommendation}</div>
             </div>
         `;
     }
@@ -1228,19 +1240,22 @@ function showYearlyWrongQuestionDetail(item, detail) {
 function renderQuestionDetailHtml(item, detail, q) {
     const box = document.getElementById('yearly-wrong-detail-box');
     const isCorrect = detail.is_correct;
-    const correctAns = Array.isArray(q.answer) ? q.answer[0] : q.answer;
-    const uAns = Array.isArray(detail.user_answer) ? detail.user_answer[0] : detail.user_answer;
+    const answers = Array.isArray(q.answer) ? q.answer.map(Number) : [Number(q.answer)];
+    const uAns = Array.isArray(detail.user_answer) ? Number(detail.user_answer[0]) : Number(detail.user_answer);
 
     let optionsHtml = '';
     q.options.forEach((optText, optIdx) => {
         const optNum = optIdx + 1;
+        const isOptCorrect = answers.includes(optNum);
+        const isOptUserWrong = (optNum === uAns && !isCorrect);
+        
         let optClass = 'review-option';
         let style = 'padding:0.55rem 0.8rem; border-radius:6px; border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.01); font-size:0.82rem; margin-top:0.35rem; display:flex; gap:0.4rem;';
         
-        if (optNum === correctAns) {
+        if (isOptCorrect) {
             optClass += ' correct-choice';
             style = 'padding:0.55rem 0.8rem; border-radius:6px; border:1px solid rgba(16, 185, 129, 0.2); background:rgba(16, 185, 129, 0.04); font-size:0.82rem; margin-top:0.35rem; color:#ffffff; display:flex; gap:0.4rem;';
-        } else if (optNum === uAns && !isCorrect) {
+        } else if (isOptUserWrong) {
             optClass += ' wrong-choice';
             style = 'padding:0.55rem 0.8rem; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.2); background:rgba(239, 68, 68, 0.04); font-size:0.82rem; margin-top:0.35rem; color:#ffffff; display:flex; gap:0.4rem;';
         }
@@ -1249,8 +1264,8 @@ function renderQuestionDetailHtml(item, detail, q) {
             <div class="${optClass}" style="${style}">
                 <span style="font-weight:700;">${optNum}.</span>
                 <span>${optText}</span>
-                ${optNum === correctAns ? ' <span style="margin-left:auto; color:var(--success); font-weight:700; font-size:0.75rem;">(정답)</span>' : ''}
-                ${optNum === uAns && !isCorrect ? ' <span style="margin-left:auto; color:var(--error); font-weight:700; font-size:0.75rem;">(선택 오답)</span>' : ''}
+                ${isOptCorrect ? ' <span style="margin-left:auto; color:var(--success); font-weight:700; font-size:0.75rem;">(정답)</span>' : ''}
+                ${isOptUserWrong ? ' <span style="margin-left:auto; color:var(--error); font-weight:700; font-size:0.75rem;">(선택 오답)</span>' : ''}
             </div>
         `;
     });
@@ -1320,22 +1335,22 @@ function renderYearlyWrongAllTab(item, details) {
         const q = questions.find(x => Number(x.question_num) === Number(d.question_num));
         if (!q) return;
 
-        const correctAns = Array.isArray(q.answer) ? q.answer[0] : q.answer;
-        const uAns = Array.isArray(d.user_answer) ? d.user_answer[0] : d.user_answer;
+        const answers = Array.isArray(q.answer) ? q.answer.map(Number) : [Number(q.answer)];
+        const uAns = Array.isArray(d.user_answer) ? Number(d.user_answer[0]) : Number(d.user_answer);
         const rangeInfo = getSubjectInfo(d.question_num);
 
         let optionsHtml = '';
         q.options.forEach((optText, optIdx) => {
             const optNum = optIdx + 1;
-            const isCorrect = (optNum === correctAns);
-            const isUserWrong = (optNum === uAns);
+            const isOptCorrect = answers.includes(optNum);
+            const isOptUserWrong = (optNum === uAns);
             let optClass = 'review-option';
             let style = 'padding:0.4rem 0.6rem; border-radius:5px; border:1px solid rgba(255,255,255,0.03); background:rgba(255,255,255,0.01); font-size:0.78rem; margin-top:0.25rem; display:flex; gap:0.4rem;';
 
-            if (isCorrect) {
+            if (isOptCorrect) {
                 optClass += ' correct-choice';
                 style = 'padding:0.4rem 0.6rem; border-radius:5px; border:1px solid rgba(16,185,129,0.15); background:rgba(16,185,129,0.03); font-size:0.78rem; margin-top:0.25rem; color:#ffffff; display:flex; gap:0.4rem;';
-            } else if (isUserWrong) {
+            } else if (isOptUserWrong) {
                 optClass += ' wrong-choice';
                 style = 'padding:0.4rem 0.6rem; border-radius:5px; border:1px solid rgba(239,68,68,0.15); background:rgba(239,68,68,0.03); font-size:0.78rem; margin-top:0.25rem; color:#ffffff; display:flex; gap:0.4rem;';
             }
@@ -1344,17 +1359,22 @@ function renderYearlyWrongAllTab(item, details) {
                 <div class="${optClass}" style="${style}">
                     <span style="font-weight:700;">${optNum}.</span>
                     <span>${optText}</span>
-                    ${isCorrect ? ' <span style="margin-left:auto; color:var(--success); font-weight:700; font-size:0.72rem;">(정답)</span>' : ''}
-                    ${isUserWrong ? ' <span style="margin-left:auto; color:var(--error); font-weight:700; font-size:0.72rem;">(선택 오답)</span>' : ''}
+                    ${isOptCorrect ? ' <span style="margin-left:auto; color:var(--success); font-weight:700; font-size:0.72rem;">(정답)</span>' : ''}
+                    ${isOptUserWrong ? ' <span style="margin-left:auto; color:var(--error); font-weight:700; font-size:0.72rem;">(선택 오답)</span>' : ''}
                 </div>
             `;
         });
 
         const reviewImgPath = `images/${item.exam_year}_${d.question_num}.png`;
         const imageHtml = `
-            <div id="yearly-q-all-img-wrap-${d.question_num}" style="display:none; margin-top:0.6rem; justify-content:center;">
-                <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:6px;"
-                     onload="document.getElementById('yearly-q-all-img-wrap-${d.question_num}').style.display='flex';"
+            <div id="yearly-q-all-img-btn-wrap-${d.question_num}" style="display:none; margin-top:0.4rem; margin-bottom:0.4rem;">
+                <button class="ctrl-btn" onclick="toggleAllTabImage(${d.question_num})" style="padding:0.25rem 0.5rem; font-size:0.7rem; border-radius:4px; display:inline-flex; align-items:center; gap:0.2rem; cursor:pointer; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:var(--text-secondary); outline:none;">
+                    <i data-lucide="image" style="width:12px; height:12px;"></i> 크롭 이미지 보기/접기
+                </button>
+            </div>
+            <div id="yearly-q-all-img-wrap-${d.question_num}" style="display:none; margin-top:0.4rem; justify-content:center; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.04); border-radius:6px; padding:0.4rem;">
+                <img src="${reviewImgPath}" alt="문제 이미지" style="max-width:100%; border-radius:4px;"
+                     onload="document.getElementById('yearly-q-all-img-btn-wrap-${d.question_num}').style.display='block';"
                      onerror="this.style.display='none';">
             </div>
         `;
@@ -1386,12 +1406,15 @@ function renderYearlyWrongAllTab(item, details) {
                 
                 <div style="margin-bottom:0.6rem;">${optionsHtml}</div>
                 
-                <div style="background:rgba(139,92,246,0.02); border:1px solid rgba(139,92,246,0.08); border-radius:6px; padding:0.5rem 0.7rem; font-size:0.75rem; line-height:1.4;">
-                    <div style="color:#c084fc; font-weight:700; margin-bottom:0.15rem; display:flex; align-items:center; gap:0.25rem;">
+                <div style="background:rgba(139,92,246,0.02); border:1px solid rgba(139,92,246,0.08); border-radius:6px; padding:0.4rem 0.6rem; font-size:0.75rem; line-height:1.4; margin-top:0.6rem;">
+                    <div onclick="toggleAllTabExplanation(${d.question_num})" style="color:#c084fc; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none;">
                         <i data-lucide="book-open" style="width:12px; height:12px;"></i> 정답 및 상세 해설
+                        <i data-lucide="chevron-down" id="exp-chevron-${d.question_num}" style="width:12px; height:12px; margin-left:auto;"></i>
                     </div>
-                    <div style="color:var(--text-muted); margin-bottom:0.3rem;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
-                    ${lawBtnHtml}
+                    <div id="exp-content-${d.question_num}" style="display:none; margin-top:0.4rem; border-top:1px solid rgba(139,92,246,0.1); padding-top:0.4rem;">
+                        <div style="color:var(--text-muted); margin-bottom:0.3rem; white-space:pre-wrap;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
+                        ${lawBtnHtml}
+                    </div>
                 </div>
             </div>
         `;
@@ -1421,12 +1444,15 @@ function renderRecurrenceAnswerComparison(item, detail) {
         } catch {}
     }
 
-    historyList.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    // 같은 연도의 시험 이력만 필터링하여 날짜 순(오름차순) 정렬
+    const currentYear = item.exam_year;
+    const filteredHistory = historyList.filter(hist => hist.exam_year === currentYear);
+    filteredHistory.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
     const currentId = item.id;
     let records = [];
 
-    historyList.forEach(hist => {
+    filteredHistory.forEach(hist => {
         let histDetails = [];
         if (hist.details) {
             histDetails = typeof hist.details === 'string' ? JSON.parse(hist.details) : hist.details;
@@ -1773,10 +1799,37 @@ function closeLawGuideModal(event) {
     if (modal) modal.style.display = 'none';
 }
 
+function toggleAllTabImage(qNum) {
+    const imgWrap = document.getElementById(`yearly-q-all-img-wrap-${qNum}`);
+    if (!imgWrap) return;
+    if (imgWrap.style.display === 'none' || imgWrap.style.display === '') {
+        imgWrap.style.display = 'flex';
+    } else {
+        imgWrap.style.display = 'none';
+    }
+}
+
+function toggleAllTabExplanation(qNum) {
+    const content = document.getElementById(`exp-content-${qNum}`);
+    const chevron = document.getElementById(`exp-chevron-${qNum}`);
+    if (!content) return;
+    if (content.style.display === 'none' || content.style.display === '') {
+        content.style.display = 'block';
+        if (chevron) chevron.setAttribute('data-lucide', 'chevron-up');
+    } else {
+        content.style.display = 'none';
+        if (chevron) chevron.setAttribute('data-lucide', 'chevron-down');
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
 // 전역 바인딩
 window.showLawGuideCard = showLawGuideCard;
 window.closeLawGuideModal = closeLawGuideModal;
 window.switchViewerTab = switchViewerTab;
 window.clickRecurrenceChip = clickRecurrenceChip;
+window.toggleAllTabImage = toggleAllTabImage;
+window.toggleAllTabExplanation = toggleAllTabExplanation;
+window.closeResultWindow = closeResultWindow;
 
 
