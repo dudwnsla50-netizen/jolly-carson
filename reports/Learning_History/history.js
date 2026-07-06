@@ -1804,6 +1804,10 @@ function openYearlyModal(item) {
         if (HistoryState && HistoryState.yearlyExamHistory) {
             localStorage.setItem('selected_history_list', JSON.stringify(HistoryState.yearlyExamHistory));
         }
+        // OMR 클릭 시 대시보드(일반 퀴즈) 이력까지 함께 비교할 수 있도록 전달
+        if (HistoryState && Array.isArray(HistoryState.allLogs)) {
+            localStorage.setItem('selected_quiz_logs', JSON.stringify(HistoryState.allLogs));
+        }
         // 독립된 html 팝업창을 새 탭/새 창으로 띄우기
         window.open('../exam_mock/yearly_result.html?from_history=true', '_blank');
     } catch (e) {

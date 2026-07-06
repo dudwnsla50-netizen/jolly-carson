@@ -1439,73 +1439,139 @@ function renderRecurrenceAnswerComparison(item, detail) {
     if (!box) return;
     box.innerHTML = '';
     box.style.display = 'none';
+    const qNum = Number(detail.question_num);
+    const qKey = `${item.exam_year}_${qNum}`;
 
-    if (detail.is_correct) return;
+    const parseJsonSafely = (value, fallback) => {
+        if (value === null || value === undefined) return fallback;
+        if (typeof value === 'object') return value;
+        if (typeof value === 'string' && value.trim()) {
+            try {
+                return JSON.parse(value);
+            } catch (e) {
+                return fallback;
+            }
+        }
+        return fallback;
+    };
 
-    const qNum = detail.question_num;
-    const currentWrongAns = Array.isArray(detail.user_answer) ? detail.user_answer[0] : detail.user_answer;
+    const toAnswerText = (ans) => {
+        if (Array.isArray(ans)) {
+            if (ans.length === 0) return '-';
+            return ans.map(v => Number(v)).filter(v => !Number.isNaN(v)).join(', ');
+        }
+        if (ans === null || ans === undefined || ans === '') return '-';
+        const n = Number(ans);
+        return Number.isNaN(n) ? String(ans) : String(n);
+    };
 
-    const rawHistory = localStorage.getItem('selected_history_list');
-    let historyList = [];
-    if (rawHistory) {
-        try {
-            historyList = JSON.parse(rawHistory);
-        } catch {}
-    }
-
-    // 같은 연도의 시험 이력만 필터링하여 날짜 순(오름차순) 정렬
-    const currentYear = item.exam_year;
-    const filteredHistory = historyList.filter(hist => hist.exam_year === currentYear);
-    filteredHistory.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
+    const currentDateTs = new Date(item.created_at || 0).getTime();
     const currentId = item.id;
-    let records = [];
+    const records = [];
 
-    filteredHistory.forEach(hist => {
-        let histDetails = [];
-        if (hist.details) {
-            histDetails = typeof hist.details === 'string' ? JSON.parse(hist.details) : hist.details;
-        }
-        const match = histDetails.find(x => Number(x.question_num) === Number(qNum));
-        if (match) {
-            const ans = Array.isArray(match.user_answer) ? match.user_answer[0] : match.user_answer;
-            const dateStr = hist.created_at.split('T')[0];
+    // 1) 모의고사 이력(기출) 수집
+    const yearlyHistory = parseJsonSafely(localStorage.getItem('selected_history_list'), []);
+    yearlyHistory
+        .filter(hist => String(hist.exam_year) === String(item.exam_year))
+        .forEach(hist => {
+            const histDetails = parseJsonSafely(hist.details, []);
+            const match = Array.isArray(histDetails)
+                ? histDetails.find(x => Number(x.question_num) === qNum)
+                : null;
+            if (!match) return;
+
+            const dateTs = new Date(hist.created_at || 0).getTime();
             records.push({
-                histId: hist.id,
-                date: dateStr,
-                userAnswer: ans,
-                isCorrect: match.is_correct,
-                isCurrent: hist.id === currentId
+                source: '모의고사',
+                date: hist.created_at || '',
+                dateTs,
+                userAnswer: Array.isArray(match.user_answer) ? match.user_answer : [match.user_answer],
+                isCorrect: !!match.is_correct,
+                isCurrent: String(hist.id) === String(currentId)
             });
+        });
+
+    // 2) 대시보드(일반 퀴즈) 이력 수집
+    const quizLogs = parseJsonSafely(localStorage.getItem('selected_quiz_logs'), []);
+    quizLogs.forEach(log => {
+        const logDateTs = new Date(log && log.created_at ? log.created_at : 0).getTime();
+        if (Number.isNaN(logDateTs) || logDateTs >= currentDateTs) return;
+
+        const d = parseJsonSafely(log && log.details, null);
+        if (!d) return;
+
+        // details 포맷 1: { q_id, user_choice/user_answer, is_correct }
+        if (typeof d.q_id === 'string') {
+            if (d.q_id !== qKey) return;
+
+            const userAns = Array.isArray(d.user_answer)
+                ? d.user_answer
+                : (Array.isArray(d.user_choice) ? d.user_choice : [d.user_answer || d.user_choice]);
+
+            const isCorrect = (d.is_correct !== undefined)
+                ? !!d.is_correct
+                : Number(log.correct_count || 0) > 0;
+
+            records.push({
+                source: '대시보드',
+                date: log.created_at || '',
+                dateTs: logDateTs,
+                userAnswer: userAns,
+                isCorrect,
+                isCurrent: false
+            });
+            return;
         }
+
+        // details 포맷 2: { correct: [...], wrong: [...] }
+        const correctList = Array.isArray(d.correct) ? d.correct.map(String) : [];
+        const wrongList = Array.isArray(d.wrong) ? d.wrong.map(String) : [];
+        if (!correctList.includes(qKey) && !wrongList.includes(qKey)) return;
+
+        records.push({
+            source: '대시보드',
+            date: log.created_at || '',
+            dateTs: logDateTs,
+            userAnswer: [],
+            isCorrect: correctList.includes(qKey),
+            isCurrent: false
+        });
     });
 
-    if (records.length <= 1) return;
+    // 시간순 정렬 (과거 -> 현재)
+    records.sort((a, b) => a.dateTs - b.dateTs);
 
+    // 현재 항목만 존재할 경우에도 안내 카드를 노출해 사용자가 히스토리 부재를 인지할 수 있도록 합니다.
     box.style.display = 'block';
-    let itemsHtml = '';
-    records.forEach(r => {
+
+    const itemsHtml = records.map(r => {
         const checkIcon = r.isCorrect ? 'check' : 'x';
         const checkColor = r.isCorrect ? 'var(--success)' : 'var(--error)';
-        const curStyle = r.isCurrent ? 'border:1px solid rgba(139,92,246,0.3); background:rgba(139,92,246,0.06);' : 'background:rgba(255,255,255,0.01);';
-        
-        itemsHtml += `
-            <div style="padding:0.4rem 0.5rem; border-radius:6px; ${curStyle} text-align:center; min-width:80px; flex:1;">
-                <div style="font-size:0.58rem; color:var(--text-muted); margin-bottom:0.15rem;">${r.date}${r.isCurrent ? ' (현재)' : ''}</div>
+        const curStyle = r.isCurrent
+            ? 'border:1px solid rgba(139,92,246,0.3); background:rgba(139,92,246,0.06);'
+            : 'background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.06);';
+
+        const day = r.date ? String(r.date).split('T')[0] : '-';
+        const answerText = toAnswerText(r.userAnswer);
+        const answerSuffix = answerText === '-' ? '' : '번';
+        return `
+            <div style="padding:0.42rem 0.55rem; border-radius:6px; ${curStyle} text-align:center; min-width:112px; flex:1;">
+                <div style="font-size:0.58rem; color:var(--text-muted); margin-bottom:0.15rem;">${day}${r.isCurrent ? ' (현재)' : ''}</div>
+                <div style="font-size:0.62rem; color:var(--text-secondary); margin-bottom:0.12rem;">${r.source}</div>
                 <div style="font-size:0.8rem; font-weight:700; color:${checkColor}; display:flex; align-items:center; justify-content:center; gap:0.15rem;">
-                    <i data-lucide="${checkIcon}" style="width:12px; height:12px;"></i> ${r.userAnswer}번 선택
+                    <i data-lucide="${checkIcon}" style="width:12px; height:12px;"></i> ${answerText}${answerSuffix} 선택
                 </div>
             </div>
         `;
-    });
+    }).join('');
 
     box.innerHTML = `
         <div style="background:rgba(249,115,22,0.04); border:1px solid rgba(249,115,22,0.12); border-radius:10px; padding:0.65rem; font-size:0.75rem;">
             <div style="color:#f97316; font-weight:700; margin-bottom:0.35rem; display:flex; align-items:center; gap:0.25rem;">
-                <i data-lucide="git-branch" style="width:13px; height:13px;"></i> 누적 오답 선택 히스토리 비교
+                <i data-lucide="git-branch" style="width:13px; height:13px;"></i> 누적 답안 이력 비교 (모의고사 + 대시보드)
             </div>
             <div style="display:flex; gap:0.4rem; overflow-x:auto;">
-                ${itemsHtml}
+                ${itemsHtml || '<div style="font-size:0.72rem; color:var(--text-secondary);">과거 이력이 없습니다.</div>'}
             </div>
         </div>
     `;
@@ -1514,19 +1580,32 @@ function renderRecurrenceAnswerComparison(item, detail) {
 
 // 오답 재발 정보 수치 분석 헬퍼
 function getYearlyWrongRecurrenceInsight(item, details) {
-    const rawHistory = localStorage.getItem('selected_history_list');
-    let historyList = [];
-    if (rawHistory) {
-        try {
-            historyList = JSON.parse(rawHistory);
-        } catch {}
-    }
+    const parseJsonSafely = (value, fallback) => {
+        if (value === null || value === undefined) return fallback;
+        if (typeof value === 'object') return value;
+        if (typeof value === 'string' && value.trim()) {
+            try {
+                return JSON.parse(value);
+            } catch (e) {
+                return fallback;
+            }
+        }
+        return fallback;
+    };
+
+    const historyList = parseJsonSafely(localStorage.getItem('selected_history_list'), []);
+    const quizLogs = parseJsonSafely(localStorage.getItem('selected_quiz_logs'), []);
 
     const currentId = item.id;
     const currentYear = item.exam_year;
+    const currentDateTs = new Date(item.created_at || 0).getTime();
 
     const prevAttempts = historyList
-        .filter(h => h.id !== currentId && h.exam_year === currentYear)
+        .filter(h => String(h.id) !== String(currentId) && String(h.exam_year) === String(currentYear))
+        .filter(h => {
+            const ts = new Date(h.created_at || 0).getTime();
+            return !Number.isNaN(ts) && ts < currentDateTs;
+        })
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     const result = {
@@ -1538,36 +1617,67 @@ function getYearlyWrongRecurrenceInsight(item, details) {
         recurrenceBySubject: { 'PM': 0, 'SE': 0, 'DB': 0, 'SA': 0, 'SC': 0 }
     };
 
-    if (prevAttempts.length === 0) return result;
+    const prevWrongKeySet = new Set();
 
-    const lastAttempt = prevAttempts[0];
-    let lastDetails = [];
-    if (lastAttempt.details) {
-        lastDetails = typeof lastAttempt.details === 'string' ? JSON.parse(lastAttempt.details) : lastAttempt.details;
-    }
-    const lastWrongs = new Set(lastDetails.filter(d => !d.is_correct).map(d => Number(d.question_num)));
+    // 1) 과거 모의고사 오답 키 누적
+    prevAttempts.forEach(hist => {
+        const histDetails = parseJsonSafely(hist.details, []);
+        if (!Array.isArray(histDetails)) return;
+        histDetails.forEach(d => {
+            if (!d || d.is_correct) return;
+            const qNum = Number(d.question_num);
+            if (Number.isNaN(qNum)) return;
+            prevWrongKeySet.add(`${currentYear}_${qNum}`);
+        });
+    });
+
+    // 2) 과거 대시보드 로그 오답 키 누적
+    quizLogs.forEach(log => {
+        const ts = new Date(log && log.created_at ? log.created_at : 0).getTime();
+        if (Number.isNaN(ts) || ts >= currentDateTs) return;
+
+        const d = parseJsonSafely(log && log.details, null);
+        if (!d) return;
+
+        if (typeof d.q_id === 'string') {
+            if (d.q_id.startsWith(`${currentYear}_`) && d.is_correct === false) {
+                prevWrongKeySet.add(d.q_id);
+            }
+            return;
+        }
+
+        const wrongList = Array.isArray(d.wrong) ? d.wrong.map(String) : [];
+        wrongList.forEach(key => {
+            if (key.startsWith(`${currentYear}_`)) {
+                prevWrongKeySet.add(key);
+            }
+        });
+    });
+
+    result.previousAttemptCount += quizLogs.length;
 
     const currentWrongs = details.filter(d => !d.is_correct).map(d => Number(d.question_num));
     const currentCorrects = details.filter(d => d.is_correct).map(d => Number(d.question_num));
 
     currentWrongs.forEach(qNum => {
-        if (lastWrongs.has(qNum)) {
-            result.recurringWrong.push(qNum);
-            const code = getSubjectInfo(qNum).code;
-            if (result.recurrenceBySubject[code] !== undefined) {
-                result.recurrenceBySubject[code]++;
-            }
+        const key = `${currentYear}_${qNum}`;
+        if (!prevWrongKeySet.has(key)) return;
+        result.recurringWrong.push(qNum);
+        const code = getSubjectInfo(qNum).code;
+        if (result.recurrenceBySubject[code] !== undefined) {
+            result.recurrenceBySubject[code]++;
         }
     });
 
     currentCorrects.forEach(qNum => {
-        if (lastWrongs.has(qNum)) {
+        const key = `${currentYear}_${qNum}`;
+        if (prevWrongKeySet.has(key)) {
             result.improvedCount++;
         }
     });
 
-    if (lastWrongs.size > 0) {
-        result.recurrenceRate = Math.round((result.recurringWrong.length / lastWrongs.size) * 100);
+    if (result.currentWrongCount > 0) {
+        result.recurrenceRate = Math.round((result.recurringWrong.length / result.currentWrongCount) * 100);
     }
 
     return result;
