@@ -1141,6 +1141,18 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
                     .join('')
                 : '<span style="font-size:0.78rem; color: var(--text-secondary);">재발 오답은 없습니다.</span>';
 
+            const pastAttemptList = buildPastAttemptListForCard(result, 10);
+            const pastAttemptHtml = pastAttemptList.length > 0
+                ? pastAttemptList
+                    .map(entry => `
+                        <div style="display:flex; justify-content:space-between; gap:0.6rem; padding:0.34rem 0.45rem; border:1px solid rgba(255,255,255,0.06); border-radius:7px; background:rgba(255,255,255,0.02);">
+                            <span style="font-size:0.72rem; color:var(--text-secondary);">${formatDate(entry.createdAt)} · ${entry.source}</span>
+                            <span style="font-size:0.72rem; color:var(--text-primary); font-weight:600;">${entry.summary}</span>
+                        </div>
+                    `)
+                    .join('')
+                : '<span style="font-size:0.76rem; color: var(--text-secondary);">표시할 과거 풀이 이력이 없습니다.</span>';
+
             recCard.innerHTML = `
                 <h3 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.3rem; color: #f97316; margin-top: 0;">
                     <i data-lucide="repeat" style="width: 14px; height: 14px;"></i> 오답 재발 추적 (과거 기출이력 비교)
@@ -1148,6 +1160,10 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
                 <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 0.5rem;">
                     <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 0.35rem;">재발 오답 리스트 (클릭 시 누적 오답 비교)</div>
                     <div>${recurringWrongHtml}</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; padding: 0.5rem; margin-top:0.45rem;">
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 0.35rem;">기존 풀이 이력 리스트 (최대 10개)</div>
+                    <div style="display:flex; flex-direction:column; gap:0.3rem;">${pastAttemptHtml}</div>
                 </div>
             `;
         } else {
@@ -1576,6 +1592,86 @@ function renderRecurrenceAnswerComparison(item, detail) {
         </div>
     `;
     if (window.lucide) lucide.createIcons();
+}
+
+// 오답 재발 카드용 과거 풀이 목록(모의고사 + 대시보드) 생성
+function buildPastAttemptListForCard(item, maxCount = 10) {
+    const parseJsonSafely = (value, fallback) => {
+        if (value === null || value === undefined) return fallback;
+        if (typeof value === 'object') return value;
+        if (typeof value === 'string' && value.trim()) {
+            try {
+                return JSON.parse(value);
+            } catch (e) {
+                return fallback;
+            }
+        }
+        return fallback;
+    };
+
+    const currentYear = String(item.exam_year || '');
+    const currentId = String(item.id || '');
+    const currentDateTs = new Date(item.created_at || 0).getTime();
+    const list = [];
+
+    const historyList = parseJsonSafely(localStorage.getItem('selected_history_list'), []);
+    historyList.forEach(hist => {
+        const histYear = String(hist && hist.exam_year ? hist.exam_year : '');
+        if (histYear !== currentYear) return;
+        if (String(hist.id || '') === currentId) return;
+
+        const ts = new Date(hist && hist.created_at ? hist.created_at : 0).getTime();
+        if (Number.isNaN(ts) || ts >= currentDateTs) return;
+
+        const score = Number(hist.score || 0);
+        const correct = Number(hist.correct_count || 0);
+        const total = Number(hist.total_questions || 0);
+
+        list.push({
+            ts,
+            createdAt: hist.created_at || '',
+            source: '모의고사',
+            summary: `${correct}/${total} · ${score.toFixed(1)}점`
+        });
+    });
+
+    const quizLogs = parseJsonSafely(localStorage.getItem('selected_quiz_logs'), []);
+    quizLogs.forEach(log => {
+        const ts = new Date(log && log.created_at ? log.created_at : 0).getTime();
+        if (Number.isNaN(ts) || ts >= currentDateTs) return;
+
+        const detail = parseJsonSafely(log && log.details, null);
+        if (!detail) return;
+
+        let isRelatedToCurrentYear = false;
+
+        if (typeof detail.q_id === 'string') {
+            isRelatedToCurrentYear = detail.q_id.startsWith(`${currentYear}_`);
+        }
+
+        if (!isRelatedToCurrentYear) {
+            const correctList = Array.isArray(detail.correct) ? detail.correct.map(String) : [];
+            const wrongList = Array.isArray(detail.wrong) ? detail.wrong.map(String) : [];
+            const merged = correctList.concat(wrongList);
+            isRelatedToCurrentYear = merged.some(key => key.startsWith(`${currentYear}_`));
+        }
+
+        if (!isRelatedToCurrentYear) return;
+
+        const totalQuestions = Number(log.total_questions || 0);
+        const correctCount = Number(log.correct_count || 0);
+        const subject = (log.subject || '대시보드').toString();
+
+        list.push({
+            ts,
+            createdAt: log.created_at || '',
+            source: '대시보드',
+            summary: `${subject} ${correctCount}/${totalQuestions}`
+        });
+    });
+
+    list.sort((a, b) => b.ts - a.ts);
+    return list.slice(0, Math.max(1, maxCount));
 }
 
 // 오답 재발 정보 수치 분석 헬퍼
