@@ -1127,12 +1127,25 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
             `;
             statsContainer.appendChild(box);
         }
+
+        // 과목 분석 박스 옆에 누적 답안 이력 비교 패널 배치
+        const comparePanel = document.createElement('div');
+        comparePanel.className = 'subject-analysis-box';
+        comparePanel.style.cssText = 'background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 0.65rem; text-align: left;';
+        comparePanel.innerHTML = `
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display:flex; align-items:center; gap:0.25rem;">
+                <i data-lucide="git-branch" style="width:12px; height:12px;"></i> 누적 답안 이력 비교
+            </div>
+            <div id="recurrence-inline-compare-box" style="font-size:0.72rem; color: var(--text-secondary); line-height:1.4;">OMR 문제를 클릭하면 비교 이력이 여기에 표시됩니다.</div>
+        `;
+        statsContainer.appendChild(comparePanel);
     }
 
     // 5. 오답 재발 추적 카드 렌더링
     const recCard = document.getElementById('recurrence-tracking-card');
     if (recCard) {
-        if (recurrenceInsight.previousAttemptCount > 0) {
+        const pastAttemptList = buildPastAttemptListForCard(result, 10);
+        if (recurrenceInsight.previousAttemptCount > 0 || pastAttemptList.length > 0) {
             recCard.style.display = 'block';
             const recurringWrongHtml = recurrenceInsight.recurringWrong.length > 0
                 ? recurrenceInsight.recurringWrong
@@ -1141,7 +1154,6 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
                     .join('')
                 : '<span style="font-size:0.78rem; color: var(--text-secondary);">재발 오답은 없습니다.</span>';
 
-            const pastAttemptList = buildPastAttemptListForCard(result, 10);
             const pastAttemptHtml = pastAttemptList.length > 0
                 ? pastAttemptList
                     .map(entry => `
@@ -1451,7 +1463,7 @@ function renderYearlyWrongAllTab(item, details) {
 
 // 오답 비교 분석 보드 조립기
 function renderRecurrenceAnswerComparison(item, detail) {
-    const box = document.getElementById('yearly-recurrence-compare-box');
+    const box = document.getElementById('recurrence-inline-compare-box') || document.getElementById('yearly-recurrence-compare-box');
     if (!box) return;
     box.innerHTML = '';
     box.style.display = 'none';
@@ -1609,15 +1621,12 @@ function buildPastAttemptListForCard(item, maxCount = 10) {
         return fallback;
     };
 
-    const currentYear = String(item.exam_year || '');
     const currentId = String(item.id || '');
     const currentDateTs = new Date(item.created_at || 0).getTime();
     const list = [];
 
     const historyList = parseJsonSafely(localStorage.getItem('selected_history_list'), []);
     historyList.forEach(hist => {
-        const histYear = String(hist && hist.exam_year ? hist.exam_year : '');
-        if (histYear !== currentYear) return;
         if (String(hist.id || '') === currentId) return;
 
         const ts = new Date(hist && hist.created_at ? hist.created_at : 0).getTime();
@@ -1643,20 +1652,20 @@ function buildPastAttemptListForCard(item, maxCount = 10) {
         const detail = parseJsonSafely(log && log.details, null);
         if (!detail) return;
 
-        let isRelatedToCurrentYear = false;
+        let isExamHistoryLike = false;
 
         if (typeof detail.q_id === 'string') {
-            isRelatedToCurrentYear = detail.q_id.startsWith(`${currentYear}_`);
+            isExamHistoryLike = /^\d{4}_\d+$/.test(detail.q_id);
         }
 
-        if (!isRelatedToCurrentYear) {
+        if (!isExamHistoryLike) {
             const correctList = Array.isArray(detail.correct) ? detail.correct.map(String) : [];
             const wrongList = Array.isArray(detail.wrong) ? detail.wrong.map(String) : [];
             const merged = correctList.concat(wrongList);
-            isRelatedToCurrentYear = merged.some(key => key.startsWith(`${currentYear}_`));
+            isExamHistoryLike = merged.some(key => /^\d{4}_\d+$/.test(String(key)));
         }
 
-        if (!isRelatedToCurrentYear) return;
+        if (!isExamHistoryLike) return;
 
         const totalQuestions = Number(log.total_questions || 0);
         const correctCount = Number(log.correct_count || 0);
@@ -1750,7 +1759,11 @@ function getYearlyWrongRecurrenceInsight(item, details) {
         });
     });
 
-    result.previousAttemptCount += quizLogs.length;
+    const pastQuizLogsCount = quizLogs.filter(log => {
+        const ts = new Date(log && log.created_at ? log.created_at : 0).getTime();
+        return !Number.isNaN(ts) && ts < currentDateTs;
+    }).length;
+    result.previousAttemptCount += pastQuizLogsCount;
 
     const currentWrongs = details.filter(d => !d.is_correct).map(d => Number(d.question_num));
     const currentCorrects = details.filter(d => d.is_correct).map(d => Number(d.question_num));
