@@ -867,10 +867,20 @@
 
         .subject-analysis-box {
             background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 0.65rem;
             text-align: center;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .subject-analysis-box:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .subject-analysis-box.compare-panel {
+            text-align: left;
         }
 
         .subject-name-label {
@@ -1167,6 +1177,45 @@
             }
             to {
                 transform: rotate(360deg);
+            }
+        }
+
+        /* 과목별 점수/시간 통계 영역 반응형 그리드 */
+        #subject-stats-card-container {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.4rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .subject-analysis-box.compare-panel {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 1200px) {
+            #subject-stats-card-container {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+            .subject-analysis-box.compare-panel {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #subject-stats-card-container {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            .subject-analysis-box.compare-panel {
+                grid-column: span 3;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #subject-stats-card-container {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .subject-analysis-box.compare-panel {
+                grid-column: span 2;
             }
         }
 

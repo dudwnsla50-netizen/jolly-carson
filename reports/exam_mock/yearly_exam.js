@@ -1117,7 +1117,6 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
 
             const box = document.createElement('div');
             box.className = 'subject-analysis-box';
-            box.style.cssText = 'background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 0.65rem; text-align: center;';
             box.innerHTML = `
                 <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">${SUBJECTS[code].name}</div>
                 <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.15rem;">${stat.correct} / ${stat.total}문항</div>
@@ -1130,8 +1129,7 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
 
         // 과목 분석 박스 옆에 누적 답안 이력 비교 패널 배치
         const comparePanel = document.createElement('div');
-        comparePanel.className = 'subject-analysis-box';
-        comparePanel.style.cssText = 'background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 0.65rem; text-align: left;';
+        comparePanel.className = 'subject-analysis-box compare-panel';
         comparePanel.innerHTML = `
             <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display:flex; align-items:center; gap:0.25rem;">
                 <i data-lucide="git-branch" style="width:12px; height:12px;"></i> 누적 답안 이력 비교
@@ -1523,7 +1521,7 @@ function renderRecurrenceAnswerComparison(item, detail) {
     const quizLogs = parseJsonSafely(localStorage.getItem('selected_quiz_logs'), []);
     quizLogs.forEach(log => {
         const logDateTs = new Date(log && log.created_at ? log.created_at : 0).getTime();
-        if (Number.isNaN(logDateTs) || logDateTs >= currentDateTs) return;
+        if (Number.isNaN(logDateTs)) return;
 
         const d = parseJsonSafely(log && log.details, null);
         if (!d) return;
@@ -1572,35 +1570,70 @@ function renderRecurrenceAnswerComparison(item, detail) {
     // 현재 항목만 존재할 경우에도 안내 카드를 노출해 사용자가 히스토리 부재를 인지할 수 있도록 합니다.
     box.style.display = 'block';
 
-    const itemsHtml = records.map(r => {
-        const checkIcon = r.isCorrect ? 'check' : 'x';
-        const checkColor = r.isCorrect ? 'var(--success)' : 'var(--error)';
-        const curStyle = r.isCurrent
-            ? 'border:1px solid rgba(139,92,246,0.3); background:rgba(139,92,246,0.06);'
-            : 'background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.06);';
+    const formatDateToMMDD = (dateStr) => {
+        if (!dateStr) return '-';
+        try {
+            const d = new Date(dateStr);
+            const mm = d.getMonth() + 1;
+            const dd = d.getDate();
+            return `${mm}/${dd}`;
+        } catch (e) {
+            return '-';
+        }
+    };
 
-        const day = r.date ? String(r.date).split('T')[0] : '-';
+    const formatFullDateTime = (dateStr) => {
+        if (!dateStr) return '-';
+        try {
+            const d = new Date(dateStr);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+        } catch (e) {
+            return '-';
+        }
+    };
+
+    const cellsHtml = records.map(r => {
+        const isCorrect = r.isCorrect;
+        const day = r.date ? formatDateToMMDD(r.date) : '-';
         const answerText = toAnswerText(r.userAnswer);
-        const answerSuffix = answerText === '-' ? '' : '번';
+
+        // OMR 보드 스타일 차용
+        let cellBg = isCorrect ? 'rgba(16, 185, 129, 0.04)' : 'rgba(239, 68, 68, 0.04)';
+        let cellBorder = isCorrect ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)';
+        let textCol = isCorrect ? '#34d399' : '#f87171';
+
+        // 현재 풀이 항목 스타일 강조
+        if (r.isCurrent) {
+            cellBg = 'rgba(139, 92, 246, 0.12)';
+            cellBorder = '1.5px solid #a78bfa';
+        }
+
+        const fullTime = r.date ? formatFullDateTime(r.date) : '-';
+        const tooltip = `[${r.source}]${r.isCurrent ? ' (현재 풀이)' : ''}\n풀이 시각: ${fullTime}\n결과: ${isCorrect ? '정답' : '오답'}`;
+
         return `
-            <div style="padding:0.42rem 0.55rem; border-radius:6px; ${curStyle} text-align:center; min-width:112px; flex:1;">
-                <div style="font-size:0.58rem; color:var(--text-muted); margin-bottom:0.15rem;">${day}${r.isCurrent ? ' (현재)' : ''}</div>
-                <div style="font-size:0.62rem; color:var(--text-secondary); margin-bottom:0.12rem;">${r.source}</div>
-                <div style="font-size:0.8rem; font-weight:700; color:${checkColor}; display:flex; align-items:center; justify-content:center; gap:0.15rem;">
-                    <i data-lucide="${checkIcon}" style="width:12px; height:12px;"></i> ${answerText}${answerSuffix} 선택
-                </div>
+            <div title="${tooltip}" style="background: ${cellBg}; border: ${cellBorder}; border-radius: 4px; padding: 0.2rem 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; min-height: 34px; width: 40px; flex: 0 0 40px; cursor: default; transition: transform 0.15s;">
+                <span style="font-size: 0.52rem; color: var(--text-secondary); font-family: monospace; font-weight: 600;">${day}</span>
+                <span style="font-size: 0.62rem; font-weight: 700; color: ${textCol};">${answerText}</span>
             </div>
         `;
     }).join('');
 
+    const contentHtml = records.length > 0 ? `
+        <div style="display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.2rem 0; max-width: 100%;">
+            ${cellsHtml}
+        </div>
+    ` : `<div style="font-size: 0.7rem; color: var(--text-secondary); padding: 0.5rem 0;">과거 풀이 이력이 없습니다.</div>`;
+
     box.innerHTML = `
-        <div style="background:rgba(249,115,22,0.04); border:1px solid rgba(249,115,22,0.12); border-radius:10px; padding:0.65rem; font-size:0.75rem;">
-            <div style="color:#f97316; font-weight:700; margin-bottom:0.35rem; display:flex; align-items:center; gap:0.25rem;">
-                <i data-lucide="git-branch" style="width:13px; height:13px;"></i> 누적 답안 이력 비교 (모의고사 + 대시보드)
-            </div>
-            <div style="display:flex; gap:0.4rem; overflow-x:auto;">
-                ${itemsHtml || '<div style="font-size:0.72rem; color:var(--text-secondary);">과거 이력이 없습니다.</div>'}
-            </div>
+        <div style="background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 0.45rem; margin-top: 0.25rem;">
+            ${contentHtml}
         </div>
     `;
     if (window.lucide) lucide.createIcons();
