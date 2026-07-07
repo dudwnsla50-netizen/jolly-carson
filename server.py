@@ -11,9 +11,11 @@ import sys
 import json
 import sqlite3
 import urllib.parse
+import urllib.request
 import traceback
 import psycopg2
 import psycopg2.extras
+import re
 from http.server import SimpleHTTPRequestHandler
 try:
     from http.server import ThreadingHTTPServer
@@ -39,6 +41,31 @@ if os.environ.get("USE_SQLITE") == "true":
     DB_TYPE = "SQLITE"
 else:
     DB_TYPE = "POSTGRES"
+
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+def call_gemini_raw_prompt(prompt):
+    if not GEMINI_API_KEY:
+        return ""
+    try:
+        url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=12) as res:
+            data = json.loads(res.read().decode("utf-8"))
+            raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            return raw_response
+    except Exception as e:
+        print(f"[Gemini API] 호출 오류: {e}")
+        return ""
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
@@ -192,6 +219,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_yearly_exam_questions(query)
         elif path == "/api/yearly-exam/history":
             self.get_yearly_exam_history(query)
+        elif path == "/api/yearly-exam/ai-diagnose":
+            self.get_yearly_exam_ai_diagnose(query)
         elif path == "/api/law-guide":
             self.get_law_guide_content(query)
         else:
@@ -1070,6 +1099,189 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
 
+    def get_yearly_exam_ai_diagnose(self, query):
+        """[설계 의도] 지정된 모의고사 풀이 이력에 대해 AI 취약 진단 및 처방 가이드를 반환합니다. 
+        캐싱되어 있다면 즉시 반환하고, 없으면 Gemini API를 호출해 생성 후 저장합니다."""
+        history_id_str = query.get("id", [None])[0]
+        if not history_id_str or not history_id_str.isdigit():
+            self.send_error_response(400, "Missing or invalid parameter (id)")
+            return
+
+        history_id = int(history_id_str)
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    # 1. 기존 캐시 여부 확인
+                    sql_select = "SELECT score, correct_count, total_questions, details, exam_year, ai_desc, ai_rec FROM yearly_exam_history WHERE id = %s"
+                    execute_query(cursor, sql_select, (history_id,))
+                    row = cursor.fetchone()
+                    
+                    if not row:
+                        self.send_error_response(404, "Exam history not found")
+                        return
+                        
+                    row_dict = dict(row)
+                    ai_desc = row_dict.get("ai_desc")
+                    ai_rec = row_dict.get("ai_rec")
+                    
+                    if ai_desc and ai_rec:
+                        # 캐시 반환
+                        self.send_json_response({
+                            "success": True,
+                            "ai_analysis": {
+                                "desc": ai_desc,
+                                "recommendation": ai_rec
+                            }
+                        })
+                        return
+                        
+                    # 2. 캐시가 없으면 Gemini API를 호출하여 생성
+                    # API Key가 없으면 로컬 룰에 따른 폴백 값을 생성하여 반환 및 저장합니다.
+                    score = row_dict.get("score", 0)
+                    correct_count = row_dict.get("correct_count", 0)
+                    total_questions = row_dict.get("total_questions", 120)
+                    exam_year = row_dict.get("exam_year", 2025)
+                    details_raw = row_dict.get("details", "")
+                    
+                    details = []
+                    if details_raw:
+                        try:
+                            details = json.loads(details_raw) if isinstance(details_raw, str) else details_raw
+                        except Exception:
+                            details = []
+                            
+                    # 과목별 정답 분석 수행
+                    pm_t = pm_c = se_t = se_c = db_t = db_c = sa_t = sa_c = sc_t = sc_c = 0
+                    for item in details:
+                        q_num = item.get("question_num")
+                        is_corr = item.get("is_correct", False)
+                        if q_num is not None:
+                            if 1 <= q_num <= 25:
+                                pm_t += 1
+                                if is_corr: pm_c += 1
+                            elif 26 <= q_num <= 50:
+                                se_t += 1
+                                if is_corr: se_c += 1
+                            elif 51 <= q_num <= 75:
+                                db_t += 1
+                                if is_corr: db_c += 1
+                            elif 76 <= q_num <= 100:
+                                sa_t += 1
+                                if is_corr: sa_c += 1
+                            elif 101 <= q_num <= 120:
+                                sc_t += 1
+                                if is_corr: sc_c += 1
+                                
+                    normal_correct = normal_total = new_trend_correct = new_trend_total = 0
+                    # new_trend_mapping 불러오기 (없는 경우 대비)
+                    new_trend_mapping = {}
+                    try:
+                        mapping_path = os.path.join(BASE_DIR, "reports", "js", "data", "new_trend_mapping.js")
+                        if os.path.exists(mapping_path):
+                            with open(mapping_path, "r", encoding="utf-8") as f:
+                                mapping_content = f.read()
+                                matches = re.findall(r'"(\d{4}_\d+)":\s*(\d)', mapping_content)
+                                for k, v in matches:
+                                    new_trend_mapping[k] = int(v)
+                    except Exception as ex:
+                        print(f"new_trend_mapping 로드 오류: {ex}")
+                        
+                    for item in details:
+                        q_num = item.get("question_num")
+                        is_corr = item.get("is_correct", False)
+                        if q_num is not None:
+                            qid = f"{exam_year}_{q_num}"
+                            is_new = new_trend_mapping.get(qid, 0) == 1
+                            if is_new:
+                                new_trend_total += 1
+                                if is_corr: new_trend_correct += 1
+                            else:
+                                normal_total += 1
+                                if is_corr: normal_correct += 1
+                                
+                    normal_pct = round((normal_correct / normal_total) * 100.0) if normal_total > 0 else 0
+                    new_trend_pct = round((new_trend_correct / new_trend_total) * 100.0) if new_trend_total > 0 else 0
+                    
+                    ai_desc_generated = ""
+                    ai_rec_generated = ""
+                    
+                    if GEMINI_API_KEY:
+                        # Gemini Prompt 작성
+                        prompt = f"""
+당신은 대한민국 최고 수준의 '정보시스템 감리사 자격검정 수험 진단 시스템'입니다.
+수험생이 치른 {exam_year}년도 모의고사 성적표 데이터를 바탕으로, 냉철하고 실질적인 학습 취약점 진단서와 추천 가이드를 작성해 주세요.
+
+[시험 결과 요약]
+- 총 문항 수: {total_questions}문항 중 {correct_count}문항 정답 (맞춤 환산 점수: {score}점)
+- 일반 기출 영역 정답률: {normal_pct}% ({normal_correct}/{normal_total})
+- 신규 트렌드/법규 영역 정답률: {new_trend_pct}% ({new_trend_correct}/{new_trend_total})
+
+[과목별 정답률 세부 내역]
+- 감리 및 사업관리(PM): {round((pm_c/pm_t)*100.0) if pm_t > 0 else 0}% ({pm_c}/{pm_t})
+- 소프트웨어공학(SE): {round((se_c/se_t)*100.0) if se_t > 0 else 0}% ({se_c}/{se_t})
+- 데이터베이스(DB): {round((db_c/db_t)*100.0) if db_t > 0 else 0}% ({db_c}/{db_t})
+- 시스템 아키텍처(SA): {round((sa_c/sa_t)*100.0) if sa_t > 0 else 0}% ({sa_c}/{sa_t})
+- 보안(SC): {round((sc_c/sc_t)*100.0) if sc_t > 0 else 0}% ({sc_c}/{sc_t})
+
+[출력 요구사항]
+1. 반드시 아래의 JSON 포맷 형식을 정확히 준수하여 응답하세요.
+2. 백틱 기호(```json)나 여타 텍스트(설명글 등)를 절대 덧붙이지 마십시오. 순수 JSON 텍스트만 출력해야 합니다.
+3. 'desc'는 수험생의 학습 패턴, 약점 단원, 일반 기출 대비 신규 기술 영역에서의 취약성 등을 냉철하고 예리하게 짚어내는 3~4줄 분량의 상세 분석 글이어야 합니다. (한국어로 격식 있는 조언 투)
+4. 'recommendation'은 향후 어떤 가이드나 과목을 어떻게 회독해야 하는지에 대한 1~2줄 분량의 구체적인 행동 조언 및 학습 팁이어야 합니다.
+
+[응답 JSON 스키마 포맷]
+{{
+  "desc": "이 수험생은 감리 및 사업관리의 공공 가이드라인 적용력은 우수하나, 소프트웨어공학의 복잡한 계산식 영역에서 잦은 오답이 보입니다. 특히 일반 기출 대비 신규 트렌드 문항의 정답률이 현저히 떨어지므로 최신 개정 고시에 대한 정리가 시급합니다.",
+  "recommendation": "소프트웨어공학 PMBOK 임계경로 계산 공식을 오답노트에 정리하시고, 최신 공공데이터 지침 및 전자정부 표준 프레임워크 4.x 개정본 가이드를 집중 회독하세요."
+}}
+
+최종 JSON 응답:"""
+                        raw_ai_res = call_gemini_raw_prompt(prompt)
+                        if raw_ai_res:
+                            # 백틱 블록 제거
+                            raw_ai_res = raw_ai_res.strip()
+                            if raw_ai_res.startswith("```"):
+                                lines = raw_ai_res.split("\n")
+                                if lines[0].startswith("```"):
+                                    lines = lines[1:]
+                                if lines[-1].startswith("```"):
+                                    lines = lines[:-1]
+                                raw_ai_res = "\n".join(lines).strip()
+                            try:
+                                ai_data = json.loads(raw_ai_res)
+                                ai_desc_generated = ai_data.get("desc", "").strip()
+                                ai_rec_generated = ai_data.get("recommendation", "").strip()
+                            except Exception as parse_ex:
+                                print(f"Gemini AI 응답 JSON 파싱 실패: {parse_ex}. 원본 응답: {raw_ai_res}")
+                                
+                    # 폴백 로직
+                    if not ai_desc_generated or not ai_rec_generated:
+                        if normal_pct >= 80 and new_trend_pct < 50:
+                            ai_desc_generated = "기존 기출 회독 상태는 양호하나 최신 법제도 개정이나 생소한 신규 기술 트렌드에 약점을 보입니다."
+                            ai_rec_generated = "💡 <b>처방 가이드:</b> <code>감리사_시험대비/가이드및법규</code> 폴더의 최신 고시 준수 가이드 및 공공데이터 지침서 등을 중심으로 신기술 트렌드를 집중 보완하십시오."
+                        elif normal_pct >= 80 and new_trend_pct >= 80:
+                            ai_desc_generated = "기출의 완성도와 최신 트렌드 대응력이 균형 있게 최상위권에 도달했습니다."
+                            ai_rec_generated = "💡 <b>처방 가이드:</b> 실전 모드 하에서 실수를 방지하고 소요 시간을 80분 이내로 타이트하게 단축하는 훈련에 힘쓰십시오."
+                        else:
+                            ai_desc_generated = "디테일한 암기(수식 계산, 표준 표기 규칙 등)의 정확성이 부족하여 전형적인 기출 패턴에서 오답이 잦습니다."
+                            ai_rec_generated = "💡 <b>처방 가이드:</b> 확실한 득점원 확보를 위해 데이터베이스 정규화 공식, PMBOK 임계경로(Critical Path) 계산식 및 오답 노트를 중심으로 회독 수를 높이십시오."
+                        
+                    # 3. 데이터베이스에 캐시 업데이트
+                    sql_update = "UPDATE yearly_exam_history SET ai_desc = %s, ai_rec = %s WHERE id = %s"
+                    execute_query(cursor, sql_update, (ai_desc_generated, ai_rec_generated, history_id))
+                    conn.commit()
+                    
+                    self.send_json_response({
+                        "success": True,
+                        "ai_analysis": {
+                            "desc": ai_desc_generated,
+                            "recommendation": ai_rec_generated
+                        }
+                    })
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Database diagnosis error: {str(e)}")
+
     def send_json_response(self, data):
         try:
             response_content = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -1185,6 +1397,18 @@ def init_yearly_exam_history_table():
                         cursor.execute(alter_sql)
                         conn.commit()
                         print(f"[{DB_TYPE}] yearly_exam_history 테이블에 컬럼 추가 완료: {col}")
+                
+                # AI 진단 캐시 컬럼 유무 확인 및 자동 추가
+                ai_columns = ["ai_desc", "ai_rec"]
+                for col in ai_columns:
+                    try:
+                        cursor.execute(f"SELECT {col} FROM yearly_exam_history LIMIT 1")
+                    except Exception:
+                        conn.rollback()
+                        alter_sql = f"ALTER TABLE yearly_exam_history ADD COLUMN {col} TEXT"
+                        cursor.execute(alter_sql)
+                        conn.commit()
+                        print(f"[{DB_TYPE}] yearly_exam_history 테이블에 AI 캐시 컬럼 추가 완료: {col}")
                 
                 # 기존 데이터에 대해 과목별 점수 데이터 복원 및 업데이트 수행
                 # pm_correct, se_correct, db_correct, sa_correct, sc_correct가 모두 0이고, 맞춘 정답 수가 0보다 큰 대상들을 필터링

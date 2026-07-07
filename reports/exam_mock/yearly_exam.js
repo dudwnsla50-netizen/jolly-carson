@@ -1086,13 +1086,15 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
                     </div>
                 </div>
                 <!-- 오른쪽 컬럼: 학습자 맞춤형 취약점 진단 박스 -->
-                <div style="background: rgba(139,92,246,0.04); border: 1px solid rgba(139,92,246,0.12); border-radius: 8px; padding: 0.6rem 0.7rem; display: flex; flex-direction: column; justify-content: center;">
+                <div id="ai-diagnose-card" style="background: rgba(139,92,246,0.04); border: 1px solid rgba(139,92,246,0.12); border-radius: 8px; padding: 0.6rem 0.7rem; display: flex; flex-direction: column; justify-content: center; transition: opacity 0.35s ease;">
                     <div style="font-weight: 700; color: #a78bfa; margin-bottom: 0.2rem; font-size: 0.76rem;">🔍 맞춤형 취약점 진단: ${userTypeLabel}</div>
                     <p style="color: var(--text-secondary); font-size: 0.7rem; line-height: 1.4; margin: 0 0 0.3rem 0;">${userTypeDesc}</p>
                     <div style="font-size: 0.72rem; color: var(--text-primary); line-height: 1.4; font-weight: 500;">${recommendation}</div>
                 </div>
             </div>
         `;
+        // 비동기 AI 진단 데이터 백그라운드 로드 개시
+        fetchAIDiagnostics(result);
     }
 
     // 4. 과목별 취약 스코어 및 5대 도메인 통계 주입
@@ -2105,6 +2107,49 @@ function toggleDetailTabImage(qNum) {
     if (window.lucide) lucide.createIcons();
 }
 
+async function fetchAIDiagnostics(result) {
+    const aiTargetBox = document.getElementById('ai-diagnose-card');
+    if (!aiTargetBox || !result || !result.id) return;
+
+    const loaderId = 'ai-loading-status';
+    if (document.getElementById(loaderId)) return;
+
+    const loaderHtml = document.createElement('div');
+    loaderHtml.id = loaderId;
+    loaderHtml.style.cssText = 'margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed rgba(139,92,246,0.18); font-size: 0.66rem; color: #a78bfa; display: flex; align-items: center; gap: 0.25rem;';
+    loaderHtml.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width: 12px; height: 12px; display: inline-block;"></i> Gemini AI가 정밀 취약 분석을 작성 중입니다...`;
+    aiTargetBox.appendChild(loaderHtml);
+
+    if (window.lucide) lucide.createIcons();
+
+    try {
+        const response = await fetch(`/api/yearly-exam/ai-diagnose?id=${result.id}`);
+        const data = await response.json();
+
+        if (data.success && data.ai_analysis) {
+            const ai = data.ai_analysis;
+            aiTargetBox.style.opacity = '0';
+            setTimeout(() => {
+                aiTargetBox.innerHTML = `
+                    <div style="font-weight: 700; color: #f472b6; margin-bottom: 0.2rem; font-size: 0.76rem; display: flex; align-items: center; gap: 0.25rem;">
+                        <i data-lucide="sparkles" style="width:13px; height:13px; color:#f472b6;"></i> AI 맞춤형 취약점 정밀 진단
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.7rem; line-height: 1.4; margin: 0 0 0.35rem 0;">${ai.desc}</p>
+                    <div style="font-size: 0.72rem; color: var(--text-primary); line-height: 1.4; font-weight: 500;">💡 <b>AI 처방 가이드:</b> ${ai.recommendation}</div>
+                `;
+                if (window.lucide) lucide.createIcons();
+                aiTargetBox.style.transition = 'opacity 0.35s ease';
+                aiTargetBox.style.opacity = '1';
+            }, 300);
+        } else {
+            loaderHtml.remove();
+        }
+    } catch (e) {
+        loaderHtml.remove();
+        console.error("AI diagnostics load error:", e);
+    }
+}
+
 // 전역 바인딩
 window.showLawGuideCard = showLawGuideCard;
 window.closeLawGuideModal = closeLawGuideModal;
@@ -2114,5 +2159,6 @@ window.toggleAllTabImage = toggleAllTabImage;
 window.toggleAllTabExplanation = toggleAllTabExplanation;
 window.toggleDetailTabImage = toggleDetailTabImage;
 window.closeResultWindow = closeResultWindow;
+window.fetchAIDiagnostics = fetchAIDiagnostics;
 
 
