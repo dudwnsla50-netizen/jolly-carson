@@ -1150,7 +1150,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     ai_desc = row_dict.get("ai_desc")
                     ai_rec = row_dict.get("ai_rec")
                     
-                    if ai_desc and ai_rec:
+                    nocache = query.get("nocache", ["false"])[0].lower() == "true"
+                    if ai_desc and ai_rec and not nocache:
                         # 캐시 반환
                         self.send_json_response({
                             "success": True,
