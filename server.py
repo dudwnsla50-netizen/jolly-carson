@@ -1138,7 +1138,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     # 1. 기존 캐시 여부 확인
-                    sql_select = "SELECT score, correct_count, total_questions, details, exam_year, ai_desc, ai_rec FROM yearly_exam_history WHERE id = %s"
+                    sql_select = "SELECT score, correct_count, total_questions, total_time, details, exam_year, ai_desc, ai_rec FROM yearly_exam_history WHERE id = %s"
                     execute_query(cursor, sql_select, (history_id,))
                     row = cursor.fetchone()
                     
@@ -1167,6 +1167,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     score = row_dict.get("score", 0)
                     correct_count = row_dict.get("correct_count", 0)
                     total_questions = row_dict.get("total_questions", 120)
+                    total_time = row_dict.get("total_time", 0) or 0
                     exam_year = row_dict.get("exam_year", 2025)
                     details_raw = row_dict.get("details", "")
                     
@@ -1176,6 +1177,86 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             details = json.loads(details_raw) if isinstance(details_raw, str) else details_raw
                         except Exception:
                             details = []
+
+                    # 과목별 풀이 소요 시간 및 병목/오답 문항 상세 분석 가공
+                    subject_times = {'PM': [], 'SE': [], 'DB': [], 'SA': [], 'SC': []}
+                    target_q_nums = []
+                    
+                    if details:
+                        for item in details:
+                            q_num = item.get("question_num")
+                            elapsed = item.get("elapsed_time", 0)
+                            is_corr = item.get("is_correct", False)
+                            
+                            if q_num is not None:
+                                sub = None
+                                if 1 <= q_num <= 25: sub = 'PM'
+                                elif 26 <= q_num <= 50: sub = 'SE'
+                                elif 51 <= q_num <= 75: sub = 'DB'
+                                elif 76 <= q_num <= 100: sub = 'SA'
+                                elif 101 <= q_num <= 120: sub = 'SC'
+                                
+                                if sub and elapsed is not None:
+                                    subject_times[sub].append(elapsed)
+                                    
+                                # 오답이거나 풀이 시간이 90초 이상인 경우
+                                if not is_corr or (elapsed and elapsed >= 90):
+                                    target_q_nums.append(q_num)
+                                    
+                    subject_avg_times = {}
+                    for sub, times in subject_times.items():
+                        if times:
+                            subject_avg_times[sub] = round(sum(times) / len(times), 1)
+                        else:
+                            subject_avg_times[sub] = 0.0
+                            
+                    # 토큰 절약을 위해 최대 15개로 슬라이싱
+                    target_q_nums = target_q_nums[:15]
+                    detailed_questions = []
+                    
+                    if target_q_nums:
+                        try:
+                            placeholders = ", ".join(["%s"] * len(target_q_nums))
+                            sql_questions = f"""
+                                SELECT question_num, subject, question, answer
+                                FROM exam_questions
+                                WHERE year = %s AND question_num IN ({placeholders})
+                                ORDER BY question_num ASC
+                            """
+                            params = [exam_year] + target_q_nums
+                            execute_query(cursor, sql_questions, tuple(params))
+                            q_rows = cursor.fetchall()
+                            
+                            details_map = {item.get("question_num"): item for item in details} if details else {}
+                            
+                            for q_row in q_rows:
+                                q_row_dict = dict(q_row)
+                                q_num = q_row_dict["question_num"]
+                                item_detail = details_map.get(q_num, {})
+                                
+                                user_ans = item_detail.get("user_answer", [])
+                                elapsed = item_detail.get("elapsed_time", 0)
+                                is_corr = item_detail.get("is_correct", False)
+                                
+                                question_text = q_row_dict["question"]
+                                if len(question_text) > 350:
+                                    question_text = question_text[:350] + "..."
+                                    
+                                raw_ans = q_row_dict["answer"]
+                                correct_ans_str = str(raw_ans)
+                                
+                                detailed_questions.append({
+                                    "num": q_num,
+                                    "sub": q_row_dict["subject"],
+                                    "question": question_text,
+                                    "correct_answer": correct_ans_str,
+                                    "user_answer": str(user_ans[0]) if user_ans else "미마킹",
+                                    "elapsed": elapsed,
+                                    "is_correct": is_corr
+                                })
+                        except Exception as q_ex:
+                            print(f"[AI Diagnose] 오답 상세 정보 조회 오류: {q_ex}")
+                            traceback.print_exc()
                             
                     # 과목별 정답 분석 수행
                     pm_t = pm_c = se_t = se_c = db_t = db_c = sa_t = sa_c = sc_t = sc_c = 0
@@ -1233,10 +1314,29 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     ai_rec_generated = ""
                     
                     if GEMINI_API_KEY:
+                        # 시간 및 상세 문항 분석 데이터 조립
+                        time_details_str = ""
+                        for dq in detailed_questions:
+                            status_str = "맞춤(시간초과)" if dq["is_correct"] else "오답"
+                            time_details_str += f"""
+- 문항 {dq['num']}번 (과목: {dq['sub']}) [{status_str}]
+  * 문제 지문 일부: {dq['question']}
+  * 정답: {dq['correct_answer']}번 / 수험생이 선택한 답: {dq['user_answer']}번
+  * 이 문제를 푸는 데 걸린 시간: {dq['elapsed']}초
+"""
+                        
+                        time_info_prompt = f"""
+[시험 소요 시간 및 문제별 상세 분석 데이터]
+- 총 시험 소요 시간: {total_time // 60}분 {total_time % 60}초
+- 과목별 평균 풀이 소요 시간: PM({subject_avg_times['PM']}초), SE({subject_avg_times['SE']}초), DB({subject_avg_times['DB']}초), SA({subject_avg_times['SA']}초), SC({subject_avg_times['SC']}초)
+- 주요 시간 지체(90초 이상) 및 오답 문항 상세 분석 리스트:
+{time_details_str if time_details_str else "시간 초과 및 오답 문항이 존재하지 않습니다."}
+"""
+
                         # Gemini Prompt 작성
                         prompt = f"""
 당신은 대한민국 최고 수준의 '정보시스템 감리사 자격검정 수험 진단 시스템'입니다.
-수험생이 치른 {exam_year}년도 모의고사 성적표 데이터를 바탕으로, 냉철하고 실질적인 학습 취약점 진단서와 추천 가이드를 작성해 주세요.
+수험생이 치른 {exam_year}년도 모의고사 성적표, 그리고 문제별 풀이 소요 시간과 오답 상세 내역 데이터를 바탕으로, 냉철하고 실질적인 학습 취약점 진단서와 시간 안배 및 시간 부족 극복을 위한 추천 가이드를 작성해 주세요.
 
 [시험 결과 요약]
 - 총 문항 수: {total_questions}문항 중 {correct_count}문항 정답 (맞춤 환산 점수: {score}점)
@@ -1250,17 +1350,19 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 - 시스템 아키텍처(SA): {round((sa_c/sa_t)*100.0) if sa_t > 0 else 0}% ({sa_c}/{sa_t})
 - 보안(SC): {round((sc_c/sc_t)*100.0) if sc_t > 0 else 0}% ({sc_c}/{sc_t})
 
+{time_info_prompt}
+
 [출력 요구사항]
 1. 반드시 아래의 JSON 포맷 형식을 정확히 준수하여 응답하세요.
 2. 백틱 기호(```json)나 여타 텍스트(설명글 등)를 절대 덧붙이지 마십시오. 순수 JSON 텍스트만 출력해야 합니다.
-3. 'desc'는 수험생의 학습 패턴, 약점 단원, 일반 기출 대비 신규 기술 영역에서의 취약성 등을 냉철하고 예리하게 짚어내는 3~4줄 분량의 상세 분석 글이어야 합니다. (한국어로 격식 있는 조언 투)
-4. 'recommendation'은 향후 어떤 가이드나 과목을 어떻게 회독해야 하는지에 대한 1~2줄 분량의 구체적인 행동 조언 및 학습 팁이어야 합니다.
+3. 'desc'는 수험생의 학습 패턴, 약점 단원, 일반 기출 대비 신규 기술 영역에서의 취약성과 더불어 **각 문제별 소요 시간을 종합 분석한 시간 부족 원인(특정 과목/단원에서의 지체 현상, 정답 추론 과정에서의 불필요한 생각의 지체 등) 및 실전 시간 배분 현황**을 4~5줄 분량의 예리한 분석글로 짚어내야 합니다. (한국어로 격식 있는 조언 투)
+4. 'recommendation'은 향후 어떤 가이드나 과목을 어떻게 회독해야 하는지뿐 아니라 **실전 시험 시간 부족을 극복하기 위해 문제를 포기하거나 넘기는 타이밍, 문항당 적정 시간 사수법 등 구체적인 시간 안배 행동 지침**을 2~3줄 분량의 구체적인 조언으로 처방해야 합니다.
 5. 오직 실제로 시험을 치른 과목(문항 수(분모)가 0보다 큰 과목)들에 대해서만 데이터 분석과 처방을 작성하세요. 시험에 포함되지 않아 풀지 않은 과목(문항 수가 0개인 과목)에 대해서는 진단되지 않았다거나 추가 평가가 필요하다는 식의 불필요한 언급을 일절 배제해 주십시오.
 
 [응답 JSON 스키마 포맷]
 {{
-  "desc": "이 수험생은 감리 및 사업관리의 공공 가이드라인 적용력은 우수하나, 소프트웨어공학의 복잡한 계산식 영역에서 잦은 오답이 보입니다. 특히 일반 기출 대비 신규 트렌드 문항의 정답률이 현저히 떨어지므로 최신 개정 고시에 대한 정리가 시급합니다.",
-  "recommendation": "소프트웨어공학 PMBOK 임계경로 계산 공식을 오답노트에 정리하시고, 최신 공공데이터 지침 및 전자정부 표준 프레임워크 4.x 개정본 가이드를 집중 회독하세요."
+  "desc": "이 수험생은 소프트웨어공학의 복잡한 계산식 영역(임계경로 등)에서 잦은 오답과 함께 문제당 평균 110초 이상의 지체 현상을 보여 전체적인 시간 관리에 빨간불이 켜졌습니다. 반면 보안 과목은 트렌드 법규를 빠르게 파악(평균 45초)하여 고득점을 올렸으나, 일부 일반 기출 보안 문항에서는 기본 암기 미비로 시간을 끌다 오답을 냈습니다.",
+  "recommendation": "소프트웨어공학 계산 문제는 1회독 시 즉시 패스하여 마지막에 풀고, 보안 과목은 기출 핵심 고시 키워드를 3초 두뇌 매핑법으로 회독하여 일반 기출 풀이 시간을 40초 이내로 단축하는 연습을 반복하세요."
 }}
 
 최종 JSON 응답:"""
