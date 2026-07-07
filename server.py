@@ -42,6 +42,32 @@ if os.environ.get("USE_SQLITE") == "true":
 else:
     DB_TYPE = "POSTGRES"
 
+# [설계 의도] 로컬 개발용 .env 파일 자동 파서 내장 (외부 라이브러리 의존성 배제)
+env_file_path = os.path.join(BASE_DIR, ".env")
+if os.path.exists(env_file_path):
+    try:
+        with open(env_file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ[key.strip()] = val.strip().strip('"').strip("'")
+    except Exception as env_ex:
+        print(f"[Warning] .env 파일 로드 중 실패: {env_ex}")
+
+# [설계 의도] 로컬 개발용 .env 파일 자동 파서 내장 (외부 라이브러리 의존성 배제)
+env_file_path = os.path.join(BASE_DIR, ".env")
+if os.path.exists(env_file_path):
+    try:
+        with open(env_file_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ[key.strip()] = val.strip().strip('"').strip("'")
+    except Exception as env_ex:
+        print(f"[Warning] .env 파일 로드 중 실패: {env_ex}")
+
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
