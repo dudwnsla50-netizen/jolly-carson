@@ -73,25 +73,23 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 def call_gemini_raw_prompt(prompt):
     if not GEMINI_API_KEY:
-        return ""
-    try:
-        url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}]
-        }
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=12) as res:
-            data = json.loads(res.read().decode("utf-8"))
-            raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            return raw_response
-    except Exception as e:
-        print(f"[Gemini API] 호출 오류: {e}")
-        return ""
+        raise ValueError("GEMINI_API_KEY 환경변수가 비어있거나 감지되지 않았습니다.")
+    
+    url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    # 호출 타임아웃을 15초로 넉넉하게 잡고 원격 서버의 불안정성을 완화
+    with urllib.request.urlopen(req, timeout=15) as res:
+        data = json.loads(res.read().decode("utf-8"))
+        raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        return raw_response
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
@@ -1367,26 +1365,31 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 }}
 
 최종 JSON 응답:"""
-                        raw_ai_res = call_gemini_raw_prompt(prompt)
-                        if not raw_ai_res:
-                            ai_error_msg = "Gemini API 호출 결과가 빈 문자열(Timeout 또는 내부 호출 예외)입니다."
-                        else:
-                            # 백틱 블록 제거
-                            raw_ai_res = raw_ai_res.strip()
-                            if raw_ai_res.startswith("```"):
-                                lines = raw_ai_res.split("\n")
-                                if lines[0].startswith("```"):
-                                    lines = lines[1:]
-                                if lines[-1].startswith("```"):
-                                    lines = lines[:-1]
-                                raw_ai_res = "\n".join(lines).strip()
-                            try:
-                                ai_data = json.loads(raw_ai_res)
-                                ai_desc_generated = ai_data.get("desc", "").strip()
-                                ai_rec_generated = ai_data.get("recommendation", "").strip()
-                            except Exception as parse_ex:
-                                ai_error_msg = f"Gemini API 응답 JSON 파싱 실패: {str(parse_ex)}. 원본 응답: {raw_ai_res}"
-                                print(f"Gemini AI 응답 JSON 파싱 실패: {parse_ex}")
+                        try:
+                            raw_ai_res = call_gemini_raw_prompt(prompt)
+                            if not raw_ai_res:
+                                ai_error_msg = "Gemini API 호출 결과가 빈 문자열입니다."
+                            else:
+                                # 백틱 블록 제거
+                                raw_ai_res = raw_ai_res.strip()
+                                if raw_ai_res.startswith("```"):
+                                    lines = raw_ai_res.split("\n")
+                                    if lines[0].startswith("```"):
+                                        lines = lines[1:]
+                                    if lines[-1].startswith("```"):
+                                        lines = lines[:-1]
+                                    raw_ai_res = "\n".join(lines).strip()
+                                try:
+                                    ai_data = json.loads(raw_ai_res)
+                                    ai_desc_generated = ai_data.get("desc", "").strip()
+                                    ai_rec_generated = ai_data.get("recommendation", "").strip()
+                                except Exception as parse_ex:
+                                    ai_error_msg = f"Gemini API 응답 JSON 파싱 실패: {str(parse_ex)}. 원본 응답: {raw_ai_res}"
+                                    print(f"Gemini AI 응답 JSON 파싱 실패: {parse_ex}")
+                        except Exception as gemini_ex:
+                            ai_error_msg = f"Gemini API 호출 오류: {str(gemini_ex)}"
+                            print(f"[AI Diagnose] Gemini 호출 오류: {gemini_ex}")
+                            traceback.print_exc()
                     else:
                         ai_error_msg = "서버 환경변수 GEMINI_API_KEY가 설정되지 않았거나 비어있습니다."
                                 
