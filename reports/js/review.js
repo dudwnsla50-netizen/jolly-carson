@@ -284,11 +284,26 @@ function renderCard(idx) {
                 button.classList.add('disabled-ans');
             }
         } else {
-            button.addEventListener('click', () => submitAnswer(quiz.id, optNum));
+            // [설계 의도] 클릭 즉시 채점하지 않고 선택만 표시합니다. 실제 채점은 "답안 제출" 버튼을 눌러야 진행됩니다.
+            if (selectedOpt === optNum) {
+                button.classList.add('selected');
+            }
+            button.addEventListener('click', () => selectOption(quiz.id, optNum));
         }
 
         optionsContainer.appendChild(button);
     });
+
+    // 답안 제출 버튼 상태 갱신: 제출 전엔 선택된 보기가 있어야만 활성화, 제출 후엔 숨김
+    const submitBtn = document.getElementById('btn-submit-answer');
+    if (submitBtn) {
+        if (isSubmitted) {
+            submitBtn.classList.add('hidden');
+        } else {
+            submitBtn.classList.remove('hidden');
+            submitBtn.disabled = (selectedOpt === undefined || selectedOpt === null);
+        }
+    }
 
     // 피드백 박스 노출 분기 제어
     const feedbackBox = document.getElementById('card-feedback-box');
@@ -338,6 +353,29 @@ function renderCard(idx) {
     if (window.lucide) {
         lucide.createIcons();
     }
+}
+
+/**
+ * [설계 의도] 보기를 클릭하면 채점 없이 선택 상태만 기록하고 카드를 다시 그려 하이라이트와
+ * "답안 제출" 버튼 활성화 상태를 갱신합니다. 실제 채점은 submitCurrentAnswer()에서 이뤄집니다.
+ */
+function selectOption(qId, optNum) {
+    if (ReviewState.isSubmitted[qId]) return;
+    ReviewState.userSelections[qId] = optNum;
+    renderCard(ReviewState.currentIdx);
+}
+
+/**
+ * [설계 의도] "답안 제출" 버튼 클릭 시, 현재 카드에서 선택해 둔 보기를 가져와 실제 채점을 진행합니다.
+ */
+function submitCurrentAnswer() {
+    const quiz = ReviewState.sessionQuizzes[ReviewState.currentIdx];
+    if (!quiz) return;
+
+    const selectedOpt = ReviewState.userSelections[quiz.id];
+    if (selectedOpt === undefined || selectedOpt === null) return;
+
+    submitAnswer(quiz.id, selectedOpt);
 }
 
 /**

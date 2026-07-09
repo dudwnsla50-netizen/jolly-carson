@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="review.css">
 </head>
 
-<body class="dark-theme">
+<body>
 
     <!-- 상단 내비게이션 바 -->
     <header class="header">
@@ -102,6 +102,13 @@
                     <!-- 4지선다 보기 영역 -->
                     <div class="card-options-section" id="card-options-container">
                         <!-- JS에서 버튼 동적 렌더링 -->
+                    </div>
+
+                    <!-- 답안 제출 버튼: 보기 선택 후 눌러야 채점이 진행됨 -->
+                    <div class="answer-submit-row">
+                        <button class="submit-answer-btn" id="btn-submit-answer" onclick="submitCurrentAnswer()" disabled>
+                            <i data-lucide="send"></i> 답안 제출
+                        </button>
                     </div>
 
                     <!-- 피드백 & 해설 박스 -->

@@ -1,15 +1,10 @@
 /* ==========================================================================
    오답 복습 스케줄러 전용 스타일
-   [설계 의도] 게임화 요소(EXP 바/레벨/펫/콤보 이펙트) 없이, "오늘 복습할 문항 확인 → 플래시카드로
-   풀이 → 정답/해설 + 다음 복습 일정 확인" 흐름에만 집중한 단순한 디자인입니다.
+   [설계 의도] 게임화 요소(EXP 바/레벨/펫/콤보 이펙트) 없이, "오늘 복습할 문항 확인 → 보기 선택 →
+   답안 제출 → 정답/해설 + 다음 복습 일정 확인" 흐름에만 집중한 단순한 디자인입니다.
+   색상은 하드코딩 대신 dashboard_common.css의 테마 변수(--text-primary 등)를 사용해, 모의고사
+   화면(yearly_exam.css)과 동일하게 라이트/다크 테마 전환 시에도 글자가 항상 잘 보이도록 합니다.
    ========================================================================== */
-
-.dark-theme {
-    background: radial-gradient(circle at 50% 10%, #1e1b4b 0%, #0f0b21 60%, #080512 100%);
-    color: #ffffff;
-    min-height: 100vh;
-    font-family: 'Inter', 'Noto Sans KR', sans-serif;
-}
 
 /* 상단 네비게이션 바
    [설계 의도] 이 페이지의 헤더 마크업(.header/.nav-container 등)은 dashboard_common.css의 공용
@@ -19,7 +14,7 @@
     text-align: left;
     margin-bottom: 0;
     padding: 1rem 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .nav-container {
@@ -39,8 +34,8 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: #8b5cf6;
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.7);
+    background: var(--accent-violet);
+    box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .nav-links {
@@ -63,7 +58,7 @@
 
 .subject-link:hover,
 .home-btn-link:hover {
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 /* 본문 컨테이너 및 페이지 타이틀 */
@@ -78,14 +73,14 @@
 .title {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .title-icon {
-    color: #a78bfa;
+    color: var(--accent-violet);
 }
 
 .subtitle {
@@ -117,8 +112,8 @@
 }
 
 .summary-stats-banner .stat-item {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1.2rem;
     text-align: center;
@@ -128,8 +123,8 @@
 }
 
 .summary-stats-banner .stat-item.highlight {
-    background: rgba(139, 92, 246, 0.06);
-    border-color: rgba(139, 92, 246, 0.2);
+    background: var(--accent-glow);
+    border-color: var(--card-hover-border);
 }
 
 .summary-stats-banner .stat-label {
@@ -141,12 +136,12 @@
 .summary-stats-banner .stat-value {
     font-size: 1.6rem;
     font-weight: 800;
-    color: #ffffff;
+    color: var(--text-primary);
     font-family: 'Outfit', sans-serif;
 }
 
 .summary-stats-banner .stat-item.highlight .stat-value {
-    color: #a78bfa;
+    color: var(--accent-violet);
 }
 
 /* 과목별 카드 그리드 */
@@ -157,8 +152,8 @@
 }
 
 .review-subject-card {
-    background: rgba(20, 16, 36, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 14px;
     padding: 1.4rem;
     display: flex;
@@ -168,7 +163,7 @@
 }
 
 .review-subject-card:hover {
-    border-color: rgba(139, 92, 246, 0.3);
+    border-color: var(--card-hover-border);
     transform: translateY(-2px);
 }
 
@@ -182,13 +177,13 @@
 .sub-title {
     font-size: 1rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .wrong-count-badge {
     background: rgba(239, 68, 68, 0.12);
     border: 1px solid rgba(239, 68, 68, 0.25);
-    color: #f87171;
+    color: #ef4444;
     font-size: 0.75rem;
     font-weight: 700;
     padding: 0.25rem 0.6rem;
@@ -199,7 +194,7 @@
 .wrong-count-badge.zero {
     background: rgba(16, 185, 129, 0.1);
     border-color: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+    color: var(--success);
 }
 
 .card-desc {
@@ -210,7 +205,7 @@
 
 .start-btn {
     width: 100%;
-    background: rgba(139, 92, 246, 0.9);
+    background: var(--accent-gradient);
     border: none;
     color: #ffffff;
     font-weight: 700;
@@ -230,8 +225,8 @@
 }
 
 .start-btn:disabled {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     color: var(--text-muted);
     cursor: not-allowed;
 }
@@ -246,8 +241,8 @@
 .spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid rgba(139, 92, 246, 0.15);
-    border-top: 3px solid #8b5cf6;
+    border: 3px solid var(--accent-glow);
+    border-top: 3px solid var(--accent-violet);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto;
@@ -274,8 +269,8 @@
 }
 
 .back-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     color: var(--text-secondary);
     font-size: 0.8rem;
     padding: 0.4rem 0.8rem;
@@ -287,14 +282,14 @@
 }
 
 .back-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-color: var(--card-hover-border);
 }
 
 .runner-subject-badge {
-    background: rgba(139, 92, 246, 0.12);
-    border: 1px solid rgba(139, 92, 246, 0.25);
-    color: #a78bfa;
+    background: var(--accent-glow);
+    border: 1px solid var(--card-hover-border);
+    color: var(--accent-violet);
     font-weight: 700;
     font-size: 0.85rem;
     padding: 0.35rem 0.8rem;
@@ -311,7 +306,7 @@
 .progress-bar-container {
     width: 100%;
     height: 5px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-color);
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 1.5rem;
@@ -319,7 +314,7 @@
 
 .progress-bar-fill {
     height: 100%;
-    background: #8b5cf6;
+    background: var(--accent-violet);
     border-radius: 10px;
     transition: width 0.3s ease;
 }
@@ -330,8 +325,8 @@
 }
 
 .flashcard {
-    background: rgba(24, 20, 41, 0.75);
-    border: 1px solid rgba(139, 92, 246, 0.15);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 2rem;
 }
@@ -350,7 +345,7 @@
 }
 
 .meta-tag {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--border-color);
     color: var(--text-secondary);
     font-size: 0.75rem;
     font-weight: 600;
@@ -361,7 +356,7 @@
 .card-question-text {
     font-size: 1.02rem;
     line-height: 1.7;
-    color: #ffffff;
+    color: var(--text-primary);
     margin-bottom: 1.6rem;
     white-space: pre-wrap;
 }
@@ -371,13 +366,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1rem;
 }
 
 .card-opt-btn {
     width: 100%;
     background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 0.85rem 1.1rem;
     color: var(--text-secondary);
@@ -393,13 +388,13 @@
 }
 
 .card-opt-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(139, 92, 246, 0.3);
-    color: #ffffff;
+    background: var(--accent-glow);
+    border-color: var(--card-hover-border);
+    color: var(--text-primary);
 }
 
 .card-opt-num {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-color);
     color: var(--text-secondary);
     font-weight: 700;
     width: 22px;
@@ -413,15 +408,28 @@
 }
 
 .card-opt-btn:hover .card-opt-num {
-    background: rgba(139, 92, 246, 0.15);
-    color: #c084fc;
+    background: var(--accent-violet);
+    color: #ffffff;
+}
+
+/* 보기 선택 상태 (제출 전) */
+.card-opt-btn.selected {
+    background: var(--accent-glow);
+    border-color: var(--accent-violet);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 1px var(--accent-violet) inset;
+}
+
+.card-opt-btn.selected .card-opt-num {
+    background: var(--accent-violet);
+    color: #ffffff;
 }
 
 /* 채점 결과 컬러링 */
 .card-opt-btn.correct-ans {
     border-color: #10b981 !important;
     background: rgba(16, 185, 129, 0.08) !important;
-    color: #34d399 !important;
+    color: #10b981 !important;
 }
 
 .card-opt-btn.correct-ans .card-opt-num {
@@ -432,7 +440,7 @@
 .card-opt-btn.wrong-ans {
     border-color: #ef4444 !important;
     background: rgba(239, 68, 68, 0.08) !important;
-    color: #f87171 !important;
+    color: #ef4444 !important;
 }
 
 .card-opt-btn.wrong-ans .card-opt-num {
@@ -441,14 +449,47 @@
 }
 
 .card-opt-btn.disabled-ans {
-    opacity: 0.4;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 답안 제출 버튼 */
+.answer-submit-row {
+    margin-bottom: 1.2rem;
+}
+
+.submit-answer-btn {
+    width: 100%;
+    background: var(--accent-gradient);
+    border: none;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.submit-answer-btn:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+.submit-answer-btn:disabled {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
     cursor: not-allowed;
 }
 
 /* 피드백 및 해설 영역 */
 .card-feedback-section {
     margin-top: 1.2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--border-color);
     padding-top: 1.2rem;
 }
 
@@ -465,19 +506,19 @@
 
 .feedback-banner.correct {
     background: rgba(16, 185, 129, 0.1);
-    color: #34d399;
+    color: #10b981;
     border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .feedback-banner.wrong {
     background: rgba(239, 68, 68, 0.1);
-    color: #f87171;
+    color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .explanation-box {
-    background: rgba(15, 23, 42, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 1.1rem;
     font-size: 0.86rem;
@@ -486,14 +527,14 @@
 }
 
 .explanation-box strong {
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 /* 다음 복습 일정 안내 (SRS 스케줄러) */
 .srs-schedule-note {
     margin-top: 0.6rem;
     font-size: 0.78rem;
-    color: #a78bfa;
+    color: var(--accent-violet);
     font-weight: 600;
 }
 
@@ -505,8 +546,8 @@
 }
 
 .control-btn {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     color: var(--text-secondary);
     font-size: 0.85rem;
     font-weight: 600;
@@ -519,29 +560,30 @@
 }
 
 .control-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.06);
-    color: #ffffff;
+    color: var(--text-primary);
+    border-color: var(--card-hover-border);
 }
 
 .control-btn:disabled {
-    opacity: 0.25;
+    opacity: 0.4;
     cursor: not-allowed;
 }
 
 .control-btn.next-btn {
-    background: #8b5cf6;
-    border-color: #8b5cf6;
+    background: var(--accent-violet);
+    border-color: var(--accent-violet);
     color: #ffffff;
 }
 
 .control-btn.next-btn:hover:not(:disabled) {
-    background: #a78bfa;
+    opacity: 0.85;
+    color: #ffffff;
 }
 
 .control-btn.end-btn {
     background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
 }
 
 .control-btn.end-btn:hover {
