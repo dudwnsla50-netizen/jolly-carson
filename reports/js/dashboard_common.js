@@ -860,9 +860,11 @@ function renderDashboard(filter = 'all') {
     }
 
     filteredData.forEach((item, index) => {
-        // [버그 해결] 빈출순 데이터 등 global_idx가 누락된 데이터셋에서도 고유한 DOM ID를 가질 수 있도록 
+        // [버그 해결] 빈출순 데이터 등 global_idx가 누락된 데이터셋에서도 고유한 DOM ID를 가질 수 있도록
         // 루프 인덱스를 활용해 global_idx 값을 보장합니다.
-        if (item.global_idx === undefined || item.global_idx === null) {
+        // DB의 global_idx가 NULL이 아니라 빈 문자열('')로 저장된 경우도 있어, 빈 문자열도 "누락"으로 취급해야 합니다.
+        // 그렇지 않으면 모든 항목의 id가 "item-"으로 동일해져 getElementById가 항상 첫 항목만 반환합니다.
+        if (item.global_idx === undefined || item.global_idx === null || item.global_idx === '') {
             item.global_idx = index;
         }
         const globalIdx = item.global_idx;
@@ -1120,15 +1122,8 @@ function showQuestion(idx, year, num, btnElement, isRollingTransition) {
             renderLoadedQuestion(idx, key);
         });
 
-    // 4) 원본 크롭 이미지 주소 바인딩
-    const imgPath = `images/${year}_${num}.png`;
-    const imgWrap = document.getElementById(`viewer-img-wrap-${idx}`);
-    const img = document.getElementById(`viewer-img-${idx}`);
-
-    if (imgWrap) imgWrap.style.display = 'flex';
-    if (img) {
-        img.src = imgPath;
-    }
+    // 4) 원본 크롭 이미지 주소 바인딩 (여러 확장자를 순차 시도)
+    bindQuestionImage(idx, key);
 }
 
 /**
@@ -1661,7 +1656,106 @@ function onEditBtnClick(idx, event) {
 }
 
 /**
- * [설계 의도] 상세 뷰어 영역을 인라인 편집이 가능한 input 및 textarea 폼으로 교체합니다.
+ * [설계 의도] 질문/해설은 원래 순수 텍스트(개행만 포함)로 저장되어 있었으나, 리치 에디터 도입 이후에는
+ * 이미지가 포함된 HTML로 저장됩니다. 편집창에 처음 표시할 때 기존 순수 텍스트는 HTML로 안전하게
+ * 이스케이프하고 개행을 &lt;br&gt;로 치환하며, 이미 HTML(이미지 포함)로 저장된 값은 그대로 통과시킵니다.
+ */
+function toEditableHtml(raw) {
+    if (!raw) return '';
+    const looksLikeHtml = /<[a-z][\s\S]*>/i.test(raw);
+    if (looksLikeHtml) return raw;
+
+    const escaped = raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    return escaped.replace(/\n/g, '<br>');
+}
+
+/**
+ * [설계 의도] 리치 에디터(contenteditable)에 붙여넣을 때, 클립보드에 이미지가 포함되어 있으면
+ * base64 데이터 URL의 &lt;img&gt; 태그로 본문에 삽입하고, 이미지가 없으면 서식이 제거된 순수 텍스트만
+ * 삽입합니다. 외부 문서(워드 등)의 스타일이 그대로 섞여 들어오는 것을 막기 위한 조치입니다.
+ */
+function handleRichEditorPaste(event) {
+    event.preventDefault();
+    const editorEl = event.currentTarget;
+    const clipboardData = event.clipboardData;
+    const items = clipboardData ? clipboardData.items : null;
+
+    if (items) {
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (!file) continue;
+
+                const reader = new FileReader();
+                reader.onload = () => {
+                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block;">`);
+                    refreshAccordionHeightFor(editorEl);
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+        }
+    }
+
+    const text = clipboardData ? clipboardData.getData('text/plain') : '';
+    if (text) insertTextAtCursor(text);
+    refreshAccordionHeightFor(editorEl);
+}
+
+/**
+ * [설계 의도] 리치 에디터에 이미지를 붙여넣거나 타이핑으로 내용이 길어지면, 아코디언이 열릴 때
+ * 미리 계산해 둔 max-height를 초과해 내용이 잘릴 수 있으므로 매 변경 시점에 다시 계산합니다.
+ */
+function refreshAccordionHeightFor(editorEl) {
+    const item = editorEl.closest('[id^="item-"]');
+    if (item) updateAccordionContentHeight(item);
+}
+
+/**
+ * [설계 의도] 현재 커서(선택 영역) 위치에 HTML 조각(주로 붙여넣은 이미지)을 삽입하고,
+ * 삽입된 내용 바로 뒤로 커서를 이동시켜 연속 입력이 자연스럽게 이어지도록 합니다.
+ */
+function insertHtmlAtCursor(html) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const fragment = range.createContextualFragment(html);
+    const lastNode = fragment.lastChild;
+    range.insertNode(fragment);
+
+    if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.setEndAfter(lastNode);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+}
+
+/**
+ * [설계 의도] 현재 커서 위치에 서식 없는 순수 텍스트 노드를 삽입합니다.
+ */
+function insertTextAtCursor(text) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.setEndAfter(textNode);
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+
+/**
+ * [설계 의도] 상세 뷰어 영역을 인라인 편집이 가능한 리치 에디터(질문/해설) 및 input 폼으로 교체합니다.
  */
 function startEditQuestion(idx, qId) {
     const data = window.loadedQuestions[qId];
@@ -1674,7 +1768,8 @@ function startEditQuestion(idx, qId) {
         <div class="edit-form-container" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
             <div>
                 <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">❓ 질문 본문 수정</label>
-                <textarea id="edit-q-text-${idx}" style="width: 100%; min-height: 120px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; font-family: inherit; resize: vertical;">${data.question}</textarea>
+                <div id="edit-q-text-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 120px; max-height: 420px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.question)}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
             </div>
             <div>
                 <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.6rem;">📋 보기(선택지) 수정</label>
@@ -1715,7 +1810,25 @@ function startEditQuestion(idx, qId) {
             </div>
             <div>
                 <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">📝 해설 수정</label>
-                <textarea id="edit-q-explanation-${idx}" style="width: 100%; min-height: 80px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; font-family: inherit; resize: vertical;">${data.explanation || ''}</textarea>
+                <div id="edit-q-explanation-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 80px; max-height: 420px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.explanation || '')}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
+            </div>
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.6rem;">🖼️ 시험지 원본 이미지 수정</label>
+                <div style="display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                    <div id="edit-img-preview-wrap-${idx}" style="min-width: 120px; min-height: 90px; display: flex; align-items: center; justify-content: center;">
+                        <img id="edit-img-preview-${idx}" src="" alt="현재 이미지" style="max-width: 220px; max-height: 160px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3); display: none;" onerror="onEditImagePreviewError('${idx}')">
+                        <div id="edit-img-empty-${idx}" style="font-size: 0.8rem; color: var(--text-muted);">등록된 이미지가 없습니다.</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <input type="file" accept="image/png" id="edit-img-file-${idx}" onchange="onEditImageFileSelected('${idx}', event)" style="font-size: 0.8rem; color: #ffffff; max-width: 220px;">
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">PNG 파일만 지원됩니다</span>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;">
+                            <input type="checkbox" id="edit-img-remove-${idx}" onchange="onEditImageRemoveToggled('${idx}')" style="accent-color: #8b5cf6; width: 14px; height: 14px; cursor: pointer;">
+                            이미지 삭제
+                        </label>
+                    </div>
+                </div>
             </div>
             <div style="display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.5rem;">
                 <button onclick="saveEditQuestion('${idx}', '${qId}', event)" style="background: #8b5cf6; border: none; color: #ffffff; padding: 0.4rem 1rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: all 0.2s;">💾 저장</button>
@@ -1725,6 +1838,7 @@ function startEditQuestion(idx, qId) {
     `;
 
     body.innerHTML = htmlContent;
+    initEditImagePreview(idx, qId);
 
     const editBtn = document.getElementById(`edit-btn-${idx}`);
     if (editBtn) editBtn.innerText = "✕ 취소";
@@ -1733,12 +1847,120 @@ function startEditQuestion(idx, qId) {
 }
 
 /**
+ * [설계 의도] 수정 폼이 열릴 때 현재 등록된 이미지를 미리보기에 표시하고,
+ * 이번 편집 세션에서의 이미지 변경 상태(신규 첨부/삭제 여부)를 초기화합니다.
+ */
+function initEditImagePreview(idx, qId) {
+    window.pendingImageEdits = window.pendingImageEdits || {};
+    window.pendingImageEdits[idx] = { dataUrl: null, remove: false };
+
+    const img = document.getElementById(`edit-img-preview-${idx}`);
+    const empty = document.getElementById(`edit-img-empty-${idx}`);
+    if (!img) return;
+
+    img.dataset.qId = qId;
+    img.style.display = 'block';
+    if (empty) empty.style.display = 'none';
+    img.src = `images/${qId}.png?t=${Date.now()}`;
+}
+
+/**
+ * [설계 의도] 수정 폼의 이미지 미리보기 로드가 실패하면(등록된 이미지 없음) 안내 문구를 대신 표시합니다.
+ */
+function onEditImagePreviewError(idx) {
+    const img = document.getElementById(`edit-img-preview-${idx}`);
+    const empty = document.getElementById(`edit-img-empty-${idx}`);
+    if (img) img.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+}
+
+/**
+ * [설계 의도] 사용자가 새 이미지 파일을 선택하면 base64 데이터 URL로 읽어 저장 시점까지 보관하고,
+ * 미리보기를 즉시 새 이미지로 교체합니다. "삭제" 체크는 새 첨부가 우선하므로 해제합니다.
+ */
+function onEditImageFileSelected(idx, event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'image/png') {
+        alert("PNG 형식의 이미지 파일만 첨부할 수 있습니다.");
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        window.pendingImageEdits = window.pendingImageEdits || {};
+        window.pendingImageEdits[idx] = { dataUrl: reader.result, remove: false };
+
+        const removeChk = document.getElementById(`edit-img-remove-${idx}`);
+        if (removeChk) removeChk.checked = false;
+
+        const img = document.getElementById(`edit-img-preview-${idx}`);
+        const empty = document.getElementById(`edit-img-empty-${idx}`);
+        if (img) {
+            img.onerror = null;
+            img.src = reader.result;
+            img.style.display = 'block';
+        }
+        if (empty) empty.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * [설계 의도] "이미지 삭제" 체크박스 상태에 따라 저장 시 이미지 제거 여부를 결정하고,
+ * 체크 해제 시에는 서버에 남아있는 기존 이미지를 다시 미리보기로 복원합니다.
+ */
+function onEditImageRemoveToggled(idx) {
+    const removeChk = document.getElementById(`edit-img-remove-${idx}`);
+    const isRemove = removeChk ? removeChk.checked : false;
+
+    window.pendingImageEdits = window.pendingImageEdits || {};
+    const state = window.pendingImageEdits[idx] || { dataUrl: null, remove: false };
+    state.remove = isRemove;
+    if (isRemove) state.dataUrl = null;
+    window.pendingImageEdits[idx] = state;
+
+    const fileInput = document.getElementById(`edit-img-file-${idx}`);
+    if (fileInput) fileInput.value = '';
+
+    const img = document.getElementById(`edit-img-preview-${idx}`);
+    const empty = document.getElementById(`edit-img-empty-${idx}`);
+    if (!img) return;
+
+    if (isRemove) {
+        img.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+    } else {
+        img.onerror = () => onEditImagePreviewError(idx);
+        img.style.display = 'block';
+        if (empty) empty.style.display = 'none';
+        img.src = `images/${img.dataset.qId}.png?t=${Date.now()}`;
+    }
+}
+
+/**
+ * [설계 의도] 브라우저는 contenteditable 영역의 내용을 모두 지워도 빈 &lt;br&gt;을 남기는 경우가 있어,
+ * 실제 텍스트나 이미지가 전혀 없으면 빈 문자열로 정규화해 해설 유무 판별(`data.explanation ?`) 등이
+ * 잘못된 콘텐츠(줄바꿈만 있는 해설 상자 노출 등)를 만들지 않도록 합니다.
+ */
+function getRichEditorValue(elId) {
+    const el = document.getElementById(elId);
+    if (!el) return '';
+
+    const hasImage = el.querySelector('img') !== null;
+    const hasText = el.textContent.trim().length > 0;
+    return (hasImage || hasText) ? el.innerHTML : '';
+}
+
+/**
  * [설계 의도] 수정한 질문, 보기, 정답, 해설을 수집하여 백엔드 API에 POST 요청을 보내 저장하고 화면을 갱신합니다.
  */
 function saveEditQuestion(idx, qId, event) {
     if (event) event.stopPropagation();
 
-    const qTextVal = document.getElementById(`edit-q-text-${idx}`).value;
+    const qTextVal = getRichEditorValue(`edit-q-text-${idx}`);
     const optInputs = document.querySelectorAll(`.edit-opt-input-${idx}`);
     const optionsVal = [];
     optInputs.forEach(input => {
@@ -1748,7 +1970,7 @@ function saveEditQuestion(idx, qId, event) {
     // 복수 정답 체크박스에서 선택된 값 수집
     const answerCheckboxes = document.querySelectorAll(`.edit-answer-chk-${idx}:checked`);
     const answerArr = Array.from(answerCheckboxes).map(chk => parseInt(chk.value));
-    const explanationVal = document.getElementById(`edit-q-explanation-${idx}`).value;
+    const explanationVal = getRichEditorValue(`edit-q-explanation-${idx}`);
 
     const updateData = {
         id: qId,
@@ -1757,6 +1979,8 @@ function saveEditQuestion(idx, qId, event) {
         answer: answerArr,
         explanation: explanationVal
     };
+
+    const imageState = (window.pendingImageEdits && window.pendingImageEdits[idx]) || { dataUrl: null, remove: false };
 
     fetch('/api/question/update', {
         method: 'POST',
@@ -1770,21 +1994,47 @@ function saveEditQuestion(idx, qId, event) {
             return response.json();
         })
         .then(res => {
-            if (res.success) {
-                // 로컬 캐시 데이터 즉시 동기화
-                window.loadedQuestions[qId].question = qTextVal;
-                window.loadedQuestions[qId].options = optionsVal;
-                window.loadedQuestions[qId].answer = answerArr;
-                window.loadedQuestions[qId].explanation = explanationVal;
-                alert("기출문제가 성공적으로 저장되었습니다.");
-                renderLoadedQuestion(idx, qId);
-            } else {
+            if (!res.success) {
                 alert("저장 실패: " + res.message);
+                return Promise.reject(null);
             }
+
+            // 로컬 캐시 데이터 즉시 동기화
+            window.loadedQuestions[qId].question = qTextVal;
+            window.loadedQuestions[qId].options = optionsVal;
+            window.loadedQuestions[qId].answer = answerArr;
+            window.loadedQuestions[qId].explanation = explanationVal;
+
+            // 이미지가 새로 첨부되었거나 삭제 요청된 경우에만 별도 업로드 API 호출
+            if (imageState.dataUrl) {
+                return fetch('/api/question/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: qId, image_data: imageState.dataUrl })
+                }).then(r => r.json());
+            } else if (imageState.remove) {
+                return fetch('/api/question/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: qId, delete: true })
+                }).then(r => r.json());
+            }
+            return { success: true };
+        })
+        .then(imgRes => {
+            if (imgRes && imgRes.success === false) {
+                alert("문제 내용은 저장되었으나 이미지 저장에 실패했습니다: " + imgRes.message);
+            } else {
+                alert("기출문제가 성공적으로 저장되었습니다.");
+            }
+            if (window.pendingImageEdits) delete window.pendingImageEdits[idx];
+            renderLoadedQuestion(idx, qId);
         })
         .catch(err => {
-            console.error(err);
-            alert("서버와 통신 중 오류가 발생하여 저장에 실패했습니다.");
+            if (err !== null) {
+                console.error(err);
+                alert("서버와 통신 중 오류가 발생하여 저장에 실패했습니다.");
+            }
         });
 }
 
@@ -1828,6 +2078,20 @@ function updateAccordionContentHeight(item) {
 /**
  * 10. 기출문제 뷰어 이미지 없을 때 컨테이너 가림 처리
  */
+/**
+ * [설계 의도] images/ 폴더는 "{연도}_{문항번호}.png" 명명 규칙을 따릅니다(yearly_exam.js 등 다른
+ * 소비자도 동일 규칙에 고정되어 있으므로 확장자는 png로 통일). 편집 후 즉시 갱신된 이미지가 보이도록
+ * 캐시를 우회하는 타임스탬프 쿼리를 붙여 요청합니다.
+ */
+function bindQuestionImage(idx, qId) {
+    const imgWrap = document.getElementById(`viewer-img-wrap-${idx}`);
+    const img = document.getElementById(`viewer-img-${idx}`);
+    if (!imgWrap || !img) return;
+
+    imgWrap.style.display = 'flex';
+    img.src = `images/${qId}.png?t=${Date.now()}`;
+}
+
 function hideImageContainer(idx) {
     const imgWrap = document.getElementById(`viewer-img-wrap-${idx}`);
     if (imgWrap) {

@@ -9,6 +9,7 @@
 import os
 import sys
 import json
+import base64
 import sqlite3
 import urllib.parse
 import urllib.request
@@ -213,6 +214,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
     def handle_post_api(self, path, data):
         if path == "/api/question/update":
             self.update_question(data)
+        elif path == "/api/question/upload-image":
+            self.upload_question_image(data)
         elif path == "/api/quiz/submit":
             self.submit_quiz(data)
         elif path == "/api/yearly-exam/submit":
@@ -507,6 +510,51 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
+
+    def upload_question_image(self, data):
+        """
+        [설계 의도]
+        문제 편집 화면에서 첨부한 시험지 원본 이미지를 images/ 폴더의 기존 명명 규칙
+        ("{연도}_{문항번호}.png")에 맞춰 저장하거나 삭제합니다. yearly_exam.js 등 다른 화면도
+        동일 규칙(png 고정)으로 이미지를 조회하므로 확장자는 png로 통일합니다.
+        DB 스키마 변경 없이 파일 시스템 경로 규칙만으로 기존 조회 로직과 호환됩니다.
+        """
+        q_id = data.get("id")
+        if not q_id or not re.match(r"^[A-Za-z0-9_-]+$", q_id):
+            self.send_error_response(400, "Invalid or missing parameter (id)")
+            return
+
+        images_dir = os.path.join(BASE_DIR, "reports", "images")
+        save_path = os.path.join(images_dir, f"{q_id}.png")
+
+        try:
+            if data.get("delete"):
+                if os.path.exists(save_path):
+                    os.remove(save_path)
+                self.send_json_response({"success": True, "message": "Image removed successfully"})
+                return
+
+            image_data = data.get("image_data")
+            if not image_data or "," not in image_data:
+                self.send_error_response(400, "Missing or invalid parameter (image_data)")
+                return
+
+            header, encoded = image_data.split(",", 1)
+            mime_match = re.search(r"data:image/([a-zA-Z0-9.+-]+);base64", header)
+            mime_subtype = mime_match.group(1).lower() if mime_match else ""
+            if mime_subtype != "png":
+                self.send_error_response(400, f"Only PNG images are supported (got: {mime_subtype or 'unknown'})")
+                return
+
+            image_bytes = base64.b64decode(encoded)
+            os.makedirs(images_dir, exist_ok=True)
+            with open(save_path, "wb") as f:
+                f.write(image_bytes)
+
+            self.send_json_response({"success": True, "message": "Image uploaded successfully"})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Image upload error: {str(e)}")
 
     def submit_quiz(self, data):
         subject = data.get("subject")

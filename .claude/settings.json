@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(python -m py_compile server.py)",
+      "Bash(node --check reports/js/dashboard_common.js)",
+      "Bash(node --check reports/js/review.js)"
+    ]
+  }
+}

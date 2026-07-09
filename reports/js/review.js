@@ -312,8 +312,8 @@ function renderCard(idx) {
     }
     document.getElementById('card-concept-tag').textContent = conceptTag;
 
-    // 본문 주입
-    document.getElementById('card-question-text').textContent = quiz.question;
+    // 본문 주입 (리치 에디터로 저장된 이미지 포함 HTML을 그대로 렌더링)
+    document.getElementById('card-question-text').innerHTML = quiz.question;
 
     // 보기 옵션 렌더링
     const optionsContainer = document.getElementById('card-options-container');
