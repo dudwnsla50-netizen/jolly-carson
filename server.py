@@ -11,6 +11,7 @@ import sys
 import json
 import base64
 import sqlite3
+from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 import traceback
@@ -28,6 +29,10 @@ except ImportError:
 
 PORT = int(os.environ.get("PORT", 8000))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# [설계 의도] 오답 복습 스케줄러(망각곡선)의 단계별 재복습 간격(일). 오답 시 stage 0으로 리셋되며,
+# 정답을 맞힐 때마다 stage가 한 칸씩 올라가 다음 간격이 길어집니다. 배열 길이를 넘어서면 마스터 완료로 간주합니다.
+SRS_INTERVAL_DAYS = [1, 3, 7, 14, 30]
 
 # [설계 의도]
 # Render.com 배포 환경에 등록될 Supabase 연결 문자열 기본값 설정
@@ -234,6 +239,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_quiz_stats(query)
         elif path == "/api/quiz/total-exp":
             self.get_total_exp(query)
+        elif path == "/api/srs/due":
+            self.get_srs_due(query)
         elif path == "/api/db-mode":
             self.get_db_mode(query)
         elif path == "/api/analytics/concept-diagnostics":
@@ -578,10 +585,80 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     """
                     execute_query(cursor, sql, (subject, concept, total_questions, correct_count, wrong_count, details_json))
                     conn.commit()
-                    self.send_json_response({"success": True, "message": "Quiz attempt history saved successfully"})
+
+            # [설계 의도] 오답 복습 스케줄러(망각곡선) 상태 갱신은 quiz_history 커밋이 끝난 뒤,
+            # 별도 커넥션으로 처리하여 위 트랜잭션과 분리합니다. 문항 단위 제출(details가 단일 dict)에만 적용됩니다.
+            srs_info = None
+            if isinstance(details, dict) and details.get("q_id"):
+                srs_info = self.update_srs_state(details["q_id"], subject, bool(details.get("is_correct")))
+
+            self.send_json_response({"success": True, "message": "Quiz attempt history saved successfully", "srs": srs_info})
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
+
+    def update_srs_state(self, q_id, subject, is_correct):
+        """
+        [설계 의도]
+        문항별 망각곡선 기반 복습 스케줄 상태(srs_review_state)를 갱신합니다.
+        - 오답: stage를 0으로 리셋하고 1일 후로 다음 복습을 재예약합니다.
+        - 정답: 이전에 한 번이라도 틀려서 추적 중이던 문항에 한해 stage를 한 단계 올리고
+          SRS_INTERVAL_DAYS에 따라 다음 복습 간격을 늘립니다. 처음부터 정답을 맞힌 문항은
+          추적 대상이 아니므로(스케줄러가 관여할 필요가 없으므로) 아무 것도 하지 않습니다.
+        반환값은 프론트엔드가 "다음 복습은 며칠 후" 안내를 띄우는 데 사용됩니다.
+        """
+        subject = (subject or "DB").upper()
+        now = datetime.now()
+
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    execute_query(cursor, "SELECT stage, wrong_streak, review_count FROM srs_review_state WHERE q_id = %s", (q_id,))
+                    row = cursor.fetchone()
+                    existing = dict(row) if row else None
+
+                    if is_correct:
+                        if not existing:
+                            return None
+
+                        new_stage = existing["stage"] + 1
+                        mastered = new_stage >= len(SRS_INTERVAL_DAYS)
+                        interval_days = None if mastered else SRS_INTERVAL_DAYS[new_stage]
+                        next_review = now + timedelta(days=3650 if mastered else interval_days)
+
+                        execute_query(cursor, """
+                            UPDATE srs_review_state
+                            SET stage = %s, next_review_at = %s, review_count = %s, last_result = 'correct', updated_at = %s
+                            WHERE q_id = %s
+                        """, (new_stage, next_review, existing["review_count"] + 1, now, q_id))
+                        conn.commit()
+
+                        return {
+                            "tracked": True, "mastered": mastered, "stage": new_stage,
+                            "next_review_at": next_review.isoformat(), "interval_days": interval_days
+                        }
+                    else:
+                        next_review = now + timedelta(days=SRS_INTERVAL_DAYS[0])
+                        if existing:
+                            execute_query(cursor, """
+                                UPDATE srs_review_state
+                                SET stage = 0, next_review_at = %s, wrong_streak = %s, review_count = %s, last_result = 'wrong', updated_at = %s
+                                WHERE q_id = %s
+                            """, (next_review, existing["wrong_streak"] + 1, existing["review_count"] + 1, now, q_id))
+                        else:
+                            execute_query(cursor, """
+                                INSERT INTO srs_review_state (q_id, subject, stage, next_review_at, wrong_streak, review_count, last_result, updated_at)
+                                VALUES (%s, %s, 0, %s, 1, 1, 'wrong', %s)
+                            """, (q_id, subject, next_review, now))
+                        conn.commit()
+
+                        return {
+                            "tracked": True, "mastered": False, "stage": 0,
+                            "next_review_at": next_review.isoformat(), "interval_days": SRS_INTERVAL_DAYS[0]
+                        }
+        except Exception as e:
+            traceback.print_exc()
+            return None
 
     def _fetch_stats_for_subject(self, cursor, subject):
         sql_concept = """
@@ -839,6 +916,57 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
+
+    def get_srs_due(self, query):
+        """
+        [설계 의도]
+        오답 복습 스케줄러(망각곡선)의 문항별 상태를 과목 단위로 조회합니다. next_review_at이 현재 시각
+        이전인 문항은 "오늘 복습 대상(due)"으로, 이후인 문항은 "대기중(upcoming)"으로 분류해 반환합니다.
+        마스터 완료(stage가 SRS_INTERVAL_DAYS 길이 이상) 문항은 활성 큐에서 완전히 제외합니다.
+        """
+        subject = query.get("subject", [None])[0]
+        if not subject:
+            self.send_error_response(400, "Missing parameter (subject)")
+            return
+        subject = subject.upper()
+
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    sql = """
+                        SELECT q_id, stage, next_review_at, wrong_streak, review_count, last_result
+                        FROM srs_review_state
+                        WHERE subject = %s AND stage < %s
+                        ORDER BY next_review_at ASC
+                    """
+                    execute_query(cursor, sql, (subject, len(SRS_INTERVAL_DAYS)))
+                    rows = cursor.fetchall()
+
+                    now = datetime.now()
+                    due_list = []
+                    upcoming_list = []
+
+                    for r in rows:
+                        item = dict(r)
+                        next_at_raw = item["next_review_at"]
+                        if isinstance(next_at_raw, str):
+                            try:
+                                next_at_dt = datetime.fromisoformat(next_at_raw.replace(" ", "T"))
+                            except Exception:
+                                next_at_dt = now
+                        else:
+                            next_at_dt = next_at_raw
+
+                        item["next_review_at"] = next_at_dt.isoformat()
+                        if next_at_dt <= now:
+                            due_list.append(item)
+                        else:
+                            upcoming_list.append(item)
+
+                    self.send_json_response({"due": due_list, "upcoming": upcoming_list})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"SRS schedule query error: {str(e)}")
 
     def get_yearly_exams(self, query):
         """[설계 의도] 기출문제 연도 목록과 유저의 과목별 최고 점수 및 풀이 연습 통계를 요약하여 반환합니다."""
@@ -1652,6 +1780,76 @@ def init_yearly_exam_history_table():
         print(f"[{DB_TYPE}] 경고 - 년도별 모의고사 이력 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
 
 
+def init_srs_review_state_table():
+    """
+    [설계 의도]
+    오답 복습 스케줄러(망각곡선)의 문항별 상태 테이블(srs_review_state)을 생성/검증합니다.
+    이 기능 도입 이전에 이미 quiz_history에 누적되어 있던 오답들도, 각 문항의 "가장 최근 시도"가
+    오답인 경우 오늘 즉시 복습 대상(stage 0, next_review_at = 지금)으로 1회성 백필합니다.
+    이렇게 하지 않으면 기존에 쌓여있던 오답 이력이 새 스케줄러 도입과 함께 조용히 사라지게 됩니다.
+    """
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                create_sql = """
+                CREATE TABLE IF NOT EXISTS srs_review_state (
+                    q_id TEXT PRIMARY KEY,
+                    subject TEXT NOT NULL,
+                    stage INTEGER NOT NULL DEFAULT 0,
+                    next_review_at TIMESTAMP NOT NULL,
+                    wrong_streak INTEGER NOT NULL DEFAULT 0,
+                    review_count INTEGER NOT NULL DEFAULT 0,
+                    last_result TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+                cursor.execute(create_sql)
+                conn.commit()
+
+                # 1회성 백필: quiz_history에서 문항별 최신 시도를 계산해 오답인 문항을 스케줄러 큐에 편입
+                execute_query(cursor, "SELECT created_at, subject, details FROM quiz_history ORDER BY created_at DESC")
+                rows = cursor.fetchall()
+
+                latest_attempt = {}
+                for r in rows:
+                    row_dict = dict(r)
+                    details_raw = row_dict.get("details")
+                    if not details_raw:
+                        continue
+                    try:
+                        details = json.loads(details_raw) if isinstance(details_raw, str) else details_raw
+                    except Exception:
+                        continue
+                    if not isinstance(details, dict):
+                        continue
+                    q_id = details.get("q_id")
+                    if not q_id or q_id in latest_attempt:
+                        continue
+                    latest_attempt[q_id] = (bool(details.get("is_correct")), (row_dict.get("subject") or "DB").upper())
+
+                now = datetime.now()
+                backfill_count = 0
+                for q_id, (is_correct, subject) in latest_attempt.items():
+                    if is_correct:
+                        continue
+                    execute_query(cursor, "SELECT q_id FROM srs_review_state WHERE q_id = %s", (q_id,))
+                    if cursor.fetchone():
+                        continue
+                    execute_query(cursor, """
+                        INSERT INTO srs_review_state (q_id, subject, stage, next_review_at, wrong_streak, review_count, last_result, updated_at)
+                        VALUES (%s, %s, 0, %s, 1, 1, 'wrong', %s)
+                    """, (q_id, subject, now, now))
+                    backfill_count += 1
+
+                if backfill_count > 0:
+                    conn.commit()
+                    print(f"[{DB_TYPE}] 기존 오답 {backfill_count}건을 복습 스케줄러 큐로 백필 완료.")
+
+        print(f"[{DB_TYPE}] 복습 스케줄러(srs_review_state) 테이블 검증/초기화 완료.")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - 복습 스케줄러 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
+
+
 def main():
     global DB_TYPE
     os.chdir(BASE_DIR)
@@ -1688,6 +1886,7 @@ def main():
     try:
         init_quiz_history_table()
         init_yearly_exam_history_table()
+        init_srs_review_state_table()
     except Exception as e:
         print(f"[Server] 경고: DB 연결 제한 상황에서 구동을 대기합니다. -> {e}")
         

@@ -321,6 +321,12 @@ function weightedShuffle(array) {
  * 서버에 연결할 수 없는 경우, 로컬 폴백을 시도합니다.
  */
 function loadDashboardDataAndInit() {
+    // [설계 의도] 이 스크립트는 대시보드 페이지뿐 아니라 오답 복습 스케줄러 등 독립 페이지에서도
+    // 공용 유틸리티(테마, 이미지 편집 등)를 쓰기 위해 함께 로드됩니다. 기출문제 아코디언 컨테이너가
+    // 없는 페이지에서는 이 초기화(및 "나의 기출 분석 리포트" 카드 등 대시보드 전용 UI 주입)를 건너뜁니다.
+    const accordionContainer = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    if (!accordionContainer) return;
+
     const subject = window.SUBJECT_CODE || "DB";
     const type = window.DASHBOARD_TYPE || "frequent";
 
@@ -731,6 +737,21 @@ function toggleDashboardMode(toggleEl) {
 }
 
 /**
+ * [설계 의도] 5대 과목 전체를 대상으로 오답 복습 스케줄러의 "오늘 복습 대상" 문항 총 개수를 집계합니다.
+ * 네비게이션 배지는 모든 과목을 한 번에 다루는 오답 복습 페이지로 연결되므로, 특정 과목이 아닌 전체 합계를 보여줍니다.
+ */
+function fetchTotalSrsDueCount() {
+    const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
+    return Promise.all(
+        subjects.map(sub =>
+            fetch(`/api/srs/due?subject=${sub}`)
+                .then(res => res.ok ? res.json() : { due: [] })
+                .catch(() => ({ due: [] }))
+        )
+    ).then(results => results.reduce((sum, r) => sum + ((r.due || []).length), 0));
+}
+
+/**
  * 5. 페이지 진입 시 내비게이션바 하이라이트 매핑
  */
 function initDashboardNav() {
@@ -768,6 +789,13 @@ function initDashboardNav() {
         } else {
             navBadges.appendChild(wrongBadge);
         }
+
+        // [설계 의도] 오답 복습 스케줄러에서 "오늘 복습 대상"으로 잡힌 문항 총 개수를 비동기로 조회해
+        // 배지 라벨에 덧붙입니다. 명칭 자체는 바꾸지 않고 개수만 괄호로 표시합니다.
+        fetchTotalSrsDueCount().then(count => {
+            const badgeEl = document.getElementById('wrong-answers-badge');
+            if (badgeEl) badgeEl.innerHTML = `❌ 오답 복습(${count})`;
+        });
     }
 
     // 년도별 120제 모의고사 배지 동적 삽입 연동
