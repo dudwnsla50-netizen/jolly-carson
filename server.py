@@ -600,65 +600,92 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
     def update_srs_state(self, q_id, subject, is_correct):
         """
         [설계 의도]
-        문항별 망각곡선 기반 복습 스케줄 상태(srs_review_state)를 갱신합니다.
+        단일 문항 제출(퀴즈 드릴, 오답 복습 세션 등) 전용 진입점입니다. 커넥션을 열고 _apply_srs_update로
+        실제 갱신을 위임한 뒤 커밋합니다. 다수 문항을 한 번에 처리해야 하는 경우(연도별 모의고사 제출 등)는
+        커넥션을 매번 새로 여는 비용을 피하기 위해 _update_srs_states_batch를 사용하세요.
+        반환값은 프론트엔드가 "다음 복습은 며칠 후" 안내를 띄우는 데 사용됩니다.
+        """
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    result = self._apply_srs_update(cursor, q_id, subject, is_correct)
+                    conn.commit()
+                    return result
+        except Exception as e:
+            traceback.print_exc()
+            return None
+
+    def _update_srs_states_batch(self, items):
+        """
+        [설계 의도]
+        연도별 모의고사처럼 한 번의 제출에 여러 문항(최대 120개)이 포함된 경우, 문항마다 별도
+        커넥션을 여는 대신 하나의 커넥션/커서로 모두 처리하고 마지막에 한 번만 커밋합니다.
+        items는 {"q_id", "subject", "is_correct"} 형태의 dict 리스트입니다.
+        """
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    for item in items:
+                        self._apply_srs_update(cursor, item["q_id"], item["subject"], item["is_correct"])
+                    conn.commit()
+        except Exception as e:
+            traceback.print_exc()
+
+    def _apply_srs_update(self, cursor, q_id, subject, is_correct):
+        """
+        [설계 의도]
+        문항별 망각곡선 기반 복습 스케줄 상태(srs_review_state)를 갱신하는 실제 로직입니다.
+        커넥션/커밋 관리는 호출자(update_srs_state 또는 _update_srs_states_batch)의 책임이며,
+        이 메서드는 주어진 cursor로 SELECT/UPDATE/INSERT만 수행합니다.
         - 오답: stage를 0으로 리셋하고 1일 후로 다음 복습을 재예약합니다.
         - 정답: 이전에 한 번이라도 틀려서 추적 중이던 문항에 한해 stage를 한 단계 올리고
           SRS_INTERVAL_DAYS에 따라 다음 복습 간격을 늘립니다. 처음부터 정답을 맞힌 문항은
           추적 대상이 아니므로(스케줄러가 관여할 필요가 없으므로) 아무 것도 하지 않습니다.
-        반환값은 프론트엔드가 "다음 복습은 며칠 후" 안내를 띄우는 데 사용됩니다.
         """
         subject = (subject or "DB").upper()
         now = datetime.now()
 
-        try:
-            with get_db_connection() as conn:
-                with get_db_cursor(conn) as cursor:
-                    execute_query(cursor, "SELECT stage, wrong_streak, review_count FROM srs_review_state WHERE q_id = %s", (q_id,))
-                    row = cursor.fetchone()
-                    existing = dict(row) if row else None
+        execute_query(cursor, "SELECT stage, wrong_streak, review_count FROM srs_review_state WHERE q_id = %s", (q_id,))
+        row = cursor.fetchone()
+        existing = dict(row) if row else None
 
-                    if is_correct:
-                        if not existing:
-                            return None
+        if is_correct:
+            if not existing:
+                return None
 
-                        new_stage = existing["stage"] + 1
-                        mastered = new_stage >= len(SRS_INTERVAL_DAYS)
-                        interval_days = None if mastered else SRS_INTERVAL_DAYS[new_stage]
-                        next_review = now + timedelta(days=3650 if mastered else interval_days)
+            new_stage = existing["stage"] + 1
+            mastered = new_stage >= len(SRS_INTERVAL_DAYS)
+            interval_days = None if mastered else SRS_INTERVAL_DAYS[new_stage]
+            next_review = now + timedelta(days=3650 if mastered else interval_days)
 
-                        execute_query(cursor, """
-                            UPDATE srs_review_state
-                            SET stage = %s, next_review_at = %s, review_count = %s, last_result = 'correct', updated_at = %s
-                            WHERE q_id = %s
-                        """, (new_stage, next_review, existing["review_count"] + 1, now, q_id))
-                        conn.commit()
+            execute_query(cursor, """
+                UPDATE srs_review_state
+                SET stage = %s, next_review_at = %s, review_count = %s, last_result = 'correct', updated_at = %s
+                WHERE q_id = %s
+            """, (new_stage, next_review, existing["review_count"] + 1, now, q_id))
 
-                        return {
-                            "tracked": True, "mastered": mastered, "stage": new_stage,
-                            "next_review_at": next_review.isoformat(), "interval_days": interval_days
-                        }
-                    else:
-                        next_review = now + timedelta(days=SRS_INTERVAL_DAYS[0])
-                        if existing:
-                            execute_query(cursor, """
-                                UPDATE srs_review_state
-                                SET stage = 0, next_review_at = %s, wrong_streak = %s, review_count = %s, last_result = 'wrong', updated_at = %s
-                                WHERE q_id = %s
-                            """, (next_review, existing["wrong_streak"] + 1, existing["review_count"] + 1, now, q_id))
-                        else:
-                            execute_query(cursor, """
-                                INSERT INTO srs_review_state (q_id, subject, stage, next_review_at, wrong_streak, review_count, last_result, updated_at)
-                                VALUES (%s, %s, 0, %s, 1, 1, 'wrong', %s)
-                            """, (q_id, subject, next_review, now))
-                        conn.commit()
+            return {
+                "tracked": True, "mastered": mastered, "stage": new_stage,
+                "next_review_at": next_review.isoformat(), "interval_days": interval_days
+            }
+        else:
+            next_review = now + timedelta(days=SRS_INTERVAL_DAYS[0])
+            if existing:
+                execute_query(cursor, """
+                    UPDATE srs_review_state
+                    SET stage = 0, next_review_at = %s, wrong_streak = %s, review_count = %s, last_result = 'wrong', updated_at = %s
+                    WHERE q_id = %s
+                """, (next_review, existing["wrong_streak"] + 1, existing["review_count"] + 1, now, q_id))
+            else:
+                execute_query(cursor, """
+                    INSERT INTO srs_review_state (q_id, subject, stage, next_review_at, wrong_streak, review_count, last_result, updated_at)
+                    VALUES (%s, %s, 0, %s, 1, 1, 'wrong', %s)
+                """, (q_id, subject, next_review, now))
 
-                        return {
-                            "tracked": True, "mastered": False, "stage": 0,
-                            "next_review_at": next_review.isoformat(), "interval_days": SRS_INTERVAL_DAYS[0]
-                        }
-        except Exception as e:
-            traceback.print_exc()
-            return None
+            return {
+                "tracked": True, "mastered": False, "stage": 0,
+                "next_review_at": next_review.isoformat(), "interval_days": SRS_INTERVAL_DAYS[0]
+            }
 
     def _fetch_stats_for_subject(self, cursor, subject):
         sql_concept = """
@@ -1263,12 +1290,34 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     """
                     execute_query(cursor, sql_insert, (exam_year, practice_count, score, correct_count, total_questions, total_time, question_times_json, details_json, pm_c, se_c, db_c, sa_c, sc_c))
                     conn.commit()
-                    
-                    self.send_json_response({
-                        "success": True, 
-                        "message": "Yearly exam attempt saved successfully",
-                        "practice_count": practice_count
-                    })
+
+            # [설계 의도] 연도별 모의고사의 오답/정답도 오답 복습 스케줄러(SRS) 큐에 동일하게 반영합니다.
+            # 최대 120문항을 한 번에 처리하므로, 문항마다 커넥션을 새로 여는 update_srs_state 대신
+            # 커넥션 하나를 재사용하는 _update_srs_states_batch로 일괄 처리합니다.
+            if details:
+                srs_items = []
+                for item in details:
+                    q_id = item.get("q_id")
+                    q_num = item.get("question_num")
+                    if not q_id or q_num is None:
+                        continue
+                    subject_code = None
+                    if 1 <= q_num <= 25: subject_code = "PM"
+                    elif 26 <= q_num <= 50: subject_code = "SE"
+                    elif 51 <= q_num <= 75: subject_code = "DB"
+                    elif 76 <= q_num <= 100: subject_code = "SA"
+                    elif 101 <= q_num <= 120: subject_code = "SC"
+                    if not subject_code:
+                        continue
+                    srs_items.append({"q_id": q_id, "subject": subject_code, "is_correct": bool(item.get("is_correct"))})
+                if srs_items:
+                    self._update_srs_states_batch(srs_items)
+
+            self.send_json_response({
+                "success": True,
+                "message": "Yearly exam attempt saved successfully",
+                "practice_count": practice_count
+            })
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
@@ -1784,10 +1833,21 @@ def init_srs_review_state_table():
     """
     [설계 의도]
     오답 복습 스케줄러(망각곡선)의 문항별 상태 테이블(srs_review_state)을 생성/검증합니다.
-    이 기능 도입 이전에 이미 quiz_history에 누적되어 있던 오답들도, 각 문항의 "가장 최근 시도"가
-    오답인 경우 오늘 즉시 복습 대상(stage 0, next_review_at = 지금)으로 1회성 백필합니다.
+    이 기능 도입 이전에 이미 quiz_history(문제 드릴)와 yearly_exam_history(연도별 120제 모의고사)에
+    누적되어 있던 오답들도, 두 이력을 시간순으로 합쳐 문항별 "가장 최근 시도"가 오답인 경우
+    오늘 즉시 복습 대상(stage 0, next_review_at = 지금)으로 1회성 백필합니다.
     이렇게 하지 않으면 기존에 쌓여있던 오답 이력이 새 스케줄러 도입과 함께 조용히 사라지게 됩니다.
     """
+    def to_dt(val):
+        if val is None:
+            return datetime.min
+        if isinstance(val, str):
+            try:
+                return datetime.fromisoformat(val.replace(" ", "T"))
+            except Exception:
+                return datetime.min
+        return val
+
     try:
         with get_db_connection() as conn:
             with get_db_cursor(conn) as cursor:
@@ -1806,12 +1866,11 @@ def init_srs_review_state_table():
                 cursor.execute(create_sql)
                 conn.commit()
 
-                # 1회성 백필: quiz_history에서 문항별 최신 시도를 계산해 오답인 문항을 스케줄러 큐에 편입
-                execute_query(cursor, "SELECT created_at, subject, details FROM quiz_history ORDER BY created_at DESC")
-                rows = cursor.fetchall()
+                # 1회성 백필: quiz_history + yearly_exam_history를 시간순으로 합쳐 문항별 최신 시도를 계산
+                combined_attempts = []
 
-                latest_attempt = {}
-                for r in rows:
+                execute_query(cursor, "SELECT created_at, subject, details FROM quiz_history")
+                for r in cursor.fetchall():
                     row_dict = dict(r)
                     details_raw = row_dict.get("details")
                     if not details_raw:
@@ -1823,9 +1882,46 @@ def init_srs_review_state_table():
                     if not isinstance(details, dict):
                         continue
                     q_id = details.get("q_id")
-                    if not q_id or q_id in latest_attempt:
+                    if not q_id:
                         continue
-                    latest_attempt[q_id] = (bool(details.get("is_correct")), (row_dict.get("subject") or "DB").upper())
+                    dt = to_dt(row_dict.get("created_at"))
+                    subject = (row_dict.get("subject") or "DB").upper()
+                    combined_attempts.append((dt, q_id, bool(details.get("is_correct")), subject))
+
+                execute_query(cursor, "SELECT created_at, details FROM yearly_exam_history")
+                for r in cursor.fetchall():
+                    row_dict = dict(r)
+                    details_raw = row_dict.get("details")
+                    if not details_raw:
+                        continue
+                    try:
+                        details_list = json.loads(details_raw) if isinstance(details_raw, str) else details_raw
+                    except Exception:
+                        continue
+                    if not isinstance(details_list, list):
+                        continue
+                    dt = to_dt(row_dict.get("created_at"))
+                    for item in details_list:
+                        q_id = item.get("q_id")
+                        q_num = item.get("question_num")
+                        if not q_id or q_num is None:
+                            continue
+                        subject_code = None
+                        if 1 <= q_num <= 25: subject_code = "PM"
+                        elif 26 <= q_num <= 50: subject_code = "SE"
+                        elif 51 <= q_num <= 75: subject_code = "DB"
+                        elif 76 <= q_num <= 100: subject_code = "SA"
+                        elif 101 <= q_num <= 120: subject_code = "SC"
+                        if not subject_code:
+                            continue
+                        combined_attempts.append((dt, q_id, bool(item.get("is_correct")), subject_code))
+
+                # 최신순 정렬 후 문항별로 가장 먼저 나오는(=가장 최근) 시도만 채택
+                combined_attempts.sort(key=lambda x: x[0], reverse=True)
+                latest_attempt = {}
+                for dt, q_id, is_correct, subject in combined_attempts:
+                    if q_id not in latest_attempt:
+                        latest_attempt[q_id] = (is_correct, subject)
 
                 now = datetime.now()
                 backfill_count = 0
