@@ -1312,6 +1312,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     
                     ai_desc_generated = ""
                     ai_rec_generated = ""
+                    ai_error_msg = ""
                     
                     if GEMINI_API_KEY:
                         # 시간 및 상세 문항 분석 데이터 조립
@@ -1367,7 +1368,9 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 
 최종 JSON 응답:"""
                         raw_ai_res = call_gemini_raw_prompt(prompt)
-                        if raw_ai_res:
+                        if not raw_ai_res:
+                            ai_error_msg = "Gemini API 호출 결과가 빈 문자열(Timeout 또는 내부 호출 예외)입니다."
+                        else:
                             # 백틱 블록 제거
                             raw_ai_res = raw_ai_res.strip()
                             if raw_ai_res.startswith("```"):
@@ -1382,7 +1385,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                 ai_desc_generated = ai_data.get("desc", "").strip()
                                 ai_rec_generated = ai_data.get("recommendation", "").strip()
                             except Exception as parse_ex:
-                                print(f"Gemini AI 응답 JSON 파싱 실패: {parse_ex}. 원본 응답: {raw_ai_res}")
+                                ai_error_msg = f"Gemini API 응답 JSON 파싱 실패: {str(parse_ex)}. 원본 응답: {raw_ai_res}"
+                                print(f"Gemini AI 응답 JSON 파싱 실패: {parse_ex}")
+                    else:
+                        ai_error_msg = "서버 환경변수 GEMINI_API_KEY가 설정되지 않았거나 비어있습니다."
                                 
                     # 폴백 로직
                     if not ai_desc_generated or not ai_rec_generated:
@@ -1405,7 +1411,9 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         "success": True,
                         "ai_analysis": {
                             "desc": ai_desc_generated,
-                            "recommendation": ai_rec_generated
+                            "recommendation": ai_rec_generated,
+                            "source": "GEMINI_AI" if (ai_desc_generated and not ai_error_msg) else "FALLBACK_TEMPLATE",
+                            "error_detail": ai_error_msg
                         }
                     })
         except Exception as e:

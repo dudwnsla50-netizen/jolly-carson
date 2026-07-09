@@ -2135,6 +2135,9 @@ async function fetchAIDiagnostics(result, forceRefresh = false) {
             const ai = data.ai_analysis;
             aiTargetBox.style.opacity = '0';
             setTimeout(() => {
+                const isFallback = ai.source === 'FALLBACK_TEMPLATE';
+                const errorBadge = isFallback ? `<div style="font-size:0.58rem; color:#f87171; margin-top:0.15rem; background:rgba(248,113,113,0.08); padding:0.15rem 0.3rem; border-radius:3px; line-height: 1.3;">⚠️ 실시간 AI 연동 실패 (폴백 가동 중). 원인: ${ai.error_detail || '알 수 없음'}</div>` : '';
+
                 aiTargetBox.innerHTML = `
                     <div style="font-weight: 700; color: #f472b6; margin-bottom: 0.2rem; font-size: 0.76rem; display: flex; align-items: center; justify-content: space-between; gap: 0.25rem;">
                         <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -2144,7 +2147,8 @@ async function fetchAIDiagnostics(result, forceRefresh = false) {
                             <i data-lucide="refresh-cw" style="width:10px; height:10px;"></i> 진단 갱신
                         </button>
                     </div>
-                    <p style="color: var(--text-secondary); font-size: 0.7rem; line-height: 1.4; margin: 0 0 0.35rem 0;">${ai.desc}</p>
+                    ${errorBadge}
+                    <p style="color: var(--text-secondary); font-size: 0.7rem; line-height: 1.4; margin: 0.3rem 0 0.35rem 0;">${ai.desc}</p>
                     <div style="font-size: 0.72rem; color: var(--text-primary); line-height: 1.4; font-weight: 500;">💡 <b>AI 처방 가이드:</b> ${ai.recommendation}</div>
                 `;
                 if (window.lucide) lucide.createIcons();
