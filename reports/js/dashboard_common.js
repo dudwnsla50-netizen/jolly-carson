@@ -1810,7 +1810,7 @@ function startEditQuestion(idx, qId) {
             </div>
             <div>
                 <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">📝 해설 수정</label>
-                <div id="edit-q-explanation-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 80px; max-height: 420px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.explanation || '')}</div>
+                <div id="edit-q-explanation-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" onmouseup="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 150px; max-height: 800px; overflow-y: auto; resize: vertical; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.explanation || '')}</div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
             </div>
             <div>
