@@ -2107,12 +2107,16 @@ function toggleDetailTabImage(qNum) {
     if (window.lucide) lucide.createIcons();
 }
 
-async function fetchAIDiagnostics(result) {
+async function fetchAIDiagnostics(result, forceRefresh = false) {
     const aiTargetBox = document.getElementById('ai-diagnose-card');
     if (!aiTargetBox || !result || !result.id) return;
 
     const loaderId = 'ai-loading-status';
     if (document.getElementById(loaderId)) return;
+
+    if (forceRefresh) {
+        aiTargetBox.innerHTML = '';
+    }
 
     const loaderHtml = document.createElement('div');
     loaderHtml.id = loaderId;
@@ -2123,7 +2127,8 @@ async function fetchAIDiagnostics(result) {
     if (window.lucide) lucide.createIcons();
 
     try {
-        const response = await fetch(`/api/yearly-exam/ai-diagnose?id=${result.id}`);
+        const url = `/api/yearly-exam/ai-diagnose?id=${result.id}${forceRefresh ? '&nocache=true' : ''}`;
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success && data.ai_analysis) {
@@ -2131,8 +2136,13 @@ async function fetchAIDiagnostics(result) {
             aiTargetBox.style.opacity = '0';
             setTimeout(() => {
                 aiTargetBox.innerHTML = `
-                    <div style="font-weight: 700; color: #f472b6; margin-bottom: 0.2rem; font-size: 0.76rem; display: flex; align-items: center; gap: 0.25rem;">
-                        <i data-lucide="sparkles" style="width:13px; height:13px; color:#f472b6;"></i> AI 맞춤형 취약점 정밀 진단
+                    <div style="font-weight: 700; color: #f472b6; margin-bottom: 0.2rem; font-size: 0.76rem; display: flex; align-items: center; justify-content: space-between; gap: 0.25rem;">
+                        <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                            <i data-lucide="sparkles" style="width:13px; height:13px; color:#f472b6;"></i> AI 맞춤형 취약점 정밀 진단
+                        </span>
+                        <button onclick="refreshAIDiagnostics(${result.id})" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.15rem; padding: 0;">
+                            <i data-lucide="refresh-cw" style="width:10px; height:10px;"></i> 진단 갱신
+                        </button>
                     </div>
                     <p style="color: var(--text-secondary); font-size: 0.7rem; line-height: 1.4; margin: 0 0 0.35rem 0;">${ai.desc}</p>
                     <div style="font-size: 0.72rem; color: var(--text-primary); line-height: 1.4; font-weight: 500;">💡 <b>AI 처방 가이드:</b> ${ai.recommendation}</div>
@@ -2149,6 +2159,13 @@ async function fetchAIDiagnostics(result) {
         console.error("AI diagnostics load error:", e);
     }
 }
+
+async function refreshAIDiagnostics(historyId) {
+    if (confirm("기존의 AI 진단 캐시를 초기화하고, 실제 AI 분석을 새로 요청하시겠습니까?\n(약 3~5초 소요)")) {
+        await fetchAIDiagnostics({ id: historyId }, true);
+    }
+}
+window.refreshAIDiagnostics = refreshAIDiagnostics;
 
 // 전역 바인딩
 window.showLawGuideCard = showLawGuideCard;
