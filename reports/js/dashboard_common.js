@@ -1889,7 +1889,7 @@ function initEditImagePreview(idx, qId) {
     img.dataset.qId = qId;
     img.style.display = 'block';
     if (empty) empty.style.display = 'none';
-    img.src = `images/${qId}.png?t=${Date.now()}`;
+    img.src = `/reports/images/${qId}.png?t=${Date.now()}`;
 }
 
 /**
@@ -1964,7 +1964,7 @@ function onEditImageRemoveToggled(idx) {
         img.onerror = () => onEditImagePreviewError(idx);
         img.style.display = 'block';
         if (empty) empty.style.display = 'none';
-        img.src = `images/${img.dataset.qId}.png?t=${Date.now()}`;
+        img.src = `/reports/images/${img.dataset.qId}.png?t=${Date.now()}`;
     }
 }
 
@@ -2117,7 +2117,7 @@ function bindQuestionImage(idx, qId) {
     if (!imgWrap || !img) return;
 
     imgWrap.style.display = 'flex';
-    img.src = `images/${qId}.png?t=${Date.now()}`;
+    img.src = `/reports/images/${qId}.png?t=${Date.now()}`;
 }
 
 function hideImageContainer(idx) {

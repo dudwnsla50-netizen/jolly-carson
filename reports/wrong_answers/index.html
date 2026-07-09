@@ -89,10 +89,11 @@
                 <!-- 카드 본체 -->
                 <div class="flashcard" id="active-flashcard">
                     <!-- 문제 본문 -->
-                    <div class="card-question-section">
+                    <div class="card-question-section" id="card-question-section">
                         <div class="card-question-meta">
                             <span class="meta-q-id" id="card-q-id">2025년 45번 기출</span>
                             <span class="meta-tag" id="card-concept-tag">1-a. 요구사항명세</span>
+                            <button class="edit-question-btn" id="edit-question-btn" onclick="onEditReviewBtnClick(event)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: var(--text-primary); padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-left: auto; font-family: inherit;">✏️ 수정</button>
                         </div>
                         <div class="card-question-text" id="card-question-text">
                             문제를 로딩하는 중입니다...
@@ -105,7 +106,7 @@
                     </div>
 
                     <!-- 답안 제출 버튼: 보기 선택 후 눌러야 채점이 진행됨 -->
-                    <div class="answer-submit-row">
+                    <div class="answer-submit-row" id="answer-submit-row">
                         <button class="submit-answer-btn" id="btn-submit-answer" onclick="submitCurrentAnswer()" disabled>
                             <i data-lucide="send"></i> 답안 제출
                         </button>
@@ -120,6 +121,9 @@
                             <!-- 해설 텍스트 + 다음 복습 일정 안내 -->
                         </div>
                     </div>
+
+                    <!-- 문제 수정 폼 (대시보드 수정 기능과 동일한 리치 에디터/이미지 업로드) -->
+                    <div class="hidden" id="card-edit-container"></div>
                 </div>
             </div>
 

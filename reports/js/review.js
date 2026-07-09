@@ -355,6 +355,228 @@ function renderCard(idx) {
     }
 }
 
+/* ==========================================================================
+   문제 수정 (대시보드의 리치 에디터 + 이미지 업로드 기능을 동일하게 재사용)
+   [설계 의도] dashboard_common.js에 정의된 공용 헬퍼(toEditableHtml, handleRichEditorPaste,
+   getRichEditorValue, initEditImagePreview 등)는 idx로 element id를 구성할 뿐 아코디언 구조에
+   의존하지 않으므로, 고정 idx('review')로 그대로 재사용해 대시보드와 완전히 동일한 편집 동작을
+   보장합니다. 다만 저장/취소 후 되돌아갈 화면은 아코디언 렌더러가 아닌 review.js 자신의
+   renderCard()이므로, startEditQuestion/saveEditQuestion 자체는 재사용하지 않고 이 전용 버전을 둡니다.
+   ========================================================================== */
+const REVIEW_EDIT_IDX = 'review';
+
+function onEditReviewBtnClick(event) {
+    if (event) event.stopPropagation();
+    const isEditing = document.getElementById('card-edit-form-container') !== null;
+    if (isEditing) {
+        cancelEditReviewQuestion();
+    } else {
+        startEditReviewQuestion();
+    }
+}
+
+function startEditReviewQuestion() {
+    const quiz = ReviewState.sessionQuizzes[ReviewState.currentIdx];
+    if (!quiz) return;
+
+    const idx = REVIEW_EDIT_IDX;
+    const qId = quiz.id;
+    const data = quiz;
+
+    // 편집 중에는 문제 풀이 UI(보기/제출/피드백)를 숨기고 편집 폼만 노출합니다.
+    document.getElementById('card-question-section').classList.add('hidden');
+    document.getElementById('card-options-container').classList.add('hidden');
+    const submitRow = document.getElementById('answer-submit-row');
+    if (submitRow) submitRow.classList.add('hidden');
+    document.getElementById('card-feedback-box').classList.add('hidden');
+
+    let htmlContent = `
+        <div class="edit-form-container" id="card-edit-form-container" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">❓ 질문 본문 수정</label>
+                <div id="edit-q-text-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 120px; max-height: 420px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.question)}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
+            </div>
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.6rem;">📋 보기(선택지) 수정</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    `;
+
+    const numSymbols = ["①", "②", "③", "④", "⑤"];
+    const options = data.options && data.options.length > 0 ? data.options : ["", "", "", ""];
+
+    options.forEach((opt, oIdx) => {
+        const sym = numSymbols[oIdx] || `${oIdx + 1}.`;
+        const escapedOpt = (opt || '').replace(/"/g, '&quot;');
+        htmlContent += `
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="color: #8b5cf6; font-weight: bold; font-size: 0.95rem; width: 20px; flex-shrink: 0; text-align: center;">${sym}</span>
+                <input type="text" class="edit-opt-input-${idx}" value="${escapedOpt}" style="flex-grow: 1; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.2); color: #ffffff; padding: 0.5rem; border-radius: 4px; font-size: 0.85rem; outline: none; font-family: inherit;" />
+            </div>
+        `;
+    });
+
+    htmlContent += `
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.2rem;">🔑 정답 수정 (복수 선택 가능)</label>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 0.5rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 4px;">
+                    ${[1, 2, 3, 4].map(n => {
+        const sym = ["①", "②", "③", "④"][n - 1];
+        const ansArr = Array.isArray(data.answer) ? data.answer : [];
+        const checked = ansArr.includes(n) ? 'checked' : '';
+        return `<label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.9rem; color: #ffffff;">
+                            <input type="checkbox" class="edit-answer-chk-${idx}" value="${n}" ${checked} style="accent-color: #8b5cf6; width: 16px; height: 16px; cursor: pointer;" />
+                            ${sym}번
+                        </label>`;
+    }).join('')}
+                </div>
+            </div>
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">📝 해설 수정</label>
+                <div id="edit-q-explanation-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" onmouseup="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 150px; max-height: 800px; overflow-y: auto; resize: vertical; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.explanation || '')}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
+            </div>
+            <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.6rem;">🖼️ 시험지 원본 이미지 수정</label>
+                <div style="display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                    <div id="edit-img-preview-wrap-${idx}" style="min-width: 120px; min-height: 90px; display: flex; align-items: center; justify-content: center;">
+                        <img id="edit-img-preview-${idx}" src="" alt="현재 이미지" style="max-width: 220px; max-height: 160px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3); display: none;" onerror="onEditImagePreviewError('${idx}')">
+                        <div id="edit-img-empty-${idx}" style="font-size: 0.8rem; color: var(--text-muted);">등록된 이미지가 없습니다.</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <input type="file" accept="image/png" id="edit-img-file-${idx}" onchange="onEditImageFileSelected('${idx}', event)" style="font-size: 0.8rem; color: #ffffff; max-width: 220px;">
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">PNG 파일만 지원됩니다</span>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); cursor: pointer;">
+                            <input type="checkbox" id="edit-img-remove-${idx}" onchange="onEditImageRemoveToggled('${idx}')" style="accent-color: #8b5cf6; width: 14px; height: 14px; cursor: pointer;">
+                            이미지 삭제
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.5rem;">
+                <button onclick="saveEditReviewQuestion(event)" style="background: #8b5cf6; border: none; color: #ffffff; padding: 0.4rem 1rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">💾 저장</button>
+                <button onclick="cancelEditReviewQuestion(event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.4rem 1rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; font-family: inherit;">취소</button>
+            </div>
+        </div>
+    `;
+
+    const editContainer = document.getElementById('card-edit-container');
+    editContainer.innerHTML = htmlContent;
+    editContainer.classList.remove('hidden');
+
+    initEditImagePreview(idx, qId);
+
+    const editBtn = document.getElementById('edit-question-btn');
+    if (editBtn) editBtn.innerText = '✕ 취소';
+}
+
+/**
+ * [설계 의도] 수정한 질문/보기/정답/해설/이미지를 대시보드와 동일한 API(/api/question/update,
+ * /api/question/upload-image)로 저장하고, 현재 세션에 로드된 문제 객체를 즉시 동기화합니다.
+ */
+function saveEditReviewQuestion(event) {
+    if (event) event.stopPropagation();
+
+    const quiz = ReviewState.sessionQuizzes[ReviewState.currentIdx];
+    if (!quiz) return;
+
+    const idx = REVIEW_EDIT_IDX;
+    const qId = quiz.id;
+
+    const qTextVal = getRichEditorValue(`edit-q-text-${idx}`);
+    const optInputs = document.querySelectorAll(`.edit-opt-input-${idx}`);
+    const optionsVal = [];
+    optInputs.forEach(input => optionsVal.push(input.value));
+
+    const answerCheckboxes = document.querySelectorAll(`.edit-answer-chk-${idx}:checked`);
+    const answerArr = Array.from(answerCheckboxes).map(chk => parseInt(chk.value));
+    const explanationVal = getRichEditorValue(`edit-q-explanation-${idx}`);
+
+    const updateData = { id: qId, question: qTextVal, options: optionsVal, answer: answerArr, explanation: explanationVal };
+    const imageState = (window.pendingImageEdits && window.pendingImageEdits[idx]) || { dataUrl: null, remove: false };
+
+    fetch('/api/question/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+    })
+        .then(response => {
+            if (!response.ok) throw new Error("HTTP error " + response.status);
+            return response.json();
+        })
+        .then(res => {
+            if (!res.success) {
+                alert("저장 실패: " + res.message);
+                return Promise.reject(null);
+            }
+
+            // 현재 세션에 로드된 문제 객체(캐시 포함, 동일 참조)를 즉시 동기화
+            quiz.question = qTextVal;
+            quiz.options = optionsVal;
+            quiz.answer = answerArr;
+            quiz.explanation = explanationVal;
+
+            if (imageState.dataUrl) {
+                return fetch('/api/question/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: qId, image_data: imageState.dataUrl })
+                }).then(r => r.json());
+            } else if (imageState.remove) {
+                return fetch('/api/question/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: qId, delete: true })
+                }).then(r => r.json());
+            }
+            return { success: true };
+        })
+        .then(imgRes => {
+            if (imgRes && imgRes.success === false) {
+                alert("문제 내용은 저장되었으나 이미지 저장에 실패했습니다: " + imgRes.message);
+            } else {
+                alert("문제가 성공적으로 저장되었습니다.");
+            }
+            if (window.pendingImageEdits) delete window.pendingImageEdits[idx];
+            closeEditReviewQuestion();
+        })
+        .catch(err => {
+            if (err !== null) {
+                console.error(err);
+                alert("서버와 통신 중 오류가 발생하여 저장에 실패했습니다.");
+            }
+        });
+}
+
+function cancelEditReviewQuestion(event) {
+    if (event) event.stopPropagation();
+    if (window.pendingImageEdits) delete window.pendingImageEdits[REVIEW_EDIT_IDX];
+    closeEditReviewQuestion();
+}
+
+/**
+ * [설계 의도] 편집 폼을 정리하고 문제 풀이 UI(보기/제출/피드백)를 원래 상태로 복원합니다.
+ */
+function closeEditReviewQuestion() {
+    const editContainer = document.getElementById('card-edit-container');
+    if (editContainer) {
+        editContainer.innerHTML = '';
+        editContainer.classList.add('hidden');
+    }
+
+    document.getElementById('card-question-section').classList.remove('hidden');
+    document.getElementById('card-options-container').classList.remove('hidden');
+    const submitRow = document.getElementById('answer-submit-row');
+    if (submitRow) submitRow.classList.remove('hidden');
+
+    const editBtn = document.getElementById('edit-question-btn');
+    if (editBtn) editBtn.innerText = '✏️ 수정';
+
+    renderCard(ReviewState.currentIdx);
+}
+
 /**
  * [설계 의도] 보기를 클릭하면 채점 없이 선택 상태만 기록하고 카드를 다시 그려 하이라이트와
  * "답안 제출" 버튼 활성화 상태를 갱신합니다. 실제 채점은 submitCurrentAnswer()에서 이뤄집니다.
