@@ -590,3 +590,126 @@
     background: #ef4444;
     color: #ffffff;
 }
+
+/* 모바일/태블릿 대응 (갤럭시탭 S10, 갤럭시 S26 울트라 등)
+   [설계 의도] 플래시카드 러너 화면(문제-보기-제출-해설)이 한 화면에 들어오지 않고 스크롤이
+   생기는 문제를 줄이기 위해, 화면이 좁아질수록 상하 여백과 폰트 크기를 단계적으로 압축합니다. */
+@media (max-width: 1024px) {
+    .container {
+        padding: 1.2rem;
+    }
+
+    .header {
+        padding: 0.7rem 1.2rem;
+    }
+
+    .card-runner-header {
+        margin-bottom: 0.6rem;
+    }
+
+    .progress-bar-container {
+        margin-bottom: 1rem;
+    }
+
+    .flashcard {
+        padding: 1.2rem;
+        border-radius: 12px;
+    }
+
+    .card-question-meta {
+        margin-bottom: 0.6rem;
+    }
+
+    .card-question-text {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+
+    .card-options-section {
+        gap: 0.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .card-opt-btn {
+        padding: 0.65rem 0.9rem;
+        font-size: 0.86rem;
+    }
+
+    .card-opt-num {
+        width: 20px;
+        height: 20px;
+        font-size: 0.76rem;
+    }
+
+    .answer-submit-row {
+        margin-bottom: 0.8rem;
+    }
+
+    .submit-answer-btn {
+        padding: 0.6rem;
+        font-size: 0.86rem;
+    }
+
+    .card-feedback-section {
+        margin-top: 0.8rem;
+        padding-top: 0.8rem;
+    }
+
+    .feedback-banner {
+        font-size: 0.9rem;
+        padding: 0.55rem 0.9rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .explanation-box {
+        padding: 0.85rem;
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .control-btn {
+        padding: 0.5rem 0.9rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0.8rem;
+    }
+
+    .header {
+        padding: 0.6rem 0.9rem;
+    }
+
+    .flashcard {
+        padding: 0.9rem;
+    }
+
+    .card-question-text {
+        font-size: 0.86rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .card-opt-btn {
+        padding: 0.55rem 0.75rem;
+        font-size: 0.82rem;
+        gap: 0.45rem;
+    }
+
+    .submit-answer-btn {
+        font-size: 0.83rem;
+        padding: 0.55rem;
+    }
+
+    .explanation-box {
+        padding: 0.7rem;
+        font-size: 0.78rem;
+    }
+
+    .control-btn {
+        padding: 0.45rem 0.7rem;
+        font-size: 0.78rem;
+    }
+}

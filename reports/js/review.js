@@ -331,7 +331,7 @@ function renderCard(idx) {
                 <button class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none;">
                     <span>💡 해설보기</span>
                 </button>
-                <div class="explanation-text-box" style="display: none; margin-top: 0.6rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">
+                <div class="explanation-text-box" style="display: none; margin-top: 0.6rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap;">
                     <strong>💡 정답 해설:</strong><br>${quiz.explanation || "등록된 추가 상세 해설이 없습니다."}
                 </div>
             </div>

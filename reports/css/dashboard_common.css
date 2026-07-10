@@ -1203,6 +1203,7 @@ input:checked+.slider:before {
     color: var(--text-secondary);
     margin-bottom: 0.8rem;
     animation: fadeIn 0.3s ease-out;
+    white-space: pre-wrap;
 }
 
 @keyframes fadeIn {

@@ -1344,7 +1344,7 @@ function renderQuestionDetailHtml(item, detail, q) {
                 <div style="color:#c084fc; font-weight:700; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.25rem;">
                     <i data-lucide="book-open" style="width:13px; height:13px;"></i> 정답 및 상세 해설
                 </div>
-                <div style="color:var(--text-secondary); margin-bottom:0.3rem;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
+                <div style="color:var(--text-secondary); margin-bottom:0.3rem; white-space:pre-wrap;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
                 ${lawBtnHtml}
             </div>
 
