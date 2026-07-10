@@ -1345,6 +1345,10 @@ function renderQuestionDetailHtml(item, detail, q) {
                     <i data-lucide="book-open" style="width:13px; height:13px;"></i> 정답 및 상세 해설
                 </div>
                 <div style="color:var(--text-secondary); margin-bottom:0.3rem; white-space:pre-wrap;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
+                <div class="ai-explain-section" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed rgba(139,92,246,0.18);">
+                    <button class="ai-explain-btn" onclick="fetchAiExplanation('${q.id}', 'ai-explain-box-${q.id}', false)" style="background:none; border:none; color:#a78bfa; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0; font-family:inherit;">✨ AI 해설 생성</button>
+                    <div id="ai-explain-box-${q.id}" class="ai-explain-box" style="margin-top:0.4rem;"></div>
+                </div>
                 ${lawBtnHtml}
             </div>
 
@@ -2170,6 +2174,44 @@ async function refreshAIDiagnostics(historyId) {
     }
 }
 window.refreshAIDiagnostics = refreshAIDiagnostics;
+
+/**
+ * [설계 의도] Gemini AI를 호출해 문항의 해설을 생성/갱신합니다.
+ * 기존 수동 해설(explanation)은 그대로 두고, ai_explanation 캐시 컬럼만 갈아끼웁니다.
+ * forceRefresh=true(해설 갱신)일 때는 API 비용 발생을 사용자에게 확인받습니다.
+ */
+async function fetchAiExplanation(qId, boxId, forceRefresh) {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+
+    if (forceRefresh && !confirm("기존 AI 해설을 지우고 새로 생성하시겠습니까?\n(약 3~5초 소요)")) {
+        return;
+    }
+
+    box.innerHTML = `<div style="font-size:0.72rem; color:#a78bfa;">✨ Gemini AI가 해설을 작성 중입니다...</div>`;
+
+    try {
+        const url = `/api/question/ai-explain?id=${encodeURIComponent(qId)}${forceRefresh ? '&nocache=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success && data.ai_explanation) {
+            box.innerHTML = `
+                <div style="font-weight:700; color:#f472b6; font-size:0.74rem; display:flex; align-items:center; justify-content:space-between; gap:0.25rem;">
+                    <span>✨ AI 해설</span>
+                    <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background:none; border:none; color:#a78bfa; font-size:0.62rem; cursor:pointer; padding:0; font-family:inherit;">🔄 해설 갱신</button>
+                </div>
+                <p style="color:var(--text-secondary); font-size:0.78rem; line-height:1.55; white-space:pre-wrap; margin:0.35rem 0 0;">${data.ai_explanation}</p>
+            `;
+        } else {
+            box.innerHTML = `<div style="font-size:0.72rem; color:#f87171;">⚠️ AI 해설 생성 실패: ${data.error || '알 수 없는 오류'}</div>`;
+        }
+    } catch (e) {
+        box.innerHTML = `<div style="font-size:0.72rem; color:#f87171;">⚠️ 네트워크 오류로 AI 해설을 불러오지 못했습니다.</div>`;
+        console.error("AI 해설 로드 오류:", e);
+    }
+}
+window.fetchAiExplanation = fetchAiExplanation;
 
 // 전역 바인딩
 window.showLawGuideCard = showLawGuideCard;

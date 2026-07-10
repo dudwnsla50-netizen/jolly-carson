@@ -233,6 +233,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_dashboard(query)
         elif path == "/api/question":
             self.get_question(query)
+        elif path == "/api/question/ai-explain":
+            self.get_question_ai_explain(query)
         elif path == "/api/questions":
             self.get_questions(query)
         elif path == "/api/quiz/stats":
@@ -423,6 +425,125 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         })
                     else:
                         self.send_error_response(404, f"Question {q_id} Not Found")
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Database error: {str(e)}")
+
+    def get_question_ai_explain(self, query):
+        """[설계 의도] 특정 문항에 대해 Gemini AI가 생성한 해설을 반환합니다.
+        exam_questions.ai_explanation 컬럼에 캐싱되어 있다면 즉시 반환하고, 없거나
+        nocache=true로 강제 갱신 요청이 온 경우에만 Gemini API를 호출해 새로 생성 후 저장합니다.
+        기존 수동 작성 해설(explanation 컬럼)은 참고 자료로만 사용하고 절대 덮어쓰지 않습니다."""
+        q_id = query.get("id", [None])[0]
+        if not q_id:
+            self.send_error_response(400, "Missing parameter (id)")
+            return
+
+        nocache = query.get("nocache", ["false"])[0].lower() == "true"
+
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    sql_select = "SELECT question, options, answer, explanation, ai_explanation FROM exam_questions WHERE id = %s"
+                    execute_query(cursor, sql_select, (q_id,))
+                    row = cursor.fetchone()
+                    if not row:
+                        self.send_error_response(404, f"Question {q_id} Not Found")
+                        return
+
+                    row_dict = dict(row)
+                    cached_explanation = row_dict.get("ai_explanation")
+
+                    if cached_explanation and not nocache:
+                        self.send_json_response({
+                            "success": True,
+                            "ai_explanation": cached_explanation,
+                            "source": "CACHED"
+                        })
+                        return
+
+                    if not GEMINI_API_KEY:
+                        self.send_json_response({
+                            "success": False,
+                            "ai_explanation": cached_explanation,
+                            "error": "서버 환경변수 GEMINI_API_KEY가 설정되지 않았거나 비어있습니다."
+                        })
+                        return
+
+                    options = json.loads(row_dict["options"]) if row_dict["options"] else []
+                    raw_answer = row_dict["answer"]
+                    if isinstance(raw_answer, int):
+                        answer_list = [raw_answer]
+                    elif isinstance(raw_answer, str) and raw_answer.strip():
+                        try:
+                            parsed_ans = json.loads(raw_answer)
+                            answer_list = [parsed_ans] if isinstance(parsed_ans, int) else parsed_ans
+                        except Exception:
+                            answer_list = [int(raw_answer)] if raw_answer.isdigit() else []
+                    else:
+                        answer_list = []
+
+                    options_str = "\n".join([f"{i + 1}. {opt}" for i, opt in enumerate(options)])
+                    answer_str = ", ".join([f"{a}번" for a in answer_list]) if answer_list else "미등록"
+                    existing_explanation = row_dict.get("explanation") or "등록된 해설 없음"
+
+                    prompt = f"""당신은 대한민국 '정보시스템 감리사 자격검정' 수험 전문 강사입니다.
+아래 기출문제의 정답이 왜 정답인지, 그리고 나머지 오답 보기들은 왜 틀렸는지 수험생이 이해하기 쉽게 해설해 주세요.
+
+[문제]
+{row_dict['question']}
+
+[보기]
+{options_str}
+
+[정답]
+{answer_str}
+
+[기존 등록된 참고 해설 (있는 경우 참고만 하고, 그대로 베끼지 말고 더 상세하고 이해하기 쉽게 재구성하세요)]
+{existing_explanation}
+
+[출력 요구사항]
+1. 순수 해설 텍스트만 출력하세요. 마크다운 코드블록(```)이나 JSON 포맷, 불필요한 인사말은 절대 포함하지 마세요.
+2. 정답 보기가 정답인 이유를 먼저 명확히 설명한 뒤, 주요 오답 보기가 왜 틀렸는지 간단히 짚어주세요.
+3. 전체 5~8줄 이내의 간결하고 명확한 한국어 존댓말 해설로 작성하세요.
+
+해설:"""
+
+                    ai_explanation_generated = ""
+                    error_msg = ""
+                    try:
+                        raw_res = call_gemini_raw_prompt(prompt)
+                        raw_res = raw_res.strip() if raw_res else ""
+                        if raw_res.startswith("```"):
+                            lines = raw_res.split("\n")
+                            if lines[0].startswith("```"):
+                                lines = lines[1:]
+                            if lines and lines[-1].startswith("```"):
+                                lines = lines[:-1]
+                            raw_res = "\n".join(lines).strip()
+                        ai_explanation_generated = raw_res
+                    except Exception as gemini_ex:
+                        error_msg = f"Gemini API 호출 오류: {str(gemini_ex)}"
+                        print(f"[AI Explain] Gemini 호출 오류: {gemini_ex}")
+                        traceback.print_exc()
+
+                    if not ai_explanation_generated:
+                        self.send_json_response({
+                            "success": False,
+                            "ai_explanation": cached_explanation,
+                            "error": error_msg or "Gemini API 호출 결과가 빈 문자열입니다."
+                        })
+                        return
+
+                    sql_update = "UPDATE exam_questions SET ai_explanation = %s WHERE id = %s"
+                    execute_query(cursor, sql_update, (ai_explanation_generated, q_id))
+                    conn.commit()
+
+                    self.send_json_response({
+                        "success": True,
+                        "ai_explanation": ai_explanation_generated,
+                        "source": "GEMINI_AI"
+                    })
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
@@ -1946,6 +2067,24 @@ def init_srs_review_state_table():
         print(f"[{DB_TYPE}] 경고 - 복습 스케줄러 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
 
 
+def init_exam_questions_ai_explanation_column():
+    """[설계 의도] exam_questions 테이블에 AI 생성 해설 캐시 컬럼(ai_explanation)이 없다면 추가합니다.
+    수동 작성 해설(explanation 컬럼)과 완전히 분리 보관하여 AI 재생성이 사용자가 직접 입력한
+    기존 해설을 절대 덮어쓰지 않도록 합니다."""
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                try:
+                    cursor.execute("SELECT ai_explanation FROM exam_questions LIMIT 1")
+                except Exception:
+                    conn.rollback()
+                    cursor.execute("ALTER TABLE exam_questions ADD COLUMN ai_explanation TEXT")
+                    conn.commit()
+                    print(f"[{DB_TYPE}] exam_questions 테이블에 AI 해설 캐시 컬럼 추가 완료: ai_explanation")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - exam_questions AI 해설 캐시 컬럼 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
+
+
 def main():
     global DB_TYPE
     os.chdir(BASE_DIR)
@@ -1983,6 +2122,7 @@ def main():
         init_quiz_history_table()
         init_yearly_exam_history_table()
         init_srs_review_state_table()
+        init_exam_questions_ai_explanation_column()
     except Exception as e:
         print(f"[Server] 경고: DB 연결 제한 상황에서 구동을 대기합니다. -> {e}")
         

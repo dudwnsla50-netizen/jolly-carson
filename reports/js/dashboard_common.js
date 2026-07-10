@@ -1408,16 +1408,18 @@ function renderLoadedQuestion(idx, qId) {
         }
 
         htmlContent += `
-            ${data.explanation ? `
-                <div class="explanation-toggle-container" style="margin-top: 0.7rem;">
-                    <button class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none; transition: all 0.2s;">
-                        <span>💡 해설보기</span>
-                    </button>
-                    <div class="inline-explanation-box" style="display: none; margin-top: 0.5rem;">
-                        <strong>💡 정답 해설:</strong><br>${data.explanation}
+            <div class="explanation-toggle-container" style="margin-top: 0.7rem;">
+                <button class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none; transition: all 0.2s;">
+                    <span>💡 해설보기</span>
+                </button>
+                <div class="inline-explanation-box" style="display: none; margin-top: 0.5rem;">
+                    <strong>💡 정답 해설:</strong><br>${data.explanation || '등록된 해설이 없습니다.'}
+                    <div class="ai-explain-section" style="margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed rgba(139, 92, 246, 0.18);">
+                        <button class="ai-explain-btn" onclick="fetchAiExplanation('${qId}', 'ai-explain-box-${qId}', false)" style="background: none; border: none; color: #a78bfa; font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 0; font-family: inherit;">✨ AI 해설 생성</button>
+                        <div id="ai-explain-box-${qId}" class="ai-explain-box" style="margin-top: 0.4rem;"></div>
                     </div>
                 </div>
-            ` : ''}
+            </div>
             ${historyHtml}
             <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.8rem;">
                 <button onclick="retryInlineQuestion('${idx}', '${qId}', event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-family: inherit;">다시 풀기</button>
@@ -3348,5 +3350,42 @@ window.toggleExplanationCollapse = function (btn) {
     const accordionItem = btn.closest('.accordion-item');
     if (accordionItem && typeof updateAccordionContentHeight === 'function') {
         updateAccordionContentHeight(accordionItem);
+    }
+};
+
+/**
+ * [설계 의도] Gemini AI를 호출해 문항의 해설을 생성/갱신하는 전역 헬퍼 함수.
+ * 기존 수동 해설(explanation)은 그대로 두고, ai_explanation 캐시 컬럼만 갈아끼웁니다.
+ * forceRefresh=true(해설 갱신)일 때는 API 비용 발생을 사용자에게 확인받습니다.
+ */
+window.fetchAiExplanation = async function (qId, boxId, forceRefresh) {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+
+    if (forceRefresh && !confirm("기존 AI 해설을 지우고 새로 생성하시겠습니까?\n(약 3~5초 소요)")) {
+        return;
+    }
+
+    box.innerHTML = `<div style="font-size: 0.72rem; color: #a78bfa;">✨ Gemini AI가 해설을 작성 중입니다...</div>`;
+
+    try {
+        const url = `/api/question/ai-explain?id=${encodeURIComponent(qId)}${forceRefresh ? '&nocache=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success && data.ai_explanation) {
+            box.innerHTML = `
+                <div style="font-weight: 700; color: #f472b6; font-size: 0.74rem; display: flex; align-items: center; justify-content: space-between; gap: 0.25rem;">
+                    <span>✨ AI 해설</span>
+                    <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; padding: 0; font-family: inherit;">🔄 해설 갱신</button>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.78rem; line-height: 1.55; white-space: pre-wrap; margin: 0.35rem 0 0;">${data.ai_explanation}</p>
+            `;
+        } else {
+            box.innerHTML = `<div style="font-size: 0.72rem; color: #f87171;">⚠️ AI 해설 생성 실패: ${data.error || '알 수 없는 오류'}</div>`;
+        }
+    } catch (e) {
+        box.innerHTML = `<div style="font-size: 0.72rem; color: #f87171;">⚠️ 네트워크 오류로 AI 해설을 불러오지 못했습니다.</div>`;
+        console.error("AI 해설 로드 오류:", e);
     }
 };
