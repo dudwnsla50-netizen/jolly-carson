@@ -378,8 +378,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT question, options, answer, explanation, subject, is_new_trend, similar_past_questions 
-                        FROM exam_questions 
+                        SELECT question, options, answer, explanation, subject, is_new_trend, similar_past_questions, ai_explanation
+                        FROM exam_questions
                         WHERE id = %s
                     """
                     execute_query(cursor, sql, (q_id,))
@@ -421,7 +421,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "explanation": row_dict["explanation"],
                             "subject": row_dict["subject"],
                             "is_new_trend": row_dict.get("is_new_trend", 0),
-                            "similar_past_questions": sim_past_val
+                            "similar_past_questions": sim_past_val,
+                            "ai_explanation": row_dict.get("ai_explanation")
                         })
                     else:
                         self.send_error_response(404, f"Question {q_id} Not Found")
@@ -559,8 +560,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions 
-                        FROM exam_questions 
+                        SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation
+                        FROM exam_questions
                         WHERE subject = %s
                     """
                     execute_query(cursor, sql, (subject,))
@@ -1142,7 +1143,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     
                     # 2. 모든 모의고사 연습 이력 조회
                     sql_history = """
-                        SELECT id, exam_year, score, created_at, pm_correct, se_correct, db_correct, sa_correct, sc_correct
+                        SELECT id, exam_year, score, created_at, details, pm_correct, se_correct, db_correct, sa_correct, sc_correct
                         FROM yearly_exam_history
                     """
                     execute_query(cursor, sql_history)
@@ -1178,11 +1179,11 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                 "total_ratio": 0.0,
                                 "total_count": 0,
                                 "subjects": {
-                                    "PM": {"count": 0, "ratio": 0.0},
-                                    "SE": {"count": 0, "ratio": 0.0},
-                                    "DB": {"count": 0, "ratio": 0.0},
-                                    "SA": {"count": 0, "ratio": 0.0},
-                                    "SC": {"count": 0, "ratio": 0.0}
+                                    "PM": {"count": 0, "ratio": 0.0, "practice_count": 0},
+                                    "SE": {"count": 0, "ratio": 0.0, "practice_count": 0},
+                                    "DB": {"count": 0, "ratio": 0.0, "practice_count": 0},
+                                    "SA": {"count": 0, "ratio": 0.0, "practice_count": 0},
+                                    "SC": {"count": 0, "ratio": 0.0, "practice_count": 0}
                                 }
                             }
                         }
@@ -1222,10 +1223,12 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                 sub_data = trend_data["subjects"].get(sub, {"count": 0, "total": 0, "ratio": 0.0})
                                 stats_by_year[yr]["new_trends"]["subjects"][sub] = {
                                     "count": sub_data["count"],
-                                    "ratio": sub_data["ratio"]
+                                    "ratio": sub_data["ratio"],
+                                    "practice_count": 0
                                 }
                     
                     for hist in history_rows:
+                        hist = dict(hist)  # sqlite3.Row는 .get()을 지원하지 않아 dict로 통일
                         yr = hist["exam_year"]
                         score = float(hist["score"]) if hist["score"] is not None else 0.0
                         created_at = hist["created_at"]
@@ -1237,10 +1240,25 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         stats_by_year[yr]["practice_count"] += 1
                         if score > stats_by_year[yr]["max_score"]:
                             stats_by_year[yr]["max_score"] = score
-                            
+
                         if not stats_by_year[yr]["last_attempt_at"] or created_at > stats_by_year[yr]["last_attempt_at"]:
                             stats_by_year[yr]["last_attempt_at"] = created_at
-                            
+
+                        # 과목 단독(신규 기출) 연습 회차 집계 - 이 시도가 특정 한 과목의 문항만으로
+                        # 구성된 경우(신규 기출 과목별 연습)에만 해당 과목 연습 회차를 1 증가시킵니다.
+                        hist_details_raw = hist.get("details")
+                        if hist_details_raw:
+                            if isinstance(hist_details_raw, str):
+                                try:
+                                    hist_details = json.loads(hist_details_raw)
+                                except Exception:
+                                    hist_details = []
+                            else:
+                                hist_details = hist_details_raw
+                            sub_key = self._get_yearly_subject_key(hist_details)
+                            if sub_key in stats_by_year[yr]["new_trends"]["subjects"]:
+                                stats_by_year[yr]["new_trends"]["subjects"][sub_key]["practice_count"] += 1
+
                         # 과목별 점수 산출
                         correct_counts = {
                             'PM': hist.get("pm_correct") or 0,
@@ -1282,9 +1300,9 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, year, subject, question_num, question, options, answer, explanation, is_new_trend, similar_past_questions 
-                        FROM exam_questions 
-                        WHERE year = %s 
+                        SELECT id, year, subject, question_num, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation
+                        FROM exam_questions
+                        WHERE year = %s
                         ORDER BY question_num ASC
                     """
                     execute_query(cursor, sql, (year,))

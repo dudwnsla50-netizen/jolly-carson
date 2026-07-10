@@ -27,6 +27,7 @@ const SUBJECT_RANGES = {
 let examYear = null;
 let selectedSubjectRange = 'ALL'; // 선택된 과목 필터 키
 let questions = [];          // 로드된 문제 목록
+let currentDetailCtx = null; // 선택 문항 상세 탭의 편집 취소/저장 후 재렌더링용 원본 컨텍스트 { item, detail }
 let currentIdx = 0;          // 현재 표시 중인 문제 인덱스
 let userAnswers = {};        // 유저 마킹 정보 { question_num: selected_option_number(1~4) }
 let isImageExpanded = false; // [NEW] 문제 이미지 펼치기 상태 변수
@@ -345,6 +346,13 @@ function renderYearSelection(data) {
         const scTrend = item.new_trends ? item.new_trends.subjects.SC.count : 0;
         const totalTrend = item.new_trends ? item.new_trends.total_count : 0;
 
+        // 과목별 신규 기출 연습 회차 계산
+        const pmPracticeCount = item.new_trends ? item.new_trends.subjects.PM.practice_count : 0;
+        const sePracticeCount = item.new_trends ? item.new_trends.subjects.SE.practice_count : 0;
+        const dbPracticeCount = item.new_trends ? item.new_trends.subjects.DB.practice_count : 0;
+        const saPracticeCount = item.new_trends ? item.new_trends.subjects.SA.practice_count : 0;
+        const scPracticeCount = item.new_trends ? item.new_trends.subjects.SC.practice_count : 0;
+
         card.innerHTML = `
                     <div class="exam-card-header">
                         <span class="exam-year-title">${item.year}년도</span>
@@ -362,32 +370,33 @@ function renderYearSelection(data) {
                                     <span style="font-size:0.62rem; color:#f472b6; font-weight:700;">PM</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${pmMax}</span>
                                     <span style="font-size:0.58rem; color:#f472b6; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'PM')" title="클릭 시 PM 신규 기출 모의고사 시작">${pmTrend}개</span>
+                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${pmPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#60a5fa; font-weight:700;">SE</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${seMax}</span>
                                     <span style="font-size:0.58rem; color:#60a5fa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SE')" title="클릭 시 SE 신규 기출 모의고사 시작">${seTrend}개</span>
+                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${sePracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#a78bfa; font-weight:700;">DB</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${dbMax}</span>
                                     <span style="font-size:0.58rem; color:#a78bfa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'DB')" title="클릭 시 DB 신규 기출 모의고사 시작">${dbTrend}개</span>
+                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${dbPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#fbbf24; font-weight:700;">SA</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${saMax}</span>
                                     <span style="font-size:0.58rem; color:#fbbf24; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SA')" title="클릭 시 SA 신규 기출 모의고사 시작">${saTrend}개</span>
+                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${saPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#34d399; font-weight:700;">SC</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${scMax}</span>
                                     <span style="font-size:0.58rem; color:#34d399; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SC')" title="클릭 시 SC 신규 기출 모의고사 시작">${scTrend}개</span>
+                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${scPracticeCount}회</span>
                                 </div>
                             </div>
-                        </div>
-                        <div class="exam-stat-row">
-                            <span>연습 회차</span>
-                            <span class="exam-stat-val">${item.practice_count}회 완료</span>
                         </div>
                         <div class="exam-stat-row">
                             <span>최근 연습일</span>
@@ -1267,6 +1276,7 @@ function showYearlyWrongQuestionDetail(item, detail) {
 
 function renderQuestionDetailHtml(item, detail, q) {
     const box = document.getElementById('yearly-wrong-detail-box');
+    currentDetailCtx = { item, detail, q };
     const isCorrect = detail.is_correct;
     const answers = Array.isArray(q.answer) ? q.answer.map(Number) : [Number(q.answer)];
     const uAns = Array.isArray(detail.user_answer) ? Number(detail.user_answer[0]) : Number(detail.user_answer);
@@ -1334,7 +1344,10 @@ function renderQuestionDetailHtml(item, detail, q) {
         <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:1rem; min-height:100%;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.4rem;">
                 <span style="font-weight:700; font-size:0.88rem;">Q.${detail.question_num} 상세 보기</span>
-                <span class="badge ${rangeInfo.code}" style="font-size:0.65rem; padding:0.15rem 0.35rem; border-radius:4px; font-weight:700; background: ${getSubjectGradient(rangeInfo.code)}; color: #ffffff; border:none;">${rangeInfo.name}</span>
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <span class="badge ${rangeInfo.code}" style="font-size:0.65rem; padding:0.15rem 0.35rem; border-radius:4px; font-weight:700; background: ${getSubjectGradient(rangeInfo.code)}; color: #ffffff; border:none;">${rangeInfo.name}</span>
+                    <button onclick="startEditYearlyQuestion('${q.id}')" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #c084fc; padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.68rem; font-weight: 700; cursor: pointer; font-family: inherit;">✏️ 수정</button>
+                </div>
             </div>
             <div style="font-size:0.88rem; line-height:1.45; color:var(--text-primary); white-space:pre-wrap; margin-bottom:0.8rem;">${q.question}</div>
             
@@ -1346,7 +1359,7 @@ function renderQuestionDetailHtml(item, detail, q) {
                 </div>
                 <div style="color:var(--text-secondary); margin-bottom:0.3rem; white-space:pre-wrap;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
                 <div class="ai-explain-section" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed rgba(139,92,246,0.18);">
-                    <button class="ai-explain-btn" onclick="fetchAiExplanation('${q.id}', 'ai-explain-box-${q.id}', false)" style="background:none; border:none; color:#a78bfa; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0; font-family:inherit;">✨ AI 해설 생성</button>
+                    <button class="ai-explain-btn" id="ai-explain-trigger-${q.id}" onclick="fetchAiExplanation('${q.id}', 'ai-explain-box-${q.id}', false)" style="background:none; border:none; color:#a78bfa; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0; font-family:inherit;">${q.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
                     <div id="ai-explain-box-${q.id}" class="ai-explain-box" style="margin-top:0.4rem;"></div>
                 </div>
                 ${lawBtnHtml}
@@ -1356,6 +1369,328 @@ function renderQuestionDetailHtml(item, detail, q) {
         </div>
     `;
     if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * [설계 의도] 순수 텍스트를 contenteditable 리치 에디터에 표시 가능한 HTML로 변환합니다.
+ * 이미 HTML 마크업(과거에 이미지가 붙여넣기된 해설 등)이라면 그대로 두고, 아니면 escape 후
+ * 줄바꿈만 <br>로 바꿔줍니다. dashboard_common.js의 동명 함수와 동일한 로직입니다.
+ */
+function toEditableHtml(raw) {
+    if (!raw) return '';
+    const looksLikeHtml = /<[a-z][\s\S]*>/i.test(raw);
+    if (looksLikeHtml) return raw;
+
+    const escaped = raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    return escaped.replace(/\n/g, '<br>');
+}
+
+function insertHtmlAtCursor(html) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const fragment = range.createContextualFragment(html);
+    const lastNode = fragment.lastChild;
+    range.insertNode(fragment);
+
+    if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.setEndAfter(lastNode);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+}
+
+function insertTextAtCursor(text) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.setEndAfter(textNode);
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+
+/**
+ * [설계 의도] 리치 에디터에 붙여넣을 때 클립보드에 이미지가 있으면 base64 <img>로 삽입하고,
+ * 없으면 서식이 제거된 순수 텍스트만 삽입합니다. dashboard_common.js의 handleRichEditorPaste와
+ * 동일하되, 이 페이지에는 아코디언이 없어 높이 재조정 호출만 생략했습니다.
+ */
+function handleRichEditorPaste(event) {
+    event.preventDefault();
+    const clipboardData = event.clipboardData;
+    const items = clipboardData ? clipboardData.items : null;
+
+    if (items) {
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (!file) continue;
+
+                const reader = new FileReader();
+                reader.onload = () => {
+                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block;">`);
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+        }
+    }
+
+    const text = clipboardData ? clipboardData.getData('text/plain') : '';
+    if (text) insertTextAtCursor(text);
+}
+
+/**
+ * [설계 의도] 브라우저가 빈 contenteditable에 남기는 잔여 <br> 등으로 인해
+ * 실제 텍스트나 이미지가 전혀 없는데도 값이 있는 것처럼 처리되지 않도록 정규화합니다.
+ */
+function getRichEditorValue(elId) {
+    const el = document.getElementById(elId);
+    if (!el) return '';
+
+    const hasImage = el.querySelector('img') !== null;
+    const hasText = el.textContent.trim().length > 0;
+    return (hasImage || hasText) ? el.innerHTML : '';
+}
+
+/**
+ * [설계 의도] "선택 문항 상세" 탭에서도 대시보드와 동일하게 문항을 직접 수정할 수 있게 합니다.
+ * 질문/해설은 이미지 붙여넣기가 가능한 리치 에디터로, 보기와 정답은 입력창/체크박스로 편집합니다.
+ */
+function startEditYearlyQuestion(qId) {
+    const box = document.getElementById('yearly-wrong-detail-box');
+    if (!box || !currentDetailCtx || currentDetailCtx.q.id !== qId) return;
+
+    const q = currentDetailCtx.q;
+
+    const numSymbols = ["①", "②", "③", "④", "⑤"];
+    const options = q.options && q.options.length > 0 ? q.options : ["", "", "", ""];
+    const ansArr = Array.isArray(q.answer) ? q.answer.map(Number) : (q.answer ? [Number(q.answer)] : []);
+
+    let optionsHtml = '';
+    options.forEach((opt, oIdx) => {
+        const sym = numSymbols[oIdx] || `${oIdx + 1}.`;
+        const escapedOpt = (opt || '').replace(/"/g, '&quot;');
+        optionsHtml += `
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="color:#8b5cf6; font-weight:700; font-size:0.85rem; width:18px; flex-shrink:0; text-align:center;">${sym}</span>
+                <input type="text" class="yearly-edit-opt-input" value="${escapedOpt}" style="flex-grow:1; background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.25); color:#ffffff; padding:0.4rem 0.5rem; border-radius:4px; font-size:0.8rem; outline:none; font-family:inherit;" />
+            </div>
+        `;
+    });
+
+    const answerChecksHtml = [1, 2, 3, 4].map(n => {
+        const sym = numSymbols[n - 1];
+        const checked = ansArr.includes(n) ? 'checked' : '';
+        return `
+            <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer; font-size:0.8rem; color:#ffffff;">
+                <input type="checkbox" class="yearly-edit-answer-chk" value="${n}" ${checked} style="accent-color:#8b5cf6; width:14px; height:14px; cursor:pointer;">
+                ${sym}번
+            </label>
+        `;
+    }).join('');
+
+    box.innerHTML = `
+        <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:1rem; display:flex; flex-direction:column; gap:0.8rem;">
+            <div style="font-weight:700; font-size:0.85rem; color:#c084fc;">✏️ Q.${q.question_num} 문항 수정</div>
+            <div>
+                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.3rem;">❓ 질문 본문</label>
+                <div id="yearly-edit-q-text" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" style="width:100%; min-height:110px; max-height:360px; overflow-y:auto; background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.3); color:#ffffff; padding:0.55rem; border-radius:6px; font-size:0.82rem; line-height:1.5; outline:none; white-space:pre-wrap;">${toEditableHtml(q.question)}</div>
+                <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.25rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
+            </div>
+            <div>
+                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.4rem;">📋 보기(선택지)</label>
+                <div style="display:flex; flex-direction:column; gap:0.4rem;">${optionsHtml}</div>
+            </div>
+            <div>
+                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.3rem;">🔑 정답 (복수 선택 가능)</label>
+                <div style="display:flex; gap:0.9rem; flex-wrap:wrap; padding:0.45rem; background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.2); border-radius:4px;">${answerChecksHtml}</div>
+            </div>
+            <div>
+                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.3rem;">📝 해설</label>
+                <div id="yearly-edit-q-explanation" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" style="width:100%; min-height:130px; max-height:480px; overflow-y:auto; background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.3); color:#ffffff; padding:0.55rem; border-radius:6px; font-size:0.82rem; line-height:1.5; outline:none; white-space:pre-wrap;">${toEditableHtml(q.explanation || '')}</div>
+                <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.25rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
+            </div>
+            <div>
+                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.4rem;">🖼️ 시험지 원본 이미지</label>
+                <div style="display:flex; align-items:flex-start; gap:0.8rem; flex-wrap:wrap;">
+                    <div id="yearly-edit-img-preview-wrap" style="min-width:110px; min-height:80px; display:flex; align-items:center; justify-content:center;">
+                        <img id="yearly-edit-img-preview" src="../images/${q.id}.png?t=${Date.now()}" alt="현재 이미지" style="max-width:200px; max-height:150px; border-radius:6px; border:1px solid rgba(139,92,246,0.3);" onerror="this.style.display='none'; document.getElementById('yearly-edit-img-empty').style.display='block';">
+                        <div id="yearly-edit-img-empty" style="display:none; font-size:0.74rem; color:var(--text-muted);">등록된 이미지가 없습니다.</div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                        <input type="file" accept="image/png" id="yearly-edit-img-file" onchange="onYearlyEditImageFileSelected(event)" style="font-size:0.76rem; color:#ffffff; max-width:200px;">
+                        <span style="font-size:0.66rem; color:var(--text-muted);">PNG 파일만 지원됩니다</span>
+                        <label style="display:flex; align-items:center; gap:0.35rem; font-size:0.74rem; color:var(--text-secondary); cursor:pointer;">
+                            <input type="checkbox" id="yearly-edit-img-remove" onchange="onYearlyEditImageRemoveToggled('${q.id}')" style="accent-color:#8b5cf6; width:13px; height:13px; cursor:pointer;">
+                            이미지 삭제
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:0.3rem;">
+                <button onclick="saveYearlyQuestionEdit('${q.id}')" style="background:#8b5cf6; border:none; color:#ffffff; padding:0.4rem 1rem; border-radius:4px; font-size:0.8rem; font-weight:700; cursor:pointer; font-family:inherit;">💾 저장</button>
+                <button onclick="cancelYearlyQuestionEdit()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--text-secondary); padding:0.4rem 1rem; border-radius:4px; font-size:0.8rem; cursor:pointer; font-family:inherit;">취소</button>
+            </div>
+        </div>
+    `;
+
+    window.yearlyPendingImageEdit = { dataUrl: null, remove: false };
+}
+
+/**
+ * [설계 의도] 새 이미지 파일을 base64로 읽어 저장 시점까지 보관하고 미리보기를 즉시 교체합니다.
+ */
+function onYearlyEditImageFileSelected(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'image/png') {
+        alert("PNG 형식의 이미지 파일만 첨부할 수 있습니다.");
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        window.yearlyPendingImageEdit = { dataUrl: reader.result, remove: false };
+
+        const removeChk = document.getElementById('yearly-edit-img-remove');
+        if (removeChk) removeChk.checked = false;
+
+        const img = document.getElementById('yearly-edit-img-preview');
+        const empty = document.getElementById('yearly-edit-img-empty');
+        if (img) {
+            img.onerror = null;
+            img.src = reader.result;
+            img.style.display = 'block';
+        }
+        if (empty) empty.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * [설계 의도] "이미지 삭제" 체크 상태에 따라 저장 시 삭제 여부를 결정하고,
+ * 체크 해제 시에는 서버에 남아있는 기존 이미지를 다시 미리보기로 복원합니다.
+ */
+function onYearlyEditImageRemoveToggled(qId) {
+    const removeChk = document.getElementById('yearly-edit-img-remove');
+    const isRemove = removeChk ? removeChk.checked : false;
+
+    window.yearlyPendingImageEdit = window.yearlyPendingImageEdit || { dataUrl: null, remove: false };
+    window.yearlyPendingImageEdit.remove = isRemove;
+    if (isRemove) window.yearlyPendingImageEdit.dataUrl = null;
+
+    const fileInput = document.getElementById('yearly-edit-img-file');
+    if (fileInput) fileInput.value = '';
+
+    const img = document.getElementById('yearly-edit-img-preview');
+    const empty = document.getElementById('yearly-edit-img-empty');
+    if (!img) return;
+
+    if (isRemove) {
+        img.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+    } else {
+        img.onerror = () => { img.style.display = 'none'; if (empty) empty.style.display = 'block'; };
+        img.style.display = 'block';
+        if (empty) empty.style.display = 'none';
+        img.src = `../images/${qId}.png?t=${Date.now()}`;
+    }
+}
+
+/**
+ * [설계 의도] 수정한 질문/보기/정답/해설을 /api/question/update로 저장하고,
+ * 이미지 변경이 있으면 /api/question/upload-image로 별도 저장한 뒤 상세 보기로 복귀합니다.
+ */
+function saveYearlyQuestionEdit(qId) {
+    if (!currentDetailCtx || currentDetailCtx.q.id !== qId) return;
+    const q = currentDetailCtx.q;
+
+    const questionVal = getRichEditorValue('yearly-edit-q-text');
+    const optionInputs = document.querySelectorAll('.yearly-edit-opt-input');
+    const optionsVal = Array.from(optionInputs).map(input => input.value);
+    const answerChecks = document.querySelectorAll('.yearly-edit-answer-chk:checked');
+    const answerVal = Array.from(answerChecks).map(chk => parseInt(chk.value));
+    const explanationVal = getRichEditorValue('yearly-edit-q-explanation');
+
+    if (!questionVal.trim() || optionsVal.some(o => !o.trim())) {
+        alert("질문과 모든 보기를 입력해야 합니다.");
+        return;
+    }
+
+    fetch('/api/question/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: qId, question: questionVal, options: optionsVal, answer: answerVal, explanation: explanationVal })
+    })
+        .then(response => {
+            if (!response.ok) throw new Error("HTTP error " + response.status);
+            return response.json();
+        })
+        .then(result => {
+            if (!result.success) {
+                alert("저장 실패: " + (result.message || '알 수 없는 오류'));
+                return Promise.reject(null);
+            }
+
+            q.question = questionVal;
+            q.options = optionsVal;
+            q.answer = answerVal;
+            q.explanation = explanationVal;
+
+            const imageState = window.yearlyPendingImageEdit || { dataUrl: null, remove: false };
+            if (imageState.dataUrl) {
+                return fetch('/api/question/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: qId, image_data: imageState.dataUrl })
+                }).then(r => r.json());
+            } else if (imageState.remove) {
+                return fetch('/api/question/upload-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: qId, delete: true })
+                }).then(r => r.json());
+            }
+            return { success: true };
+        })
+        .then(imgResult => {
+            if (imgResult && imgResult.success === false) {
+                alert("문항 내용은 저장되었으나 이미지 저장에 실패했습니다: " + (imgResult.message || ''));
+            } else {
+                alert("문항이 성공적으로 저장되었습니다.");
+            }
+            window.yearlyPendingImageEdit = null;
+            renderQuestionDetailHtml(currentDetailCtx.item, currentDetailCtx.detail, q);
+        })
+        .catch(err => {
+            if (err !== null) {
+                console.error(err);
+                alert("서버와 통신 중 오류가 발생하여 저장에 실패했습니다.");
+            }
+        });
+}
+
+/**
+ * [설계 의도] 편집을 취소하고 원래 상세 보기 화면으로 되돌립니다.
+ */
+function cancelYearlyQuestionEdit() {
+    if (!currentDetailCtx) return;
+    window.yearlyPendingImageEdit = null;
+    renderQuestionDetailHtml(currentDetailCtx.item, currentDetailCtx.detail, currentDetailCtx.q);
 }
 
 // 오답 모아보기 탭 전체 렌더러
@@ -2203,6 +2538,8 @@ async function fetchAiExplanation(qId, boxId, forceRefresh) {
                 </div>
                 <p style="color:var(--text-secondary); font-size:0.78rem; line-height:1.55; white-space:pre-wrap; margin:0.35rem 0 0;">${data.ai_explanation}</p>
             `;
+            const triggerBtn = document.getElementById(`ai-explain-trigger-${qId}`);
+            if (triggerBtn) triggerBtn.textContent = '📖 AI 해설 보기';
         } else {
             box.innerHTML = `<div style="font-size:0.72rem; color:#f87171;">⚠️ AI 해설 생성 실패: ${data.error || '알 수 없는 오류'}</div>`;
         }
@@ -2223,5 +2560,11 @@ window.toggleAllTabExplanation = toggleAllTabExplanation;
 window.toggleDetailTabImage = toggleDetailTabImage;
 window.closeResultWindow = closeResultWindow;
 window.fetchAIDiagnostics = fetchAIDiagnostics;
+window.startEditYearlyQuestion = startEditYearlyQuestion;
+window.saveYearlyQuestionEdit = saveYearlyQuestionEdit;
+window.cancelYearlyQuestionEdit = cancelYearlyQuestionEdit;
+window.onYearlyEditImageFileSelected = onYearlyEditImageFileSelected;
+window.onYearlyEditImageRemoveToggled = onYearlyEditImageRemoveToggled;
+window.handleRichEditorPaste = handleRichEditorPaste;
 
 
