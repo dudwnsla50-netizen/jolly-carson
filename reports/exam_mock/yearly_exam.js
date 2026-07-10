@@ -370,31 +370,31 @@ function renderYearSelection(data) {
                                     <span style="font-size:0.62rem; color:#f472b6; font-weight:700;">PM</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${pmMax}</span>
                                     <span style="font-size:0.58rem; color:#f472b6; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'PM')" title="클릭 시 PM 신규 기출 모의고사 시작">${pmTrend}개</span>
-                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${pmPracticeCount}회</span>
+                                    <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${pmPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#60a5fa; font-weight:700;">SE</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${seMax}</span>
                                     <span style="font-size:0.58rem; color:#60a5fa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SE')" title="클릭 시 SE 신규 기출 모의고사 시작">${seTrend}개</span>
-                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${sePracticeCount}회</span>
+                                    <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${sePracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#a78bfa; font-weight:700;">DB</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${dbMax}</span>
                                     <span style="font-size:0.58rem; color:#a78bfa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'DB')" title="클릭 시 DB 신규 기출 모의고사 시작">${dbTrend}개</span>
-                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${dbPracticeCount}회</span>
+                                    <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${dbPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#fbbf24; font-weight:700;">SA</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${saMax}</span>
                                     <span style="font-size:0.58rem; color:#fbbf24; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SA')" title="클릭 시 SA 신규 기출 모의고사 시작">${saTrend}개</span>
-                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${saPracticeCount}회</span>
+                                    <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${saPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#34d399; font-weight:700;">SC</span>
                                     <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${scMax}</span>
                                     <span style="font-size:0.58rem; color:#34d399; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SC')" title="클릭 시 SC 신규 기출 모의고사 시작">${scTrend}개</span>
-                                    <span style="font-size:0.56rem; color:var(--text-muted); margin-top:1px;">연습 ${scPracticeCount}회</span>
+                                    <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${scPracticeCount}회</span>
                                 </div>
                             </div>
                         </div>
