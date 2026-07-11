@@ -90,6 +90,7 @@ def call_gemini_raw_prompt(prompt, timeout=10):
         raise ValueError("GEMINI_API_KEY 또는 GEMINI_API_KEY2 환경변수가 비어있거나 감지되지 않았습니다.")
     
     max_retries = 2
+    last_exception = None
     for attempt in range(max_retries):
         for i, api_key in enumerate(keys):
             url = f"{GEMINI_API_URL}?key={api_key}"
@@ -114,6 +115,7 @@ def call_gemini_raw_prompt(prompt, timeout=10):
                     logs.append(msg_success)
                     return raw_response, model_name, logs
             except urllib.error.HTTPError as e:
+                last_exception = e
                 if e.code == 429 or (500 <= e.code < 600):
                     status_type = "429 Too Many Requests" if e.code == 429 else f"HTTP {e.code} Server Error"
                     warn_msg = f"[Warning] Gemini API Key #{i+1} {status_type} 감지."
@@ -123,26 +125,29 @@ def call_gemini_raw_prompt(prompt, timeout=10):
                         logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
                         continue
                     else:
-                        wait_time = 2
-                        logs.append(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다...")
-                        time.sleep(wait_time)
+                        if attempt < max_retries - 1:
+                            wait_time = 2
+                            logs.append(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다...")
+                            time.sleep(wait_time)
                 else:
+                    warn_msg = f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code})."
+                    print(warn_msg)
+                    logs.append(warn_msg)
                     if i < len(keys) - 1:
-                        logs.append(f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code}). 백업 API Key #{i+2}로 즉시 재시도합니다.")
+                        logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
                         continue
-                    raise e
             except Exception as e:
+                last_exception = e
                 warn_msg = f"[Warning] Gemini API Key #{i+1} 예외 발생: {str(e)}"
                 print(warn_msg)
                 logs.append(warn_msg)
                 if i < len(keys) - 1:
                     logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
                     continue
-                if attempt == max_retries - 1:
-                    raise e
-                wait_time = 1
-                logs.append(f"-> 모든 API Key 실패. {wait_time}초 후 재시도합니다...")
-                time.sleep(wait_time)
+                if attempt < max_retries - 1:
+                    wait_time = 1
+                    logs.append(f"-> 모든 API Key 실패. {wait_time}초 후 재시도합니다...")
+                    time.sleep(wait_time)
                 
     # 3차 폴백: Hugging Face (HF_API_KEY)
     if HF_API_KEY:

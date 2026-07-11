@@ -224,25 +224,24 @@ def call_gemini_api(prompt, api_key):
                         print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.", flush=True)
                         continue
                     else:
-                        wait_time = 2
-                        print(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
-                        time.sleep(wait_time)
+                        if attempt < max_retries - 1:
+                            wait_time = 2
+                            print(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
+                            time.sleep(wait_time)
                 else:
+                    print(f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code}): {e}", flush=True)
                     if i < len(keys) - 1:
-                        print(f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code}). 백업 API Key #{i+2}로 즉시 재시도합니다.", flush=True)
+                        print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.", flush=True)
                         continue
-                    print(f"[API 에러] Gemini 호출 실패 (HTTP {e.code}): {e}", flush=True)
-                    return None, e.code
             except Exception as e:
+                print(f"[Warning] Gemini API Key #{i+1} 호출 중 예외 발생: {e}", flush=True)
                 if i < len(keys) - 1:
-                    print(f"[Warning] Gemini API Key #{i+1} 호출 중 예외 발생: {e}. 백업 API Key #{i+2}로 즉시 재시도합니다.", flush=True)
+                    print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.", flush=True)
                     continue
-                if attempt == max_retries - 1:
-                    print(f"[API 에러] Gemini 호출 실패: {e}", flush=True)
-                    return None, 500
-                wait_time = 1
-                print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
-                time.sleep(wait_time)
+                if attempt < max_retries - 1:
+                    wait_time = 1
+                    print(f"-> 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
+                    time.sleep(wait_time)
             
     # 3차 폴백: Hugging Face (HF_API_KEY)
     hf_key = os.environ.get("HF_API_KEY", "")
