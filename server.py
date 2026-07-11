@@ -80,6 +80,7 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_API_KEY2 = os.environ.get("GEMINI_API_KEY2", "")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+HF_API_KEY = os.environ.get("HF_API_KEY", "")
 
 def call_gemini_raw_prompt(prompt, timeout=10):
     logs = []
@@ -143,9 +144,24 @@ def call_gemini_raw_prompt(prompt, timeout=10):
                 logs.append(f"-> 모든 API Key 실패. {wait_time}초 후 재시도합니다...")
                 time.sleep(wait_time)
                 
-    # [설계 복구] Gemini API 소진 시 Groq Llama-3.1 3차 폴백 구동
+    # 3차 폴백: Hugging Face (HF_API_KEY)
+    if HF_API_KEY:
+        msg = "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Hugging Face Llama-3 3차 폴백 가동합니다..."
+        print(msg, flush=True)
+        logs.append(msg)
+        try:
+            hf_response, hf_model, hf_logs = call_huggingface_raw_prompt(prompt, HF_API_KEY)
+            logs.extend(hf_logs)
+            if hf_response:
+                return hf_response, hf_model, logs
+        except Exception as hf_ex:
+            err_msg = f"[Warning] Hugging Face 3차 폴백 호출 중 예외 발생: {hf_ex}"
+            print(err_msg, flush=True)
+            logs.append(err_msg)
+
+    # 4차 폴백: Groq (GROQ_API_KEY)
     if GROQ_API_KEY:
-        msg = "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Groq Llama-3.1 3차 폴백 가동합니다..."
+        msg = "[Warning] Gemini 및 Hugging Face API 제한 또는 차단 감지. Groq Llama-3.1 4차 폴백 가동합니다..."
         print(msg, flush=True)
         logs.append(msg)
         try:
@@ -154,11 +170,40 @@ def call_gemini_raw_prompt(prompt, timeout=10):
             if groq_response:
                 return groq_response, groq_model, logs
         except Exception as groq_ex:
-            err_msg = f"[Warning] Groq 3차 폴백 호출 중 예외 발생: {groq_ex}"
+            err_msg = f"[Warning] Groq 4차 폴백 호출 중 예외 발생: {groq_ex}"
             print(err_msg, flush=True)
             logs.append(err_msg)
             
-    raise RuntimeError("모든 Gemini API 및 Groq 백업 API 호출이 실패했거나 한도를 초과했습니다.")
+    raise RuntimeError("모든 Gemini API, Hugging Face 및 Groq 백업 API 호출이 실패했거나 한도를 초과했습니다.")
+
+def call_huggingface_raw_prompt(prompt, hf_key):
+    logs = ["Hugging Face Llama-3 3차 폴백 호출 시작..."]
+    model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
+    url = f"https://api-inference.huggingface.co/models/{model_id}/v1/chat/completions"
+    payload = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1000,
+        "temperature": 0.2
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {hf_key}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            data = json.loads(res.read().decode("utf-8"))
+            response_text = data["choices"][0]["message"]["content"].strip()
+            logs.append("Hugging Face Llama-3 호출 성공!")
+            return response_text, "llama-3-8b-hf", logs
+    except Exception as e:
+        logs.append(f"Hugging Face 호출 중 예외 발생: {str(e)}")
+        raise e
 
 def call_groq_raw_prompt(prompt, groq_key):
     logs = ["Groq Llama-3.1 3차 폴백 호출 시작..."]

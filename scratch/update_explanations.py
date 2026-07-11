@@ -141,6 +141,29 @@ def get_discrepancies_and_diffs():
     conn.close()
     return targets
 
+def call_huggingface_raw_prompt(prompt, hf_key):
+    model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
+    url = f"https://api-inference.huggingface.co/models/{model_id}/v1/chat/completions"
+    payload = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1000,
+        "temperature": 0.2
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {hf_key}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=15) as res:
+        data = json.loads(res.read().decode("utf-8"))
+        response_text = data["choices"][0]["message"]["content"].strip()
+        return response_text
+
 def call_groq_raw_prompt(prompt, groq_key):
     model_id = "llama-3.1-8b-instant"
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -221,16 +244,27 @@ def call_gemini_api(prompt, api_key):
                 print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
                 time.sleep(wait_time)
             
-    # [설계 복구] Gemini API 소진 시 Groq Llama-3.1 3차 폴백 구동
+    # 3차 폴백: Hugging Face (HF_API_KEY)
+    hf_key = os.environ.get("HF_API_KEY", "")
+    if hf_key:
+        print("[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Hugging Face Llama-3 3차 폴백 가동합니다...", flush=True)
+        try:
+            hf_response = call_huggingface_raw_prompt(prompt, hf_key)
+            if hf_response:
+                return hf_response, 200
+        except Exception as hf_ex:
+            print(f"[Warning] Hugging Face 3차 폴백 호출 중 예외 발생: {hf_ex}", flush=True)
+
+    # 4차 폴백: Groq (GROQ_API_KEY)
     groq_key = os.environ.get("GROQ_API_KEY", "")
     if groq_key:
-        print("[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Groq Llama-3.1 3차 폴백 가동합니다...", flush=True)
+        print("[Warning] Gemini 및 Hugging Face API 제한 또는 차단 감지. Groq Llama-3.1 4차 폴백 가동합니다...", flush=True)
         try:
             groq_response = call_groq_raw_prompt(prompt, groq_key)
             if groq_response:
                 return groq_response, 200
         except Exception as groq_ex:
-            print(f"[Warning] Groq 3차 폴백 호출 중 예외 발생: {groq_ex}", flush=True)
+            print(f"[Warning] Groq 4차 폴백 호출 중 예외 발생: {groq_ex}", flush=True)
 
     print("[API 에러] Gemini 호출 실패: 재시도 횟수를 초과했습니다. (429)", flush=True)
     return None, 429
