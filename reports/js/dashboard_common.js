@@ -826,6 +826,34 @@ function initDashboardNav() {
         }
     }
 
+    // IT 용어 사전(단어장) 배지 동적 삽입 연동
+    if (navBadges && !document.getElementById('vocabulary-badge')) {
+        const vocabBadge = document.createElement('a');
+        vocabBadge.id = 'vocabulary-badge';
+        vocabBadge.href = 'vocabulary/index.html';
+        vocabBadge.className = 'badge';
+        vocabBadge.style.textDecoration = 'none';
+        vocabBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+        vocabBadge.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+        vocabBadge.style.color = '#34d399';
+        vocabBadge.style.fontWeight = '700';
+        vocabBadge.style.borderStyle = 'solid';
+        vocabBadge.style.borderWidth = '1px';
+        vocabBadge.innerHTML = '📖 IT 용어 사전';
+
+        const yearlyBadgeEl = document.getElementById('yearly-exam-badge');
+        if (yearlyBadgeEl) {
+            yearlyBadgeEl.parentNode.insertBefore(vocabBadge, yearlyBadgeEl.nextSibling);
+        } else {
+            const homeBadge = navBadges.querySelector('.home-badge');
+            if (homeBadge) {
+                homeBadge.parentNode.insertBefore(vocabBadge, homeBadge.nextSibling);
+            } else {
+                navBadges.appendChild(vocabBadge);
+            }
+        }
+    }
+
     const badges = document.querySelectorAll('.subject-badge');
     badges.forEach(badge => {
         const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');

@@ -242,6 +242,13 @@ def call_groq_raw_prompt(prompt, groq_key):
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
+def get_vocab_db_connection():
+    """[설계 의도] 단어장(Vocabulary) 테이블은 jolly_carson.db 내에 vocab_ 접두사로 분리되어 있습니다."""
+    conn = sqlite3.connect(SQLITE_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
 def get_db_connection():
     """
     [설계 의도]
@@ -368,6 +375,19 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.submit_quiz(data)
         elif path == "/api/yearly-exam/submit":
             self.submit_yearly_exam(data)
+        # === 단어장(Vocabulary) POST API 라우팅 ===
+        elif path == "/api/vocab/term":
+            self.post_vocab_term(data)
+        elif path == "/api/vocab/term/update":
+            self.update_vocab_term(data)
+        elif path == "/api/vocab/term/delete":
+            self.delete_vocab_term(data)
+        elif path == "/api/vocab/term/star":
+            self.toggle_vocab_star(data)
+        elif path == "/api/vocab/term/hide":
+            self.toggle_vocab_hide(data)
+        elif path == "/api/vocab/srs/review":
+            self.post_vocab_srs_review(data)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
 
@@ -402,6 +422,17 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_yearly_exam_ai_diagnose(query)
         elif path == "/api/law-guide":
             self.get_law_guide_content(query)
+        # === 단어장(Vocabulary) API 라우팅 ===
+        elif path == "/api/vocab/terms":
+            self.get_vocab_terms(query)
+        elif path == "/api/vocab/term":
+            self.get_vocab_term(query)
+        elif path == "/api/vocab/topics":
+            self.get_vocab_topics(query)
+        elif path == "/api/vocab/stats":
+            self.get_vocab_stats(query)
+        elif path == "/api/vocab/srs/due":
+            self.get_vocab_srs_due(query)
         else:
             self.send_error_response(404, "API Endpoint Not Found")
 
@@ -1953,6 +1984,654 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database diagnosis error: {str(e)}")
+
+    # ==========================================
+    # 단어장(Vocabulary) API 핸들러 메서드
+    # [설계 의도] jolly_carson.db 내 vocab_ 접두사 테이블에 대해 CRUD, 검색, 토픽 트리,
+    # SM-2 스페이스드 리피티션 복습 기능을 제공합니다.
+    # ==========================================
+
+    def _vocab_topic_descendant_ids(self, cursor, topic_id):
+        """[설계 의도] 대분류 토픽 선택 시, 그 아래 모든 소분류까지 포함해 필터링하기 위한 id 목록을 구합니다."""
+        cursor.execute("SELECT id FROM vocab_topics WHERE parent_id = ?", (topic_id,))
+        child_ids = [r["id"] for r in cursor.fetchall()]
+        return [topic_id] + child_ids
+
+    def _resolve_vocab_topic_id(self, cursor, subject, topic_major, topic_minor):
+        """[설계 의도] 대분류/소분류 이름으로 vocab_topics 노드를 찾거나 없으면 새로 만들어 topic_id를 반환합니다."""
+        cursor.execute(
+            "SELECT id FROM vocab_topics WHERE subject = ? AND parent_id IS NULL AND name = ?",
+            (subject, topic_major)
+        )
+        row = cursor.fetchone()
+        if row:
+            major_id = row["id"]
+        else:
+            cursor.execute(
+                "INSERT INTO vocab_topics (subject, name, parent_id) VALUES (?, ?, NULL)",
+                (subject, topic_major)
+            )
+            major_id = cursor.lastrowid
+
+        if not topic_minor:
+            return major_id
+
+        cursor.execute(
+            "SELECT id FROM vocab_topics WHERE subject = ? AND parent_id = ? AND name = ?",
+            (subject, major_id, topic_minor)
+        )
+        row = cursor.fetchone()
+        if row:
+            return row["id"]
+
+        cursor.execute(
+            "INSERT INTO vocab_topics (subject, name, parent_id) VALUES (?, ?, ?)",
+            (subject, topic_minor, major_id)
+        )
+        return cursor.lastrowid
+
+    def get_vocab_terms(self, query):
+        """[설계 의도] 과목/토픽(대·소분류)/검색어로 필터링된 용어 목록을 반환합니다."""
+        try:
+            subject = query.get("subject", [None])[0]
+            topic_id = query.get("topic_id", [None])[0]
+            search = query.get("q", [None])[0]
+            sort = query.get("sort", ["term_ko"])[0]
+            starred_only = query.get("starred", ["false"])[0].lower() == "true"
+            trash = query.get("trash", ["false"])[0].lower() == "true"
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+
+            sql = """
+                SELECT trm.*, s.ease_factor, s.interval_days, s.repetitions, s.next_review_at, s.last_reviewed_at,
+                       tp.name AS topic_own_name, tp.parent_id AS topic_parent_id, ptp.name AS topic_parent_name
+                FROM vocab_terms trm
+                LEFT JOIN vocab_srs_state s ON trm.id = s.term_id
+                JOIN vocab_topics tp ON trm.topic_id = tp.id
+                LEFT JOIN vocab_topics ptp ON tp.parent_id = ptp.id
+                WHERE 1=1
+            """
+            params = []
+
+            if subject:
+                sql += " AND trm.subject = ?"
+                params.append(subject.upper())
+
+            if trash:
+                # 휴지통 보기: 숨긴 용어만, 토픽 구분 없이 전체 표시
+                sql += " AND trm.is_hidden = 1"
+            else:
+                sql += " AND trm.is_hidden = 0"
+                if topic_id:
+                    ids = self._vocab_topic_descendant_ids(cursor, int(topic_id))
+                    sql += f" AND trm.topic_id IN ({','.join('?' * len(ids))})"
+                    params.extend(ids)
+
+            if search:
+                sql += " AND (trm.term_ko LIKE ? OR trm.term_en LIKE ? OR trm.abbreviation LIKE ? OR trm.definition LIKE ?)"
+                like_val = f"%{search}%"
+                params.extend([like_val, like_val, like_val, like_val])
+            if starred_only:
+                sql += " AND trm.is_starred = 1"
+
+            # 정렬
+            sort_map = {
+                "term_ko": "trm.term_ko ASC",
+                "term_en": "trm.term_en ASC",
+                "recent": "trm.created_at DESC",
+                "frequency": "trm.frequency DESC, trm.term_ko ASC",
+                "topic": "ptp.name ASC, tp.name ASC, trm.term_ko ASC"
+            }
+            sql += f" ORDER BY {sort_map.get(sort, 'trm.term_ko ASC')}"
+
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+
+            terms = []
+            for row in rows:
+                d = dict(row)
+                # 대분류/소분류 이름 도출 (자기 토픽에 parent가 없으면 본인이 대분류)
+                if d["topic_parent_id"]:
+                    d["topic_major"] = d["topic_parent_name"]
+                    d["topic_minor"] = d["topic_own_name"]
+                else:
+                    d["topic_major"] = d["topic_own_name"]
+                    d["topic_minor"] = None
+                del d["topic_own_name"], d["topic_parent_id"], d["topic_parent_name"]
+
+                # related_keywords / source JSON 파싱
+                if d.get("related_keywords"):
+                    try:
+                        d["related_keywords"] = json.loads(d["related_keywords"])
+                    except Exception:
+                        d["related_keywords"] = []
+                else:
+                    d["related_keywords"] = []
+
+                if d.get("source"):
+                    try:
+                        d["source"] = json.loads(d["source"])
+                    except Exception:
+                        d["source"] = [d["source"]]
+                else:
+                    d["source"] = []
+
+                terms.append(d)
+
+            conn.close()
+            self.send_json_response({"success": True, "terms": terms, "count": len(terms)})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def get_vocab_term(self, query):
+        """[설계 의도] 단일 용어의 상세 정보를 반환합니다."""
+        try:
+            term_id = query.get("id", [None])[0]
+            if not term_id:
+                self.send_error_response(400, "Missing parameter (id)")
+                return
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT trm.*, s.ease_factor, s.interval_days, s.repetitions, s.next_review_at, s.last_reviewed_at,
+                       tp.name AS topic_own_name, tp.parent_id AS topic_parent_id, ptp.name AS topic_parent_name
+                FROM vocab_terms trm
+                LEFT JOIN vocab_srs_state s ON trm.id = s.term_id
+                JOIN vocab_topics tp ON trm.topic_id = tp.id
+                LEFT JOIN vocab_topics ptp ON tp.parent_id = ptp.id
+                WHERE trm.id = ?
+            """, (term_id,))
+            row = cursor.fetchone()
+
+            if not row:
+                conn.close()
+                self.send_error_response(404, f"Term {term_id} not found")
+                return
+
+            d = dict(row)
+            if d["topic_parent_id"]:
+                d["topic_major"] = d["topic_parent_name"]
+                d["topic_minor"] = d["topic_own_name"]
+            else:
+                d["topic_major"] = d["topic_own_name"]
+                d["topic_minor"] = None
+            del d["topic_own_name"], d["topic_parent_id"], d["topic_parent_name"]
+
+            if d.get("related_keywords"):
+                try:
+                    d["related_keywords"] = json.loads(d["related_keywords"])
+                except Exception:
+                    d["related_keywords"] = []
+            else:
+                d["related_keywords"] = []
+
+            if d.get("source"):
+                try:
+                    d["source"] = json.loads(d["source"])
+                except Exception:
+                    d["source"] = [d["source"]]
+            else:
+                d["source"] = []
+
+            # 복습 이력도 함께 반환
+            cursor.execute("SELECT quality, reviewed_at FROM vocab_review_log WHERE term_id = ? ORDER BY reviewed_at DESC LIMIT 20", (term_id,))
+            d["review_history"] = [dict(r) for r in cursor.fetchall()]
+
+            conn.close()
+            self.send_json_response({"success": True, "term": d})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def post_vocab_term(self, data):
+        """[설계 의도] 새 용어를 수동으로 추가합니다. 대분류(topic_major)는 필수, 소분류(topic_minor)는 선택입니다."""
+        try:
+            term_ko = data.get("term_ko", "").strip()
+            definition = data.get("definition", "").strip() or "뜻을 입력해주세요."
+            subject = data.get("subject", "PM").strip().upper()
+            topic_major = data.get("topic_major", "기타").strip() or "기타"
+            topic_minor = (data.get("topic_minor") or "").strip() or None
+
+            if not term_ko:
+                self.send_error_response(400, "term_ko는 필수입니다.")
+                return
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+
+            topic_id = self._resolve_vocab_topic_id(cursor, subject, topic_major, topic_minor)
+
+            related_kw = data.get("related_keywords", [])
+            related_kw_json = json.dumps(related_kw, ensure_ascii=False) if related_kw else None
+
+            source = data.get("source", [])
+            if isinstance(source, str):
+                source = [source] if source.strip() else []
+            source_json = json.dumps(source, ensure_ascii=False) if source else None
+
+            cursor.execute("""
+                INSERT INTO vocab_terms (term_ko, term_en, abbreviation, definition, subject, topic_id, frequency, related_keywords, source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                term_ko,
+                data.get("term_en", "").strip() or None,
+                data.get("abbreviation", "").strip() or None,
+                definition,
+                subject,
+                topic_id,
+                int(data.get("frequency", 1) or 1),
+                related_kw_json,
+                source_json
+            ))
+
+            term_id = cursor.lastrowid
+
+            # SRS 초기 상태 생성
+            cursor.execute("""
+                INSERT INTO vocab_srs_state (term_id, ease_factor, interval_days, repetitions, next_review_at)
+                VALUES (?, 2.5, 0, 0, datetime('now', 'localtime'))
+            """, (term_id,))
+
+            conn.commit()
+            conn.close()
+            self.send_json_response({"success": True, "id": term_id, "message": "용어가 추가되었습니다."})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def update_vocab_term(self, data):
+        """[설계 의도] 기존 용어를 수정합니다. topic_major/topic_minor가 오면 topic_id를 재계산합니다."""
+        try:
+            term_id = data.get("id")
+            if not term_id:
+                self.send_error_response(400, "Missing parameter (id)")
+                return
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+
+            # 수정 가능한 필드만 업데이트
+            fields = []
+            params = []
+            for field in ["term_ko", "term_en", "abbreviation", "definition", "subject", "frequency"]:
+                if field in data:
+                    fields.append(f"{field} = ?")
+                    params.append(data[field])
+
+            if "related_keywords" in data:
+                fields.append("related_keywords = ?")
+                params.append(json.dumps(data["related_keywords"], ensure_ascii=False))
+
+            if "source" in data:
+                source = data["source"]
+                if isinstance(source, str):
+                    source = [source] if source.strip() else []
+                fields.append("source = ?")
+                params.append(json.dumps(source, ensure_ascii=False) if source else None)
+
+            if "topic_major" in data:
+                cursor.execute("SELECT subject FROM vocab_terms WHERE id = ?", (term_id,))
+                row = cursor.fetchone()
+                subject = data.get("subject", row["subject"] if row else "PM")
+                topic_minor = (data.get("topic_minor") or "").strip() or None
+                topic_id = self._resolve_vocab_topic_id(cursor, subject.upper(), data["topic_major"].strip(), topic_minor)
+                fields.append("topic_id = ?")
+                params.append(topic_id)
+
+            if not fields:
+                self.send_error_response(400, "수정할 필드가 없습니다.")
+                conn.close()
+                return
+
+            fields.append("updated_at = datetime('now', 'localtime')")
+            params.append(term_id)
+
+            cursor.execute(f"UPDATE vocab_terms SET {', '.join(fields)} WHERE id = ?", params)
+            conn.commit()
+            conn.close()
+            self.send_json_response({"success": True, "message": "용어가 수정되었습니다."})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def delete_vocab_term(self, data):
+        """[설계 의도] 용어를 삭제합니다. CASCADE로 vocab_srs_state, vocab_review_log도 함께 제거됩니다."""
+        try:
+            term_id = data.get("id")
+            if not term_id:
+                self.send_error_response(400, "Missing parameter (id)")
+                return
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM vocab_terms WHERE id = ?", (term_id,))
+            conn.commit()
+            conn.close()
+            self.send_json_response({"success": True, "message": "용어가 삭제되었습니다."})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def toggle_vocab_star(self, data):
+        """[설계 의도] 즐겨찾기 상태를 토글합니다."""
+        try:
+            term_id = data.get("id")
+            if not term_id:
+                self.send_error_response(400, "Missing parameter (id)")
+                return
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE vocab_terms SET is_starred = CASE WHEN is_starred = 1 THEN 0 ELSE 1 END WHERE id = ?", (term_id,))
+            cursor.execute("SELECT is_starred FROM vocab_terms WHERE id = ?", (term_id,))
+            row = cursor.fetchone()
+            conn.commit()
+            conn.close()
+
+            new_state = dict(row)["is_starred"] if row else 0
+            self.send_json_response({"success": True, "is_starred": new_state})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def toggle_vocab_hide(self, data):
+        """[설계 의도] 숨김(휴지통) 상태를 토글합니다. 삭제가 아니라 목록에서만 감추는 소프트 처리입니다."""
+        try:
+            term_id = data.get("id")
+            if not term_id:
+                self.send_error_response(400, "Missing parameter (id)")
+                return
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE vocab_terms SET is_hidden = CASE WHEN is_hidden = 1 THEN 0 ELSE 1 END WHERE id = ?", (term_id,))
+            cursor.execute("SELECT is_hidden FROM vocab_terms WHERE id = ?", (term_id,))
+            row = cursor.fetchone()
+            conn.commit()
+            conn.close()
+
+            new_state = dict(row)["is_hidden"] if row else 0
+            self.send_json_response({"success": True, "is_hidden": new_state})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def get_vocab_topics(self, query):
+        """[설계 의도] 과목별 토픽 트리(대분류 > 소분류)와 각 노드의 용어 수(하위 포함 누적)를 반환합니다."""
+        try:
+            subject = query.get("subject", [None])[0]
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+
+            if subject:
+                cursor.execute(
+                    "SELECT id, name, parent_id FROM vocab_topics WHERE subject = ? ORDER BY id",
+                    (subject.upper(),)
+                )
+            else:
+                cursor.execute("SELECT id, name, parent_id, subject FROM vocab_topics ORDER BY subject, id")
+            topic_rows = [dict(r) for r in cursor.fetchall()]
+
+            where = "WHERE subject = ? AND is_hidden = 0" if subject else "WHERE is_hidden = 0"
+            params = (subject.upper(),) if subject else ()
+            cursor.execute(f"SELECT topic_id, COUNT(*) as cnt FROM vocab_terms {where} GROUP BY topic_id", params)
+            direct_counts = {r["topic_id"]: r["cnt"] for r in cursor.fetchall()}
+
+            trash_where = "WHERE subject = ? AND is_hidden = 1" if subject else "WHERE is_hidden = 1"
+            cursor.execute(f"SELECT COUNT(*) as cnt FROM vocab_terms {trash_where}", params)
+            trash_count = cursor.fetchone()["cnt"]
+
+            conn.close()
+
+            by_id = {}
+            for t in topic_rows:
+                by_id[t["id"]] = {**t, "direct_count": direct_counts.get(t["id"], 0), "children": []}
+
+            roots = []
+            for t in topic_rows:
+                node = by_id[t["id"]]
+                if t["parent_id"] and t["parent_id"] in by_id:
+                    by_id[t["parent_id"]]["children"].append(node)
+                elif not t["parent_id"]:
+                    roots.append(node)
+
+            def compute_total(node):
+                total = node["direct_count"]
+                for child in node["children"]:
+                    total += compute_total(child)
+                node["count"] = total
+                return total
+
+            for r in roots:
+                compute_total(r)
+
+            self.send_json_response({"success": True, "topics": roots, "trash_count": trash_count})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def get_vocab_stats(self, query):
+        """[설계 의도] 단어장 학습 통계를 반환합니다."""
+        try:
+            subject = query.get("subject", [None])[0]
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+
+            where = "WHERE subject = ? AND is_hidden = 0" if subject else "WHERE is_hidden = 0"
+            params = (subject.upper(),) if subject else ()
+
+            # 총 용어 수 (숨김/휴지통 제외)
+            cursor.execute(f"SELECT COUNT(*) as cnt FROM vocab_terms {where}", params)
+            total = cursor.fetchone()["cnt"]
+
+            # 약자 포함 용어 수
+            cursor.execute(f"SELECT COUNT(*) as cnt FROM vocab_terms {where} {'AND' if where else 'WHERE'} abbreviation IS NOT NULL AND abbreviation != ''", params)
+            abbr_count = cursor.fetchone()["cnt"]
+
+            # 즐겨찾기 수
+            cursor.execute(f"SELECT COUNT(*) as cnt FROM vocab_terms {where} {'AND' if where else 'WHERE'} is_starred = 1", params)
+            starred_count = cursor.fetchone()["cnt"]
+
+            # 암기 상태별 분포
+            cursor.execute(f"SELECT mastery_level, COUNT(*) as cnt FROM vocab_terms {where} GROUP BY mastery_level", params)
+            mastery_dist = {str(r["mastery_level"]): r["cnt"] for r in cursor.fetchall()}
+
+            # 오늘 복습 예정 수
+            cursor.execute(f"""
+                SELECT COUNT(*) as cnt FROM vocab_srs_state s
+                JOIN vocab_terms t ON s.term_id = t.id
+                {where.replace('subject', 't.subject') if where else ''}
+                {'AND' if where else 'WHERE'} (s.next_review_at IS NULL OR s.next_review_at <= datetime('now', 'localtime'))
+            """, params)
+            due_count = cursor.fetchone()["cnt"]
+
+            # 과목별 분포
+            cursor.execute("SELECT subject, COUNT(*) as cnt FROM vocab_terms GROUP BY subject ORDER BY cnt DESC")
+            subject_dist = [dict(r) for r in cursor.fetchall()]
+
+            conn.close()
+            self.send_json_response({
+                "success": True,
+                "total": total,
+                "abbreviation_count": abbr_count,
+                "starred_count": starred_count,
+                "mastery_distribution": mastery_dist,
+                "due_today": due_count,
+                "subject_distribution": subject_dist
+            })
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def get_vocab_srs_due(self, query):
+        """[설계 의도] 오늘 복습할 카드 목록을 SM-2 스케줄에 따라 반환합니다."""
+        try:
+            subject = query.get("subject", [None])[0]
+            limit = int(query.get("limit", ["20"])[0])
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+
+            sql = """
+                SELECT t.*, s.ease_factor, s.interval_days, s.repetitions, s.next_review_at, s.last_reviewed_at
+                FROM vocab_terms t
+                JOIN vocab_srs_state s ON t.id = s.term_id
+                WHERE (s.next_review_at IS NULL OR s.next_review_at <= datetime('now', 'localtime'))
+            """
+            params = []
+
+            if subject:
+                sql += " AND t.subject = ?"
+                params.append(subject.upper())
+
+            sql += " ORDER BY s.next_review_at ASC, s.repetitions ASC LIMIT ?"
+            params.append(limit)
+
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+
+            cards = []
+            for row in rows:
+                d = dict(row)
+                if d.get("related_keywords"):
+                    try:
+                        d["related_keywords"] = json.loads(d["related_keywords"])
+                    except Exception:
+                        d["related_keywords"] = []
+                else:
+                    d["related_keywords"] = []
+
+                if d.get("source"):
+                    try:
+                        d["source"] = json.loads(d["source"])
+                    except Exception:
+                        d["source"] = [d["source"]]
+                else:
+                    d["source"] = []
+
+                cards.append(d)
+
+            conn.close()
+            self.send_json_response({"success": True, "cards": cards, "count": len(cards)})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary DB error: {str(e)}")
+
+    def post_vocab_srs_review(self, data):
+        """[설계 의도] SM-2 알고리즘을 적용하여 복습 결과를 기록하고 다음 복습 일정을 계산합니다.
+        quality: 0(Again/모름), 1(Hard/어려움), 2(Good/보통), 3(Easy/쉬움)"""
+        try:
+            term_id = data.get("term_id")
+            quality = data.get("quality")  # 0~3
+
+            if term_id is None or quality is None:
+                self.send_error_response(400, "term_id와 quality는 필수입니다.")
+                return
+
+            quality = int(quality)
+            if quality < 0 or quality > 3:
+                self.send_error_response(400, "quality는 0~3 범위여야 합니다.")
+                return
+
+            conn = get_vocab_db_connection()
+            cursor = conn.cursor()
+
+            # 현재 SRS 상태 조회
+            cursor.execute("SELECT * FROM vocab_srs_state WHERE term_id = ?", (term_id,))
+            srs = cursor.fetchone()
+
+            if not srs:
+                # SRS 레코드가 없으면 생성
+                cursor.execute("""
+                    INSERT INTO vocab_srs_state (term_id, ease_factor, interval_days, repetitions, next_review_at)
+                    VALUES (?, 2.5, 0, 0, datetime('now', 'localtime'))
+                """, (term_id,))
+                cursor.execute("SELECT * FROM vocab_srs_state WHERE term_id = ?", (term_id,))
+                srs = cursor.fetchone()
+
+            srs = dict(srs)
+            ef = srs["ease_factor"]
+            interval = srs["interval_days"]
+            reps = srs["repetitions"]
+
+            # SM-2 알고리즘 적용
+            # quality를 SM-2의 q(0~5) 스케일로 매핑: 0→0, 1→2, 2→3, 3→5
+            q_map = {0: 0, 1: 2, 2: 3, 3: 5}
+            q = q_map.get(quality, 3)
+
+            if q < 3:  # 실패 (Again 또는 Hard)
+                reps = 0
+                interval = 0
+                # Again인 경우 10분 후, Hard인 경우 1일 후
+                if quality == 0:
+                    interval = 0.007  # ~10분 (10/1440일)
+                else:
+                    interval = 1
+            else:  # 성공 (Good 또는 Easy)
+                if reps == 0:
+                    interval = 1
+                elif reps == 1:
+                    interval = 3
+                else:
+                    if quality == 3:  # Easy
+                        interval = interval * 3.5
+                    else:  # Good
+                        interval = interval * ef
+                reps += 1
+
+            # EF 업데이트 (최소 1.3)
+            ef = ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
+            ef = max(1.3, ef)
+
+            # 다음 복습 일시 계산
+            from datetime import timedelta
+            now = datetime.now()
+            next_review = now + timedelta(days=interval)
+
+            cursor.execute("""
+                UPDATE vocab_srs_state SET
+                    ease_factor = ?,
+                    interval_days = ?,
+                    repetitions = ?,
+                    next_review_at = ?,
+                    last_reviewed_at = datetime('now', 'localtime')
+                WHERE term_id = ?
+            """, (round(ef, 2), round(interval, 2), reps, next_review.strftime("%Y-%m-%d %H:%M:%S"), term_id))
+
+            # 복습 이력 기록
+            cursor.execute("""
+                INSERT INTO vocab_review_log (term_id, quality)
+                VALUES (?, ?)
+            """, (term_id, quality))
+
+            # 암기 상태 자동 업데이트
+            if interval >= 14:
+                mastery = 2  # 완료
+            elif reps >= 1:
+                mastery = 1  # 학습중
+            else:
+                mastery = 0  # 미학습
+            cursor.execute("UPDATE vocab_terms SET mastery_level = ? WHERE id = ?", (mastery, term_id))
+
+            conn.commit()
+            conn.close()
+
+            self.send_json_response({
+                "success": True,
+                "next_review_at": next_review.strftime("%Y-%m-%d %H:%M:%S"),
+                "interval_days": round(interval, 2),
+                "ease_factor": round(ef, 2),
+                "repetitions": reps,
+                "mastery_level": mastery
+            })
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Vocabulary SRS error: {str(e)}")
 
     def send_json_response(self, data):
         try:

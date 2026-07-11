@@ -2668,4 +2668,155 @@ window.onYearlyEditImageFileSelected = onYearlyEditImageFileSelected;
 window.onYearlyEditImageRemoveToggled = onYearlyEditImageRemoveToggled;
 window.handleRichEditorPaste = handleRichEditorPaste;
 
+// =======================================================
+// [신규 기능] 문제를 풀다가 드래그 시 용어사전에 단어 추가 기능
+// =======================================================
+(function() {
+    // 플로팅 버튼 동적 생성
+    const btn = document.createElement('div');
+    btn.id = 'floating-quick-add-btn';
+    btn.style.position = 'absolute';
+    btn.style.display = 'none';
+    btn.style.zIndex = '100000';
+    btn.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)';
+    btn.style.color = '#fff';
+    btn.style.padding = '6px 14px';
+    btn.style.borderRadius = '20px';
+    btn.style.fontSize = '0.78rem';
+    btn.style.cursor = 'pointer';
+    btn.style.boxShadow = '0 4px 15px rgba(139, 92, 246, 0.4)';
+    btn.style.border = '1px solid rgba(255,255,255,0.2)';
+    btn.style.fontWeight = '600';
+    btn.style.alignItems = 'center';
+    btn.style.gap = '4px';
+    btn.style.userSelect = 'none';
+    btn.innerHTML = '✨ 단어장에 추가';
+    document.body.appendChild(btn);
 
+    // 심플한 토스트(Toast) 메시지 노출용 엘리먼트 생성
+    const toast = document.createElement('div');
+    toast.id = 'quick-add-toast';
+    toast.style.position = 'fixed';
+    toast.style.bottom = '30px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = 'rgba(17, 24, 39, 0.95)';
+    toast.style.color = '#ffffff';
+    toast.style.padding = '10px 20px';
+    toast.style.borderRadius = '30px';
+    toast.style.fontSize = '0.85rem';
+    toast.style.fontWeight = '500';
+    toast.style.zIndex = '100001';
+    toast.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.3)';
+    toast.style.border = '1px solid rgba(139, 92, 246, 0.2)';
+    toast.style.display = 'none';
+    toast.style.transition = 'opacity 0.3s ease';
+    document.body.appendChild(toast);
+
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.style.display = 'block';
+        toast.style.opacity = '1';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => { toast.style.display = 'none'; }, 300);
+        }, 2200);
+    }
+
+    let selectedText = '';
+
+    document.addEventListener('mouseup', function(e) {
+        // 플로팅 버튼 자체를 클릭했을 때는 동작하지 않도록 예외 처리
+        if (e.target.id === 'floating-quick-add-btn') return;
+
+        const selection = window.getSelection();
+        const text = selection.toString().trim();
+
+        if (!text || text.length < 2 || text.length > 50) {
+            btn.style.display = 'none';
+            return;
+        }
+
+        // 특정 영역(#question-text-content 또는 .options-container 등) 내에서의 드래그만 인정
+        const anchorNode = selection.anchorNode;
+        if (!anchorNode) return;
+        const parentElement = anchorNode.parentElement;
+        if (!parentElement) return;
+
+        const inQuestion = parentElement.closest('#question-text-content');
+        const inOptions = parentElement.closest('#options-button-container');
+
+        if (!inQuestion && !inOptions) {
+            btn.style.display = 'none';
+            return;
+        }
+
+        selectedText = text;
+
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        // 플로팅 위치 설정 (선택된 단어의 상단 정중앙)
+        btn.style.top = `${rect.top + window.scrollY - 38}px`;
+        btn.style.left = `${rect.left + window.scrollX + (rect.width / 2) - 55}px`;
+        btn.style.display = 'flex';
+    });
+
+    // 화면 아무데나 클릭 시 플로팅 닫기
+    document.addEventListener('mousedown', function(e) {
+        if (e.target.id !== 'floating-quick-add-btn') {
+            btn.style.display = 'none';
+        }
+    });
+
+    // ➕ 단어장에 추가 버튼 클릭 시 통신
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        btn.style.display = 'none';
+
+        if (!selectedText) return;
+
+        // 현재 풀고 있는 문제 정보 조회
+        const subjectTag = document.getElementById('current-subject-tag');
+        const qNumLabel = document.getElementById('current-q-num-label');
+
+        let rawSubject = subjectTag ? subjectTag.textContent.trim() : 'PM';
+        
+        // 한글 과목명 -> 데이터베이스 코드 매핑
+        let subjectCode = 'PM';
+        if (rawSubject.includes('소프트웨어') || rawSubject.includes('SE')) subjectCode = 'SE';
+        else if (rawSubject.includes('데이터베이스') || rawSubject.includes('DB')) subjectCode = 'DB';
+        else if (rawSubject.includes('시스템') || rawSubject.includes('SA')) subjectCode = 'SA';
+        else if (rawSubject.includes('보안') || rawSubject.includes('SC')) subjectCode = 'SC';
+
+        const rawSource = qNumLabel ? qNumLabel.textContent.trim() : ''; // 예: "2024년도 15번"
+        
+        const payload = {
+            term_ko: selectedText,
+            definition: "뜻을 입력해주세요.",
+            subject: subjectCode,
+            topic_major: "기타",
+            source: rawSource ? [rawSource] : ["기출 문제 풀이 중 추가"]
+        };
+
+        fetch('/api/vocab/term', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`✓ [${selectedText}] 단어장에 신규 추가되었습니다.`);
+                // 선택 영역 해제
+                window.getSelection().removeAllRanges();
+            } else {
+                showToast(`⚠ 추가 실패: ${data.message || '오류 발생'}`);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('⚠ 서버 연결 실패');
+        });
+    });
+})();
