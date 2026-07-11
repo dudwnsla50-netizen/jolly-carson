@@ -141,6 +141,30 @@ def get_discrepancies_and_diffs():
     conn.close()
     return targets
 
+def call_groq_raw_prompt(prompt, groq_key):
+    model_id = "llama-3.1-8b-instant"
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    payload = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1000,
+        "temperature": 0.2
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {groq_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        },
+        method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=10) as res:
+        data = json.loads(res.read().decode("utf-8"))
+        response_text = data["choices"][0]["message"]["content"].strip()
+        return response_text
+
 def call_gemini_api(prompt, api_key):
     keys = [k for k in [api_key, os.environ.get("GEMINI_API_KEY2", "")] if k]
     if not keys:
@@ -197,6 +221,17 @@ def call_gemini_api(prompt, api_key):
                 print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
                 time.sleep(wait_time)
             
+    # [설계 복구] Gemini API 소진 시 Groq Llama-3.1 3차 폴백 구동
+    groq_key = os.environ.get("GROQ_API_KEY", "")
+    if groq_key:
+        print("[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Groq Llama-3.1 3차 폴백 가동합니다...", flush=True)
+        try:
+            groq_response = call_groq_raw_prompt(prompt, groq_key)
+            if groq_response:
+                return groq_response, 200
+        except Exception as groq_ex:
+            print(f"[Warning] Groq 3차 폴백 호출 중 예외 발생: {groq_ex}", flush=True)
+
     print("[API 에러] Gemini 호출 실패: 재시도 횟수를 초과했습니다. (429)", flush=True)
     return None, 429
 

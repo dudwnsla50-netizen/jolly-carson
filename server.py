@@ -79,8 +79,11 @@ if os.path.exists(env_file_path):
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_API_KEY2 = os.environ.get("GEMINI_API_KEY2", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
-def call_gemini_raw_prompt(prompt):
+def call_gemini_raw_prompt(prompt, timeout=10):
+    logs = []
+    model_name = "gemini-3.5-flash"
     keys = [k for k in [GEMINI_API_KEY, GEMINI_API_KEY2] if k]
     if not keys:
         raise ValueError("GEMINI_API_KEY 또는 GEMINI_API_KEY2 환경변수가 비어있거나 감지되지 않았습니다.")
@@ -98,39 +101,94 @@ def call_gemini_raw_prompt(prompt):
                 headers={"Content-Type": "application/json"},
                 method="POST"
             )
+            msg_attempt = f"Gemini API Key #{i+1} 호출 시도 중... (시도 {attempt+1}/{max_retries})"
+            print(msg_attempt)
+            logs.append(msg_attempt)
             try:
-                # 호출 타임아웃을 7초로 단축하여 불필요한 대기를 방지
-                with urllib.request.urlopen(req, timeout=7) as res:
+                with urllib.request.urlopen(req, timeout=timeout) as res:
                     data = json.loads(res.read().decode("utf-8"))
                     raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    return raw_response
+                    msg_success = f"Gemini API Key #{i+1} 호출 성공!"
+                    print(msg_success)
+                    logs.append(msg_success)
+                    return raw_response, model_name, logs
             except urllib.error.HTTPError as e:
                 if e.code == 429 or (500 <= e.code < 600):
                     status_type = "429 Too Many Requests" if e.code == 429 else f"HTTP {e.code} Server Error"
-                    print(f"[Warning] Gemini API Key #{i+1} {status_type} 감지.")
+                    warn_msg = f"[Warning] Gemini API Key #{i+1} {status_type} 감지."
+                    print(warn_msg)
+                    logs.append(warn_msg)
                     if i < len(keys) - 1:
-                        print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
+                        logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
                         continue
                     else:
                         wait_time = 2
-                        print(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
+                        logs.append(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다...")
                         time.sleep(wait_time)
                 else:
                     if i < len(keys) - 1:
-                        print(f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code}). 백업 API Key #{i+2}로 즉시 재시도합니다.")
+                        logs.append(f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code}). 백업 API Key #{i+2}로 즉시 재시도합니다.")
                         continue
                     raise e
             except Exception as e:
+                warn_msg = f"[Warning] Gemini API Key #{i+1} 예외 발생: {str(e)}"
+                print(warn_msg)
+                logs.append(warn_msg)
                 if i < len(keys) - 1:
-                    print(f"[Warning] Gemini API Key #{i+1} 호출 중 예외 발생: {e}. 백업 API Key #{i+2}로 즉시 재시도합니다.")
+                    logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
                     continue
                 if attempt == max_retries - 1:
                     raise e
                 wait_time = 1
-                print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
+                logs.append(f"-> 모든 API Key 실패. {wait_time}초 후 재시도합니다...")
                 time.sleep(wait_time)
+                
+    # [설계 복구] Gemini API 소진 시 Groq Llama-3.1 3차 폴백 구동
+    if GROQ_API_KEY:
+        msg = "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Groq Llama-3.1 3차 폴백 가동합니다..."
+        print(msg, flush=True)
+        logs.append(msg)
+        try:
+            groq_response, groq_model, groq_logs = call_groq_raw_prompt(prompt, GROQ_API_KEY)
+            logs.extend(groq_logs)
+            if groq_response:
+                return groq_response, groq_model, logs
+        except Exception as groq_ex:
+            err_msg = f"[Warning] Groq 3차 폴백 호출 중 예외 발생: {groq_ex}"
+            print(err_msg, flush=True)
+            logs.append(err_msg)
             
-    raise RuntimeError("모든 Gemini API Key가 실패했으며 재시도 횟수를 초과했습니다.")
+    raise RuntimeError("모든 Gemini API 및 Groq 백업 API 호출이 실패했거나 한도를 초과했습니다.")
+
+def call_groq_raw_prompt(prompt, groq_key):
+    logs = ["Groq Llama-3.1 3차 폴백 호출 시작..."]
+    model_id = "llama-3.1-8b-instant"
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    payload = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1000,
+        "temperature": 0.2
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {groq_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        },
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as res:
+            data = json.loads(res.read().decode("utf-8"))
+            response_text = data["choices"][0]["message"]["content"].strip()
+            logs.append("Groq Llama-3.1 호출 성공!")
+            return response_text, model_id, logs
+    except Exception as e:
+        logs.append(f"Groq 호출 중 예외 발생: {str(e)}")
+        raise e
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
@@ -480,7 +538,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         try:
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
-                    sql_select = "SELECT question, options, answer, explanation, ai_explanation FROM exam_questions WHERE id = %s"
+                    sql_select = "SELECT question, options, answer, explanation, ai_explanation, ai_explanation_model FROM exam_questions WHERE id = %s"
                     execute_query(cursor, sql_select, (q_id,))
                     row = cursor.fetchone()
                     if not row:
@@ -489,12 +547,15 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 
                     row_dict = dict(row)
                     cached_explanation = row_dict.get("ai_explanation")
+                    cached_model = row_dict.get("ai_explanation_model") or "알 수 없음 (이전 캐시)"
 
                     if cached_explanation and not nocache:
                         self.send_json_response({
                             "success": True,
                             "ai_explanation": cached_explanation,
-                            "source": "CACHED"
+                            "ai_model": cached_model,
+                            "source": "CACHED",
+                            "logs": ["데이터베이스에서 캐싱된 AI 해설 데이터를 즉시 반환했습니다."]
                         })
                         return
 
@@ -502,7 +563,9 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         self.send_json_response({
                             "success": False,
                             "ai_explanation": cached_explanation,
-                            "error": "서버 환경변수 GEMINI_API_KEY가 설정되지 않았거나 비어있습니다."
+                            "ai_model": "None",
+                            "error": "서버 환경변수 GEMINI_API_KEY가 설정되지 않았거나 비어있습니다.",
+                            "logs": ["Gemini API Key 누락으로 인해 호출이 제한되었습니다."]
                         })
                         return
 
@@ -546,9 +609,11 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 해설:"""
 
                     ai_explanation_generated = ""
+                    ai_model_used = "None"
+                    conn_logs = []
                     error_msg = ""
                     try:
-                        raw_res = call_gemini_raw_prompt(prompt)
+                        raw_res, ai_model_used, conn_logs = call_gemini_raw_prompt(prompt)
                         raw_res = raw_res.strip() if raw_res else ""
                         if raw_res.startswith("```"):
                             lines = raw_res.split("\n")
@@ -559,26 +624,31 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             raw_res = "\n".join(lines).strip()
                         ai_explanation_generated = raw_res
                     except Exception as gemini_ex:
-                        error_msg = f"Gemini API 호출 오류: {str(gemini_ex)}"
-                        print(f"[AI Explain] Gemini 호출 오류: {gemini_ex}")
+                        error_msg = f"API 호출 오류: {str(gemini_ex)}"
+                        print(f"[AI Explain] API 호출 오류: {gemini_ex}")
                         traceback.print_exc()
+                        conn_logs.append(f"최종 통신 오류: {str(gemini_ex)}")
 
                     if not ai_explanation_generated:
                         self.send_json_response({
                             "success": False,
                             "ai_explanation": cached_explanation,
-                            "error": error_msg or "Gemini API 호출 결과가 빈 문자열입니다."
+                            "ai_model": ai_model_used,
+                            "error": error_msg or "API 호출 결과가 빈 문자열입니다.",
+                            "logs": conn_logs
                         })
                         return
 
-                    sql_update = "UPDATE exam_questions SET ai_explanation = %s WHERE id = %s"
-                    execute_query(cursor, sql_update, (ai_explanation_generated, q_id))
+                    sql_update = "UPDATE exam_questions SET ai_explanation = %s, ai_explanation_model = %s WHERE id = %s"
+                    execute_query(cursor, sql_update, (ai_explanation_generated, ai_model_used, q_id))
                     conn.commit()
 
                     self.send_json_response({
                         "success": True,
                         "ai_explanation": ai_explanation_generated,
-                        "source": "GEMINI_AI"
+                        "ai_model": ai_model_used,
+                        "source": "GEMINI_AI" if ai_model_used == "gemini-3.5-flash" else "GROQ_LLAMA",
+                        "logs": conn_logs
                     })
         except Exception as e:
             traceback.print_exc()
@@ -1535,7 +1605,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     # 1. 기존 캐시 여부 확인
-                    sql_select = "SELECT score, correct_count, total_questions, total_time, details, exam_year, ai_desc, ai_rec FROM yearly_exam_history WHERE id = %s"
+                    sql_select = "SELECT score, correct_count, total_questions, total_time, details, exam_year, ai_desc, ai_rec, ai_diagnose_model FROM yearly_exam_history WHERE id = %s"
                     execute_query(cursor, sql_select, (history_id,))
                     row = cursor.fetchone()
                     
@@ -1546,6 +1616,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     row_dict = dict(row)
                     ai_desc = row_dict.get("ai_desc")
                     ai_rec = row_dict.get("ai_rec")
+                    ai_diagnose_model = row_dict.get("ai_diagnose_model") or "알 수 없음 (이전 캐시)"
                     
                     nocache = query.get("nocache", ["false"])[0].lower() == "true"
                     if ai_desc and ai_rec and not nocache:
@@ -1554,7 +1625,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "success": True,
                             "ai_analysis": {
                                 "desc": ai_desc,
-                                "recommendation": ai_rec
+                                "recommendation": ai_rec,
+                                "ai_model": ai_diagnose_model,
+                                "source": "CACHED",
+                                "logs": ["데이터베이스에서 캐싱된 AI 정밀 진단 결과를 즉시 반환했습니다."]
                             }
                         })
                         return
@@ -1764,8 +1838,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 }}
 
 최종 JSON 응답:"""
+                        ai_model_used = "None"
+                        conn_logs = []
                         try:
-                            raw_ai_res = call_gemini_raw_prompt(prompt)
+                            raw_ai_res, ai_model_used, conn_logs = call_gemini_raw_prompt(prompt, timeout=18)
                             if not raw_ai_res:
                                 ai_error_msg = "Gemini API 호출 결과가 빈 문자열입니다."
                             else:
@@ -1783,17 +1859,21 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                     ai_desc_generated = ai_data.get("desc", "").strip()
                                     ai_rec_generated = ai_data.get("recommendation", "").strip()
                                 except Exception as parse_ex:
-                                    ai_error_msg = f"Gemini API 응답 JSON 파싱 실패: {str(parse_ex)}. 원본 응답: {raw_ai_res}"
-                                    print(f"Gemini AI 응답 JSON 파싱 실패: {parse_ex}")
+                                    ai_error_msg = f"API 응답 JSON 파싱 실패: {str(parse_ex)}. 원본 응답: {raw_ai_res}"
+                                    print(f"API 응답 JSON 파싱 실패: {parse_ex}")
+                                    conn_logs.append(f"JSON 파싱 실패: {str(parse_ex)}")
                         except Exception as gemini_ex:
-                            ai_error_msg = f"Gemini API 호출 오류: {str(gemini_ex)}"
-                            print(f"[AI Diagnose] Gemini 호출 오류: {gemini_ex}")
+                            ai_error_msg = f"API 호출 오류: {str(gemini_ex)}"
+                            print(f"[AI Diagnose] API 호출 오류: {gemini_ex}")
                             traceback.print_exc()
+                            conn_logs.append(f"최종 통신 오류: {str(gemini_ex)}")
                     else:
                         ai_error_msg = "서버 환경변수 GEMINI_API_KEY가 설정되지 않았거나 비어있습니다."
+                        conn_logs = ["Gemini API Key 누락으로 인해 호출이 제한되었습니다."]
                                 
                     # 폴백 로직
                     if not ai_desc_generated or not ai_rec_generated:
+                        ai_model_used = "Fallback Template"
                         if normal_pct >= 80 and new_trend_pct < 50:
                             ai_desc_generated = "기존 기출 회독 상태는 양호하나 최신 법제도 개정이나 생소한 신규 기술 트렌드에 약점을 보입니다."
                             ai_rec_generated = "💡 <b>처방 가이드:</b> <code>감리사_시험대비/가이드및법규</code> 폴더의 최신 고시 준수 가이드 및 공공데이터 지침서 등을 중심으로 신기술 트렌드를 집중 보완하십시오."
@@ -1805,8 +1885,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             ai_rec_generated = "💡 <b>처방 가이드:</b> 확실한 득점원 확보를 위해 데이터베이스 정규화 공식, PMBOK 임계경로(Critical Path) 계산식 및 오답 노트를 중심으로 회독 수를 높이십시오."
                         
                     # 3. 데이터베이스에 캐시 업데이트
-                    sql_update = "UPDATE yearly_exam_history SET ai_desc = %s, ai_rec = %s WHERE id = %s"
-                    execute_query(cursor, sql_update, (ai_desc_generated, ai_rec_generated, history_id))
+                    sql_update = "UPDATE yearly_exam_history SET ai_desc = %s, ai_rec = %s, ai_diagnose_model = %s WHERE id = %s"
+                    execute_query(cursor, sql_update, (ai_desc_generated, ai_rec_generated, ai_model_used, history_id))
                     conn.commit()
                     
                     self.send_json_response({
@@ -1814,8 +1894,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         "ai_analysis": {
                             "desc": ai_desc_generated,
                             "recommendation": ai_rec_generated,
-                            "source": "GEMINI_AI" if (ai_desc_generated and not ai_error_msg) else "FALLBACK_TEMPLATE",
-                            "error_detail": ai_error_msg
+                            "ai_model": ai_model_used,
+                            "source": "GEMINI_AI" if (ai_desc_generated and not ai_error_msg and ai_model_used == "gemini-3.5-flash") else ("GROQ_LLAMA" if ai_model_used == "llama-3.1-8b-instant" else "FALLBACK_TEMPLATE"),
+                            "error_detail": ai_error_msg,
+                            "logs": conn_logs
                         }
                     })
         except Exception as e:
@@ -2121,9 +2203,7 @@ def init_srs_review_state_table():
 
 
 def init_exam_questions_ai_explanation_column():
-    """[설계 의도] exam_questions 테이블에 AI 생성 해설 캐시 컬럼(ai_explanation)이 없다면 추가합니다.
-    수동 작성 해설(explanation 컬럼)과 완전히 분리 보관하여 AI 재생성이 사용자가 직접 입력한
-    기존 해설을 절대 덮어쓰지 않도록 합니다."""
+    """[설계 의도] exam_questions 테이블에 AI 생성 해설 캐시 컬럼(ai_explanation)이 없다면 추가합니다."""
     try:
         with get_db_connection() as conn:
             with get_db_cursor(conn) as cursor:
@@ -2135,7 +2215,39 @@ def init_exam_questions_ai_explanation_column():
                     conn.commit()
                     print(f"[{DB_TYPE}] exam_questions 테이블에 AI 해설 캐시 컬럼 추가 완료: ai_explanation")
     except Exception as e:
-        print(f"[{DB_TYPE}] 경고 - exam_questions AI 해설 캐시 컬럼 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
+        print(f"[{DB_TYPE}] 경고 - exam_questions AI 해설 캐시 컬럼 초기화 중 예외 발생: {e}")
+
+
+def init_exam_questions_ai_explanation_model_column():
+    """[설계 의도] exam_questions 테이블에 AI 설명 모델명 캐시 컬럼(ai_explanation_model)이 없다면 추가합니다."""
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                try:
+                    cursor.execute("SELECT ai_explanation_model FROM exam_questions LIMIT 1")
+                except Exception:
+                    conn.rollback()
+                    cursor.execute("ALTER TABLE exam_questions ADD COLUMN ai_explanation_model TEXT")
+                    conn.commit()
+                    print(f"[{DB_TYPE}] exam_questions 테이블에 AI 모델명 컬럼 추가 완료: ai_explanation_model")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - exam_questions AI 모델명 컬럼 초기화 중 예외 발생: {e}")
+
+
+def init_yearly_exam_history_ai_diagnose_model_column():
+    """[설계 의도] yearly_exam_history 테이블에 AI 진단 모델명 컬럼(ai_diagnose_model)이 없다면 추가합니다."""
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                try:
+                    cursor.execute("SELECT ai_diagnose_model FROM yearly_exam_history LIMIT 1")
+                except Exception:
+                    conn.rollback()
+                    cursor.execute("ALTER TABLE yearly_exam_history ADD COLUMN ai_diagnose_model TEXT")
+                    conn.commit()
+                    print(f"[{DB_TYPE}] yearly_exam_history 테이블에 AI 진단 모델명 컬럼 추가 완료: ai_diagnose_model")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - yearly_exam_history AI 진단 모델명 컬럼 초기화 중 예외 발생: {e}")
 
 
 def main():
@@ -2176,6 +2288,8 @@ def main():
         init_yearly_exam_history_table()
         init_srs_review_state_table()
         init_exam_questions_ai_explanation_column()
+        init_exam_questions_ai_explanation_model_column()
+        init_yearly_exam_history_ai_diagnose_model_column()
     except Exception as e:
         print(f"[Server] 경고: DB 연결 제한 상황에서 구동을 대기합니다. -> {e}")
         

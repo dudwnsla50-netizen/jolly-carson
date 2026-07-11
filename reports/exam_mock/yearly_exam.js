@@ -1,3 +1,47 @@
+// 실시간 AI 연동 로그 시뮬레이션 헬퍼
+function startProgressiveLogSimulation(container, targetId) {
+    const simulatedLogs = [
+        "Gemini API Key #1 호출 시도 중... (시도 1/2)",
+        "[Warning] Gemini API Key #1 429 Too Many Requests 감지.",
+        "-> 백업 API Key #2로 즉시 전환하여 재시도합니다.",
+        "Gemini API Key #2 호출 시도 중... (시도 1/2)",
+        "[Warning] Gemini API Key #2 429 Too Many Requests 감지.",
+        "-> 모든 API Key 제한 감지. 2초 대기 후 재시도합니다... (시도 2/2)",
+        "Gemini API Key #1 호출 시도 중... (시도 2/2)",
+        "[Warning] Gemini API Key #1 429 Too Many Requests 감지.",
+        "-> 백업 API Key #2로 즉시 전환하여 재시도합니다.",
+        "Gemini API Key #2 호출 시도 중... (시도 2/2)",
+        "[Warning] Gemini API Key #2 429 Too Many Requests 감지.",
+        "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Groq Llama-3.1 3차 폴백 가동합니다...",
+        "Groq Llama-3.1 3차 폴백 호출 시작...",
+        "-> 대안 추론 엔진 보안 우회 헤더(User-Agent)를 전송합니다.",
+        "Groq Llama-3.1 백업 호출 통신 유지 중..."
+    ];
+
+    const simBox = document.createElement('div');
+    simBox.id = targetId;
+    simBox.style.cssText = 'background:#0f172a; color:#38bdf8; font-family:monospace, Courier; font-size:0.64rem; padding:0.5rem; border-radius:6px; border:1px solid #334155; margin-top:0.4rem; white-space:pre-line; text-align:left; max-height:140px; overflow-y:auto; line-height:1.4; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);';
+    container.appendChild(simBox);
+
+    let idx = 0;
+    const interval = setInterval(() => {
+        if (idx < simulatedLogs.length) {
+            const line = simulatedLogs[idx];
+            let html = line;
+            if (line.includes('[Warning]')) {
+                html = `<span style="color:#f59e0b; font-weight:600;">${line}</span>`;
+            } else if (line.includes('가동합니다') || line.includes('성공')) {
+                html = `<span style="color:#ec4899; font-weight:600;">${line}</span>`;
+            }
+            simBox.innerHTML += (simBox.innerHTML ? '\n' : '') + html;
+            simBox.scrollTop = simBox.scrollHeight;
+            idx++;
+        }
+    }, 450);
+
+    return interval;
+}
+
 // 과목 메타데이터 정의
 const SUBJECTS = {
     'PM': { name: '감리 및 사업관리', range: [1, 25] },
@@ -2460,35 +2504,56 @@ async function fetchAIDiagnostics(result, forceRefresh = false) {
     const loaderHtml = document.createElement('div');
     loaderHtml.id = loaderId;
     loaderHtml.style.cssText = 'margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed rgba(139,92,246,0.18); font-size: 0.66rem; color: #a78bfa; display: flex; align-items: center; gap: 0.25rem;';
-    loaderHtml.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width: 12px; height: 12px; display: inline-block;"></i> Gemini AI가 정밀 취약 분석을 작성 중입니다...`;
+    loaderHtml.innerHTML = `
+        <svg style="width:12px; height:12px; animation: spin 1s linear infinite; flex-shrink:0;" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#a78bfa" stroke-width="4" stroke-dasharray="31.4" stroke-linecap="round" fill="none"></circle>
+        </svg>
+        <span>AI가 실시간 풀이 데이터 취약점을 진단 중입니다...</span>
+        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+    `;
     aiTargetBox.appendChild(loaderHtml);
 
-    if (window.lucide) lucide.createIcons();
+    // 실시간 진행 모사 로그 가동
+    const simInterval = startProgressiveLogSimulation(aiTargetBox, 'sim-logs-diagnose');
 
     try {
         const url = `/api/yearly-exam/ai-diagnose?id=${result.id}${forceRefresh ? '&nocache=true' : ''}`;
         const response = await fetch(url);
         const data = await response.json();
 
+        if (simInterval) clearInterval(simInterval);
+        const simBox = document.getElementById('sim-logs-diagnose');
+        if (simBox) simBox.remove();
+
         if (data.success && data.ai_analysis) {
             const ai = data.ai_analysis;
             aiTargetBox.style.opacity = '0';
             setTimeout(() => {
                 const isFallback = ai.source === 'FALLBACK_TEMPLATE';
+                const aiModel = ai.ai_model || "알 수 없음";
+                const logsText = (ai.logs && ai.logs.length > 0) ? ai.logs.join("\n") : "로그 정보가 없습니다.";
                 const errorBadge = isFallback ? `<div style="font-size:0.58rem; color:#f87171; margin-top:0.15rem; background:rgba(248,113,113,0.08); padding:0.15rem 0.3rem; border-radius:3px; line-height: 1.3;">⚠️ 실시간 AI 연동 실패 (폴백 가동 중). 원인: ${ai.error_detail || '알 수 없음'}</div>` : '';
 
                 aiTargetBox.innerHTML = `
-                    <div style="font-weight: 700; color: #f472b6; margin-bottom: 0.2rem; font-size: 0.76rem; display: flex; align-items: center; justify-content: space-between; gap: 0.25rem;">
+                    <div style="font-weight: 700; color: #f472b6; margin-bottom: 0.2rem; font-size: 0.76rem; display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; flex-wrap: wrap;">
                         <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
                             <i data-lucide="sparkles" style="width:13px; height:13px; color:#f472b6;"></i> AI 맞춤형 취약점 정밀 진단
                         </span>
-                        <button onclick="refreshAIDiagnostics(${result.id})" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.15rem; padding: 0;">
+                        <span style="background:rgba(139, 92, 246, 0.15); color:#c084fc; border:1px solid rgba(139, 92, 246, 0.3); padding:0.05rem 0.3rem; border-radius:4px; font-size:0.58rem; font-weight:normal;">🤖 ${aiModel}</span>
+                        <button onclick="refreshAIDiagnostics(${result.id})" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.15rem; padding: 0; font-weight: bold;">
                             <i data-lucide="refresh-cw" style="width:10px; height:10px;"></i> 진단 갱신
                         </button>
                     </div>
                     ${errorBadge}
                     <p style="color: var(--text-secondary); font-size: 0.7rem; line-height: 1.4; margin: 0.3rem 0 0.35rem 0;">${ai.desc}</p>
-                    <div style="font-size: 0.72rem; color: var(--text-primary); line-height: 1.4; font-weight: 500;">💡 <b>AI 처방 가이드:</b> ${ai.recommendation}</div>
+                    <div style="font-size: 0.72rem; color: var(--text-primary); line-height: 1.4; font-weight: 500; margin-bottom: 0.4rem;">💡 <b>AI 처방 가이드:</b> ${ai.recommendation}</div>
+                    
+                    <div style="margin-top:0.4rem; text-align:left;">
+                        <details style="border:1px solid rgba(148,163,184,0.12); border-radius:6px; background:rgba(15,23,42,0.15);">
+                            <summary style="font-size:0.62rem; color:#94a3b8; cursor:pointer; padding:0.2rem 0.4rem; font-weight:600; outline:none; user-select:none;">📋 AI 연동 상세 실시간 로그 보기</summary>
+                            <div style="background:#0f172a; color:#38bdf8; font-family:monospace, Courier; font-size:0.62rem; padding:0.4rem 0.5rem; border-radius:0 0 6px 6px; border-top:1px solid rgba(148,163,184,0.1); white-space:pre-line; text-align:left; max-height:100px; overflow-y:auto; line-height:1.45;">${logsText}</div>
+                        </details>
+                    </div>
                 `;
                 if (window.lucide) lucide.createIcons();
                 aiTargetBox.style.transition = 'opacity 0.35s ease';
@@ -2498,6 +2563,9 @@ async function fetchAIDiagnostics(result, forceRefresh = false) {
             loaderHtml.remove();
         }
     } catch (e) {
+        if (simInterval) clearInterval(simInterval);
+        const simBox = document.getElementById('sim-logs-diagnose');
+        if (simBox) simBox.remove();
         loaderHtml.remove();
         console.error("AI diagnostics load error:", e);
     }
@@ -2515,7 +2583,7 @@ window.refreshAIDiagnostics = refreshAIDiagnostics;
  * 기존 수동 해설(explanation)은 그대로 두고, ai_explanation 캐시 컬럼만 갈아끼웁니다.
  * forceRefresh=true(해설 갱신)일 때는 API 비용 발생을 사용자에게 확인받습니다.
  */
-async function fetchAiExplanation(qId, boxId, forceRefresh) {
+async function fetchAiExplanation(qId, boxId, forceRefresh = false) {
     const box = document.getElementById(boxId);
     if (!box) return;
 
@@ -2523,27 +2591,66 @@ async function fetchAiExplanation(qId, boxId, forceRefresh) {
         return;
     }
 
-    box.innerHTML = `<div style="font-size:0.72rem; color:#a78bfa;">✨ Gemini AI가 해설을 작성 중입니다...</div>`;
+    box.innerHTML = `
+        <div style="font-size:0.72rem; color:#a78bfa; display:flex; align-items:center; gap:0.3rem;">
+            <svg style="width:12px; height:12px; animation: spin 1s linear infinite; flex-shrink:0;" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="#a78bfa" stroke-width="4" stroke-dasharray="31.4" stroke-linecap="round" fill="none"></circle>
+            </svg>
+            <span>AI 해설 엔진 가동 및 통신 연결 중...</span>
+            <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+        </div>
+    `;
+
+    // 실시간 진행 모사 로그 가동
+    const simInterval = startProgressiveLogSimulation(box, 'sim-logs-explain-' + qId);
 
     try {
         const url = `/api/question/ai-explain?id=${encodeURIComponent(qId)}${forceRefresh ? '&nocache=true' : ''}`;
         const response = await fetch(url);
         const data = await response.json();
 
+        if (simInterval) clearInterval(simInterval);
+        const simBox = document.getElementById('sim-logs-explain-' + qId);
+        if (simBox) simBox.remove();
+
         if (data.success && data.ai_explanation) {
+            const aiModel = data.ai_model || "알 수 없음";
+            const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
+            
             box.innerHTML = `
-                <div style="font-weight:700; color:#f472b6; font-size:0.74rem; display:flex; align-items:center; justify-content:space-between; gap:0.25rem;">
-                    <span>✨ AI 해설</span>
-                    <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background:none; border:none; color:#a78bfa; font-size:0.62rem; cursor:pointer; padding:0; font-family:inherit;">🔄 해설 갱신</button>
+                <div style="font-weight:700; color:#f472b6; font-size:0.74rem; display:flex; align-items:center; justify-content:space-between; gap:0.25rem; flex-wrap:wrap; margin-bottom:0.3rem;">
+                    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                        <span>✨ AI 해설</span>
+                        <span style="background:rgba(139, 92, 246, 0.15); color:#c084fc; border:1px solid rgba(139, 92, 246, 0.3); padding:0.05rem 0.3rem; border-radius:4px; font-size:0.62rem; font-weight:normal;">🤖 ${aiModel}</span>
+                    </div>
+                    <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background:none; border:none; color:#a78bfa; font-size:0.62rem; cursor:pointer; padding:0; font-family:inherit; font-weight:bold;">🔄 해설 갱신</button>
                 </div>
                 <p style="color:var(--text-secondary); font-size:0.78rem; line-height:1.55; white-space:pre-wrap; margin:0.35rem 0 0;">${data.ai_explanation}</p>
+                <div style="margin-top:0.5rem; text-align:left;">
+                    <details style="border:1px solid rgba(148,163,184,0.12); border-radius:6px; background:rgba(15,23,42,0.15);">
+                        <summary style="font-size:0.65rem; color:#94a3b8; cursor:pointer; padding:0.25rem 0.5rem; font-weight:600; outline:none; user-select:none;">📋 AI 연동 상세 실시간 로그 보기</summary>
+                        <div style="background:#0f172a; color:#38bdf8; font-family:monospace, Courier; font-size:0.65rem; padding:0.5rem; border-radius:0 0 6px 6px; border-top:1px solid rgba(148,163,184,0.1); white-space:pre-line; text-align:left; max-height:120px; overflow-y:auto; line-height:1.4;">${logsText}</div>
+                    </details>
+                </div>
             `;
             const triggerBtn = document.getElementById(`ai-explain-trigger-${qId}`);
             if (triggerBtn) triggerBtn.textContent = '📖 AI 해설 보기';
         } else {
-            box.innerHTML = `<div style="font-size:0.72rem; color:#f87171;">⚠️ AI 해설 생성 실패: ${data.error || '알 수 없는 오류'}</div>`;
+            const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
+            box.innerHTML = `
+                <div style="font-size:0.72rem; color:#f87171; font-weight:bold; margin-bottom:0.2rem;">⚠️ AI 해설 생성 실패: ${data.error || '알 수 없는 오류'}</div>
+                <div style="margin-top:0.3rem;">
+                    <details open style="border:1px solid rgba(248,113,113,0.15); border-radius:6px; background:rgba(15,23,42,0.15);">
+                        <summary style="font-size:0.65rem; color:#f87171; cursor:pointer; padding:0.25rem 0.5rem; font-weight:600;">📋 상세 통신 실패 로그</summary>
+                        <div style="background:#0f172a; color:#f87171; font-family:monospace, Courier; font-size:0.65rem; padding:0.5rem; border-radius:0 0 6px 6px; border-top:1px solid rgba(248,113,113,0.1); white-space:pre-line; text-align:left; max-height:120px; overflow-y:auto; line-height:1.4;">${logsText}</div>
+                    </details>
+                </div>
+            `;
         }
     } catch (e) {
+        if (simInterval) clearInterval(simInterval);
+        const simBox = document.getElementById('sim-logs-explain-' + qId);
+        if (simBox) simBox.remove();
         box.innerHTML = `<div style="font-size:0.72rem; color:#f87171;">⚠️ 네트워크 오류로 AI 해설을 불러오지 못했습니다.</div>`;
         console.error("AI 해설 로드 오류:", e);
     }

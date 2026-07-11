@@ -23,3 +23,9 @@ get-pip.py
 
 # 빌드 시 아티팩트 fallback용 더미 저장소 제외
 reports/temp_artifacts_fallback/
+
+# 로컬 설정 및 비밀 키 유출 방지
+.env
+scratch/
+!scratch/update_explanations.py
+*.log
