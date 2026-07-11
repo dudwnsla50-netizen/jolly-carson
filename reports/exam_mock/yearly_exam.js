@@ -1131,6 +1131,7 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
                             </div>
                         </div>
                     </div>
+                    <div id="subject-stats-card-container-left" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem; margin-top: 0.2rem;"></div>
                 </div>
                 <!-- 오른쪽 컬럼: 학습자 맞춤형 취약점 진단 박스 -->
                 <div id="ai-diagnose-card" style="background: rgba(139,92,246,0.04); border: 1px solid rgba(139,92,246,0.12); border-radius: 8px; padding: 0.6rem 0.7rem; display: flex; flex-direction: column; justify-content: center; transition: opacity 0.35s ease;">
@@ -1150,7 +1151,7 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
     const recurrenceInsight = getYearlyWrongRecurrenceInsight(result, result.details);
     const weaknessScores = calculateSubjectWeaknessScores(subjectStats, recurrenceInsight.recurrenceBySubject, globalAvgTime);
 
-    const statsContainer = document.getElementById('subject-stats-card-container');
+    const statsContainer = document.getElementById('subject-stats-card-container-left');
     if (statsContainer) {
         statsContainer.innerHTML = '';
         for (let code in subjectStats) {
@@ -1176,16 +1177,24 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
             statsContainer.appendChild(box);
         }
 
-        // 과목 분석 박스 옆에 누적 답안 이력 비교 패널 배치
-        const comparePanel = document.createElement('div');
-        comparePanel.className = 'subject-analysis-box compare-panel';
-        comparePanel.innerHTML = `
-            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display:flex; align-items:center; gap:0.25rem;">
-                <i data-lucide="git-branch" style="width:12px; height:12px;"></i> 누적 답안 이력 비교
-            </div>
-            <div id="recurrence-inline-compare-box" style="font-size:0.72rem; color: var(--text-secondary); line-height:1.4;">OMR 문제를 클릭하면 비교 이력이 여기에 표시됩니다.</div>
-        `;
-        statsContainer.appendChild(comparePanel);
+        // [신규] 누적 답안 이력 비교 단독 카드로 하단에 독립 배치
+        const compareContainer = document.getElementById('recurrence-compare-card-container');
+        if (compareContainer) {
+            compareContainer.innerHTML = '';
+            const comparePanel = document.createElement('div');
+            comparePanel.className = 'result-summary-card';
+            comparePanel.style.padding = '0.7rem 0.8rem';
+            comparePanel.style.marginBottom = '0';
+            comparePanel.innerHTML = `
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.3rem; color: var(--text-primary);">
+                    <i data-lucide="git-branch" style="color: var(--accent-violet); width: 14px; height: 14px;"></i> 누적 답안 이력 비교
+                </h3>
+                <div id="recurrence-inline-compare-box" style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.4;">
+                    왼쪽 OMR 보드의 문제를 클릭하면, 해당 문항의 최근 회차별 누적 정오(맞춤/틀림) 이력이 여기에 상세히 분석 출력됩니다.
+                </div>
+            `;
+            compareContainer.appendChild(comparePanel);
+        }
     }
 
     // 5. 오답 재발 추적 카드 렌더링
@@ -1379,7 +1388,7 @@ function renderQuestionDetailHtml(item, detail, q) {
     }
 
     box.innerHTML = `
-        <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:1rem; min-height:100%;">
+        <div class="yearly-wrong-detail-card" data-question-num="${detail.question_num}" style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:1rem; min-height:100%;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.4rem;">
                 <span style="font-weight:700; font-size:0.88rem;">Q.${detail.question_num} 상세 보기</span>
                 <div style="display:flex; align-items:center; gap:0.4rem;">
@@ -1391,17 +1400,20 @@ function renderQuestionDetailHtml(item, detail, q) {
             
             <div style="margin-bottom:0.8rem;">${optionsHtml}</div>
             
-            <div style="background:rgba(16,185,129,0.02); border:1px solid rgba(16,185,129,0.08); border-radius:8px; padding:0.6rem 0.8rem; font-size:0.8rem; line-height:1.45; margin-bottom:0.6rem;">
-                <div style="color:#c084fc; font-weight:700; margin-bottom:0.25rem; display:flex; align-items:center; gap:0.25rem;">
-                    <i data-lucide="book-open" style="width:13px; height:13px;"></i> 정답 및 상세 해설
+            <details style="background:rgba(16,185,129,0.02); border:1px solid rgba(16,185,129,0.08); border-radius:8px; padding:0.6rem 0.8rem; font-size:0.8rem; line-height:1.45; margin-bottom:0.6rem;">
+                <summary style="color:#c084fc; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none; outline:none;">
+                    <i data-lucide="book-open" style="width:13px; height:13px;"></i> 정답 및 상세 해설 보기 (클릭하여 열기)
+                    <i data-lucide="chevron-down" style="width:12px; height:12px; margin-left:auto;"></i>
+                </summary>
+                <div style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.4rem;">
+                    <div style="color:var(--text-secondary); margin-bottom:0.3rem; white-space:pre-wrap;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
+                    <div class="ai-explain-section" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed rgba(139,92,246,0.18);">
+                        <button class="ai-explain-btn" id="ai-explain-trigger-${q.id}" onclick="fetchAiExplanation('${q.id}', 'ai-explain-box-${q.id}', false)" style="background:none; border:none; color:#a78bfa; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0; font-family:inherit;">${q.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
+                        <div id="ai-explain-box-${q.id}" class="ai-explain-box" style="margin-top:0.4rem;"></div>
+                    </div>
+                    ${lawBtnHtml}
                 </div>
-                <div style="color:var(--text-secondary); margin-bottom:0.3rem; white-space:pre-wrap;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
-                <div class="ai-explain-section" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed rgba(139,92,246,0.18);">
-                    <button class="ai-explain-btn" id="ai-explain-trigger-${q.id}" onclick="fetchAiExplanation('${q.id}', 'ai-explain-box-${q.id}', false)" style="background:none; border:none; color:#a78bfa; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0; font-family:inherit;">${q.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
-                    <div id="ai-explain-box-${q.id}" class="ai-explain-box" style="margin-top:0.4rem;"></div>
-                </div>
-                ${lawBtnHtml}
-            </div>
+            </details>
 
             ${imageHtml}
         </div>
@@ -1809,7 +1821,7 @@ function renderYearlyWrongAllTab(item, details) {
         }
 
         html += `
-            <div style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:0.85rem; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-bottom: 0.8rem;">
+            <div class="yearly-wrong-question-card" data-question-num="${d.question_num}" style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:0.85rem; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-bottom: 0.8rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.04); padding-bottom:0.35rem;">
                     <span style="font-weight:700; font-size:0.8rem; color:#f87171;">Q.${d.question_num}</span>
                     <span class="badge ${rangeInfo.code}" style="font-size:0.6rem; padding:0.12rem 0.3rem; border-radius:3px; font-weight:700; background: ${getSubjectGradient(rangeInfo.code)}; color: #ffffff; border:none;">${rangeInfo.name}</span>
