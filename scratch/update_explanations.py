@@ -147,7 +147,7 @@ def call_gemini_api(prompt, api_key):
         print("[API 에러] 제공된 API Key 또는 백업 API Key가 없습니다.", flush=True)
         return None, 401
 
-    max_retries = 3
+    max_retries = 2
     for attempt in range(max_retries):
         for i, key in enumerate(keys):
             payload = {
@@ -164,8 +164,8 @@ def call_gemini_api(prompt, api_key):
                 method="POST"
             )
             try:
-                # timeout=30초를 설정하여 무한 대기 현상 방지
-                with urllib.request.urlopen(req, timeout=30) as res:
+                # timeout=10초를 설정하여 무한 대기 현상 방지
+                with urllib.request.urlopen(req, timeout=10) as res:
                     data = json.loads(res.read().decode("utf-8"))
                     text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                     return text, 200
@@ -176,7 +176,7 @@ def call_gemini_api(prompt, api_key):
                         print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.", flush=True)
                         continue
                     else:
-                        wait_time = (attempt + 1) * 3
+                        wait_time = 2
                         print(f"-> 모든 API Key 제한됨. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
                         time.sleep(wait_time)
                 else:
@@ -192,7 +192,7 @@ def call_gemini_api(prompt, api_key):
                 if attempt == max_retries - 1:
                     print(f"[API 에러] Gemini 호출 실패: {e}", flush=True)
                     return None, 500
-                wait_time = (attempt + 1) * 2
+                wait_time = 1
                 print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
                 time.sleep(wait_time)
             

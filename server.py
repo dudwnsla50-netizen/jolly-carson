@@ -85,7 +85,7 @@ def call_gemini_raw_prompt(prompt):
     if not keys:
         raise ValueError("GEMINI_API_KEY 또는 GEMINI_API_KEY2 환경변수가 비어있거나 감지되지 않았습니다.")
     
-    max_retries = 3
+    max_retries = 2
     for attempt in range(max_retries):
         for i, api_key in enumerate(keys):
             url = f"{GEMINI_API_URL}?key={api_key}"
@@ -99,8 +99,8 @@ def call_gemini_raw_prompt(prompt):
                 method="POST"
             )
             try:
-                # 호출 타임아웃을 15초로 넉넉하게 잡고 원격 서버의 불안정성을 완화
-                with urllib.request.urlopen(req, timeout=15) as res:
+                # 호출 타임아웃을 7초로 단축하여 불필요한 대기를 방지
+                with urllib.request.urlopen(req, timeout=7) as res:
                     data = json.loads(res.read().decode("utf-8"))
                     raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                     return raw_response
@@ -111,7 +111,7 @@ def call_gemini_raw_prompt(prompt):
                         print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
                         continue
                     else:
-                        wait_time = (attempt + 1) * 3
+                        wait_time = 2
                         print(f"-> 모든 API Key 제한됨. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
                         time.sleep(wait_time)
                 else:
@@ -125,7 +125,7 @@ def call_gemini_raw_prompt(prompt):
                     continue
                 if attempt == max_retries - 1:
                     raise e
-                wait_time = (attempt + 1) * 2
+                wait_time = 1
                 print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)
             
