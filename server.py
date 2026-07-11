@@ -89,7 +89,7 @@ def call_gemini_raw_prompt(prompt, timeout=10):
     if not keys:
         raise ValueError("GEMINI_API_KEY 또는 GEMINI_API_KEY2 환경변수가 비어있거나 감지되지 않았습니다.")
     
-    max_retries = 2
+    max_retries = 1
     last_exception = None
     for attempt in range(max_retries):
         for i, api_key in enumerate(keys):

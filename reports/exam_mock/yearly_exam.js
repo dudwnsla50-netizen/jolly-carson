@@ -1,21 +1,15 @@
 // 실시간 AI 연동 로그 시뮬레이션 헬퍼
 function startProgressiveLogSimulation(container, targetId) {
     const simulatedLogs = [
-        "Gemini API Key #1 호출 시도 중... (시도 1/2)",
+        "Gemini API Key #1 호출 시도 중... (시도 1/1)",
         "[Warning] Gemini API Key #1 429 Too Many Requests 감지.",
         "-> 백업 API Key #2로 즉시 전환하여 재시도합니다.",
-        "Gemini API Key #2 호출 시도 중... (시도 1/2)",
-        "[Warning] Gemini API Key #2 429 Too Many Requests 감지.",
-        "-> 모든 API Key 제한 감지. 2초 대기 후 재시도합니다... (시도 2/2)",
-        "Gemini API Key #1 호출 시도 중... (시도 2/2)",
-        "[Warning] Gemini API Key #1 429 Too Many Requests 감지.",
-        "-> 백업 API Key #2로 즉시 전환하여 재시도합니다.",
-        "Gemini API Key #2 호출 시도 중... (시도 2/2)",
-        "[Warning] Gemini API Key #2 429 Too Many Requests 감지.",
-        "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Groq Llama-3.1 3차 폴백 가동합니다...",
-        "Groq Llama-3.1 3차 폴백 호출 시작...",
-        "-> 대안 추론 엔진 보안 우회 헤더(User-Agent)를 전송합니다.",
-        "Groq Llama-3.1 백업 호출 통신 유지 중..."
+        "Gemini API Key #2 호출 시도 중... (시도 1/1)",
+        "[Warning] Gemini API Key #2 예외 발생: The read operation timed out",
+        "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Hugging Face Llama-3 3차 폴백 가동합니다...",
+        "Hugging Face Llama-3 3차 폴백 호출 시작...",
+        "-> 대안 추론 엔진 보안 우회 헤더를 전송합니다.",
+        "Hugging Face 백업 호출 통신 유지 중..."
     ];
 
     const simBox = document.createElement('div');

@@ -194,7 +194,7 @@ def call_gemini_api(prompt, api_key):
         print("[API 에러] 제공된 API Key 또는 백업 API Key가 없습니다.", flush=True)
         return None, 401
 
-    max_retries = 2
+    max_retries = 1
     for attempt in range(max_retries):
         for i, key in enumerate(keys):
             payload = {
