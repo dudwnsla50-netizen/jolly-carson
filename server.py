@@ -105,14 +105,15 @@ def call_gemini_raw_prompt(prompt):
                     raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                     return raw_response
             except urllib.error.HTTPError as e:
-                if e.code == 429:
-                    print(f"[Warning] Gemini API Key #{i+1} 429 Too Many Requests 감지.")
+                if e.code == 429 or (500 <= e.code < 600):
+                    status_type = "429 Too Many Requests" if e.code == 429 else f"HTTP {e.code} Server Error"
+                    print(f"[Warning] Gemini API Key #{i+1} {status_type} 감지.")
                     if i < len(keys) - 1:
                         print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
                         continue
                     else:
                         wait_time = 2
-                        print(f"-> 모든 API Key 제한됨. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
+                        print(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
                         time.sleep(wait_time)
                 else:
                     if i < len(keys) - 1:
