@@ -142,34 +142,62 @@ def get_discrepancies_and_diffs():
     return targets
 
 def call_gemini_api(prompt, api_key):
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2
-        }
-    }
-    url = f"{GEMINI_API_URL}?key={api_key}"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
-    try:
-        # timeout=30초를 설정하여 무한 대기 현상 방지
-        with urllib.request.urlopen(req, timeout=30) as res:
-            data = json.loads(res.read().decode("utf-8"))
-            text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            return text, 200
-    except urllib.error.HTTPError as e:
-        if e.code == 429:
-            return None, 429
-        else:
-            print(f"[API 에러] Gemini 호출 실패 (HTTP {e.code}): {e}", flush=True)
-            return None, e.code
-    except Exception as e:
-        print(f"[API 에러] Gemini 호출 실패: {e}", flush=True)
-        return None, 500
+    keys = [k for k in [api_key, os.environ.get("GEMINI_API_KEY2", "")] if k]
+    if not keys:
+        print("[API 에러] 제공된 API Key 또는 백업 API Key가 없습니다.", flush=True)
+        return None, 401
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        for i, key in enumerate(keys):
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.2
+                }
+            }
+            url = f"{GEMINI_API_URL}?key={key}"
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            try:
+                # timeout=30초를 설정하여 무한 대기 현상 방지
+                with urllib.request.urlopen(req, timeout=30) as res:
+                    data = json.loads(res.read().decode("utf-8"))
+                    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    return text, 200
+            except urllib.error.HTTPError as e:
+                if e.code == 429:
+                    print(f"[Warning] Gemini API Key #{i+1} 429 Too Many Requests 감지.", flush=True)
+                    if i < len(keys) - 1:
+                        print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.", flush=True)
+                        continue
+                    else:
+                        wait_time = (attempt + 1) * 3
+                        print(f"-> 모든 API Key 제한됨. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
+                        time.sleep(wait_time)
+                else:
+                    if i < len(keys) - 1:
+                        print(f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code}). 백업 API Key #{i+2}로 즉시 재시도합니다.", flush=True)
+                        continue
+                    print(f"[API 에러] Gemini 호출 실패 (HTTP {e.code}): {e}", flush=True)
+                    return None, e.code
+            except Exception as e:
+                if i < len(keys) - 1:
+                    print(f"[Warning] Gemini API Key #{i+1} 호출 중 예외 발생: {e}. 백업 API Key #{i+2}로 즉시 재시도합니다.", flush=True)
+                    continue
+                if attempt == max_retries - 1:
+                    print(f"[API 에러] Gemini 호출 실패: {e}", flush=True)
+                    return None, 500
+                wait_time = (attempt + 1) * 2
+                print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})", flush=True)
+                time.sleep(wait_time)
+            
+    print("[API 에러] Gemini 호출 실패: 재시도 횟수를 초과했습니다. (429)", flush=True)
+    return None, 429
 
 def process_targets(targets, api_key, args):
     if not targets:

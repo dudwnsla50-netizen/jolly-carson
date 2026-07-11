@@ -14,6 +14,8 @@ import sqlite3
 from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
+import urllib.error
+import time
 import traceback
 import psycopg2
 import psycopg2.extras
@@ -76,26 +78,58 @@ if os.path.exists(env_file_path):
 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_API_KEY2 = os.environ.get("GEMINI_API_KEY2", "")
 
 def call_gemini_raw_prompt(prompt):
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY 환경변수가 비어있거나 감지되지 않았습니다.")
+    keys = [k for k in [GEMINI_API_KEY, GEMINI_API_KEY2] if k]
+    if not keys:
+        raise ValueError("GEMINI_API_KEY 또는 GEMINI_API_KEY2 환경변수가 비어있거나 감지되지 않았습니다.")
     
-    url = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}]
-    }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
-    # 호출 타임아웃을 15초로 넉넉하게 잡고 원격 서버의 불안정성을 완화
-    with urllib.request.urlopen(req, timeout=15) as res:
-        data = json.loads(res.read().decode("utf-8"))
-        raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        return raw_response
+    max_retries = 3
+    for attempt in range(max_retries):
+        for i, api_key in enumerate(keys):
+            url = f"{GEMINI_API_URL}?key={api_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            try:
+                # 호출 타임아웃을 15초로 넉넉하게 잡고 원격 서버의 불안정성을 완화
+                with urllib.request.urlopen(req, timeout=15) as res:
+                    data = json.loads(res.read().decode("utf-8"))
+                    raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    return raw_response
+            except urllib.error.HTTPError as e:
+                if e.code == 429:
+                    print(f"[Warning] Gemini API Key #{i+1} 429 Too Many Requests 감지.")
+                    if i < len(keys) - 1:
+                        print(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
+                        continue
+                    else:
+                        wait_time = (attempt + 1) * 3
+                        print(f"-> 모든 API Key 제한됨. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                else:
+                    if i < len(keys) - 1:
+                        print(f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code}). 백업 API Key #{i+2}로 즉시 재시도합니다.")
+                        continue
+                    raise e
+            except Exception as e:
+                if i < len(keys) - 1:
+                    print(f"[Warning] Gemini API Key #{i+1} 호출 중 예외 발생: {e}. 백업 API Key #{i+2}로 즉시 재시도합니다.")
+                    continue
+                if attempt == max_retries - 1:
+                    raise e
+                wait_time = (attempt + 1) * 2
+                print(f"[Warning] 모든 Gemini API Key 호출 실패: {e}. {wait_time}초 후 재시도합니다... (시도 {attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+            
+    raise RuntimeError("모든 Gemini API Key가 실패했으며 재시도 횟수를 초과했습니다.")
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
