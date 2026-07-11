@@ -76,7 +76,7 @@ if os.path.exists(env_file_path):
     except Exception as env_ex:
         print(f"[Warning] .env 파일 로드 중 실패: {env_ex}")
 
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_API_KEY2 = os.environ.get("GEMINI_API_KEY2", "")
 

@@ -11,7 +11,7 @@ if sys.platform.startswith('win'):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent"
 
 def test_gemini():
     print(f"API Key 존재 여부: {bool(GEMINI_API_KEY)}")

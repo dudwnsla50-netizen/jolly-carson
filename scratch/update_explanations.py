@@ -19,7 +19,7 @@ if sys.platform.startswith('win'):
 SQLITE_DB_PATH = "d:/100.lyj/anti_workspace/jolly-carson/reports/exam_db/jolly_carson.db"
 SUPABASE_URL_RAW = "postgresql://postgres.sqrnhkhgctfxnxwbiwxp:yj1024word%5E%5E@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
 DATABASE_URL = os.environ.get("DATABASE_URL", SUPABASE_URL_RAW)
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="PostgreSQL 기출문제 해설 업데이트 스크립트")
