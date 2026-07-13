@@ -186,8 +186,10 @@
                     <input type="text" name="abbreviation" placeholder="예: EVM">
                 </div>
                 <div class="form-group">
-                    <label>정의/뜻 *</label>
-                    <textarea name="definition" placeholder="용어의 의미를 간결하게 설명하세요" required></textarea>
+                    <label>정의/뜻</label>
+                    <div id="definition-editor" class="rich-editor" contenteditable="true"
+                        onpaste="handleRichEditorPaste(event)" data-placeholder="용어의 의미를 간결하게 설명하세요"></div>
+                    <div class="form-hint">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
                 </div>
                 <div class="form-group">
                     <label>대분류 *</label>

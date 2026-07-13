@@ -234,6 +234,7 @@ function renderCard(idx) {
         if (matched) conceptTag = matched.concept.split('.')[0] + '. ' + matched.concept.split('.').slice(1).join('.');
     }
     document.getElementById('card-concept-tag').textContent = conceptTag;
+    document.getElementById('card-difficulty-tag').innerHTML = getDifficultyBadgeHtml(quiz.difficulty);
 
     // 본문 주입 (리치 에디터로 저장된 이미지 포함 HTML을 그대로 렌더링)
     document.getElementById('card-question-text').innerHTML = quiz.question;
@@ -438,6 +439,12 @@ function startEditReviewQuestion() {
                 </div>
             </div>
             <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">🎯 난이도 수정</label>
+                <select id="edit-q-difficulty-${idx}" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 6px; font-size: 0.85rem; outline: none; font-family: inherit;">
+                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(data.difficulty || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
+                </select>
+            </div>
+            <div>
                 <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">📝 해설 수정</label>
                 <div id="edit-q-explanation-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" onmouseup="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 150px; max-height: 800px; overflow-y: auto; resize: vertical; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.explanation || '')}</div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
@@ -497,8 +504,10 @@ function saveEditReviewQuestion(event) {
     const answerCheckboxes = document.querySelectorAll(`.edit-answer-chk-${idx}:checked`);
     const answerArr = Array.from(answerCheckboxes).map(chk => parseInt(chk.value));
     const explanationVal = getRichEditorValue(`edit-q-explanation-${idx}`);
+    const difficultySelect = document.getElementById(`edit-q-difficulty-${idx}`);
+    const difficultyVal = difficultySelect ? difficultySelect.value : '중';
 
-    const updateData = { id: qId, question: qTextVal, options: optionsVal, answer: answerArr, explanation: explanationVal };
+    const updateData = { id: qId, question: qTextVal, options: optionsVal, answer: answerArr, explanation: explanationVal, difficulty: difficultyVal };
     const imageState = (window.pendingImageEdits && window.pendingImageEdits[idx]) || { dataUrl: null, remove: false };
 
     fetch('/api/question/update', {
@@ -521,6 +530,8 @@ function saveEditReviewQuestion(event) {
             quiz.options = optionsVal;
             quiz.answer = answerArr;
             quiz.explanation = explanationVal;
+            quiz.difficulty = difficultyVal;
+            document.getElementById('card-difficulty-tag').innerHTML = getDifficultyBadgeHtml(difficultyVal);
 
             if (imageState.dataUrl) {
                 return fetch('/api/question/upload-image', {

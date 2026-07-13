@@ -1212,6 +1212,22 @@ function formatKoreanDate(dateStr) {
 }
 
 /**
+ * [설계 의도] 문항 난이도(상/중/하/예외)를 색상이 구분된 뱃지 HTML로 반환합니다.
+ * review.js도 이 전역 함수를 그대로 재사용합니다(dashboard_common.js가 먼저 로드되므로).
+ */
+function getDifficultyBadgeHtml(difficulty) {
+    const d = difficulty || '중';
+    const colors = {
+        '상': { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171' },
+        '중': { bg: 'rgba(251, 191, 36, 0.15)', border: 'rgba(251, 191, 36, 0.4)', color: '#fbbf24' },
+        '하': { bg: 'rgba(52, 211, 153, 0.15)', border: 'rgba(52, 211, 153, 0.4)', color: '#34d399' },
+        '예외': { bg: 'rgba(148, 163, 184, 0.15)', border: 'rgba(148, 163, 184, 0.4)', color: '#94a3b8' }
+    };
+    const c = colors[d] || colors['중'];
+    return `<span class="difficulty-badge" style="background: ${c.bg}; border: 1px solid ${c.border}; color: ${c.color}; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle;">난이도 ${d}</span>`;
+}
+
+/**
  * [설계 의도] 캐싱된 문제 데이터를 상세 뷰어 영역에 보기 좋게 렌더링합니다.
  * 동시에 사용자가 클릭 가능한 보기 버튼과 답안 제출 및 채점 패널을 렌더링합니다.
  */
@@ -1290,10 +1306,11 @@ function renderLoadedQuestion(idx, qId) {
         }
     }
 
-    // 질문 본문 렌더링 (신규 기출 뱃지 추가)
+    // 질문 본문 렌더링 (신규 기출 뱃지 + 난이도 뱃지 추가)
     const isNewTrend = (data.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[qId] === 1);
     const newTrendBadge = isNewTrend ? `<span class="new-trend-badge" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #ffffff; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);">✨ 신규 기출</span>` : '';
-    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${newTrendBadge}${data.question}</div>`;
+    const difficultyBadge = getDifficultyBadgeHtml(data.difficulty);
+    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${newTrendBadge}${difficultyBadge}${data.question}</div>`;
 
     // 이 문항의 풀이 완료(제출) 이력이 전역 버퍼에 있는지 확인
     const submittedResult = window.quizSubmittedResults && window.quizSubmittedResults[qId];
@@ -1867,6 +1884,12 @@ function startEditQuestion(idx, qId) {
                 </div>
             </div>
             <div>
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">🎯 난이도 수정</label>
+                <select id="edit-q-difficulty-${idx}" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 6px; font-size: 0.85rem; outline: none; font-family: inherit;">
+                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(data.difficulty || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
+                </select>
+            </div>
+            <div>
                 <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">📝 해설 수정</label>
                 <div id="edit-q-explanation-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" onmouseup="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 150px; max-height: 800px; overflow-y: auto; resize: vertical; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.explanation || '')}</div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
@@ -2029,13 +2052,16 @@ function saveEditQuestion(idx, qId, event) {
     const answerCheckboxes = document.querySelectorAll(`.edit-answer-chk-${idx}:checked`);
     const answerArr = Array.from(answerCheckboxes).map(chk => parseInt(chk.value));
     const explanationVal = getRichEditorValue(`edit-q-explanation-${idx}`);
+    const difficultySelect = document.getElementById(`edit-q-difficulty-${idx}`);
+    const difficultyVal = difficultySelect ? difficultySelect.value : '중';
 
     const updateData = {
         id: qId,
         question: qTextVal,
         options: optionsVal,
         answer: answerArr,
-        explanation: explanationVal
+        explanation: explanationVal,
+        difficulty: difficultyVal
     };
 
     const imageState = (window.pendingImageEdits && window.pendingImageEdits[idx]) || { dataUrl: null, remove: false };
@@ -2062,6 +2088,7 @@ function saveEditQuestion(idx, qId, event) {
             window.loadedQuestions[qId].options = optionsVal;
             window.loadedQuestions[qId].answer = answerArr;
             window.loadedQuestions[qId].explanation = explanationVal;
+            window.loadedQuestions[qId].difficulty = difficultyVal;
 
             // 이미지가 새로 첨부되었거나 삭제 요청된 경우에만 별도 업로드 API 호출
             if (imageState.dataUrl) {

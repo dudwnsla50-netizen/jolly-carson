@@ -80,6 +80,111 @@ async function apiPost(endpoint, body) {
 }
 
 // ==========================================
+// 2-1. HTML 이스케이프 및 리치 에디터(정의/뜻 이미지 첨부) 헬퍼
+// [설계 의도] term_ko/term_en/abbreviation/related_keywords 등은 순수 텍스트 입력이라
+// 렌더링 시 반드시 이스케이프해야 합니다. 반면 definition(정의/뜻)은 이미지 붙여넣기를
+// 지원하는 리치 에디터로 전환되어 신뢰 가능한 HTML(텍스트 또는 <img> 태그)을 담으므로
+// 이스케이프하지 않고 그대로 렌더링합니다. dashboard_common.js의 동일 로직을 이 페이지가
+// 그 파일을 로드하지 않으므로 독립적으로 포팅했습니다.
+// ==========================================
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function toEditableHtml(raw) {
+    if (!raw) return '';
+    const looksLikeHtml = /<[a-z][\s\S]*>/i.test(raw);
+    if (looksLikeHtml) return raw;
+    return escapeHtml(raw).replace(/\n/g, '<br>');
+}
+
+function insertHtmlAtCursor(html) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const fragment = range.createContextualFragment(html);
+    const lastNode = fragment.lastChild;
+    range.insertNode(fragment);
+
+    if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.setEndAfter(lastNode);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+}
+
+function insertTextAtCursor(text) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.setEndAfter(textNode);
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+
+function handleRichEditorPaste(event) {
+    event.preventDefault();
+    const clipboardData = event.clipboardData;
+    const items = clipboardData ? clipboardData.items : null;
+
+    if (items) {
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (!file) continue;
+
+                const reader = new FileReader();
+                reader.onload = () => {
+                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block;">`);
+                };
+                reader.readAsDataURL(file);
+                return;
+            }
+        }
+    }
+
+    const text = clipboardData ? clipboardData.getData('text/plain') : '';
+    if (text) insertTextAtCursor(text);
+}
+
+function getRichEditorValue(elId) {
+    const el = document.getElementById(elId);
+    if (!el) return '';
+
+    const hasImage = el.querySelector('img') !== null;
+    const hasText = el.textContent.trim().length > 0;
+    return (hasImage || hasText) ? el.innerHTML : '';
+}
+
+/**
+ * [설계 의도] 목록 행(.term-row)의 정의는 한 줄로 잘려 보이는 압축 미리보기라
+ * 이미지를 그대로 삽입하면 레이아웃이 깨집니다. 태그를 제거한 순수 텍스트만 뽑아
+ * 이스케이프해서 보여주고, 이미지가 포함된 경우 🖼️ 표시만 덧붙입니다.
+ */
+function getDefinitionPreview(html) {
+    if (!html) return { text: '', hasImage: false };
+    const hasImage = /<img[\s>]/i.test(html);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return { text: (tmp.textContent || '').trim(), hasImage };
+}
+
+// ==========================================
 // 3. 초기화 및 데이터 로드
 // ==========================================
 async function init() {
@@ -297,24 +402,30 @@ function renderTerms(terms) {
         const freq = t.frequency || 1;
 
         const keywords = (t.related_keywords || []).slice(0, 3).map(k =>
-            `<span class="term-tag">${k}</span>`
+            `<span class="term-tag">${escapeHtml(k)}</span>`
         ).join('');
 
         const topicLabel = t.topic_minor ? `${t.topic_major} · ${t.topic_minor}` : t.topic_major;
-        
+
         // 뜻 미입력 여부 판단
         const isPending = !t.definition || t.definition.includes("뜻을 입력해주세요.");
         const pendingBadge = isPending ? `<span class="pending-badge" style="background:rgba(239, 68, 68, 0.15); color:#ef4444; border: 1px solid rgba(239,68,68,0.3); font-size:0.7rem; padding:2px 6px; border-radius:4px; font-weight:600; margin-left:8px; display:inline-flex; align-items:center; gap:3px;">⚠️ 뜻 미입력</span>` : '';
 
+        // 목록 행은 한 줄 압축 미리보기라 이미지는 렌더링하지 않고 텍스트만 뽑아 표시(🖼️ 표시로 존재만 알림)
+        const defPreview = getDefinitionPreview(t.definition);
+        const defDisplay = isPending
+            ? '뜻을 입력해주세요.'
+            : `${defPreview.hasImage ? '🖼️ ' : ''}${escapeHtml(defPreview.text)}`;
+
         return `
         <div class="term-row ${isPending ? 'pending-term' : ''}" onclick="showTermDetail(${t.id})" data-term-id="${t.id}">
             <span class="row-mastery-dot ${masteryClass}" title="${masteryLabel}"></span>
-            <span class="row-ko">${t.term_ko}${pendingBadge}</span>
-            <span class="row-abbr ${abbr ? '' : 'row-abbr-empty'}">${abbr || '—'}</span>
-            <span class="row-en">${en || ''}</span>
-            <div class="term-def" style="${isPending ? 'color:var(--text-muted); font-style:italic;' : ''}">${t.definition}</div>
+            <span class="row-ko">${escapeHtml(t.term_ko)}${pendingBadge}</span>
+            <span class="row-abbr ${abbr ? '' : 'row-abbr-empty'}">${escapeHtml(abbr) || '—'}</span>
+            <span class="row-en">${escapeHtml(en)}</span>
+            <div class="term-def" style="${isPending ? 'color:var(--text-muted); font-style:italic;' : ''}">${defDisplay}</div>
             <div class="row-tags">
-                <span class="term-topic-tag">${topicLabel}</span>
+                <span class="term-topic-tag">${escapeHtml(topicLabel)}</span>
                 ${keywords}
             </div>
             <div class="row-actions">
@@ -416,7 +527,7 @@ function openEditModal(term) {
     form.elements['term_ko'].value = term?.term_ko || '';
     form.elements['term_en'].value = term?.term_en || '';
     form.elements['abbreviation'].value = term?.abbreviation || '';
-    form.elements['definition'].value = term?.definition || '';
+    document.getElementById('definition-editor').innerHTML = toEditableHtml(term?.definition || '');
     populateTopicMajorSelect();
     form.elements['topic_major'].value = term?.topic_major || (topicTree[0]?.name || '기타');
     updateTopicMinorSuggestions();
@@ -441,7 +552,7 @@ async function submitTermForm(e) {
         term_ko: form.elements['term_ko'].value.trim(),
         term_en: form.elements['term_en'].value.trim(),
         abbreviation: form.elements['abbreviation'].value.trim(),
-        definition: form.elements['definition'].value.trim(),
+        definition: getRichEditorValue('definition-editor'),
         subject: currentSubject || 'PM',
         topic_major: form.elements['topic_major'].value.trim() || '기타',
         topic_minor: form.elements['topic_minor'].value.trim(),
@@ -539,10 +650,17 @@ function renderStudyCard() {
     }
 
     const card = studyCards[studyIndex];
-    const abbr = card.abbreviation || card.term_ko.substring(0, 4);
+    const abbr = card.abbreviation || '';
+    const hasAbbr = !!abbr;
     const en = card.term_en || '';
     const ko = card.term_ko;
     const def = card.definition;
+
+    // 약자가 없는 용어는 Step 1(약자 보기)/Step 2(영문 분해)가 의미가 없으므로 건너뛰고
+    // 바로 Step 3(한글 뜻 + 정의)로 진입합니다.
+    if (!hasAbbr && studyStep < 2) {
+        studyStep = 2;
+    }
 
     // 진행률
     document.getElementById('study-progress').textContent = `${studyIndex + 1} / ${studyCards.length}`;
@@ -562,7 +680,7 @@ function renderStudyCard() {
         // Step 1: 약자만 표시
         body.innerHTML = `
             <div class="study-step-label">Step 1 — 약자 보기</div>
-            <div class="study-abbr">${abbr}</div>
+            <div class="study-abbr">${escapeHtml(abbr)}</div>
             <div class="study-hint" style="margin-top: 24px;">이 약자의 뜻을 떠올려보세요</div>
             <button class="btn btn-primary" style="margin-top: 20px;" onclick="advanceStep()">확인하기 →</button>
         `;
@@ -574,28 +692,30 @@ function renderStudyCard() {
             decomposed = words.map(w => {
                 const firstChar = w.charAt(0).toUpperCase();
                 const isMatch = abbr.toUpperCase().includes(firstChar);
-                return `<span style="color: ${isMatch ? 'var(--accent-violet)' : 'var(--text-secondary)'}; font-weight: ${isMatch ? '700' : '400'}">${isMatch ? '<u>' + firstChar + '</u>' + w.slice(1) : w}</span>`;
+                const escapedFirst = escapeHtml(firstChar);
+                const escapedRest = escapeHtml(w.slice(1));
+                return `<span style="color: ${isMatch ? 'var(--accent-violet)' : 'var(--text-secondary)'}; font-weight: ${isMatch ? '700' : '400'}">${isMatch ? '<u>' + escapedFirst + '</u>' + escapedRest : escapedFirst + escapedRest}</span>`;
             }).join(' ');
         }
 
         body.innerHTML = `
             <div class="study-step-label">Step 2 — 영문 풀네임</div>
-            <div class="study-abbr" style="font-size: 1.8rem; margin-bottom: 8px;">${abbr}</div>
-            <div style="font-size: 1.1rem; line-height: 1.6; margin-top: 12px;">${decomposed || en || '(영문명 없음)'}</div>
+            <div class="study-abbr" style="font-size: 1.8rem; margin-bottom: 8px;">${escapeHtml(abbr)}</div>
+            <div style="font-size: 1.1rem; line-height: 1.6; margin-top: 12px;">${decomposed || escapeHtml(en) || '(영문명 없음)'}</div>
             <div class="study-hint" style="margin-top: 20px;">각 글자의 의미를 분해해서 이해하세요</div>
             <button class="btn btn-primary" style="margin-top: 20px;" onclick="advanceStep()">뜻 확인 →</button>
         `;
     } else {
-        // Step 3: 한글 뜻 + 정의 → 난이도 평가
+        // Step 3: 한글 뜻 + 정의 → 난이도 평가 (약자 없는 용어는 약자 줄 자체를 생략)
         body.innerHTML = `
             <div class="study-step-label">Step 3 — 한글 뜻 + 정의</div>
-            <div class="study-abbr" style="font-size: 1.5rem;">${abbr}</div>
-            <div class="study-ko" style="margin-top: 12px;">${ko}</div>
-            ${en ? `<div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">${en}</div>` : ''}
+            ${hasAbbr ? `<div class="study-abbr" style="font-size: 1.5rem;">${escapeHtml(abbr)}</div>` : ''}
+            <div class="study-ko" style="margin-top: 12px;">${escapeHtml(ko)}</div>
+            ${en ? `<div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">${escapeHtml(en)}</div>` : ''}
             <div class="study-def" style="margin-top: 12px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">${def}</div>
             ${card.related_keywords && card.related_keywords.length ? `
                 <div class="term-tags" style="justify-content: center; margin-top: 12px;">
-                    ${card.related_keywords.map(k => `<span class="term-tag">${k}</span>`).join('')}
+                    ${card.related_keywords.map(k => `<span class="term-tag">${escapeHtml(k)}</span>`).join('')}
                 </div>
             ` : ''}
         `;

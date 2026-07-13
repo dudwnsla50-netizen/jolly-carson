@@ -552,7 +552,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT question, options, answer, explanation, subject, is_new_trend, similar_past_questions, ai_explanation
+                        SELECT question, options, answer, explanation, subject, is_new_trend, similar_past_questions, ai_explanation, difficulty
                         FROM exam_questions
                         WHERE id = %s
                     """
@@ -596,7 +596,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "subject": row_dict["subject"],
                             "is_new_trend": row_dict.get("is_new_trend", 0),
                             "similar_past_questions": sim_past_val,
-                            "ai_explanation": row_dict.get("ai_explanation")
+                            "ai_explanation": row_dict.get("ai_explanation"),
+                            "difficulty": row_dict.get("difficulty") or "중"
                         })
                     else:
                         self.send_error_response(404, f"Question {q_id} Not Found")
@@ -746,18 +747,19 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation
+                        SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, difficulty
                         FROM exam_questions
                         WHERE subject = %s
                     """
                     execute_query(cursor, sql, (subject,))
                     rows = cursor.fetchall()
-                    
+
                     data_dict = {}
                     for row in rows:
                         item = dict(row)
                         item["options"] = json.loads(item["options"]) if item["options"] else []
-                        
+                        item["difficulty"] = item.get("difficulty") or "중"
+
                         raw_answer = item["answer"]
                         if isinstance(raw_answer, int):
                             item["answer"] = [raw_answer]
@@ -799,23 +801,26 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         options = data.get("options")
         answer = data.get("answer")
         explanation = data.get("explanation")
-        
+        difficulty = data.get("difficulty")
+        if difficulty not in ("상", "중", "하", "예외"):
+            difficulty = "중"
+
         if not q_id or question is None or options is None:
             self.send_error_response(400, "Missing parameters (id, question, options)")
             return
-            
+
         try:
             options_json = json.dumps(options, ensure_ascii=False)
             answer_json = json.dumps(answer) if answer and len(answer) > 0 else None
-            
+
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        UPDATE exam_questions 
-                        SET question = %s, options = %s, answer = %s, explanation = %s
+                        UPDATE exam_questions
+                        SET question = %s, options = %s, answer = %s, explanation = %s, difficulty = %s
                         WHERE id = %s
                     """
-                    execute_query(cursor, sql, (question, options_json, answer_json, explanation, q_id))
+                    execute_query(cursor, sql, (question, options_json, answer_json, explanation, difficulty, q_id))
                     conn.commit()
                     
                     if cursor.rowcount > 0:
@@ -1486,19 +1491,20 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, year, subject, question_num, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation
+                        SELECT id, year, subject, question_num, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, difficulty
                         FROM exam_questions
                         WHERE year = %s
                         ORDER BY question_num ASC
                     """
                     execute_query(cursor, sql, (year,))
                     rows = cursor.fetchall()
-                    
+
                     data_list = []
                     for row in rows:
                         item = dict(row)
                         item["options"] = json.loads(item["options"]) if item["options"] else []
-                        
+                        item["difficulty"] = item.get("difficulty") or "중"
+
                         raw_answer = item["answer"]
                         if isinstance(raw_answer, int):
                             item["answer"] = [raw_answer]
@@ -2979,6 +2985,26 @@ def init_yearly_exam_history_ai_diagnose_model_column():
         print(f"[{DB_TYPE}] 경고 - yearly_exam_history AI 진단 모델명 컬럼 초기화 중 예외 발생: {e}")
 
 
+def init_exam_questions_difficulty_column():
+    """[설계 의도] exam_questions 테이블에 난이도(difficulty) 컬럼이 없다면 추가하고,
+    값이 비어있는 기존 문항은 모두 기본값 '중'으로 일괄 백필합니다."""
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                try:
+                    cursor.execute("SELECT difficulty FROM exam_questions LIMIT 1")
+                except Exception:
+                    conn.rollback()
+                    cursor.execute("ALTER TABLE exam_questions ADD COLUMN difficulty TEXT")
+                    conn.commit()
+                    print(f"[{DB_TYPE}] exam_questions 테이블에 난이도 컬럼 추가 완료: difficulty")
+
+                cursor.execute("UPDATE exam_questions SET difficulty = '중' WHERE difficulty IS NULL")
+                conn.commit()
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - exam_questions 난이도 컬럼 초기화 중 예외 발생: {e}")
+
+
 def main():
     global DB_TYPE
     os.chdir(BASE_DIR)
@@ -3019,6 +3045,7 @@ def main():
         init_exam_questions_ai_explanation_column()
         init_exam_questions_ai_explanation_model_column()
         init_yearly_exam_history_ai_diagnose_model_column()
+        init_exam_questions_difficulty_column()
     except Exception as e:
         print(f"[Server] 경고: DB 연결 제한 상황에서 구동을 대기합니다. -> {e}")
         
