@@ -1340,6 +1340,10 @@ function getDifficultyBadgeHtml(difficulty) {
 function renderQuestionDetailHtml(item, detail, q) {
     const box = document.getElementById('yearly-wrong-detail-box');
     currentDetailCtx = { item, detail, q };
+    // [설계 의도] 최상위 let 변수는 window에 자동으로 붙지 않아, quick_add.js의
+    // "드래그 선택 → 단어장 추가" 유틸이 window.currentDetailCtx를 참조해 정확한
+    // 연도/문항번호 출처를 뽑아낼 수 있도록 명시적으로 window에도 노출합니다.
+    window.currentDetailCtx = currentDetailCtx;
     const isCorrect = detail.is_correct;
     const answers = Array.isArray(q.answer) ? q.answer.map(Number) : [Number(q.answer)];
     const uAns = Array.isArray(detail.user_answer) ? Number(detail.user_answer[0]) : Number(detail.user_answer);

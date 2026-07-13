@@ -3409,9 +3409,53 @@ window.toggleExplanationCollapse = function (btn) {
 };
 
 /**
+ * [설계 의도] Gemini/Groq 등 여러 AI 프로바이더를 순차 폴백하며 호출하는 동안 실제
+ * 연결 재시도 상황을 흉내 낸 진행 로그를 보여줍니다. 응답 도착 후에는 이 시뮬레이션
+ * 로그를 제거하고 서버가 실제로 겪은 연동 로그(logs)로 교체합니다. yearly_exam.js와
+ * 동일한 연출로, 대시보드/오답복습 화면에서도 같은 사용자 경험을 제공합니다.
+ */
+function startProgressiveLogSimulation(container, targetId) {
+    const simulatedLogs = [
+        "Gemini API Key #1 호출 시도 중... (시도 1/1)",
+        "[Warning] Gemini API Key #1 429 Too Many Requests 감지.",
+        "-> 백업 API Key #2로 즉시 전환하여 재시도합니다.",
+        "Gemini API Key #2 호출 시도 중... (시도 1/1)",
+        "[Warning] Gemini API Key #2 예외 발생: The read operation timed out",
+        "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Hugging Face Llama-3 3차 폴백 가동합니다...",
+        "Hugging Face Llama-3 3차 폴백 호출 시작...",
+        "-> 대안 추론 엔진 보안 우회 헤더를 전송합니다.",
+        "Hugging Face 백업 호출 통신 유지 중..."
+    ];
+
+    const simBox = document.createElement('div');
+    simBox.id = targetId;
+    simBox.style.cssText = 'background: #0f172a; color: #38bdf8; font-family: monospace, Courier; font-size: 0.64rem; padding: 0.5rem; border-radius: 6px; border: 1px solid #334155; margin-top: 0.4rem; white-space: pre-line; text-align: left; max-height: 140px; overflow-y: auto; line-height: 1.4; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);';
+    container.appendChild(simBox);
+
+    let idx = 0;
+    const interval = setInterval(() => {
+        if (idx < simulatedLogs.length) {
+            const line = simulatedLogs[idx];
+            let html = line;
+            if (line.includes('[Warning]')) {
+                html = `<span style="color: #f59e0b; font-weight: 600;">${line}</span>`;
+            } else if (line.includes('가동합니다') || line.includes('성공')) {
+                html = `<span style="color: #ec4899; font-weight: 600;">${line}</span>`;
+            }
+            simBox.innerHTML += (simBox.innerHTML ? '\n' : '') + html;
+            simBox.scrollTop = simBox.scrollHeight;
+            idx++;
+        }
+    }, 450);
+
+    return interval;
+}
+
+/**
  * [설계 의도] Gemini AI를 호출해 문항의 해설을 생성/갱신하는 전역 헬퍼 함수.
  * 기존 수동 해설(explanation)은 그대로 두고, ai_explanation 캐시 컬럼만 갈아끼웁니다.
  * forceRefresh=true(해설 갱신)일 때는 API 비용 발생을 사용자에게 확인받습니다.
+ * yearly_exam.js의 구현과 동일하게 AI 모델 배지 및 실시간 연동 로그 패널을 포함합니다.
  */
 window.fetchAiExplanation = async function (qId, boxId, forceRefresh) {
     const box = document.getElementById(boxId);
@@ -3421,27 +3465,66 @@ window.fetchAiExplanation = async function (qId, boxId, forceRefresh) {
         return;
     }
 
-    box.innerHTML = `<div style="font-size: 0.72rem; color: #a78bfa;">✨ Gemini AI가 해설을 작성 중입니다...</div>`;
+    box.innerHTML = `
+        <div style="font-size: 0.72rem; color: #a78bfa; display: flex; align-items: center; gap: 0.3rem;">
+            <svg style="width: 12px; height: 12px; animation: spin 1s linear infinite; flex-shrink: 0;" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="#a78bfa" stroke-width="4" stroke-dasharray="31.4" stroke-linecap="round" fill="none"></circle>
+            </svg>
+            <span>AI 해설 엔진 가동 및 통신 연결 중...</span>
+            <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+        </div>
+    `;
+
+    // 실시간 진행 모사 로그 가동
+    const simInterval = startProgressiveLogSimulation(box, 'sim-logs-explain-' + qId);
 
     try {
         const url = `/api/question/ai-explain?id=${encodeURIComponent(qId)}${forceRefresh ? '&nocache=true' : ''}`;
         const response = await fetch(url);
         const data = await response.json();
 
+        if (simInterval) clearInterval(simInterval);
+        const simBox = document.getElementById('sim-logs-explain-' + qId);
+        if (simBox) simBox.remove();
+
         if (data.success && data.ai_explanation) {
+            const aiModel = data.ai_model || "알 수 없음";
+            const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
+
             box.innerHTML = `
-                <div style="font-weight: 700; color: #f472b6; font-size: 0.74rem; display: flex; align-items: center; justify-content: space-between; gap: 0.25rem;">
-                    <span>✨ AI 해설</span>
-                    <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; padding: 0; font-family: inherit;">🔄 해설 갱신</button>
+                <div style="font-weight: 700; color: #f472b6; font-size: 0.74rem; display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; flex-wrap: wrap; margin-bottom: 0.3rem;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                        <span>✨ AI 해설</span>
+                        <span style="background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.62rem; font-weight: normal;">🤖 ${aiModel}</span>
+                    </div>
+                    <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; padding: 0; font-family: inherit; font-weight: bold;">🔄 해설 갱신</button>
                 </div>
                 <p style="color: var(--text-secondary); font-size: 0.78rem; line-height: 1.55; white-space: pre-wrap; margin: 0.35rem 0 0;">${data.ai_explanation}</p>
+                <div style="margin-top: 0.5rem; text-align: left;">
+                    <details style="border: 1px solid rgba(148,163,184,0.12); border-radius: 6px; background: rgba(15,23,42,0.15);">
+                        <summary style="font-size: 0.65rem; color: #94a3b8; cursor: pointer; padding: 0.25rem 0.5rem; font-weight: 600; outline: none; user-select: none;">📋 AI 연동 상세 실시간 로그 보기</summary>
+                        <div style="background: #0f172a; color: #38bdf8; font-family: monospace, Courier; font-size: 0.65rem; padding: 0.5rem; border-radius: 0 0 6px 6px; border-top: 1px solid rgba(148,163,184,0.1); white-space: pre-line; text-align: left; max-height: 120px; overflow-y: auto; line-height: 1.4;">${logsText}</div>
+                    </details>
+                </div>
             `;
             const triggerBtn = document.getElementById(`ai-explain-trigger-${qId}`);
             if (triggerBtn) triggerBtn.textContent = '📖 AI 해설 보기';
         } else {
-            box.innerHTML = `<div style="font-size: 0.72rem; color: #f87171;">⚠️ AI 해설 생성 실패: ${data.error || '알 수 없는 오류'}</div>`;
+            const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
+            box.innerHTML = `
+                <div style="font-size: 0.72rem; color: #f87171; font-weight: bold; margin-bottom: 0.2rem;">⚠️ AI 해설 생성 실패: ${data.error || '알 수 없는 오류'}</div>
+                <div style="margin-top: 0.3rem;">
+                    <details open style="border: 1px solid rgba(248,113,113,0.15); border-radius: 6px; background: rgba(15,23,42,0.15);">
+                        <summary style="font-size: 0.65rem; color: #f87171; cursor: pointer; padding: 0.25rem 0.5rem; font-weight: 600;">📋 상세 통신 실패 로그</summary>
+                        <div style="background: #0f172a; color: #f87171; font-family: monospace, Courier; font-size: 0.65rem; padding: 0.5rem; border-radius: 0 0 6px 6px; border-top: 1px solid rgba(248,113,113,0.1); white-space: pre-line; text-align: left; max-height: 120px; overflow-y: auto; line-height: 1.4;">${logsText}</div>
+                    </details>
+                </div>
+            `;
         }
     } catch (e) {
+        if (simInterval) clearInterval(simInterval);
+        const simBox = document.getElementById('sim-logs-explain-' + qId);
+        if (simBox) simBox.remove();
         box.innerHTML = `<div style="font-size: 0.72rem; color: #f87171;">⚠️ 네트워크 오류로 AI 해설을 불러오지 못했습니다.</div>`;
         console.error("AI 해설 로드 오류:", e);
     }
