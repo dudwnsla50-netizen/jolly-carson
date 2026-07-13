@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
 import urllib.error
-import time
 import traceback
 import psycopg2
 import psycopg2.extras
@@ -88,67 +87,49 @@ def call_gemini_raw_prompt(prompt, timeout=10):
     keys = [k for k in [GEMINI_API_KEY, GEMINI_API_KEY2] if k]
     if not keys:
         raise ValueError("GEMINI_API_KEY 또는 GEMINI_API_KEY2 환경변수가 비어있거나 감지되지 않았습니다.")
-    
-    max_retries = 1
+
     last_exception = None
-    for attempt in range(max_retries):
-        for i, api_key in enumerate(keys):
-            url = f"{GEMINI_API_URL}?key={api_key}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
-            }
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            msg_attempt = f"Gemini API Key #{i+1} 호출 시도 중... (시도 {attempt+1}/{max_retries})"
-            print(msg_attempt)
-            logs.append(msg_attempt)
-            try:
-                with urllib.request.urlopen(req, timeout=timeout) as res:
-                    data = json.loads(res.read().decode("utf-8"))
-                    raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    msg_success = f"Gemini API Key #{i+1} 호출 성공!"
-                    print(msg_success)
-                    logs.append(msg_success)
-                    return raw_response, model_name, logs
-            except urllib.error.HTTPError as e:
-                last_exception = e
-                if e.code == 429 or (500 <= e.code < 600):
-                    status_type = "429 Too Many Requests" if e.code == 429 else f"HTTP {e.code} Server Error"
-                    warn_msg = f"[Warning] Gemini API Key #{i+1} {status_type} 감지."
-                    print(warn_msg)
-                    logs.append(warn_msg)
-                    if i < len(keys) - 1:
-                        logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
-                        continue
-                    else:
-                        if attempt < max_retries - 1:
-                            wait_time = 2
-                            logs.append(f"-> 모든 API Key 제한되거나 서버 에러 발생. {wait_time}초 후 재시도합니다...")
-                            time.sleep(wait_time)
-                else:
-                    warn_msg = f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code})."
-                    print(warn_msg)
-                    logs.append(warn_msg)
-                    if i < len(keys) - 1:
-                        logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
-                        continue
-            except Exception as e:
-                last_exception = e
-                warn_msg = f"[Warning] Gemini API Key #{i+1} 예외 발생: {str(e)}"
-                print(warn_msg)
-                logs.append(warn_msg)
-                if i < len(keys) - 1:
-                    logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
-                    continue
-                if attempt < max_retries - 1:
-                    wait_time = 1
-                    logs.append(f"-> 모든 API Key 실패. {wait_time}초 후 재시도합니다...")
-                    time.sleep(wait_time)
-                
+    for i, api_key in enumerate(keys):
+        url = f"{GEMINI_API_URL}?key={api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        msg_attempt = f"Gemini API Key #{i+1} 호출 시도 중..."
+        print(msg_attempt)
+        logs.append(msg_attempt)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as res:
+                data = json.loads(res.read().decode("utf-8"))
+                raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                msg_success = f"Gemini API Key #{i+1} 호출 성공!"
+                print(msg_success)
+                logs.append(msg_success)
+                return raw_response, model_name, logs
+        except urllib.error.HTTPError as e:
+            last_exception = e
+            if e.code == 429 or (500 <= e.code < 600):
+                status_type = "429 Too Many Requests" if e.code == 429 else f"HTTP {e.code} Server Error"
+                warn_msg = f"[Warning] Gemini API Key #{i+1} {status_type} 감지."
+            else:
+                warn_msg = f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code})."
+            print(warn_msg)
+            logs.append(warn_msg)
+            if i < len(keys) - 1:
+                logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
+        except Exception as e:
+            last_exception = e
+            warn_msg = f"[Warning] Gemini API Key #{i+1} 예외 발생: {str(e)}"
+            print(warn_msg)
+            logs.append(warn_msg)
+            if i < len(keys) - 1:
+                logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
+
     # 3차 폴백: Hugging Face (HF_API_KEY)
     if HF_API_KEY:
         msg = "[Warning] 모든 Gemini API Key 제한 또는 지연 감지. Hugging Face Llama-3 3차 폴백 가동합니다..."
@@ -160,6 +141,7 @@ def call_gemini_raw_prompt(prompt, timeout=10):
             if hf_response:
                 return hf_response, hf_model, logs
         except Exception as hf_ex:
+            last_exception = hf_ex
             err_msg = f"[Warning] Hugging Face 3차 폴백 호출 중 예외 발생: {hf_ex}"
             print(err_msg, flush=True)
             logs.append(err_msg)
@@ -175,11 +157,13 @@ def call_gemini_raw_prompt(prompt, timeout=10):
             if groq_response:
                 return groq_response, groq_model, logs
         except Exception as groq_ex:
+            last_exception = groq_ex
             err_msg = f"[Warning] Groq 4차 폴백 호출 중 예외 발생: {groq_ex}"
             print(err_msg, flush=True)
             logs.append(err_msg)
-            
-    raise RuntimeError("모든 Gemini API, Hugging Face 및 Groq 백업 API 호출이 실패했거나 한도를 초과했습니다.")
+
+    last_error_detail = f" (마지막 오류: {last_exception})" if last_exception else ""
+    raise RuntimeError(f"모든 Gemini API, Hugging Face 및 Groq 백업 API 호출이 실패했거나 한도를 초과했습니다.{last_error_detail}")
 
 def call_huggingface_raw_prompt(prompt, hf_key):
     logs = ["Hugging Face Llama-3 3차 폴백 호출 시작..."]
@@ -211,7 +195,7 @@ def call_huggingface_raw_prompt(prompt, hf_key):
         raise e
 
 def call_groq_raw_prompt(prompt, groq_key):
-    logs = ["Groq Llama-3.1 3차 폴백 호출 시작..."]
+    logs = ["Groq Llama-3.1 4차 폴백 호출 시작..."]
     model_id = "llama-3.1-8b-instant"
     url = "https://api.groq.com/openai/v1/chat/completions"
     payload = {
@@ -239,6 +223,21 @@ def call_groq_raw_prompt(prompt, groq_key):
     except Exception as e:
         logs.append(f"Groq 호출 중 예외 발생: {str(e)}")
         raise e
+
+# [설계 의도] call_gemini_raw_prompt가 반환하는 model_name(gemini-3.5-flash/llama-3-8b-hf/
+# llama-3.1-8b-instant)과, 규칙 기반 로컬 폴백에서 쓰는 "Fallback Template"을 사람이 읽는
+# source 라벨로 통일 매핑합니다. AI 해설/AI 진단 두 기능이 각자 다른 ad-hoc 삼항식으로
+# 이 매핑을 잘못 하고 있던 문제(Hugging Face 응답이 GROQ_LLAMA/FALLBACK_TEMPLATE로 잘못
+# 표시되던 버그)를 여기서 한 곳으로 모아 고칩니다.
+AI_MODEL_SOURCE_LABELS = {
+    "gemini-3.5-flash": "GEMINI_AI",
+    "llama-3-8b-hf": "HUGGINGFACE_AI",
+    "llama-3.1-8b-instant": "GROQ_LLAMA",
+    "Fallback Template": "FALLBACK_TEMPLATE",
+}
+
+def get_ai_model_source_label(ai_model_used):
+    return AI_MODEL_SOURCE_LABELS.get(ai_model_used, "UNKNOWN")
 
 SQLITE_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 
@@ -729,7 +728,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         "success": True,
                         "ai_explanation": ai_explanation_generated,
                         "ai_model": ai_model_used,
-                        "source": "GEMINI_AI" if ai_model_used == "gemini-3.5-flash" else "GROQ_LLAMA",
+                        "source": get_ai_model_source_label(ai_model_used),
                         "logs": conn_logs
                     })
         except Exception as e:
@@ -1982,7 +1981,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "desc": ai_desc_generated,
                             "recommendation": ai_rec_generated,
                             "ai_model": ai_model_used,
-                            "source": "GEMINI_AI" if (ai_desc_generated and not ai_error_msg and ai_model_used == "gemini-3.5-flash") else ("GROQ_LLAMA" if ai_model_used == "llama-3.1-8b-instant" else "FALLBACK_TEMPLATE"),
+                            "source": get_ai_model_source_label(ai_model_used),
                             "error_detail": ai_error_msg,
                             "logs": conn_logs
                         }
