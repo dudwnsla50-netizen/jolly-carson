@@ -193,6 +193,12 @@ function startReview(subject) {
                 return quiz;
             }).filter(q => q !== undefined);
 
+            // AI 해설 즉시 보기(viewAiExplanation)가 캐시를 조회할 수 있도록 전역 저장소에도 등록합니다.
+            window.loadedQuestions = window.loadedQuestions || {};
+            ReviewState.sessionQuizzes.forEach(quiz => {
+                window.loadedQuestions[quiz.id] = quiz;
+            });
+
             if (ReviewState.sessionQuizzes.length === 0) {
                 alert("해당 문제 본문 데이터를 찾을 수 없습니다.");
                 backToDashboard();
@@ -335,7 +341,7 @@ function renderCard(idx) {
                 <div class="explanation-text-box" style="display: none; margin-top: 0.6rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap;">
                     <strong>💡 정답 해설:</strong><br>${quiz.explanation || "등록된 추가 상세 해설이 없습니다."}
                     <div class="ai-explain-section" style="margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed rgba(139, 92, 246, 0.18); white-space: normal;">
-                        <button class="ai-explain-btn" id="ai-explain-trigger-${quiz.id}" onclick="fetchAiExplanation('${quiz.id}', 'ai-explain-box-${quiz.id}', false)" style="background: none; border: none; color: #a78bfa; font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 0; font-family: inherit;">${quiz.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
+                        <button class="ai-explain-btn" id="ai-explain-trigger-${quiz.id}" onclick="viewAiExplanation('${quiz.id}', 'ai-explain-box-${quiz.id}')" style="background: none; border: none; color: #a78bfa; font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 0; font-family: inherit;">${quiz.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
                         <div id="ai-explain-box-${quiz.id}" class="ai-explain-box" style="margin-top: 0.4rem;"></div>
                     </div>
                 </div>

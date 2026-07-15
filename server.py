@@ -551,7 +551,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT question, options, answer, explanation, subject, is_new_trend, similar_past_questions, ai_explanation, difficulty
+                        SELECT question, options, answer, explanation, subject, is_new_trend, similar_past_questions, ai_explanation, ai_explanation_model, difficulty
                         FROM exam_questions
                         WHERE id = %s
                     """
@@ -596,6 +596,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "is_new_trend": row_dict.get("is_new_trend", 0),
                             "similar_past_questions": sim_past_val,
                             "ai_explanation": row_dict.get("ai_explanation"),
+                            "ai_explanation_model": row_dict.get("ai_explanation_model"),
                             "difficulty": row_dict.get("difficulty") or "중"
                         })
                     else:
@@ -746,7 +747,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, difficulty
+                        SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, ai_explanation_model, difficulty
                         FROM exam_questions
                         WHERE subject = %s
                     """
@@ -1490,7 +1491,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, year, subject, question_num, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, difficulty
+                        SELECT id, year, subject, question_num, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, ai_explanation_model, difficulty
                         FROM exam_questions
                         WHERE year = %s
                         ORDER BY question_num ASC

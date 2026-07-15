@@ -1429,7 +1429,7 @@ function renderQuestionDetailHtml(item, detail, q) {
                 <div style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.4rem;">
                     <div style="color:var(--text-secondary); margin-bottom:0.3rem; white-space:pre-wrap;">${q.explanation || '등록된 상세 해설이 없습니다.'}</div>
                     <div class="ai-explain-section" style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed rgba(139,92,246,0.18);">
-                        <button class="ai-explain-btn" id="ai-explain-trigger-${q.id}" onclick="fetchAiExplanation('${q.id}', 'ai-explain-box-${q.id}', false)" style="background:none; border:none; color:#a78bfa; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0; font-family:inherit;">${q.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
+                        <button class="ai-explain-btn" id="ai-explain-trigger-${q.id}" onclick="viewAiExplanation('${q.id}', 'ai-explain-box-${q.id}')" style="background:none; border:none; color:#a78bfa; font-size:0.72rem; font-weight:700; cursor:pointer; padding:0; font-family:inherit;">${q.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
                         <div id="ai-explain-box-${q.id}" class="ai-explain-box" style="margin-top:0.4rem;"></div>
                     </div>
                     ${lawBtnHtml}
@@ -2615,6 +2615,54 @@ async function refreshAIDiagnostics(historyId) {
 window.refreshAIDiagnostics = refreshAIDiagnostics;
 
 /**
+ * [설계 의도] 이미 로드되어 있는 AI 해설(캐시)을 네트워크 호출 없이 즉시 박스에 그려주는 공통 렌더러.
+ * fetchAiExplanation의 성공 응답 렌더링과, viewAiExplanation의 로컬 캐시 즉시 표시 양쪽에서 공유합니다.
+ */
+function renderAiExplanationSuccess(qId, boxId, explanation, model, logsText) {
+    const box = document.getElementById(boxId);
+    if (!box) return;
+    const aiModel = model || "알 수 없음";
+
+    box.innerHTML = `
+        <div style="font-weight:700; color:#f472b6; font-size:0.74rem; display:flex; align-items:center; justify-content:space-between; gap:0.25rem; flex-wrap:wrap; margin-bottom:0.3rem;">
+            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                <span>✨ AI 해설</span>
+                <span style="background:rgba(139, 92, 246, 0.15); color:#c084fc; border:1px solid rgba(139, 92, 246, 0.3); padding:0.05rem 0.3rem; border-radius:4px; font-size:0.62rem; font-weight:normal;">🤖 ${aiModel}</span>
+            </div>
+            <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background:none; border:none; color:#a78bfa; font-size:0.62rem; cursor:pointer; padding:0; font-family:inherit; font-weight:bold;">🔄 해설 갱신</button>
+        </div>
+        <p style="color:var(--text-secondary); font-size:0.78rem; line-height:1.55; white-space:pre-wrap; margin:0.35rem 0 0;">${explanation}</p>
+        <div style="margin-top:0.5rem; text-align:left;">
+            <details style="border:1px solid rgba(148,163,184,0.12); border-radius:6px; background:rgba(15,23,42,0.15);">
+                <summary style="font-size:0.65rem; color:#94a3b8; cursor:pointer; padding:0.25rem 0.5rem; font-weight:600; outline:none; user-select:none;">📋 AI 연동 상세 실시간 로그 보기</summary>
+                <div style="background:#0f172a; color:#38bdf8; font-family:monospace, Courier; font-size:0.65rem; padding:0.5rem; border-radius:0 0 6px 6px; border-top:1px solid rgba(148,163,184,0.1); white-space:pre-line; text-align:left; max-height:120px; overflow-y:auto; line-height:1.4;">${logsText || "로그 정보가 없습니다."}</div>
+            </details>
+        </div>
+    `;
+    const triggerBtn = document.getElementById(`ai-explain-trigger-${qId}`);
+    if (triggerBtn) triggerBtn.textContent = '📖 AI 해설 보기';
+}
+
+/**
+ * [설계 의도] "AI 해설 보기/생성" 버튼 클릭 시 호출되는 진입점.
+ * 현재 상세 보기 중인 문항(window.currentDetailCtx.q)에 ai_explanation이 이미 캐시되어 있다면
+ * 네트워크 호출 없이 즉시 표시하고, 없는 경우에만 fetchAiExplanation으로 서버(및 Gemini)를 호출합니다.
+ */
+function viewAiExplanation(qId, boxId) {
+    const q = window.currentDetailCtx && window.currentDetailCtx.q;
+    if (q && q.id === qId && q.ai_explanation) {
+        renderAiExplanationSuccess(
+            qId, boxId, q.ai_explanation,
+            q.ai_explanation_model || "알 수 없음 (이전 캐시)",
+            "데이터베이스에 저장된 AI 해설을 즉시 불러왔습니다."
+        );
+        return;
+    }
+    fetchAiExplanation(qId, boxId, false);
+}
+window.viewAiExplanation = viewAiExplanation;
+
+/**
  * [설계 의도] Gemini AI를 호출해 문항의 해설을 생성/갱신합니다.
  * 기존 수동 해설(explanation)은 그대로 두고, ai_explanation 캐시 컬럼만 갈아끼웁니다.
  * forceRefresh=true(해설 갱신)일 때는 API 비용 발생을 사용자에게 확인받습니다.
@@ -2650,27 +2698,14 @@ async function fetchAiExplanation(qId, boxId, forceRefresh = false) {
         if (simBox) simBox.remove();
 
         if (data.success && data.ai_explanation) {
-            const aiModel = data.ai_model || "알 수 없음";
             const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
-            
-            box.innerHTML = `
-                <div style="font-weight:700; color:#f472b6; font-size:0.74rem; display:flex; align-items:center; justify-content:space-between; gap:0.25rem; flex-wrap:wrap; margin-bottom:0.3rem;">
-                    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
-                        <span>✨ AI 해설</span>
-                        <span style="background:rgba(139, 92, 246, 0.15); color:#c084fc; border:1px solid rgba(139, 92, 246, 0.3); padding:0.05rem 0.3rem; border-radius:4px; font-size:0.62rem; font-weight:normal;">🤖 ${aiModel}</span>
-                    </div>
-                    <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background:none; border:none; color:#a78bfa; font-size:0.62rem; cursor:pointer; padding:0; font-family:inherit; font-weight:bold;">🔄 해설 갱신</button>
-                </div>
-                <p style="color:var(--text-secondary); font-size:0.78rem; line-height:1.55; white-space:pre-wrap; margin:0.35rem 0 0;">${data.ai_explanation}</p>
-                <div style="margin-top:0.5rem; text-align:left;">
-                    <details style="border:1px solid rgba(148,163,184,0.12); border-radius:6px; background:rgba(15,23,42,0.15);">
-                        <summary style="font-size:0.65rem; color:#94a3b8; cursor:pointer; padding:0.25rem 0.5rem; font-weight:600; outline:none; user-select:none;">📋 AI 연동 상세 실시간 로그 보기</summary>
-                        <div style="background:#0f172a; color:#38bdf8; font-family:monospace, Courier; font-size:0.65rem; padding:0.5rem; border-radius:0 0 6px 6px; border-top:1px solid rgba(148,163,184,0.1); white-space:pre-line; text-align:left; max-height:120px; overflow-y:auto; line-height:1.4;">${logsText}</div>
-                    </details>
-                </div>
-            `;
-            const triggerBtn = document.getElementById(`ai-explain-trigger-${qId}`);
-            if (triggerBtn) triggerBtn.textContent = '📖 AI 해설 보기';
+            renderAiExplanationSuccess(qId, boxId, data.ai_explanation, data.ai_model, logsText);
+            // 최신 캐시를 현재 상세보기 컨텍스트에도 반영해, 이후 즉시 보기가 최신 상태를 사용하도록 합니다.
+            const q = window.currentDetailCtx && window.currentDetailCtx.q;
+            if (q && q.id === qId) {
+                q.ai_explanation = data.ai_explanation;
+                q.ai_explanation_model = data.ai_model;
+            }
         } else {
             const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
             box.innerHTML = `
