@@ -81,6 +81,14 @@ GEMINI_API_KEY2 = os.environ.get("GEMINI_API_KEY2", "")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 HF_API_KEY = os.environ.get("HF_API_KEY", "")
 
+class AllProvidersFailedError(RuntimeError):
+    """[설계 의도] Gemini/HF/Groq 4중 폴백이 모두 실패했을 때, 어떤 단계에서 무엇 때문에
+    실패했는지 보여주는 단계별 logs를 예외 메시지 문자열 하나로 뭉개지 않고 그대로 들고 다니기 위한 예외.
+    호출부는 str(e) 대신 e.logs를 통해 "Groq 4차 폴백 호출 중 예외 발생: HTTP 401" 같은 원인 단계를 그대로 확인할 수 있습니다."""
+    def __init__(self, message, logs=None):
+        super().__init__(message)
+        self.logs = logs or []
+
 def call_gemini_raw_prompt(prompt, timeout=10):
     logs = []
     model_name = "gemini-3.5-flash"
@@ -163,7 +171,10 @@ def call_gemini_raw_prompt(prompt, timeout=10):
             logs.append(err_msg)
 
     last_error_detail = f" (마지막 오류: {last_exception})" if last_exception else ""
-    raise RuntimeError(f"모든 Gemini API, Hugging Face 및 Groq 백업 API 호출이 실패했거나 한도를 초과했습니다.{last_error_detail}")
+    raise AllProvidersFailedError(
+        f"모든 Gemini API, Hugging Face 및 Groq 백업 API 호출이 실패했거나 한도를 초과했습니다.{last_error_detail}",
+        logs
+    )
 
 def call_huggingface_raw_prompt(prompt, hf_key):
     logs = ["Hugging Face Llama-3 3차 폴백 호출 시작..."]
@@ -709,6 +720,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         error_msg = f"API 호출 오류: {str(gemini_ex)}"
                         print(f"[AI Explain] API 호출 오류: {gemini_ex}")
                         traceback.print_exc()
+                        conn_logs = getattr(gemini_ex, "logs", None) or conn_logs
                         conn_logs.append(f"최종 통신 오류: {str(gemini_ex)}")
 
                     if not ai_explanation_generated:
@@ -1953,6 +1965,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             ai_error_msg = f"API 호출 오류: {str(gemini_ex)}"
                             print(f"[AI Diagnose] API 호출 오류: {gemini_ex}")
                             traceback.print_exc()
+                            conn_logs = getattr(gemini_ex, "logs", None) or conn_logs
                             conn_logs.append(f"최종 통신 오류: {str(gemini_ex)}")
                     else:
                         ai_error_msg = "서버 환경변수 GEMINI_API_KEY가 설정되지 않았거나 비어있습니다."

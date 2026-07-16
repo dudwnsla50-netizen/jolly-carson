@@ -51,6 +51,11 @@
             color: var(--text-primary) !important;
         }
 
+        /* .question-body는 인라인 스타일이 아닌 클래스 규칙(color: #ffffff)이라 위 보정에 안 걸려 별도 지정 */
+        body[data-theme="light"] .question-body {
+            color: var(--text-primary);
+        }
+
         body[data-theme="light"] .back-btn,
         body[data-theme="light"] .ctrl-btn,
         body[data-theme="light"] .option-btn,
