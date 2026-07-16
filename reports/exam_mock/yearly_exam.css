@@ -74,6 +74,7 @@
         body[data-theme="light"] .option-btn:hover {
             background: rgba(14, 99, 156, 0.08);
             border-color: rgba(14, 99, 156, 0.24);
+            color: var(--text-primary);
         }
 
         body[data-theme="light"] .option-btn.selected {
