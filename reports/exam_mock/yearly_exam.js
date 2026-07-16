@@ -1421,7 +1421,7 @@ function renderQuestionDetailHtml(item, detail, q) {
             
             <div style="margin-bottom:0.8rem;">${optionsHtml}</div>
             
-            <details style="background:rgba(16,185,129,0.02); border:1px solid rgba(16,185,129,0.08); border-radius:8px; padding:0.6rem 0.8rem; font-size:0.8rem; line-height:1.45; margin-bottom:0.6rem;">
+            <details style="background:rgba(16,185,129,0.02); border:1px solid rgba(16,185,129,0.08); border-radius:8px; padding:0.6rem 0.8rem; font-size:0.8rem; line-height:1.45; margin-bottom:0.6rem;" ontoggle="if (this.open) revealCachedAiExplanation('${q.id}', 'ai-explain-box-${q.id}')">
                 <summary style="color:#c084fc; font-weight:700; display:flex; align-items:center; gap:0.25rem; cursor:pointer; user-select:none; outline:none;">
                     <i data-lucide="book-open" style="width:13px; height:13px;"></i> 정답 및 상세 해설 보기 (클릭하여 열기)
                     <i data-lucide="chevron-down" style="width:12px; height:12px; margin-left:auto;"></i>
@@ -2644,11 +2644,11 @@ function renderAiExplanationSuccess(qId, boxId, explanation, model, logsText) {
 }
 
 /**
- * [설계 의도] "AI 해설 보기/생성" 버튼 클릭 시 호출되는 진입점.
- * 현재 상세 보기 중인 문항(window.currentDetailCtx.q)에 ai_explanation이 이미 캐시되어 있다면
- * 네트워크 호출 없이 즉시 표시하고, 없는 경우에만 fetchAiExplanation으로 서버(및 Gemini)를 호출합니다.
+ * [설계 의도] 현재 상세 보기 중인 문항(window.currentDetailCtx.q)에 ai_explanation이 이미
+ * 캐시되어 있다면 네트워크 호출 없이 즉시 표시합니다. 캐시가 없으면 아무것도 하지 않고 false를
+ * 반환하여, 호출부가 "생성"까지 자동으로 트리거할지 여부를 스스로 결정하게 합니다.
  */
-function viewAiExplanation(qId, boxId) {
+function revealCachedAiExplanation(qId, boxId) {
     const q = window.currentDetailCtx && window.currentDetailCtx.q;
     if (q && q.id === qId && q.ai_explanation) {
         renderAiExplanationSuccess(
@@ -2656,8 +2656,18 @@ function viewAiExplanation(qId, boxId) {
             q.ai_explanation_model || "알 수 없음 (이전 캐시)",
             "데이터베이스에 저장된 AI 해설을 즉시 불러왔습니다."
         );
-        return;
+        return true;
     }
+    return false;
+}
+window.revealCachedAiExplanation = revealCachedAiExplanation;
+
+/**
+ * [설계 의도] "AI 해설 보기/생성" 버튼 클릭 시 호출되는 진입점.
+ * 캐시가 있으면 즉시 표시하고, 없는 경우에만 fetchAiExplanation으로 서버(및 Gemini)를 호출해 새로 생성합니다.
+ */
+function viewAiExplanation(qId, boxId) {
+    if (revealCachedAiExplanation(qId, boxId)) return;
     fetchAiExplanation(qId, boxId, false);
 }
 window.viewAiExplanation = viewAiExplanation;
