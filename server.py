@@ -11,6 +11,7 @@ import sys
 import json
 import base64
 import sqlite3
+import time
 from datetime import datetime, timedelta
 import urllib.parse
 import urllib.request
@@ -97,46 +98,61 @@ def call_gemini_raw_prompt(prompt, timeout=10):
         raise ValueError("GEMINI_API_KEY 또는 GEMINI_API_KEY2 환경변수가 비어있거나 감지되지 않았습니다.")
 
     last_exception = None
+    retry_wait_seconds = 1.5
+    max_attempts_per_key = 2  # 최초 시도 + 동일 키로 1회 재시도
+
     for i, api_key in enumerate(keys):
         url = f"{GEMINI_API_URL}?key={api_key}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
         }
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        msg_attempt = f"Gemini API Key #{i+1} 호출 시도 중..."
-        print(msg_attempt)
-        logs.append(msg_attempt)
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as res:
-                data = json.loads(res.read().decode("utf-8"))
-                raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                msg_success = f"Gemini API Key #{i+1} 호출 성공!"
-                print(msg_success)
-                logs.append(msg_success)
-                return raw_response, model_name, logs
-        except urllib.error.HTTPError as e:
-            last_exception = e
-            if e.code == 429 or (500 <= e.code < 600):
-                status_type = "429 Too Many Requests" if e.code == 429 else f"HTTP {e.code} Server Error"
-                warn_msg = f"[Warning] Gemini API Key #{i+1} {status_type} 감지."
-            else:
-                warn_msg = f"[Warning] Gemini API Key #{i+1} 호출 실패 (HTTP {e.code})."
-            print(warn_msg)
-            logs.append(warn_msg)
-            if i < len(keys) - 1:
-                logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
-        except Exception as e:
-            last_exception = e
-            warn_msg = f"[Warning] Gemini API Key #{i+1} 예외 발생: {str(e)}"
-            print(warn_msg)
-            logs.append(warn_msg)
-            if i < len(keys) - 1:
-                logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
+
+        for attempt in range(1, max_attempts_per_key + 1):
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            attempt_label = f"Gemini API Key #{i+1}" + (f" (재시도 {attempt-1}회차)" if attempt > 1 else "")
+            msg_attempt = f"{attempt_label} 호출 시도 중..."
+            print(msg_attempt)
+            logs.append(msg_attempt)
+
+            is_auth_error = False
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as res:
+                    data = json.loads(res.read().decode("utf-8"))
+                    raw_response = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    msg_success = f"{attempt_label} 호출 성공!"
+                    print(msg_success)
+                    logs.append(msg_success)
+                    return raw_response, model_name, logs
+            except urllib.error.HTTPError as e:
+                last_exception = e
+                if e.code == 429 or (500 <= e.code < 600):
+                    status_type = "429 Too Many Requests" if e.code == 429 else f"HTTP {e.code} Server Error"
+                    warn_msg = f"[Warning] {attempt_label} {status_type} 감지."
+                else:
+                    warn_msg = f"[Warning] {attempt_label} 호출 실패 (HTTP {e.code})."
+                print(warn_msg)
+                logs.append(warn_msg)
+                # 401/403은 재시도해도 풀리지 않는 인증 오류라 대기 없이 바로 다음 키로 넘어감
+                is_auth_error = e.code in (401, 403)
+            except Exception as e:
+                last_exception = e
+                warn_msg = f"[Warning] {attempt_label} 예외 발생: {str(e)}"
+                print(warn_msg)
+                logs.append(warn_msg)
+
+            if is_auth_error:
+                break
+            if attempt < max_attempts_per_key:
+                logs.append(f"-> {retry_wait_seconds}초 대기 후 동일 키로 재시도합니다.")
+                time.sleep(retry_wait_seconds)
+
+        if i < len(keys) - 1:
+            logs.append(f"-> 백업 API Key #{i+2}로 즉시 전환하여 재시도합니다.")
 
     # 3차 폴백: Hugging Face (HF_API_KEY)
     if HF_API_KEY:
