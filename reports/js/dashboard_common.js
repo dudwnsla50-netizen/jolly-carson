@@ -1111,6 +1111,11 @@ function showQuestion(idx, year, num, btnElement, isRollingTransition) {
     const viewer = document.getElementById(`viewer-${idx}`);
     if (!viewer) return;
 
+    // [설계 의도] 문항이 화면에 열린 시점을 풀이 소요시간 측정의 시작점으로 기록합니다.
+    // 옵션 토글/재렌더링(renderLoadedQuestion) 시에는 갱신되지 않고, 문항을 새로 여는 이 시점에만 리셋됩니다.
+    window.questionStartTimes = window.questionStartTimes || {};
+    window.questionStartTimes[key] = Date.now();
+
     viewer.classList.remove('hidden');
 
     // 2) 타이틀 및 수정 버튼 상태 갱신
@@ -1212,11 +1217,11 @@ function formatKoreanDate(dateStr) {
 }
 
 /**
- * [설계 의도] 문항 난이도(상/중/하/예외)를 색상이 구분된 뱃지 HTML로 반환합니다.
+ * [설계 의도] 문항 중요도(상/중/하/예외)를 색상이 구분된 뱃지 HTML로 반환합니다.
  * review.js도 이 전역 함수를 그대로 재사용합니다(dashboard_common.js가 먼저 로드되므로).
  */
-function getDifficultyBadgeHtml(difficulty) {
-    const d = difficulty || '중';
+function getImportanceBadgeHtml(importance) {
+    const d = importance || '중';
     const colors = {
         '상': { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171' },
         '중': { bg: 'rgba(251, 191, 36, 0.15)', border: 'rgba(251, 191, 36, 0.4)', color: '#fbbf24' },
@@ -1224,7 +1229,7 @@ function getDifficultyBadgeHtml(difficulty) {
         '예외': { bg: 'rgba(148, 163, 184, 0.15)', border: 'rgba(148, 163, 184, 0.4)', color: '#94a3b8' }
     };
     const c = colors[d] || colors['중'];
-    return `<span class="difficulty-badge" style="background: ${c.bg}; border: 1px solid ${c.border}; color: ${c.color}; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle;">난이도 ${d}</span>`;
+    return `<span class="importance-badge" style="background: ${c.bg}; border: 1px solid ${c.border}; color: ${c.color}; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle;">중요도 ${d}</span>`;
 }
 
 /**
@@ -1306,11 +1311,11 @@ function renderLoadedQuestion(idx, qId) {
         }
     }
 
-    // 질문 본문 렌더링 (신규 기출 뱃지 + 난이도 뱃지 추가)
+    // 질문 본문 렌더링 (신규 기출 뱃지 + 중요도 뱃지 추가)
     const isNewTrend = (data.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[qId] === 1);
     const newTrendBadge = isNewTrend ? `<span class="new-trend-badge" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #ffffff; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; margin-right: 0.5rem; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);">✨ 신규 기출</span>` : '';
-    const difficultyBadge = getDifficultyBadgeHtml(data.difficulty);
-    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${newTrendBadge}${difficultyBadge}${data.question}</div>`;
+    const importanceBadge = getImportanceBadgeHtml(data.importance);
+    let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${newTrendBadge}${importanceBadge}${data.question}</div>`;
 
     // 이 문항의 풀이 완료(제출) 이력이 전역 버퍼에 있는지 확인
     const submittedResult = window.quizSubmittedResults && window.quizSubmittedResults[qId];
@@ -1596,7 +1601,11 @@ function submitInlineAnswer(idx, qId, event) {
     });
     const conceptName = matchedConcept ? matchedConcept.concept : '기타';
 
-    // 이력 포맷 상세화 적용: details에 q_id, user_choice, correct_answer, is_correct 적재
+    // 문항이 열린 시점부터 제출 시점까지의 풀이 소요시간(초)
+    const startTs = window.questionStartTimes && window.questionStartTimes[qId];
+    const elapsedTime = startTs ? Math.max(0, Math.round((Date.now() - startTs) / 1000)) : null;
+
+    // 이력 포맷 상세화 적용: details에 q_id, user_choice, correct_answer, is_correct, elapsed_time 적재
     const payload = {
         subject: subject,
         concept: conceptName,
@@ -1607,7 +1616,8 @@ function submitInlineAnswer(idx, qId, event) {
             q_id: qId,
             user_choice: uAns,
             correct_answer: cAns,
-            is_correct: isCorrect
+            is_correct: isCorrect,
+            elapsed_time: elapsedTime
         }
     };
 
@@ -1626,7 +1636,8 @@ function submitInlineAnswer(idx, qId, event) {
                 q_id: qId,
                 user_choice: uAns,
                 correct_answer: cAns,
-                is_correct: isCorrect
+                is_correct: isCorrect,
+                elapsed_time: elapsedTime
             }
         };
         localHistory.push(localPayload);
@@ -1884,9 +1895,9 @@ function startEditQuestion(idx, qId) {
                 </div>
             </div>
             <div>
-                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">🎯 난이도 수정</label>
-                <select id="edit-q-difficulty-${idx}" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 6px; font-size: 0.85rem; outline: none; font-family: inherit;">
-                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(data.difficulty || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">🎯 중요도 수정</label>
+                <select id="edit-q-importance-${idx}" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 6px; font-size: 0.85rem; outline: none; font-family: inherit;">
+                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(data.importance || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
                 </select>
             </div>
             <div>
@@ -2052,8 +2063,8 @@ function saveEditQuestion(idx, qId, event) {
     const answerCheckboxes = document.querySelectorAll(`.edit-answer-chk-${idx}:checked`);
     const answerArr = Array.from(answerCheckboxes).map(chk => parseInt(chk.value));
     const explanationVal = getRichEditorValue(`edit-q-explanation-${idx}`);
-    const difficultySelect = document.getElementById(`edit-q-difficulty-${idx}`);
-    const difficultyVal = difficultySelect ? difficultySelect.value : '중';
+    const importanceSelect = document.getElementById(`edit-q-importance-${idx}`);
+    const importanceVal = importanceSelect ? importanceSelect.value : '중';
 
     const updateData = {
         id: qId,
@@ -2061,7 +2072,7 @@ function saveEditQuestion(idx, qId, event) {
         options: optionsVal,
         answer: answerArr,
         explanation: explanationVal,
-        difficulty: difficultyVal
+        importance: importanceVal
     };
 
     const imageState = (window.pendingImageEdits && window.pendingImageEdits[idx]) || { dataUrl: null, remove: false };
@@ -2088,7 +2099,7 @@ function saveEditQuestion(idx, qId, event) {
             window.loadedQuestions[qId].options = optionsVal;
             window.loadedQuestions[qId].answer = answerArr;
             window.loadedQuestions[qId].explanation = explanationVal;
-            window.loadedQuestions[qId].difficulty = difficultyVal;
+            window.loadedQuestions[qId].importance = importanceVal;
 
             // 이미지가 새로 첨부되었거나 삭제 요청된 경우에만 별도 업로드 API 호출
             if (imageState.dataUrl) {
@@ -3481,11 +3492,11 @@ function renderAiExplanationSuccess(qId, boxId, explanation, model, logsText) {
 }
 
 /**
- * [설계 의도] "AI 해설 보기/생성" 버튼 클릭 시 호출되는 진입점.
- * window.loadedQuestions에 이미 ai_explanation이 캐시되어 있다면 네트워크 호출 없이 즉시 표시하고,
- * 없는 경우에만 fetchAiExplanation을 통해 서버(및 Gemini)를 호출해 새로 생성합니다.
+ * [설계 의도] window.loadedQuestions에 이미 ai_explanation이 캐시되어 있다면 네트워크 호출 없이
+ * 즉시 박스에 표시합니다. 캐시가 없으면 아무것도 하지 않고 false를 반환하여, 호출부가 "생성"까지
+ * 자동으로 트리거할지 여부를 스스로 결정하게 합니다. 해설 영역을 펼치는 즉시 자동 표시하는 용도로도 재사용됩니다.
  */
-window.viewAiExplanation = function (qId, boxId) {
+window.revealCachedAiExplanation = function (qId, boxId) {
     const cached = window.loadedQuestions ? window.loadedQuestions[qId] : null;
     if (cached && cached.ai_explanation) {
         renderAiExplanationSuccess(
@@ -3493,8 +3504,17 @@ window.viewAiExplanation = function (qId, boxId) {
             cached.ai_explanation_model || "알 수 없음 (이전 캐시)",
             "데이터베이스에 저장된 AI 해설을 즉시 불러왔습니다."
         );
-        return;
+        return true;
     }
+    return false;
+};
+
+/**
+ * [설계 의도] "AI 해설 보기/생성" 버튼 클릭 시 호출되는 진입점.
+ * 캐시가 있으면 즉시 표시하고, 없는 경우에만 fetchAiExplanation을 통해 서버(및 Gemini)를 호출해 새로 생성합니다.
+ */
+window.viewAiExplanation = function (qId, boxId) {
+    if (window.revealCachedAiExplanation(qId, boxId)) return;
     fetchAiExplanation(qId, boxId, false);
 };
 

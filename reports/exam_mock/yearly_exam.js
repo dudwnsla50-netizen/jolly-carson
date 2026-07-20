@@ -1322,11 +1322,11 @@ function showYearlyWrongQuestionDetail(item, detail) {
 }
 
 /**
- * [설계 의도] 문항 난이도(상/중/하/예외)를 색상이 구분된 뱃지 HTML로 반환합니다.
+ * [설계 의도] 문항 중요도(상/중/하/예외)를 색상이 구분된 뱃지 HTML로 반환합니다.
  * dashboard_common.js의 동명 함수와 동일한 로직이지만, 이 페이지는 그 파일을 로드하지 않아 독립적으로 둡니다.
  */
-function getDifficultyBadgeHtml(difficulty) {
-    const d = difficulty || '중';
+function getImportanceBadgeHtml(importance) {
+    const d = importance || '중';
     const colors = {
         '상': { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', color: '#f87171' },
         '중': { bg: 'rgba(251, 191, 36, 0.15)', border: 'rgba(251, 191, 36, 0.4)', color: '#fbbf24' },
@@ -1334,7 +1334,7 @@ function getDifficultyBadgeHtml(difficulty) {
         '예외': { bg: 'rgba(148, 163, 184, 0.15)', border: 'rgba(148, 163, 184, 0.4)', color: '#94a3b8' }
     };
     const c = colors[d] || colors['중'];
-    return `<span style="background:${c.bg}; border:1px solid ${c.border}; color:${c.color}; padding:0.15rem 0.35rem; border-radius:4px; font-size:0.65rem; font-weight:800;">난이도 ${d}</span>`;
+    return `<span style="background:${c.bg}; border:1px solid ${c.border}; color:${c.color}; padding:0.15rem 0.35rem; border-radius:4px; font-size:0.65rem; font-weight:800;">중요도 ${d}</span>`;
 }
 
 function renderQuestionDetailHtml(item, detail, q) {
@@ -1413,7 +1413,7 @@ function renderQuestionDetailHtml(item, detail, q) {
                 <span style="font-weight:700; font-size:0.88rem;">Q.${detail.question_num} 상세 보기</span>
                 <div style="display:flex; align-items:center; gap:0.4rem;">
                     <span class="badge ${rangeInfo.code}" style="font-size:0.65rem; padding:0.15rem 0.35rem; border-radius:4px; font-weight:700; background: ${getSubjectGradient(rangeInfo.code)}; color: #ffffff; border:none;">${rangeInfo.name}</span>
-                    ${getDifficultyBadgeHtml(q.difficulty)}
+                    ${getImportanceBadgeHtml(q.importance)}
                     <button onclick="startEditYearlyQuestion('${q.id}')" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #c084fc; padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.68rem; font-weight: 700; cursor: pointer; font-family: inherit;">✏️ 수정</button>
                 </div>
             </div>
@@ -1589,9 +1589,9 @@ function startEditYearlyQuestion(qId) {
                 <div style="display:flex; gap:0.9rem; flex-wrap:wrap; padding:0.45rem; background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.2); border-radius:4px;">${answerChecksHtml}</div>
             </div>
             <div>
-                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.3rem;">🎯 난이도</label>
-                <select id="yearly-edit-q-difficulty" style="background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.3); color:#ffffff; padding:0.45rem 0.6rem; border-radius:6px; font-size:0.8rem; outline:none; font-family:inherit;">
-                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(q.difficulty || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
+                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.3rem;">🎯 중요도</label>
+                <select id="yearly-edit-q-importance" style="background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.3); color:#ffffff; padding:0.45rem 0.6rem; border-radius:6px; font-size:0.8rem; outline:none; font-family:inherit;">
+                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(q.importance || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
                 </select>
             </div>
             <div>
@@ -1702,8 +1702,8 @@ function saveYearlyQuestionEdit(qId) {
     const answerChecks = document.querySelectorAll('.yearly-edit-answer-chk:checked');
     const answerVal = Array.from(answerChecks).map(chk => parseInt(chk.value));
     const explanationVal = getRichEditorValue('yearly-edit-q-explanation');
-    const difficultySelect = document.getElementById('yearly-edit-q-difficulty');
-    const difficultyVal = difficultySelect ? difficultySelect.value : '중';
+    const importanceSelect = document.getElementById('yearly-edit-q-importance');
+    const importanceVal = importanceSelect ? importanceSelect.value : '중';
 
     if (!questionVal.trim() || optionsVal.some(o => !o.trim())) {
         alert("질문과 모든 보기를 입력해야 합니다.");
@@ -1713,7 +1713,7 @@ function saveYearlyQuestionEdit(qId) {
     fetch('/api/question/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: qId, question: questionVal, options: optionsVal, answer: answerVal, explanation: explanationVal, difficulty: difficultyVal })
+        body: JSON.stringify({ id: qId, question: questionVal, options: optionsVal, answer: answerVal, explanation: explanationVal, importance: importanceVal })
     })
         .then(response => {
             if (!response.ok) throw new Error("HTTP error " + response.status);
@@ -1729,7 +1729,7 @@ function saveYearlyQuestionEdit(qId) {
             q.options = optionsVal;
             q.answer = answerVal;
             q.explanation = explanationVal;
-            q.difficulty = difficultyVal;
+            q.importance = importanceVal;
 
             const imageState = window.yearlyPendingImageEdit || { dataUrl: null, remove: false };
             if (imageState.dataUrl) {
@@ -1934,7 +1934,8 @@ function renderRecurrenceAnswerComparison(item, detail) {
                 dateTs,
                 userAnswer: Array.isArray(match.user_answer) ? match.user_answer : [match.user_answer],
                 isCorrect: !!match.is_correct,
-                isCurrent: String(hist.id) === String(currentId)
+                isCurrent: String(hist.id) === String(currentId),
+                elapsedTime: (typeof match.elapsed_time === 'number') ? match.elapsed_time : null
             });
         });
 
@@ -1965,12 +1966,13 @@ function renderRecurrenceAnswerComparison(item, detail) {
                 dateTs: logDateTs,
                 userAnswer: userAns,
                 isCorrect,
-                isCurrent: false
+                isCurrent: false,
+                elapsedTime: (typeof d.elapsed_time === 'number') ? d.elapsed_time : null
             });
             return;
         }
 
-        // details 포맷 2: { correct: [...], wrong: [...] }
+        // details 포맷 2: { correct: [...], wrong: [...] } - 소요시간 데이터 없음(집계 이력 포맷이라 문항별 시간 미포함)
         const correctList = Array.isArray(d.correct) ? d.correct.map(String) : [];
         const wrongList = Array.isArray(d.wrong) ? d.wrong.map(String) : [];
         if (!correctList.includes(qKey) && !wrongList.includes(qKey)) return;
@@ -1981,7 +1983,8 @@ function renderRecurrenceAnswerComparison(item, detail) {
             dateTs: logDateTs,
             userAnswer: [],
             isCorrect: correctList.includes(qKey),
-            isCurrent: false
+            isCurrent: false,
+            elapsedTime: null
         });
     });
 
@@ -2036,12 +2039,15 @@ function renderRecurrenceAnswerComparison(item, detail) {
         }
 
         const fullTime = r.date ? formatFullDateTime(r.date) : '-';
-        const tooltip = `[${r.source}]${r.isCurrent ? ' (현재 풀이)' : ''}\n풀이 시각: ${fullTime}\n결과: ${isCorrect ? '정답' : '오답'}`;
+        const hasTime = (r.elapsedTime !== null && r.elapsedTime !== undefined);
+        const timeText = hasTime ? `${r.elapsedTime}초` : '-';
+        const tooltip = `[${r.source}]${r.isCurrent ? ' (현재 풀이)' : ''}\n풀이 시각: ${fullTime}\n결과: ${isCorrect ? '정답' : '오답'}\n소요시간: ${hasTime ? timeText : '기록 없음'}`;
 
         return `
-            <div title="${tooltip}" style="background: ${cellBg}; border: ${cellBorder}; border-radius: 4px; padding: 0.2rem 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; min-height: 34px; width: 40px; flex: 0 0 40px; cursor: default; transition: transform 0.15s;">
+            <div title="${tooltip}" style="background: ${cellBg}; border: ${cellBorder}; border-radius: 4px; padding: 0.2rem 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; min-height: 44px; width: 40px; flex: 0 0 40px; cursor: default; transition: transform 0.15s;">
                 <span style="font-size: 0.52rem; color: var(--text-secondary); font-family: monospace; font-weight: 600;">${day}</span>
                 <span style="font-size: 0.62rem; font-weight: 700; color: ${textCol};">${answerText}</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">${timeText}</span>
             </div>
         `;
     }).join('');

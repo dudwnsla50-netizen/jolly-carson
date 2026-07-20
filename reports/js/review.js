@@ -15,7 +15,8 @@ const ReviewState = {
     sessionQuizzes: [],        // 이번 복습 세션에 필터링된 문제 객체 목록
     currentIdx: 0,             // 현재 진행 중인 카드 인덱스
     userSelections: {},        // 이번 세션에서 사용자가 선택한 답 캐시
-    isSubmitted: {}            // 각 카드별 제출 완료 여부
+    isSubmitted: {},           // 각 카드별 제출 완료 여부
+    questionStartTimes: {}     // 카드별 풀이 시작 시각(ms) - 최초 렌더 시 1회만 기록되어 소요시간 측정에 사용
 };
 
 // 과목 코드와 명칭 매핑
@@ -222,6 +223,12 @@ function renderCard(idx) {
     const quiz = ReviewState.sessionQuizzes[idx];
     if (!quiz) return;
 
+    // [설계 의도] 카드가 최초로 화면에 뜬 시점만 소요시간 측정 시작점으로 기록합니다.
+    // selectOption 등에 의한 재렌더링에서는 덮어쓰지 않아 "펼친 순간 ~ 제출 순간"이 그대로 유지됩니다.
+    if (!ReviewState.questionStartTimes[quiz.id]) {
+        ReviewState.questionStartTimes[quiz.id] = Date.now();
+    }
+
     const total = ReviewState.sessionQuizzes.length;
 
     // 네비게이션 진척도 업데이트
@@ -240,7 +247,7 @@ function renderCard(idx) {
         if (matched) conceptTag = matched.concept.split('.')[0] + '. ' + matched.concept.split('.').slice(1).join('.');
     }
     document.getElementById('card-concept-tag').textContent = conceptTag;
-    document.getElementById('card-difficulty-tag').innerHTML = getDifficultyBadgeHtml(quiz.difficulty);
+    document.getElementById('card-importance-tag').innerHTML = getImportanceBadgeHtml(quiz.importance);
 
     // 본문 주입 (리치 에디터로 저장된 이미지 포함 HTML을 그대로 렌더링)
     document.getElementById('card-question-text').innerHTML = quiz.question;
@@ -335,7 +342,7 @@ function renderCard(idx) {
         const explanationBox = document.getElementById('card-explanation-box');
         explanationBox.innerHTML = `
             <div class="explanation-toggle-container">
-                <button class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none;">
+                <button class="explanation-toggle-btn" onclick="toggleExplanationCollapse(this, '${quiz.id}')" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #c084fc; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; outline: none;">
                     <span>💡 해설보기</span>
                 </button>
                 <div class="explanation-text-box" style="display: none; margin-top: 0.6rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap;">
@@ -445,9 +452,9 @@ function startEditReviewQuestion() {
                 </div>
             </div>
             <div>
-                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">🎯 난이도 수정</label>
-                <select id="edit-q-difficulty-${idx}" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 6px; font-size: 0.85rem; outline: none; font-family: inherit;">
-                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(data.difficulty || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
+                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">🎯 중요도 수정</label>
+                <select id="edit-q-importance-${idx}" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 6px; font-size: 0.85rem; outline: none; font-family: inherit;">
+                    ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${(data.importance || '중') === d ? 'selected' : ''}>${d}</option>`).join('')}
                 </select>
             </div>
             <div>
@@ -510,10 +517,10 @@ function saveEditReviewQuestion(event) {
     const answerCheckboxes = document.querySelectorAll(`.edit-answer-chk-${idx}:checked`);
     const answerArr = Array.from(answerCheckboxes).map(chk => parseInt(chk.value));
     const explanationVal = getRichEditorValue(`edit-q-explanation-${idx}`);
-    const difficultySelect = document.getElementById(`edit-q-difficulty-${idx}`);
-    const difficultyVal = difficultySelect ? difficultySelect.value : '중';
+    const importanceSelect = document.getElementById(`edit-q-importance-${idx}`);
+    const importanceVal = importanceSelect ? importanceSelect.value : '중';
 
-    const updateData = { id: qId, question: qTextVal, options: optionsVal, answer: answerArr, explanation: explanationVal, difficulty: difficultyVal };
+    const updateData = { id: qId, question: qTextVal, options: optionsVal, answer: answerArr, explanation: explanationVal, importance: importanceVal };
     const imageState = (window.pendingImageEdits && window.pendingImageEdits[idx]) || { dataUrl: null, remove: false };
 
     fetch('/api/question/update', {
@@ -536,8 +543,8 @@ function saveEditReviewQuestion(event) {
             quiz.options = optionsVal;
             quiz.answer = answerArr;
             quiz.explanation = explanationVal;
-            quiz.difficulty = difficultyVal;
-            document.getElementById('card-difficulty-tag').innerHTML = getDifficultyBadgeHtml(difficultyVal);
+            quiz.importance = importanceVal;
+            document.getElementById('card-importance-tag').innerHTML = getImportanceBadgeHtml(importanceVal);
 
             if (imageState.dataUrl) {
                 return fetch('/api/question/upload-image', {
@@ -656,6 +663,10 @@ function submitAnswer(qId, selectedOption) {
         if (matched) conceptName = matched.concept;
     }
 
+    // 카드가 열린 시점부터 제출 시점까지의 풀이 소요시간(초)
+    const startTs = ReviewState.questionStartTimes[qId];
+    const elapsedTime = startTs ? Math.max(0, Math.round((Date.now() - startTs) / 1000)) : null;
+
     const payload = {
         subject: subject,
         concept: conceptName,
@@ -666,7 +677,8 @@ function submitAnswer(qId, selectedOption) {
             q_id: qId,
             user_choice: [selectedOption],
             correct_answer: cAns,
-            is_correct: isCorrect
+            is_correct: isCorrect,
+            elapsed_time: elapsedTime
         }
     };
 
@@ -748,9 +760,11 @@ function switchView(viewId) {
 }
 
 /**
- * 해설 영역 접기/펼치기 토글 헬퍼 함수
+ * 해설 영역 접기/펼치기 토글 헬퍼 함수.
+ * [설계 의도] 해설을 펼치는 순간, 캐시된 AI 해설이 있다면 네트워크 호출 없이 함께 즉시 펼쳐줍니다
+ * (yearly_exam.js의 "ai해설 즉각 펼치기"와 동일한 동작을 오답노트에도 적용).
  */
-window.toggleExplanationCollapse = function (btn) {
+window.toggleExplanationCollapse = function (btn, qId) {
     const box = btn.nextElementSibling;
     if (!box) return;
     const isHidden = box.style.display === 'none';
@@ -760,6 +774,9 @@ window.toggleExplanationCollapse = function (btn) {
         btn.style.background = 'rgba(239, 68, 68, 0.12)';
         btn.style.borderColor = 'rgba(239, 68, 68, 0.25)';
         btn.style.color = '#fca5a5';
+        if (qId && typeof window.revealCachedAiExplanation === 'function') {
+            window.revealCachedAiExplanation(qId, `ai-explain-box-${qId}`);
+        }
     } else {
         box.style.display = 'none';
         btn.querySelector('span').textContent = '💡 해설보기';
