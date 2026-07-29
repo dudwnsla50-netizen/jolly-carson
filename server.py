@@ -1466,6 +1466,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         score = float(hist["score"]) if hist["score"] is not None else 0.0
                         created_at = hist["created_at"]
                         
+                        # created_at이 비어있으면 데이터 결함 예방을 위해 스킵
+                        if not created_at:
+                            continue
+                            
                         if yr not in stats_by_year:
                             continue
                             
