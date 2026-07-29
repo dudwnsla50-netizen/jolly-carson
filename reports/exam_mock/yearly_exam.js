@@ -3049,18 +3049,18 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
             const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / totalAttempts);
 
             let summaryHtml = `
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1.2rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.75rem; text-align: center;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 0.4rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.45rem; text-align: center;">
                     <div>
-                        <span style="font-size: 0.68rem; color: var(--text-secondary); display: block; margin-bottom: 0.15rem;">총 응시 횟수</span>
-                        <span style="font-size: 1.05rem; font-weight: 700; color: var(--accent-blue);">${totalAttempts}회</span>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;">총 응시 횟수</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--accent-blue);">${totalAttempts}회</span>
                     </div>
                     <div>
-                        <span style="font-size: 0.68rem; color: var(--text-secondary); display: block; margin-bottom: 0.15rem;">평균 점수</span>
-                        <span style="font-size: 1.05rem; font-weight: 700; color: var(--warning);">${avgScore}점</span>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;">평균 점수</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--warning);">${avgScore}점</span>
                     </div>
                     <div>
-                        <span style="font-size: 0.68rem; color: var(--text-secondary); display: block; margin-bottom: 0.15rem;">최고 점수</span>
-                        <span style="font-size: 1.05rem; font-weight: 700; color: var(--success);">${topScore}점</span>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;">최고 점수</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--success);">${topScore}점</span>
                     </div>
                 </div>
             `;
@@ -3070,19 +3070,11 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th style="width: 12%;">풀이 회차</th>
+                            <th style="width: 15%;">풀이 회차</th>
                             <th style="width: 25%;">응시 일시</th>
-                            <th style="width: 25%;">풀이 과목</th>
-                            <th style="width: 13%; text-align: center;">종합 점수</th>
-            `;
-
-            // 과목 필터가 있는 경우 열 추가
-            if (subjectFilter !== 'ALL') {
-                tableHtml += `<th style="width: 13%; text-align: center;" class="highlight-sub-score">${subjectFilter} 점수</th>`;
-            }
-
-            tableHtml += `
-                            <th style="width: 12%; text-align: right;">소요 시간</th>
+                            <th style="width: 30%;">풀이 과목</th>
+                            <th style="width: 15%; text-align: center;">종합 점수</th>
+                            <th style="width: 15%; text-align: right;">소요 시간</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -3095,22 +3087,14 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                 const total = item.total_questions;
                 const dateStr = formatDate(item.created_at);
 
+                const itemJsonStr = JSON.stringify(item).replace(/"/g, '&quot;');
+
                 tableHtml += `
-                    <tr style="cursor: default;">
+                    <tr onclick="viewHistoryDetail(this)" data-history="${itemJsonStr}" title="클릭 시 정밀 오답 분석 화면으로 이동">
                         <td>${item.practice_count || 1}회차</td>
                         <td style="font-size: 0.8rem; color: var(--text-secondary);">${dateStr}</td>
                         <td><span class="badge-subject">${subName}</span></td>
                         <td style="text-align: center; font-weight: 600;">${score}점 <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${correct}/${total})</span></td>
-                `;
-
-                if (subjectFilter !== 'ALL') {
-                    const subStat = calculateSubjectScore(item.details, subjectFilter);
-                    tableHtml += `
-                        <td style="text-align: center; font-weight: 700;" class="highlight-sub-score">${subStat.score}점 <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${subStat.correct}/${subStat.total})</span></td>
-                    `;
-                }
-
-                tableHtml += `
                         <td style="text-align: right; font-family: monospace;">${item.total_time}</td>
                     </tr>
                 `;
@@ -3144,6 +3128,18 @@ function closeHistoryModal(event) {
         }
     } else {
         modal.style.display = 'none';
+    }
+}
+
+function viewHistoryDetail(element) {
+    try {
+        const itemStr = element.getAttribute('data-history');
+        const item = JSON.parse(itemStr);
+        localStorage.setItem('selected_history_item', JSON.stringify(item));
+        window.location.href = `yearly_result.html?from_history=true`;
+    } catch (e) {
+        console.error("이력 상세 보기 리다이렉트 실패:", e);
+        alert("상세 화면으로 이동하는 중 오류가 발생했습니다.");
     }
 }
 

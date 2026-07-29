@@ -1401,6 +1401,13 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                 "SA": 0.0,
                                 "SC": 0.0
                             },
+                            "subject_last_attempts": {
+                                "PM": None,
+                                "SE": None,
+                                "DB": None,
+                                "SA": None,
+                                "SC": None
+                            },
                             "new_trends": {
                                 "total_ratio": 0.0,
                                 "total_count": 0,
@@ -1475,6 +1482,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         # 과목 단독(신규 기출) 연습 회차 집계 - 이 시도가 특정 한 과목의 문항만으로
                         # 구성된 경우(신규 기출 과목별 연습)에만 해당 과목 연습 회차를 1 증가시킵니다.
                         hist_details_raw = hist.get("details")
+                        hist_details = []
                         if hist_details_raw:
                             if isinstance(hist_details_raw, str):
                                 try:
@@ -1486,6 +1494,22 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             sub_key = self._get_yearly_subject_key(hist_details)
                             if sub_key in stats_by_year[yr]["new_trends"]["subjects"]:
                                 stats_by_year[yr]["new_trends"]["subjects"][sub_key]["practice_count"] += 1
+
+                        # 이번 시험 이력에서 실제로 응시된 과목(active_subs) 식별
+                        active_subs = set()
+                        if hist_details:
+                            for q_item in hist_details:
+                                q_num = q_item.get("question_num")
+                                if q_num is not None:
+                                    if 1 <= q_num <= 25: active_subs.add('PM')
+                                    elif 26 <= q_num <= 50: active_subs.add('SE')
+                                    elif 51 <= q_num <= 75: active_subs.add('DB')
+                                    elif 76 <= q_num <= 100: active_subs.add('SA')
+                                    elif 101 <= q_num <= 120: active_subs.add('SC')
+                        else:
+                            # 상세 내용이 없고 120제 전체 시험인 경우 전체 과목 포함으로 간주
+                            if hist.get("total_questions") == 120:
+                                active_subs = {'PM', 'SE', 'DB', 'SA', 'SC'}
 
                         # 과목별 점수 산출
                         correct_counts = {
@@ -1501,8 +1525,13 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             sub_score = round((correct_counts[sub] / total_num) * 100.0, 1)
                             if sub_score > stats_by_year[yr]["subject_max_scores"][sub]:
                                 stats_by_year[yr]["subject_max_scores"][sub] = sub_score
-                            if is_new_recent:
-                                stats_by_year[yr]["subject_recent_scores"][sub] = sub_score
+                            
+                            # 해당 과목이 이 풀이 기록에서 응시된 경우에만 과목별 최근 점수 및 최근 시각 갱신
+                            if sub in active_subs:
+                                sub_last_attempt = stats_by_year[yr]["subject_last_attempts"][sub]
+                                if not sub_last_attempt or created_at > sub_last_attempt:
+                                    stats_by_year[yr]["subject_last_attempts"][sub] = created_at
+                                    stats_by_year[yr]["subject_recent_scores"][sub] = sub_score
                                     
                     # 4. JSON 직렬화에 적합한 데이터 포맷팅
                     data_list = []
