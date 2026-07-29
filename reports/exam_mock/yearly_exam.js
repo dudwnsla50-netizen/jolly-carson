@@ -261,7 +261,7 @@ function initResultPage() {
 
         try {
             const item = JSON.parse(rawItem);
-            
+
             // 기출문제 정보 비동기 로딩 API 호출
             fetch(`/api/yearly-exam/questions?year=${item.exam_year}`)
                 .then(res => {
@@ -270,13 +270,13 @@ function initResultPage() {
                 })
                 .then(qList => {
                     questions = qList || [];
-                    
+
                     // details 파싱
                     let details = [];
                     if (item.details) {
                         details = typeof item.details === 'string' ? JSON.parse(item.details) : item.details;
                     }
-                    
+
                     // qSeconds 복원
                     qSeconds = details.map(d => d.elapsed_time || 0);
 
@@ -376,6 +376,13 @@ function renderYearSelection(data) {
         const saMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.SA).toFixed(0) : '0';
         const scMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.SC).toFixed(0) : '0';
 
+        // 과목별 최근점 연산
+        const pmRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.PM).toFixed(0) : '0';
+        const seRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.SE).toFixed(0) : '0';
+        const dbRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.DB).toFixed(0) : '0';
+        const saRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.SA).toFixed(0) : '0';
+        const scRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.SC).toFixed(0) : '0';
+
         // 신규 기출 문항 수 계산
         const pmTrend = item.new_trends ? item.new_trends.subjects.PM.count : 0;
         const seTrend = item.new_trends ? item.new_trends.subjects.SE.count : 0;
@@ -399,38 +406,41 @@ function renderYearSelection(data) {
                     <div class="exam-stats">
                         <!-- 과목별 최고 점수 & 신규 비중 통합 격자 패널 -->
                         <div style="margin-top: 0.2rem; margin-bottom: 0.8rem; background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.5rem 0.6rem;">
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.2rem; display: flex; justify-content: space-between;">
-                                <span>과목별 최고점</span>
-                                <span style="color: var(--success); font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'ALL')" title="클릭 시 전체 신규 기출 모의고사 풀기 시작">종합 최고: ${maxScore}점, <span style="color: var(--success);">신규: ${totalTrend}개</span></span>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.2rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>과목별 최고점, 최근점수</span>
+                                <span style="color: var(--success); font-weight: 700; cursor: pointer;">
+                                    
+                                    <span onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'ALL')" style="color: var(--success); text-decoration: underline;" title="클릭 시 전체 신규 기출 모의고사 풀기 시작">신규: ${totalTrend}개</span>
+                                </span>
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; text-align: center;">
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#f472b6; font-weight:700;">PM</span>
-                                    <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${pmMax}</span>
+                                    <span class="clickable-score" style="font-size:0.74rem; font-weight:700; color:var(--text-primary); text-decoration:underline;" onclick="event.stopPropagation(); showHistoryModal(${item.year}, 'PM')" title="PM 과목 풀이 이력 보기">${pmMax}<span style="font-size:0.58rem; color:var(--text-muted); font-weight:normal;"> / ${pmRecent}</span></span>
                                     <span style="font-size:0.58rem; color:#f472b6; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'PM')" title="클릭 시 PM 신규 기출 모의고사 시작">${pmTrend}개</span>
                                     <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${pmPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#60a5fa; font-weight:700;">SE</span>
-                                    <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${seMax}</span>
+                                    <span class="clickable-score" style="font-size:0.74rem; font-weight:700; color:var(--text-primary); text-decoration:underline;" onclick="event.stopPropagation(); showHistoryModal(${item.year}, 'SE')" title="SE 과목 풀이 이력 보기">${seMax}<span style="font-size:0.58rem; color:var(--text-muted); font-weight:normal;"> / ${seRecent}</span></span>
                                     <span style="font-size:0.58rem; color:#60a5fa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SE')" title="클릭 시 SE 신규 기출 모의고사 시작">${seTrend}개</span>
                                     <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${sePracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#a78bfa; font-weight:700;">DB</span>
-                                    <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${dbMax}</span>
+                                    <span class="clickable-score" style="font-size:0.74rem; font-weight:700; color:var(--text-primary); text-decoration:underline;" onclick="event.stopPropagation(); showHistoryModal(${item.year}, 'DB')" title="DB 과목 풀이 이력 보기">${dbMax}<span style="font-size:0.58rem; color:var(--text-muted); font-weight:normal;"> / ${dbRecent}</span></span>
                                     <span style="font-size:0.58rem; color:#a78bfa; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'DB')" title="클릭 시 DB 신규 기출 모의고사 시작">${dbTrend}개</span>
                                     <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${dbPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#fbbf24; font-weight:700;">SA</span>
-                                    <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${saMax}</span>
+                                    <span class="clickable-score" style="font-size:0.74rem; font-weight:700; color:var(--text-primary); text-decoration:underline;" onclick="event.stopPropagation(); showHistoryModal(${item.year}, 'SA')" title="SA 과목 풀이 이력 보기">${saMax}<span style="font-size:0.58rem; color:var(--text-muted); font-weight:normal;"> / ${saRecent}</span></span>
                                     <span style="font-size:0.58rem; color:#fbbf24; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SA')" title="클릭 시 SA 신규 기출 모의고사 시작">${saTrend}개</span>
                                     <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${saPracticeCount}회</span>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#34d399; font-weight:700;">SC</span>
-                                    <span style="font-size:0.74rem; font-weight:700; color:var(--text-primary);">${scMax}</span>
+                                    <span class="clickable-score" style="font-size:0.74rem; font-weight:700; color:var(--text-primary); text-decoration:underline;" onclick="event.stopPropagation(); showHistoryModal(${item.year}, 'SC')" title="SC 과목 풀이 이력 보기">${scMax}<span style="font-size:0.58rem; color:var(--text-muted); font-weight:normal;"> / ${scRecent}</span></span>
                                     <span style="font-size:0.58rem; color:#34d399; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:2px;" onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'SC')" title="클릭 시 SC 신규 기출 모의고사 시작">${scTrend}개</span>
                                     <span style="font-size:0.58rem; color:#38bdf8; font-weight:600; margin-top:2px;">${scPracticeCount}회</span>
                                 </div>
@@ -768,7 +778,7 @@ function renderQuestion() {
     const currentNode = document.getElementById(`omr-${q.question_num}`);
     if (currentNode) {
         currentNode.classList.add('current');
-        
+
         // [설계 의도] scrollIntoView는 다중 스크롤 영역에서 전체 브라우저 창 스크롤까지 튀게 만드는 오작동이 있습니다.
         // OMR 카드가 담긴 전용 scrollable 컨테이너(omr-grid-container) 내부에서만 상대 스크롤 위치를 부드럽게 설정하여 
         // 전체 브라우저 뷰포트의 화면 튐 및 흔들림 현상을 원천 방지합니다.
@@ -1353,10 +1363,10 @@ function renderQuestionDetailHtml(item, detail, q) {
         const optNum = optIdx + 1;
         const isOptCorrect = answers.includes(optNum);
         const isOptUserWrong = (optNum === uAns && !isCorrect);
-        
+
         let optClass = 'review-option';
         let style = 'padding:0.55rem 0.8rem; border-radius:6px; border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.01); font-size:0.82rem; margin-top:0.35rem; display:flex; gap:0.4rem;';
-        
+
         if (isOptCorrect) {
             optClass += ' correct-choice';
             style = 'padding:0.55rem 0.8rem; border-radius:6px; border:1px solid rgba(16, 185, 129, 0.2); background:rgba(16, 185, 129, 0.04); font-size:0.82rem; margin-top:0.35rem; color:#ffffff; display:flex; gap:0.4rem;';
@@ -2261,14 +2271,14 @@ function calculateSubjectWeaknessScores(subStats, recurrenceBySubject, globalAvg
 
         const errorRate = 1 - (stat.correct / stat.total);
         const avgTime = stat.timeSum / stat.total;
-        
+
         let timePenalty = 0;
         if (globalAvgTime > 0) {
             timePenalty = Math.max(0, (avgTime - globalAvgTime) / globalAvgTime);
         }
 
         const recurrenceWeight = recurrenceBySubject[code] || 0;
-        
+
         const rawScore = (errorRate * 60) + (timePenalty * 25) + (recurrenceWeight * 15);
         const weaknessScore = Math.min(100, Math.round(rawScore));
         scores[code] = { weaknessScore, recurrenceRate: recurrenceWeight };
@@ -2764,7 +2774,7 @@ window.handleRichEditorPaste = handleRichEditorPaste;
 // =======================================================
 // [신규 기능] 문제를 풀다가 드래그 시 용어사전에 단어 추가 기능
 // =======================================================
-(function() {
+(function () {
     // 플로팅 버튼 동적 생성
     const btn = document.createElement('div');
     btn.id = 'floating-quick-add-btn';
@@ -2818,7 +2828,7 @@ window.handleRichEditorPaste = handleRichEditorPaste;
 
     let selectedText = '';
 
-    document.addEventListener('mouseup', function(e) {
+    document.addEventListener('mouseup', function (e) {
         // 플로팅 버튼 자체를 클릭했을 때는 동작하지 않도록 예외 처리
         if (e.target.id === 'floating-quick-add-btn') return;
 
@@ -2856,14 +2866,14 @@ window.handleRichEditorPaste = handleRichEditorPaste;
     });
 
     // 화면 아무데나 클릭 시 플로팅 닫기
-    document.addEventListener('mousedown', function(e) {
+    document.addEventListener('mousedown', function (e) {
         if (e.target.id !== 'floating-quick-add-btn') {
             btn.style.display = 'none';
         }
     });
 
     // ➕ 단어장에 추가 버튼 클릭 시 통신
-    btn.addEventListener('click', function(e) {
+    btn.addEventListener('click', function (e) {
         e.stopPropagation();
         btn.style.display = 'none';
 
@@ -2874,7 +2884,7 @@ window.handleRichEditorPaste = handleRichEditorPaste;
         const qNumLabel = document.getElementById('current-q-num-label');
 
         let rawSubject = subjectTag ? subjectTag.textContent.trim() : 'PM';
-        
+
         // 한글 과목명 -> 데이터베이스 코드 매핑
         let subjectCode = 'PM';
         if (rawSubject.includes('소프트웨어') || rawSubject.includes('SE')) subjectCode = 'SE';
@@ -2883,7 +2893,7 @@ window.handleRichEditorPaste = handleRichEditorPaste;
         else if (rawSubject.includes('보안') || rawSubject.includes('SC')) subjectCode = 'SC';
 
         const rawSource = qNumLabel ? qNumLabel.textContent.trim() : ''; // 예: "2024년도 15번"
-        
+
         const payload = {
             term_ko: selectedText,
             definition: "뜻을 입력해주세요.",
@@ -2897,19 +2907,243 @@ window.handleRichEditorPaste = handleRichEditorPaste;
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showToast(`✓ [${selectedText}] 단어장에 신규 추가되었습니다.`);
-                // 선택 영역 해제
-                window.getSelection().removeAllRanges();
-            } else {
-                showToast(`⚠ 추가 실패: ${data.message || '오류 발생'}`);
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            showToast('⚠ 서버 연결 실패');
-        });
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`✓ [${selectedText}] 단어장에 신규 추가되었습니다.`);
+                    // 선택 영역 해제
+                    window.getSelection().removeAllRanges();
+                } else {
+                    showToast(`⚠ 추가 실패: ${data.message || '오류 발생'}`);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showToast('⚠ 서버 연결 실패');
+            });
     });
 })();
+
+/**
+ * [신규] 모의고사 기존 풀이 이력 조회 모달 제어 함수군
+ */
+function getHistorySubjectName(details) {
+    if (!details) return '전체 (120문항)';
+    let parsedDetails = details;
+    if (typeof details === 'string') {
+        try {
+            parsedDetails = JSON.parse(details);
+        } catch (e) {
+            return '전체 (120문항)';
+        }
+    }
+    if (!Array.isArray(parsedDetails) || parsedDetails.length === 0) return '전체 (120문항)';
+
+    const codeSet = new Set();
+    parsedDetails.forEach(item => {
+        const qNum = item.question_num;
+        if (qNum !== undefined && qNum !== null) {
+            if (1 <= qNum && qNum <= 25) codeSet.add('PM');
+            else if (26 <= qNum && qNum <= 50) codeSet.add('SE');
+            else if (51 <= qNum && qNum <= 75) codeSet.add('DB');
+            else if (76 <= qNum && qNum <= 100) codeSet.add('SA');
+            else if (101 <= qNum && qNum <= 120) codeSet.add('SC');
+        }
+    });
+
+    const ordered = ['PM', 'SE', 'DB', 'SA', 'SC'].filter(c => codeSet.has(c));
+    if (ordered.length === 0 || ordered.length === 5) return '전체 (120문항)';
+
+    const subNames = {
+        'PM': '감리 및 사업관리',
+        'SE': '소프트웨어공학',
+        'DB': '데이터베이스',
+        'SA': '시스템 아키텍처',
+        'SC': '보안'
+    };
+    return ordered.map(c => subNames[c] || c).join(', ');
+}
+
+function calculateSubjectScore(details, subject) {
+    if (!details) return { correct: 0, total: 25, score: 0 };
+    let parsed = details;
+    if (typeof details === 'string') {
+        try { parsed = JSON.parse(details); } catch (e) { return { correct: 0, total: 25, score: 0 }; }
+    }
+    if (!Array.isArray(parsed)) return { correct: 0, total: 25, score: 0 };
+
+    let correct = 0;
+    parsed.forEach(d => {
+        if (d.is_correct) {
+            const q = d.question_num;
+            if (subject === 'PM' && 1 <= q && q <= 25) correct++;
+            else if (subject === 'SE' && 26 <= q && q <= 50) correct++;
+            else if (subject === 'DB' && 51 <= q && q <= 75) correct++;
+            else if (subject === 'SA' && 76 <= q && q <= 100) correct++;
+            else if (subject === 'SC' && 101 <= q && q <= 120) correct++;
+        }
+    });
+
+    const total_num = (subject === 'SC') ? 20.0 : 25.0;
+    return {
+        correct: correct,
+        total: total_num,
+        score: Math.round((correct / total_num) * 100.0)
+    };
+}
+
+function showHistoryModal(year, subjectFilter = 'ALL') {
+    const modal = document.getElementById('history-modal');
+    const modalTitle = document.getElementById('history-modal-title');
+    const modalBody = document.getElementById('history-modal-body');
+    if (!modal || !modalBody) return;
+
+    // 제목 설정
+    const subNameMap = {
+        'ALL': '종합',
+        'PM': '감리 및 사업관리(PM)',
+        'SE': '소프트웨어공학(SE)',
+        'DB': '데이터베이스(DB)',
+        'SA': '시스템 아키텍처(SA)',
+        'SC': '보안(SC)'
+    };
+    modalTitle.innerHTML = `<i data-lucide="history" style="color: var(--accent-violet); width: 22px; height: 22px;"></i> ${year}년도 [${subNameMap[subjectFilter]}] 풀이 이력`;
+
+    modalBody.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+            <div class="spinner" style="margin: 0 auto 1rem;"></div>
+            이력을 로드하는 중입니다...
+        </div>
+    `;
+    modal.style.display = 'flex';
+    initLucide();
+
+    fetch('/api/yearly-exam/history')
+        .then(res => {
+            if (!res.ok) throw new Error("API error");
+            return res.json();
+        })
+        .then(data => {
+            // 해당 연도로 필터링
+            const filtered = data.filter(item => Number(item.exam_year) === Number(year));
+
+            if (filtered.length === 0) {
+                modalBody.innerHTML = `
+                    <div style="text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary); border: 1px dashed rgba(255,255,255,0.08); border-radius: 12px;">
+                        💡 ${year}년도 풀이 이력이 없습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            // 요약 수치 계산
+            const totalAttempts = filtered.length;
+            const scores = filtered.map(item => {
+                if (subjectFilter === 'ALL') {
+                    return parseFloat(item.score);
+                } else {
+                    return calculateSubjectScore(item.details, subjectFilter).score;
+                }
+            });
+            const topScore = Math.max(...scores);
+            const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / totalAttempts);
+
+            let summaryHtml = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1.2rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.75rem; text-align: center;">
+                    <div>
+                        <span style="font-size: 0.68rem; color: var(--text-secondary); display: block; margin-bottom: 0.15rem;">총 응시 횟수</span>
+                        <span style="font-size: 1.05rem; font-weight: 700; color: var(--accent-blue);">${totalAttempts}회</span>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.68rem; color: var(--text-secondary); display: block; margin-bottom: 0.15rem;">평균 점수</span>
+                        <span style="font-size: 1.05rem; font-weight: 700; color: var(--warning);">${avgScore}점</span>
+                    </div>
+                    <div>
+                        <span style="font-size: 0.68rem; color: var(--text-secondary); display: block; margin-bottom: 0.15rem;">최고 점수</span>
+                        <span style="font-size: 1.05rem; font-weight: 700; color: var(--success);">${topScore}점</span>
+                    </div>
+                </div>
+            `;
+
+            // 테이블 템플릿 생성
+            let tableHtml = `
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%;">풀이 회차</th>
+                            <th style="width: 25%;">응시 일시</th>
+                            <th style="width: 25%;">풀이 과목</th>
+                            <th style="width: 13%; text-align: center;">종합 점수</th>
+            `;
+
+            // 과목 필터가 있는 경우 열 추가
+            if (subjectFilter !== 'ALL') {
+                tableHtml += `<th style="width: 13%; text-align: center;" class="highlight-sub-score">${subjectFilter} 점수</th>`;
+            }
+
+            tableHtml += `
+                            <th style="width: 12%; text-align: right;">소요 시간</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            filtered.forEach(item => {
+                const subName = getHistorySubjectName(item.details);
+                const score = parseFloat(item.score).toFixed(0);
+                const correct = item.correct_count;
+                const total = item.total_questions;
+                const dateStr = formatDate(item.created_at);
+
+                tableHtml += `
+                    <tr style="cursor: default;">
+                        <td>${item.practice_count || 1}회차</td>
+                        <td style="font-size: 0.8rem; color: var(--text-secondary);">${dateStr}</td>
+                        <td><span class="badge-subject">${subName}</span></td>
+                        <td style="text-align: center; font-weight: 600;">${score}점 <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${correct}/${total})</span></td>
+                `;
+
+                if (subjectFilter !== 'ALL') {
+                    const subStat = calculateSubjectScore(item.details, subjectFilter);
+                    tableHtml += `
+                        <td style="text-align: center; font-weight: 700;" class="highlight-sub-score">${subStat.score}점 <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${subStat.correct}/${subStat.total})</span></td>
+                    `;
+                }
+
+                tableHtml += `
+                        <td style="text-align: right; font-family: monospace;">${item.total_time}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                    </tbody>
+                </table>
+            `;
+
+            modalBody.innerHTML = summaryHtml + tableHtml;
+        })
+        .catch(err => {
+            console.error("이력 로드 실패:", err);
+            modalBody.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--error);">
+                    이력을 불러오는 중 오류가 발생했습니다.
+                </div>
+            `;
+        });
+}
+
+function closeHistoryModal(event) {
+    const modal = document.getElementById('history-modal');
+    if (!modal) return;
+
+    // 모달 오버레이 클릭 시 외부 닫기 분기 처리
+    if (event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    } else {
+        modal.style.display = 'none';
+    }
+}
+

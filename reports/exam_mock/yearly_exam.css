@@ -1345,3 +1345,87 @@
                 overflow-y: visible !important;
             }
         }
+
+        /* ==========================================
+           [신규] 모의고사 이력 팝업 및 테이블 스타일
+           ========================================== */
+        .clickable-score {
+            cursor: pointer !important;
+            transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-block;
+        }
+        .clickable-score:hover {
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.85);
+            transform: translateY(-1px);
+            filter: brightness(1.2);
+        }
+        
+        body[data-theme="light"] .clickable-score:hover {
+            text-shadow: 0 0 6px rgba(0, 122, 204, 0.45);
+            color: var(--accent-blue) !important;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            text-align: left;
+        }
+        .history-table th {
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.8rem 0.6rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-family: 'Outfit', sans-serif;
+        }
+        .history-table td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 0.8rem 0.6rem;
+            vertical-align: middle;
+        }
+        .history-table tbody tr {
+            cursor: default;
+            transition: all 0.15s ease;
+        }
+        .history-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.015);
+        }
+        
+        body[data-theme="light"] .history-table th {
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-secondary);
+        }
+        body[data-theme="light"] .history-table td {
+            border-bottom: 1px solid var(--card-border);
+        }
+        body[data-theme="light"] .history-table tbody tr:hover {
+            background: rgba(0, 0, 0, 0.01);
+        }
+
+        .highlight-sub-score {
+            color: #ec4899 !important; /* 마젠타 계열 강조 */
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(236, 72, 153, 0.4);
+        }
+        
+        body[data-theme="light"] .highlight-sub-score {
+            color: #cf222e !important;
+            text-shadow: none;
+        }
+
+        .badge-subject {
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        body[data-theme="light"] .badge-subject {
+            background: rgba(0,0,0,0.04);
+            border-color: rgba(0,0,0,0.08);
+        }

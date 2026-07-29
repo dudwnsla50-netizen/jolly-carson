@@ -1394,6 +1394,13 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                                 "SA": 0.0,
                                 "SC": 0.0
                             },
+                            "subject_recent_scores": {
+                                "PM": 0.0,
+                                "SE": 0.0,
+                                "DB": 0.0,
+                                "SA": 0.0,
+                                "SC": 0.0
+                            },
                             "new_trends": {
                                 "total_ratio": 0.0,
                                 "total_count": 0,
@@ -1460,8 +1467,10 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         if score > stats_by_year[yr]["max_score"]:
                             stats_by_year[yr]["max_score"] = score
 
+                        is_new_recent = False
                         if not stats_by_year[yr]["last_attempt_at"] or created_at > stats_by_year[yr]["last_attempt_at"]:
                             stats_by_year[yr]["last_attempt_at"] = created_at
+                            is_new_recent = True
 
                         # 과목 단독(신규 기출) 연습 회차 집계 - 이 시도가 특정 한 과목의 문항만으로
                         # 구성된 경우(신규 기출 과목별 연습)에만 해당 과목 연습 회차를 1 증가시킵니다.
@@ -1492,6 +1501,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             sub_score = round((correct_counts[sub] / total_num) * 100.0, 1)
                             if sub_score > stats_by_year[yr]["subject_max_scores"][sub]:
                                 stats_by_year[yr]["subject_max_scores"][sub] = sub_score
+                            if is_new_recent:
+                                stats_by_year[yr]["subject_recent_scores"][sub] = sub_score
                                     
                     # 4. JSON 직렬화에 적합한 데이터 포맷팅
                     data_list = []

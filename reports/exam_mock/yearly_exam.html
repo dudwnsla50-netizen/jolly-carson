@@ -52,6 +52,24 @@
         </div>
     </div>
 
+    <!-- [신규] 모의고사 풀이 이력 모달 -->
+    <div id="history-modal" class="modal-overlay" onclick="closeHistoryModal(event)" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 11, 19, 0.85); backdrop-filter: blur(12px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="modal-card" onclick="event.stopPropagation()" style="background: var(--card-bg); border: 1px solid var(--accent-violet); border-radius: 20px; width: 100%; max-width: 750px; padding: 2rem; box-shadow: 0 15px 45px rgba(139, 92, 246, 0.25); display: flex; flex-direction: column; gap: 1.5rem; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.8rem;">
+                <h3 id="history-modal-title" style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <i data-lucide="history" style="color: var(--accent-violet); width: 22px; height: 22px;"></i> 년도별 풀이 이력 조회
+                </h3>
+                <button onclick="closeHistoryModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.3rem; cursor: pointer; line-height: 1; outline: none; padding: 0.2rem 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='var(--text-secondary)'">✕</button>
+            </div>
+            <div id="history-modal-body" style="max-height: 380px; overflow-y: auto; padding-right: 0.5rem; scrollbar-width: thin;">
+                <!-- 동적으로 테이블이 주입됩니다. -->
+            </div>
+            <div style="text-align: right; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.8rem;">
+                <button onclick="closeHistoryModal()" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.55rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 비즈니스 로직 스크립트 -->
     <script src="yearly_exam.js"></script>
 <script src="../js/quick_add.js"></script>
