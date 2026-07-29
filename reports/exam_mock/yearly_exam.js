@@ -3026,6 +3026,7 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
         .then(data => {
             // 해당 연도로 필터링
             const filtered = data.filter(item => Number(item.exam_year) === Number(year));
+            window.currentHistoryList = filtered;
 
             if (filtered.length === 0) {
                 modalBody.innerHTML = `
@@ -3080,6 +3081,29 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                     <tbody>
             `;
 
+            const formatHistoryTime = (timeVal) => {
+                if (!timeVal) return '0분 0초';
+                if (typeof timeVal === 'string' && timeVal.includes(':')) {
+                    const parts = timeVal.split(':');
+                    if (parts.length === 3) {
+                        const mins = parseInt(parts[1]) || 0;
+                        const secs = parseInt(parts[2]) || 0;
+                        return `${mins}분 ${secs}초`;
+                    } else if (parts.length === 2) {
+                        const mins = parseInt(parts[0]) || 0;
+                        const secs = parseInt(parts[1]) || 0;
+                        return `${mins}분 ${secs}초`;
+                    }
+                }
+                const sec = parseInt(timeVal);
+                if (!isNaN(sec)) {
+                    const mins = Math.floor(sec / 60);
+                    const secs = sec % 60;
+                    return `${mins}분 ${secs}초`;
+                }
+                return timeVal;
+            };
+
             filtered.forEach(item => {
                 const subName = getHistorySubjectName(item.details);
                 const score = parseFloat(item.score).toFixed(0);
@@ -3088,14 +3112,15 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                 const dateStr = formatDate(item.created_at);
 
                 const itemJsonStr = JSON.stringify(item).replace(/"/g, '&quot;');
+                const formattedTime = formatHistoryTime(item.total_time);
 
                 tableHtml += `
-                    <tr onclick="viewHistoryDetail(this)" data-history="${itemJsonStr}" title="클릭 시 정밀 오답 분석 화면으로 이동">
+                    <tr onclick="viewHistoryDetail(this)" data-history="${itemJsonStr}" title="클릭 시 새 창에서 정밀 오답 분석 열기">
                         <td>${item.practice_count || 1}회차</td>
                         <td style="font-size: 0.8rem; color: var(--text-secondary);">${dateStr}</td>
                         <td><span class="badge-subject">${subName}</span></td>
                         <td style="text-align: center; font-weight: 600;">${score}점 <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${correct}/${total})</span></td>
-                        <td style="text-align: right; font-family: monospace;">${item.total_time}</td>
+                        <td style="text-align: right; font-family: monospace;">${formattedTime}</td>
                     </tr>
                 `;
             });
@@ -3136,10 +3161,27 @@ function viewHistoryDetail(element) {
         const itemStr = element.getAttribute('data-history');
         const item = JSON.parse(itemStr);
         localStorage.setItem('selected_history_item', JSON.stringify(item));
-        window.location.href = `yearly_result.html?from_history=true`;
+        
+        // lhistory.html에서 클릭 시와 마찬가지로 전체 이력 목록을 함께 전달하여 비교 그래프 복원
+        if (window.currentHistoryList) {
+            localStorage.setItem('selected_history_list', JSON.stringify(window.currentHistoryList));
+        }
+        localStorage.setItem('selected_quiz_logs', '[]'); // 폴백용 빈 로그 세팅
+        
+        // 새 브라우저 팝업창으로 상세분석 화면 기동
+        const width = 1200;
+        const height = 850;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+        
+        window.open(
+            `yearly_result.html?from_history=true`,
+            `history_detail_popup_${item.id || Date.now()}`,
+            `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+        );
     } catch (e) {
-        console.error("이력 상세 보기 리다이렉트 실패:", e);
-        alert("상세 화면으로 이동하는 중 오류가 발생했습니다.");
+        console.error("이력 상세 보기 팝업 열기 실패:", e);
+        alert("상세 화면을 팝업창으로 여는 중 오류가 발생했습니다.");
     }
 }
 

@@ -1808,8 +1808,12 @@ function openYearlyModal(item) {
         if (HistoryState && Array.isArray(HistoryState.allLogs)) {
             localStorage.setItem('selected_quiz_logs', JSON.stringify(HistoryState.allLogs));
         }
-        // 독립된 html 팝업창을 새 탭/새 창으로 띄우기
-        window.open('../exam_mock/yearly_result.html?from_history=true', '_blank');
+        // 독립된 html 팝업창을 가로 1200, 세로 850 크기의 새 창으로 띄우기
+        const width = 1200;
+        const height = 850;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+        window.open('../exam_mock/yearly_result.html?from_history=true', `history_detail_popup_${item.id || Date.now()}`, `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`);
     } catch (e) {
         console.error("Yearly modal redirect failed:", e);
     }
