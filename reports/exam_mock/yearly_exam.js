@@ -3115,7 +3115,7 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                 const formattedTime = formatHistoryTime(item.total_time);
 
                 tableHtml += `
-                    <tr onclick="viewHistoryDetail(this)" data-history="${itemJsonStr}" title="클릭 시 새 창에서 정밀 오답 분석 열기">
+                    <tr onclick="viewHistoryDetail(this)" data-history="${itemJsonStr}" title="클릭 시 정밀 오답 분석 화면으로 이동">
                         <td>${item.practice_count || 1}회차</td>
                         <td style="font-size: 0.8rem; color: var(--text-secondary);">${dateStr}</td>
                         <td><span class="badge-subject">${subName}</span></td>
@@ -3168,20 +3168,10 @@ function viewHistoryDetail(element) {
         }
         localStorage.setItem('selected_quiz_logs', '[]'); // 폴백용 빈 로그 세팅
         
-        // 새 브라우저 팝업창으로 상세분석 화면 기동
-        const width = 1200;
-        const height = 850;
-        const left = (window.screen.width - width) / 2;
-        const top = (window.screen.height - height) / 2;
-        
-        window.open(
-            `yearly_result.html?from_history=true`,
-            `history_detail_popup_${item.id || Date.now()}`,
-            `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-        );
+        window.location.href = `yearly_result.html?from_history=true`;
     } catch (e) {
-        console.error("이력 상세 보기 팝업 열기 실패:", e);
-        alert("상세 화면을 팝업창으로 여는 중 오류가 발생했습니다.");
+        console.error("이력 상세 보기 리다이렉트 실패:", e);
+        alert("상세 화면으로 이동하는 중 오류가 발생했습니다.");
     }
 }
 
