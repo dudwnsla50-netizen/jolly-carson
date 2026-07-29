@@ -1544,6 +1544,11 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         if item["last_attempt_at"]:
                             if not isinstance(item["last_attempt_at"], str):
                                 item["last_attempt_at"] = item["last_attempt_at"].isoformat()
+                        
+                        # datetime 객체가 섞여있어 json 직렬화 시 500 에러를 유발하는 subject_last_attempts 제거
+                        if "subject_last_attempts" in item:
+                            del item["subject_last_attempts"]
+                            
                         data_list.append(item)
                         
                     self.send_json_response(data_list)
