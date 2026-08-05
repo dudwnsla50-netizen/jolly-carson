@@ -1388,18 +1388,18 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "practice_count": 0,
                             "last_attempt_at": None,
                             "subject_max_scores": {
-                                "PM": 0.0,
-                                "SE": 0.0,
-                                "DB": 0.0,
-                                "SA": 0.0,
-                                "SC": 0.0
+                                "PM": 0,
+                                "SE": 0,
+                                "DB": 0,
+                                "SA": 0,
+                                "SC": 0
                             },
                             "subject_recent_scores": {
-                                "PM": 0.0,
-                                "SE": 0.0,
-                                "DB": 0.0,
-                                "SA": 0.0,
-                                "SC": 0.0
+                                "PM": 0,
+                                "SE": 0,
+                                "DB": 0,
+                                "SA": 0,
+                                "SC": 0
                             },
                             "subject_last_attempts": {
                                 "PM": None,
@@ -1525,8 +1525,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         }
                                         
                         for sub, (start, end, total_num) in SUBJECT_RANGES.items():
-                            # 이 풀이 시도의 과목별 100점 환산 점수
-                            sub_score = round((correct_counts[sub] / total_num) * 100.0, 1)
+                            # 이 풀이 시도의 과목별 정답 개수 (만점 = 해당 과목 문항수)
+                            sub_score = correct_counts[sub]
                             if sub_score > stats_by_year[yr]["subject_max_scores"][sub]:
                                 stats_by_year[yr]["subject_max_scores"][sub] = sub_score
                             

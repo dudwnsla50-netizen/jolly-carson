@@ -369,19 +369,19 @@ function renderYearSelection(data) {
             : '이력 없음';
         const maxScore = item.max_score !== undefined ? parseFloat(item.max_score).toFixed(0) : '0';
 
-        // 과목별 최고점 연산
-        const pmMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.PM).toFixed(0) : '0';
-        const seMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.SE).toFixed(0) : '0';
-        const dbMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.DB).toFixed(0) : '0';
-        const saMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.SA).toFixed(0) : '0';
-        const scMax = item.subject_max_scores ? parseFloat(item.subject_max_scores.SC).toFixed(0) : '0';
+        // 과목별 최고 정답 개수 연산
+        const pmMax = item.subject_max_scores ? item.subject_max_scores.PM : 0;
+        const seMax = item.subject_max_scores ? item.subject_max_scores.SE : 0;
+        const dbMax = item.subject_max_scores ? item.subject_max_scores.DB : 0;
+        const saMax = item.subject_max_scores ? item.subject_max_scores.SA : 0;
+        const scMax = item.subject_max_scores ? item.subject_max_scores.SC : 0;
 
-        // 과목별 최근점 연산
-        const pmRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.PM).toFixed(0) : '0';
-        const seRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.SE).toFixed(0) : '0';
-        const dbRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.DB).toFixed(0) : '0';
-        const saRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.SA).toFixed(0) : '0';
-        const scRecent = item.subject_recent_scores ? parseFloat(item.subject_recent_scores.SC).toFixed(0) : '0';
+        // 과목별 최근 정답 개수 연산
+        const pmRecent = item.subject_recent_scores ? item.subject_recent_scores.PM : 0;
+        const seRecent = item.subject_recent_scores ? item.subject_recent_scores.SE : 0;
+        const dbRecent = item.subject_recent_scores ? item.subject_recent_scores.DB : 0;
+        const saRecent = item.subject_recent_scores ? item.subject_recent_scores.SA : 0;
+        const scRecent = item.subject_recent_scores ? item.subject_recent_scores.SC : 0;
 
         // 신규 기출 문항 수 계산
         const pmTrend = item.new_trends ? item.new_trends.subjects.PM.count : 0;
@@ -407,7 +407,7 @@ function renderYearSelection(data) {
                         <!-- 과목별 최고 점수 & 신규 비중 통합 격자 패널 -->
                         <div style="margin-top: 0.2rem; margin-bottom: 0.8rem; background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.5rem 0.6rem;">
                             <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.35rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.2rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span>과목별 최고점, 최근점수</span>
+                                <span>과목별 최고/최근 정답 개수</span>
                                 <span style="color: var(--success); font-weight: 700; cursor: pointer;">
                                     
                                     <span onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'ALL')" style="color: var(--success); text-decoration: underline;" title="클릭 시 전체 신규 기출 모의고사 풀기 시작">신규: ${totalTrend}개</span>
@@ -1038,7 +1038,7 @@ function syncPendingSubmits() {
 function renderResultReport(result, practiceCount, isFromHistory = false) {
     document.getElementById('result-exam-title').innerText = `${result.exam_year}년도 학습상세분석`;
 
-    document.getElementById('result-score-val').innerText = `${result.score.toFixed(1)}`;
+    document.getElementById('result-score-val').innerText = `${result.correct_count}`;
     document.getElementById('result-correct-val').innerText = `${result.correct_count} / ${result.total_questions}`;
     document.getElementById('result-time-val').innerText = formatTotalTime(result.total_time);
     document.getElementById('result-attempt-val').innerText = `${practiceCount}회차`;
@@ -2102,7 +2102,6 @@ function buildPastAttemptListForCard(item, maxCount = 10) {
         const ts = new Date(hist && hist.created_at ? hist.created_at : 0).getTime();
         if (Number.isNaN(ts) || ts >= currentDateTs) return;
 
-        const score = Number(hist.score || 0);
         const correct = Number(hist.correct_count || 0);
         const total = Number(hist.total_questions || 0);
 
@@ -2110,7 +2109,7 @@ function buildPastAttemptListForCard(item, maxCount = 10) {
             ts,
             createdAt: hist.created_at || '',
             source: '모의고사',
-            summary: `${correct}/${total} · ${score.toFixed(1)}점`
+            summary: `${correct}/${total}`
         });
     });
 
@@ -3039,15 +3038,15 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
 
             // 요약 수치 계산
             const totalAttempts = filtered.length;
-            const scores = filtered.map(item => {
+            const counts = filtered.map(item => {
                 if (subjectFilter === 'ALL') {
-                    return parseFloat(item.score);
+                    return item.correct_count !== undefined ? Number(item.correct_count) : 0;
                 } else {
-                    return calculateSubjectScore(item.details, subjectFilter).score;
+                    return calculateSubjectScore(item.details, subjectFilter).correct;
                 }
             });
-            const topScore = Math.max(...scores);
-            const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / totalAttempts);
+            const topCount = Math.max(...counts);
+            const avgCount = Math.round(counts.reduce((a, b) => a + b, 0) / totalAttempts);
 
             let summaryHtml = `
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 0.4rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.45rem; text-align: center;">
@@ -3056,12 +3055,12 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                         <span style="font-size: 0.95rem; font-weight: 700; color: var(--accent-blue);">${totalAttempts}회</span>
                     </div>
                     <div>
-                        <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;">평균 점수</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--warning);">${avgScore}점</span>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;">평균 정답 개수</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--warning);">${avgCount}개</span>
                     </div>
                     <div>
-                        <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;">최고 점수</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--success);">${topScore}점</span>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;">최고 정답 개수</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: var(--success);">${topCount}개</span>
                     </div>
                 </div>
             `;
@@ -3074,7 +3073,7 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                             <th style="width: 15%;">풀이 회차</th>
                             <th style="width: 25%;">응시 일시</th>
                             <th style="width: 30%;">풀이 과목</th>
-                            <th style="width: 15%; text-align: center;">종합 점수</th>
+                            <th style="width: 15%; text-align: center;">정답 개수</th>
                             <th style="width: 15%; text-align: right;">소요 시간</th>
                         </tr>
                     </thead>
@@ -3106,7 +3105,6 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
 
             filtered.forEach(item => {
                 const subName = getHistorySubjectName(item.details);
-                const score = parseFloat(item.score).toFixed(0);
                 const correct = item.correct_count;
                 const total = item.total_questions;
                 const dateStr = formatDate(item.created_at);
@@ -3119,7 +3117,7 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                         <td>${item.practice_count || 1}회차</td>
                         <td style="font-size: 0.8rem; color: var(--text-secondary);">${dateStr}</td>
                         <td><span class="badge-subject">${subName}</span></td>
-                        <td style="text-align: center; font-weight: 600;">${score}점 <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${correct}/${total})</span></td>
+                        <td style="text-align: center; font-weight: 600;">${correct} <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">/ ${total}</span></td>
                         <td style="text-align: right; font-family: monospace;">${formattedTime}</td>
                     </tr>
                 `;
