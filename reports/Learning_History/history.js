@@ -1569,34 +1569,56 @@ async function fetchYearlyQuestionData(item, detail) {
 }
 
 /**
- * [NEW] 과목별 오답 TOP 15 - 연도별 120제 모의고사 이력 전체를 문항 단위로 집계하여
- * 과목(PM/SE/DB/SA/SC)별로 오답 횟수가 많은 순으로 상위 N개를 뽑아냅니다.
+ * [NEW] 과목별 오답 TOP 15 - 연도별 120제 모의고사 이력 + 일반 퀴즈(단문항) 학습 이력을
+ * 문항 단위로 통합 집계하여 과목(PM/SE/DB/SA/SC)별로 오답 횟수가 많은 순으로 상위 N개를 뽑아냅니다.
  */
 function buildWrongTopListsBySubject(limit = 15) {
-    const allHistory = Array.isArray(HistoryState.yearlyExamHistory) ? HistoryState.yearlyExamHistory : [];
     const statMap = {}; // key: `${year}_${questionNum}` -> { year, questionNum, subject, wrongCount, attemptCount }
 
+    const bumpStat = (qKey, isCorrect) => {
+        const parts = String(qKey).split('_');
+        if (parts.length < 2) return;
+        const year = Number(parts[0]);
+        const qNum = Number(parts[1]);
+        if (!year || !qNum) return;
+        const code = getYearlySubjectCodeByQuestionNum(qNum);
+        if (!code) return;
+
+        if (!statMap[qKey]) {
+            statMap[qKey] = {
+                year,
+                questionNum: qNum,
+                subject: code,
+                wrongCount: 0,
+                attemptCount: 0
+            };
+        }
+        statMap[qKey].attemptCount += 1;
+        if (!isCorrect) statMap[qKey].wrongCount += 1;
+    };
+
+    // 1) 년도별 120제 모의고사 이력
+    const allHistory = Array.isArray(HistoryState.yearlyExamHistory) ? HistoryState.yearlyExamHistory : [];
     allHistory.forEach(item => {
         const details = parseYearlyDetails(item);
         details.forEach(d => {
             const qNum = Number(d.question_num);
             if (!qNum) return;
-            const code = getYearlySubjectCodeByQuestionNum(qNum);
-            if (!code) return;
-
-            const key = `${item.exam_year}_${qNum}`;
-            if (!statMap[key]) {
-                statMap[key] = {
-                    year: item.exam_year,
-                    questionNum: qNum,
-                    subject: code,
-                    wrongCount: 0,
-                    attemptCount: 0
-                };
-            }
-            statMap[key].attemptCount += 1;
-            if (!d.is_correct) statMap[key].wrongCount += 1;
+            bumpStat(`${item.exam_year}_${qNum}`, !!d.is_correct);
         });
+    });
+
+    // 2) 일반 퀴즈(단문항) 학습 이력 - q_id(예: "2017_40") 형식을 가진 항목만 집계 대상
+    const normalLogs = Array.isArray(HistoryState.allLogs) ? HistoryState.allLogs : [];
+    normalLogs.forEach(log => {
+        let dObj = null;
+        if (typeof log.details === 'object' && log.details) {
+            dObj = log.details;
+        } else if (typeof log.details === 'string' && log.details.trim()) {
+            try { dObj = JSON.parse(log.details); } catch (e) { dObj = null; }
+        }
+        if (!dObj || typeof dObj.q_id !== 'string' || !dObj.q_id.includes('_')) return;
+        bumpStat(dObj.q_id, !!dObj.is_correct);
     });
 
     const bySubject = { PM: [], SE: [], DB: [], SA: [], SC: [] };
