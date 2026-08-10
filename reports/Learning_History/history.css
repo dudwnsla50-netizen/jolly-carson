@@ -1150,12 +1150,31 @@ body[data-theme="light"] .modal-subject-row {
 }
 
 @media (max-width: 600px) {
-    /* 모바일 가로폭에서 일별 학습이력 테이블의 덜 중요한 열을 숨겨 반응형 최적화 */
-    .history-table th:nth-child(4),
-    .history-table td:nth-child(4),
-    .history-table th:nth-child(5),
-    .history-table td:nth-child(5) {
+    /* 모바일 가로폭에서 일별 학습이력 테이블의 덜 중요한 열(학습시간/일일목표달성)만 숨겨 반응형 최적화합니다.
+       (년도별 모의고사 이력·오답 TOP 15 테이블은 열이 다르므로 이 규칙에서 제외하고 가로 스크롤로 전체 정보를 유지합니다.) */
+    .daily-history-table th:nth-child(4),
+    .daily-history-table td:nth-child(4),
+    .daily-history-table th:nth-child(5),
+    .daily-history-table td:nth-child(5) {
         display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    /* 년도별 120제 모의고사 이력 / 과목별 오답 TOP 15 테이블은 열을 숨기지 않고,
+       칼럼이 과도하게 눌려 읽기 어려워지는 대신 가로 스크롤로 모든 정보를 확인할 수 있도록 최소 너비를 지정합니다. */
+    .yearly-history-table,
+    .wrong-top-table {
+        min-width: 640px;
+    }
+
+    .yearly-history-table th,
+    .yearly-history-table td,
+    .wrong-top-table th,
+    .wrong-top-table td {
+        padding: 0.65rem 0.6rem !important;
+        font-size: 0.78rem !important;
+        white-space: nowrap;
     }
 }
 

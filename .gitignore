@@ -29,3 +29,6 @@ reports/temp_artifacts_fallback/
 scratch/
 !scratch/update_explanations.py
 *.log
+
+# DB 작업 전 임시 로컬 백업 (git 히스토리에 이전 버전이 이미 남아있어 불필요)
+*.bak_*

@@ -135,7 +135,7 @@
                         </span>
                     </div>
                     <!-- 기출연도 및 풀이과목 필터 드롭다운 -->
-                    <div style="display: flex; gap: 0.6rem; align-items: center;">
+                    <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
                         <select id="filter-exam-year"
                             style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-primary); padding: 0.35rem 0.7rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer; outline: none; transition: border 0.2s;">
                             <option value="all">기출 연도 (전체)</option>
@@ -152,7 +152,7 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="history-table">
+                    <table class="history-table yearly-history-table">
                         <thead>
                             <tr id="yearly-history-th-row">
                                 <th data-sort-key="created_at"
@@ -217,7 +217,7 @@
                     <button type="button" class="wrong-top-tab-btn" data-subject="SC" onclick="switchWrongTopTab('SC')">SC 보안</button>
                 </div>
                 <div class="table-responsive">
-                    <table class="history-table">
+                    <table class="history-table wrong-top-table">
                         <thead>
                             <tr>
                                 <th style="width: 8%;">순위</th>
@@ -249,7 +249,7 @@
                     </span>
                 </div>
                 <div class="table-responsive">
-                    <table class="history-table">
+                    <table class="history-table daily-history-table">
                         <thead>
                             <tr>
                                 <th>일자</th>
