@@ -197,6 +197,47 @@
                 </div>
             </div>
 
+            <!-- 2-4-1. 과목별 오답 TOP 15 -->
+            <div class="card" style="grid-column: 1 / -1; margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <span class="card-title">
+                            <i data-lucide="alert-triangle"></i> 과목별 오답 TOP 15
+                        </span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                            년도별 120제 모의고사 풀이 이력 전체를 기준으로, 과목별로 가장 많이 틀린 문항 상위 15개를 보여줍니다.
+                        </span>
+                    </div>
+                </div>
+                <div class="wrong-top-tab-bar" id="wrong-top-tab-bar">
+                    <button type="button" class="wrong-top-tab-btn" data-subject="PM" onclick="switchWrongTopTab('PM')">PM 사업관리</button>
+                    <button type="button" class="wrong-top-tab-btn" data-subject="SE" onclick="switchWrongTopTab('SE')">SE 소프트웨어공학</button>
+                    <button type="button" class="wrong-top-tab-btn" data-subject="DB" onclick="switchWrongTopTab('DB')">DB 데이터베이스</button>
+                    <button type="button" class="wrong-top-tab-btn" data-subject="SA" onclick="switchWrongTopTab('SA')">SA 시스템아키텍처</button>
+                    <button type="button" class="wrong-top-tab-btn" data-subject="SC" onclick="switchWrongTopTab('SC')">SC 보안</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 8%;">순위</th>
+                                <th style="width: 12%;">연도</th>
+                                <th style="width: 14%;">문제 번호</th>
+                                <th style="width: 15%; text-align: center;">오답 횟수</th>
+                                <th>응시 현황</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wrong-top-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                    로딩 중입니다...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- 2-3. 일별 학습이력 (일별 학습 건수) -->
             <div class="card recent-activity-card" style="grid-column: 1 / -1; margin-top: 0.5rem;">
                 <div class="card-header">
@@ -253,7 +294,7 @@
 
     <!-- 비즈니스 스크립트 연결 -->
     <script src="../js/config.js"></script>
-    <script src="history.js?v=20260703_6"></script>
+    <script src="history.js?v=20260810_1"></script>
     <script>
         // 루시드 아이콘 렌더링 구동
         if (window.lucide) {

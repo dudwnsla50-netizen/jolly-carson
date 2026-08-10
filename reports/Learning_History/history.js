@@ -23,7 +23,10 @@ const HistoryState = {
     yearlyCurrentPage: 1,
     yearlyPageSize: 15,
     yearlyTotalPages: 1,
-    yearlySelectedChartSubject: null
+    yearlySelectedChartSubject: null,
+    wrongTopLists: null,
+    wrongTopActiveSubject: 'PM',
+    wrongTopOpenKey: null
 };
 
 const SUBJECT_NAMES = {
@@ -186,6 +189,9 @@ function loadAllHistoryData() {
 
             // [NEW] 년도별 모의고사 연습 이력 렌더링 수행
             renderYearlyExamHistoryTable(yearlyHistory);
+
+            // [NEW] 과목별 오답 TOP 15 그리드 렌더링 수행
+            initWrongTopSection();
 
             if (merged.length === 0) {
                 renderEmptyState();
@@ -1560,6 +1566,163 @@ async function fetchYearlyQuestionData(item, detail) {
     questionData = await resp.json();
     HistoryState.yearlyQuestionCache[qIdCandidate] = questionData;
     return questionData;
+}
+
+/**
+ * [NEW] 과목별 오답 TOP 15 - 연도별 120제 모의고사 이력 전체를 문항 단위로 집계하여
+ * 과목(PM/SE/DB/SA/SC)별로 오답 횟수가 많은 순으로 상위 N개를 뽑아냅니다.
+ */
+function buildWrongTopListsBySubject(limit = 15) {
+    const allHistory = Array.isArray(HistoryState.yearlyExamHistory) ? HistoryState.yearlyExamHistory : [];
+    const statMap = {}; // key: `${year}_${questionNum}` -> { year, questionNum, subject, wrongCount, attemptCount }
+
+    allHistory.forEach(item => {
+        const details = parseYearlyDetails(item);
+        details.forEach(d => {
+            const qNum = Number(d.question_num);
+            if (!qNum) return;
+            const code = getYearlySubjectCodeByQuestionNum(qNum);
+            if (!code) return;
+
+            const key = `${item.exam_year}_${qNum}`;
+            if (!statMap[key]) {
+                statMap[key] = {
+                    year: item.exam_year,
+                    questionNum: qNum,
+                    subject: code,
+                    wrongCount: 0,
+                    attemptCount: 0
+                };
+            }
+            statMap[key].attemptCount += 1;
+            if (!d.is_correct) statMap[key].wrongCount += 1;
+        });
+    });
+
+    const bySubject = { PM: [], SE: [], DB: [], SA: [], SC: [] };
+    Object.values(statMap).forEach(entry => {
+        if (entry.wrongCount > 0 && bySubject[entry.subject]) {
+            bySubject[entry.subject].push(entry);
+        }
+    });
+
+    Object.keys(bySubject).forEach(code => {
+        bySubject[code].sort((a, b) => b.wrongCount - a.wrongCount || b.attemptCount - a.attemptCount);
+        bySubject[code] = bySubject[code].slice(0, limit);
+    });
+
+    return bySubject;
+}
+
+/**
+ * [NEW] 과목별 오답 TOP 15 섹션 초기화 - 기본 활성 탭(PM) 표시 및 최초 렌더링
+ */
+function initWrongTopSection() {
+    HistoryState.wrongTopLists = buildWrongTopListsBySubject(15);
+    switchWrongTopTab(HistoryState.wrongTopActiveSubject || 'PM');
+}
+
+/**
+ * [NEW] 과목별 오답 TOP 15 - 탭 전환
+ */
+function switchWrongTopTab(subjectCode) {
+    HistoryState.wrongTopActiveSubject = subjectCode;
+    HistoryState.wrongTopOpenKey = null;
+
+    const tabBar = document.getElementById('wrong-top-tab-bar');
+    if (tabBar) {
+        tabBar.querySelectorAll('.wrong-top-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.subject === subjectCode);
+        });
+    }
+
+    renderWrongTopList(subjectCode);
+}
+
+/**
+ * [NEW] 과목별 오답 TOP 15 - 선택된 과목 탭의 목록 렌더링
+ */
+function renderWrongTopList(subjectCode) {
+    const tbody = document.getElementById('wrong-top-tbody');
+    if (!tbody) return;
+
+    if (!HistoryState.wrongTopLists) {
+        HistoryState.wrongTopLists = buildWrongTopListsBySubject(15);
+    }
+    const list = HistoryState.wrongTopLists[subjectCode] || [];
+
+    if (list.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    💡 해당 과목의 오답 이력이 없습니다.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = list.map((entry, idx) => {
+        const qKey = `${entry.year}_${entry.questionNum}`;
+        return `
+            <tr class="wrong-top-row" onclick="toggleWrongTopDetail('${qKey}', ${entry.year}, ${entry.questionNum})">
+                <td>${idx + 1}</td>
+                <td>${entry.year}년</td>
+                <td>${entry.questionNum}번</td>
+                <td style="text-align: center; font-weight: 700; color: var(--error);">${entry.wrongCount}회</td>
+                <td style="color: var(--text-secondary); font-size: 0.8rem;">${entry.attemptCount}회 응시 중 ${entry.wrongCount}회 오답</td>
+            </tr>
+            <tr class="wrong-top-detail-row" id="wrong-top-detail-${qKey}" style="display: none;">
+                <td colspan="5"><div class="wrong-top-detail-body" id="wrong-top-detail-body-${qKey}">로딩 중...</div></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * [NEW] 과목별 오답 TOP 15 - 행 클릭 시 문항 상세(지문/보기/정답/해설) 펼치기·접기
+ */
+async function toggleWrongTopDetail(qKey, year, questionNum) {
+    const detailRow = document.getElementById(`wrong-top-detail-${qKey}`);
+    if (!detailRow) return;
+
+    const alreadyOpen = HistoryState.wrongTopOpenKey === qKey;
+
+    // 이전에 열려있던 상세 행은 닫습니다.
+    if (HistoryState.wrongTopOpenKey && HistoryState.wrongTopOpenKey !== qKey) {
+        const prevRow = document.getElementById(`wrong-top-detail-${HistoryState.wrongTopOpenKey}`);
+        if (prevRow) prevRow.style.display = 'none';
+    }
+
+    if (alreadyOpen) {
+        detailRow.style.display = 'none';
+        HistoryState.wrongTopOpenKey = null;
+        return;
+    }
+
+    detailRow.style.display = 'table-row';
+    HistoryState.wrongTopOpenKey = qKey;
+
+    const bodyEl = document.getElementById(`wrong-top-detail-body-${qKey}`);
+    if (!bodyEl) return;
+
+    try {
+        const qData = await fetchYearlyQuestionData({ exam_year: year }, { question_num: questionNum, q_id: qKey });
+        const answerSet = new Set((qData.answer || []).map(Number));
+        const optionsHtml = (qData.options || []).map((opt, i) => {
+            const optNum = i + 1;
+            const isAnswer = answerSet.has(optNum);
+            return `<div style="padding: 0.2rem 0; ${isAnswer ? 'color: var(--success); font-weight: 700;' : ''}">${optNum}. ${opt}${isAnswer ? ' ✔' : ''}</div>`;
+        }).join('');
+
+        bodyEl.innerHTML = `
+            <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">${qData.question || ''}</div>
+            <div style="margin-bottom: 0.6rem;">${optionsHtml}</div>
+            ${qData.explanation ? `<div style="border-top: 1px solid var(--card-border); padding-top: 0.5rem; font-size: 0.82rem;"><b>해설:</b> ${qData.explanation}</div>` : ''}
+        `;
+    } catch (e) {
+        bodyEl.innerHTML = `<span style="color: var(--error);">문항 정보를 불러오지 못했습니다.</span>`;
+    }
 }
 
 function collectPastAnswerAttempts(item, detail) {

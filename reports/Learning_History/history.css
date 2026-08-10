@@ -447,6 +447,57 @@ body[data-theme="light"] #yearly-history-tbody td:nth-child(2) {
 .subject-badge.SA { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
 .subject-badge.SC { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
 
+/* 과목별 오답 TOP 15 탭 UI */
+.wrong-top-tab-bar {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.wrong-top-tab-btn {
+    flex: 1;
+    min-width: 64px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.55rem 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wrong-top-tab-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--card-border-hover);
+}
+
+.wrong-top-tab-btn.active[data-subject="PM"] { color: #f472b6; border-color: rgba(236, 72, 153, 0.4); background: rgba(236, 72, 153, 0.12); }
+.wrong-top-tab-btn.active[data-subject="SE"] { color: #60a5fa; border-color: rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.12); }
+.wrong-top-tab-btn.active[data-subject="DB"] { color: #a78bfa; border-color: rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.12); }
+.wrong-top-tab-btn.active[data-subject="SA"] { color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.12); }
+.wrong-top-tab-btn.active[data-subject="SC"] { color: #34d399; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.12); }
+
+.wrong-top-row {
+    cursor: pointer;
+}
+
+.wrong-top-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.wrong-top-detail-row td {
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.wrong-top-detail-body {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    text-align: left;
+}
+
 .result-badge {
     font-weight: 700;
     font-size: 0.8rem;
