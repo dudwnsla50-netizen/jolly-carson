@@ -231,4 +231,17 @@ async function cpShowQuestion(qid, idx) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', cpInit);
+/**
+ * [설계 의도] 메인 대시보드에서 선택한 테마(jc_theme)를 그대로 읽어 적용합니다.
+ * 이 화면은 자체 테마 토글 버튼이 없고 lhistory.html과 동일하게 전역 설정을 따라갑니다.
+ */
+function cpInitThemeFromStorage() {
+    const savedTheme = localStorage.getItem('jc_theme');
+    const normalized = (savedTheme === 'light') ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', normalized);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    cpInitThemeFromStorage();
+    cpInit();
+});
