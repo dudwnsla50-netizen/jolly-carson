@@ -17,7 +17,7 @@ try:
 except AttributeError:
     pass
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 VOCAB_DB_PATH = os.path.join(BASE_DIR, "reports", "exam_db", "jolly_carson.db")
 JSON_PATH = os.path.join(BASE_DIR, "data", "agent_ai_vocab.json")
 

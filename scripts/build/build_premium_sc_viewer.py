@@ -4,9 +4,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 """
-[초프리미엄 데이터베이스(DB) 기출문제 뷰어 자동 빌더]
-- 목적: 2015년~2026년 기출 PDF에서 DB 과목 전체 문항(51~75번)을 추출하고,
-  12대 세부 토픽 사전을 기반으로 정형화된 빈출 분석 대시보드 웹앱(db_frequent_concepts.html)을 생성합니다.
+[초프리미엄 보안(SC) 기출문제 뷰어 자동 빌더]
+- 목적: 2015년~2026년 기출 PDF에서 SC 과목 전체 문항(101~120번)을 추출하고,
+  12대 세부 토픽 사전을 기반으로 정형화된 빈출 분석 대시보드 웹앱(sc_frequent_concepts.html)을 생성합니다.
 """
 
 import os
@@ -42,104 +42,104 @@ EXAM_FILES = [
 ]
 
 CONCEPT_KEYWORDS = {
-    "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)": ["정규화", "BCNF", "3NF", "4NF", "5NF", "함수 종속", "다치 종속", "조인 종속", "이행적", "결정자"],
-    "관계대수 및 순수 관계 연산자": ["관계대수", "관계 대수", "셀렉트", "프로젝트", "조인", "디비전", "순수 관계 연산자", "관계해석", "division", "projection"],
-    "트랜잭션 ACID 특성 및 상태 전이": ["acid", "원자성", "일관성", "격리성", "영속성", "트랜잭션", "durability", "isolation"],
-    "DBMS 회복 기법 (REDO / UNDO)": ["회복 기법", "redo", "undo", "즉시 갱신", "지연 갱신", "체크포인트", "검사점 회복", "회복기법"],
-    "동시성 제어 및 2단계 잠금 규약 (2PL)": ["동시성 제어", "병행 제어", "락킹", "locking", "2단계 잠금", "2pl", "교착상태", "데드락", "로킹", "병행제어"],
-    "분산 데이터베이스 투명성 요건": ["분산 db", "분산 데이터베이스", "위치 투명성", "중복 투명성", "단편화 투명성", "장애 투명성", "분산 dbms"],
-    "NoSQL 데이터베이스 분류 및 CAP 이론": ["nosql", "cap 이론", "cap 정리", "key-value", "document store", "hbase", "cassandra", "mongodb"],
-    "데이터웨어하우스 스키마 설계 (스타/스노우플레이크)": ["데이터 웨어하우스", "data warehouse", "스타 스키마", "스노우플레이크", "dw", "스타스키마"],
-    "SQL 쿼리 구문 (DDL/DML/DCL)": ["sql", "select", "update", "insert", "delete", "create", "grant", "revoke", "having", "group by"],
-    "인덱스 및 B-Tree 구조 특징": ["인덱스", "index", "b-tree", "b+tree", "해싱", "데이터 물리", "클러스터드 인덱스"],
-    "빅데이터 분산 플랫폼 (Hadoop/MapReduce)": ["하둡", "hadoop", "맵리듀스", "mapreduce", "스파크", "spark", "hdfs"],
-    "ER 데이터 모델링 및 식별/비식별 관계": ["e-r", "er 다이어그램", "식별 관계", "비식별 관계", "다대다", "개체-관계"]
+    "대칭키 및 비대칭키 암호화 알고리즘 비교 (AES/RSA/ECC)": ["대칭키", "비대칭키", "rsa", "des", "aes", "seed", "aria", "ecc", "공개키", "블록 암호", "스트림 암호"],
+    "암호학적 해시 함수 및 충돌 저항성 (SHA/MD5)": ["해시 함수", "sha-256", "md5", "충돌 저항성", "일방향성", "해시함수", "충돌 회피"],
+    "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)": ["방화벽", "ids", "ips", "침입탐지", "침입방지", "dmz", "패킷 필터링", "상태기반 방화벽"],
+    "대표적 웹 보안 취약점 공격 기법 (SQLi/XSS/CSRF)": ["sql 인젝션", "sql injection", "xss", "크로스 사이트", "취약점", "버퍼 오버플로우", "csrf", "사이트 간 요청 위조"],
+    "클라우드 보안인증제도 (CSAP) 운영 기준": ["csap", "클라우드 보안인증", "보안인증제도", "인증기준"],
+    "인증 프레임워크 OAuth 2.0 프로토콜": ["oauth", "토큰", "인증 프레임워크", "인증서", "권한 부여"],
+    "콘텐츠 저작권 통제 기술 (DRM / 워터마크)": ["drm", "저작권 관리", "워터마킹", "핑거프린팅", "디지털 저작권"],
+    "SW 개발보안 시큐어 코딩 및 7대 취약 영역": ["시큐어 코딩", "시큐어코딩", "개발보안", "입력데이터 검증", "보안 취약점", "행정안전부 가이드"],
+    "개인정보보호법 고유식별정보 및 가명조치 기술": ["개인정보", "가명정보", "익명정보", "비식별", "개인정보보호법", "고유식별정보", "가명 조치"],
+    "정보보호 관리체계 ISMS-P 인증 기준": ["isms", "isms-p", "관리체계 인증", "인증 기준"],
+    "전송 계층 보안 암호 프로토콜 (SSL/TLS / IPsec)": ["ssl", "tls", "https", "ipsec", "vpn", "보안 소켓"],
+    "보안 공격 유형 및 대응 (DDoS/APT/Ransomware)": ["ddos", "디도스", "랜섬웨어", "악성코드", "피싱", "스미싱", "apt", "사회공학"]
 }
 
 CONCEPT_METADATA = {
-    "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)": {
-        "core_concept": "릴레이션 스키마 분해를 통해 중복을 제거하고 이상 현상을 방지하는 정밀 설계 기법",
-        "features": "제3정규형(이행적 함수 종속 제거)에서 BCNF(모든 결정자가 후보키), 제4정규형(다치종속), 제5정규형(조인종속)으로 가는 단계적 결정 조건을 구별하는 문제가 매년 고정 출제됩니다.",
-        "scope": "DB개념 및 설계 -> 논리적 설계 -> 정규화"
+    "대칭키 및 비대칭키 암호화 알고리즘 비교 (AES/RSA/ECC)": {
+        "core_concept": "키의 형태에 따른 데이터 기밀성 보장 알고리즘 특징 및 연산 효율 대조",
+        "features": "대칭키(블록 암호: AES/SEED, 스트림 암호: RC4)와 비대칭키(RSA, ECC - 짧은 키 길이로 고효율)의 연산 속도 및 키 관리 측면 장단점을 주로 출제합니다.",
+        "scope": "공통 보안 기술 -> 암호학 -> 암호 알고리즘"
     },
-    "관계대수 및 순수 관계 연산자": {
-        "core_concept": "릴레이션을 처리하는 절차적 정형 대수 언어 및 집합 연산",
-        "features": "순수 관계 연산자(Select: 시그마, Project: 파이, Join: 리본, Division: 나누기)의 수학적 기호 표현 및 SQL 질의문과의 상호 변환 동작을 깊이 있게 다룹니다.",
-        "scope": "DB언어 -> 관계 대수 및 관계 해석"
+    "암호학적 해시 함수 및 충돌 저항성 (SHA/MD5)": {
+        "core_concept": "일방향성을 가진 고정 길이 메시지 다이제스트 산출 기술",
+        "features": "역상 저항성(다이제스트에서 평문 유추 불가능), 제2역상 저항성(동일 다이제스트를 내는 평문 찾기 불가능), 충돌 저항성(동일 다이제스트를 내는 평문 쌍 찾기 불가능)을 질문합니다.",
+        "scope": "공통 보안 기술 -> 암호학 -> 해시 함수"
     },
-    "트랜잭션 ACID 특성 및 상태 전이": {
-        "core_concept": "데이터베이스 논리적 연산 단위인 트랜잭션의 4대 필수 성질 보장",
-        "features": "원자성(Atomicity), 일관성(Consistency), 격리성(Isolation - 특히 격리 레벨별 Read phenomena), 영속성(Durability)의 정의와 위배 예시를 평가합니다.",
-        "scope": "DBMS 기술 -> 트랜잭션 정의"
+    "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)": {
+        "core_concept": "비인가 패킷 흐름을 탐지/차단하여 사설망을 보호하는 게이트웨이 보안 시스템",
+        "features": "방화벽(IP/Port 제어), IDS(오용/이상 탐지 및 모니터링), IPS(인라인 실시간 위협 차단)의 장비 배치 및 탐지 수준 차이를 구분하는 문제가 빈출됩니다.",
+        "scope": "네트워크 및 시스템 보안 -> 네트워크 보안"
     },
-    "DBMS 회복 기법 (REDO / UNDO)": {
-        "core_concept": "트랜잭션 장애 발생 시 데이터베이스를 일관된 이전 상태로 복구하는 기술",
-        "features": "로그 기반 즉시 갱신(REDO/UNDO 모두 수행)과 지연 갱신(REDO만 수행)의 차이, 그리고 검사점(Checkpoint) 기법 적용 시점 기준 복구 로그 분석 연산이 출제됩니다.",
-        "scope": "DBMS 기술 -> 트랜잭션 회복"
+    "대표적 웹 보안 취약점 공격 기법 (SQLi/XSS/CSRF)": {
+        "core_concept": "입력값 검증 미흡에 따른 웹 서비스 상의 악성 스크립트 및 쿼리 실행 해킹",
+        "features": "SQL Injection(악성 SQL 구문 삽입), XSS(사용자 브라우저에서 스크립트 실행 -> 세션 탈취), CSRF(사용자의 권한을 도용하여 서버에 불법 요청 전송)의 원리와 방어책을 묻습니다.",
+        "scope": "네트워크 및 시스템 보안 -> 웹 보안 취약점"
     },
-    "동시성 제어 및 2단계 잠금 규약 (2PL)": {
-        "core_concept": "다중 사용자 환경에서 트랜잭션들이 동시에 실행될 때 직렬 가능성을 보장하는 잠금 메커니즘",
-        "features": "2단계 잠금 규약(2PL)의 직렬화 가능성 보장 여부 및 교착상태(Deadlock) 발생 한계점, 낙관적 검증 기법, 다중 버전 동시성 제어(MVCC)의 특징을 비교합니다.",
-        "scope": "DBMS 기술 -> 동시성 제어"
+    "클라우드 보안인증제도 (CSAP) 운영 기준": {
+        "core_concept": "공공기관에 클라우드 서비스를 제공하는 민간 사업자의 보안성 평가 인증 표준",
+        "features": "CSAP 등급제(상/중/하)에 따른 데이터 물리적 분리(망분리) 의무 요건 및 시나리오별 적합 등급 선정 조항을 확인하는 문제가 기출됩니다.",
+        "scope": "응용 및 신기술 보안 -> 클라우드 보안인증"
     },
-    "분산 데이터베이스 투명성 요건": {
-        "core_concept": "물리적으로 분산된 여러 DB 노드를 단일 시스템처럼 투명하게 다루는 아키텍처",
-        "features": "4대 투명성인 위치(Location), 중복(Replication), 단편화(Fragmentation), 장애(Failure) 투명성의 정의를 명확히 구분하는 문제가 빈출됩니다.",
-        "scope": "DB응용 -> 분산 데이터베이스"
+    "인증 프레임워크 OAuth 2.0 프로토콜": {
+        "core_concept": "제3자 애플리케이션에 사용자 리소스 접근 권한을 안전하게 위임하는 표준 프레임워크",
+        "features": "4가지 권한 부여 승인 코드 방식(Authorization Code, Implicit, Resource Owner Password, Client Credentials)의 흐름과 Access Token 발급 절차를 주로 다룹니다.",
+        "scope": "응용 및 신기술 보안 -> 접근 통제 및 인증"
     },
-    "NoSQL 데이터베이스 분류 및 CAP 이론": {
-        "core_concept": "비관계형 대용량 데이터를 처리하기 위한 스키마리스 DBMS 아키텍처 표준",
-        "features": "일관성(C), 가용성(A), 분할 용인성(P) 중 2가지만 충족 가능한 CAP 이론의 한계와 CA, CP, AP 계열 NoSQL 제품군(MongoDB, Cassandra 등) 맵핑을 다룹니다.",
-        "scope": "빅데이터 및 AI데이터 -> NoSQL"
+    "콘텐츠 저작권 통제 기술 (DRM / 워터마크)": {
+        "core_concept": "디지털 콘텐츠 유통 전 과정의 저작권 보호 및 무단 배포 방지 기술",
+        "features": "DRM 패키징 구성 요소(클리어링 하우스, 패키저, 라이선스 서버 등)의 역할과 워터마킹(비가시적 저작권 정보 삽입) 및 핑거프린팅(구매자 정보 삽입 -> 추적)의 특징 차이를 묻습니다.",
+        "scope": "응용 및 신기술 보안 -> 디지털 콘텐츠 보안"
     },
-    "데이터웨어하우스 스키마 설계 (스타/스노우플레이크)": {
-        "core_concept": "다차원 데이터 분석(OLAP)을 위한 의사결정 지원용 전사 통합 데이터 아키텍처",
-        "features": "스타 스키마(팩트 테이블과 역정규화된 디멘션 테이블 구성)와 이를 완전 정규화하여 조인 성능 조정을 시도하는 스노우플레이크 스키마의 구조적 장단점을 대조합니다.",
-        "scope": "DB응용 -> 데이터웨어하우스 및 OLAP"
+    "SW 개발보안 시큐어 코딩 및 7대 취약 영역": {
+        "core_concept": "SW 설계/구현 단계부터 보안 취약점을 예방하기 위해 준수하는 개발 가이드",
+        "features": "행정안전부 시큐어코딩 7대 취약 영역(입력데이터 검증 및 표현, 보안기능, 시간 및 상태, 에러 처리, 코드오류, 캡슐화, API 오용)의 세부 명세와 소스코드 분석이 단골 출제됩니다.",
+        "scope": "개발 및 운영 보안 -> 소프트웨어 개발 보안"
     },
-    "SQL 쿼리 구문 (DDL/DML/DCL)": {
-        "core_concept": "표준 SQL 선언문 활용 및 하위 질의, 집계, 뷰, 권한 제어 연산",
-        "features": "Having 조건절 및 Group By 그룹 연산의 우선순위, EXISTS와 IN 연산자의 동작 효율, 그리고 Outer Join 수행 시 널(NULL) 값 분포 문제를 해석하는 쿼리 분석이 출제됩니다.",
-        "scope": "DB언어 -> 표준 SQL"
+    "개인정보보호법 고유식별정보 및 가명조치 기술": {
+        "core_concept": "개인정보 오남용 방지를 위한 법적 준수사항 및 데이터 비식별 처리 기법",
+        "features": "고유식별정보(주민등록번호, 여권번호 등)의 처리 요건, 가명정보(추가 정보 없이는 식별 불가 -> 통계/연구용 활용)와 익명정보의 차이, 그리고 비식별 기술(K-익명성, L-다양성)을 묻습니다.",
+        "scope": "정보보호 법규 및 개인정보보호 -> 개인정보 비식별 조치"
     },
-    "인덱스 및 B-Tree 구조 특징": {
-        "core_concept": "검색 성과를 극대화하기 위해 물리 디스크 블록 검색 빈도를 최적화하는 색인 설계",
-        "features": "B-Tree와 B+Tree(리프 노드 간 연결 리스트 제공)의 구조적 탐색 효율 차이, 클러스터드/넌클러스터드 인덱스 생성 시 테이블 물리 정렬 상태 차이를 질문합니다.",
-        "scope": "DB개념 및 설계 -> 물리적 설계 -> 색인"
+    "정보보호 관리체계 ISMS-P 인증 기준": {
+        "core_concept": "종합 정보보호 및 개인정보보호 관리체계의 적합성을 평가하는 국가 공인 인증제도",
+        "features": "3대 영역인 관리체계 수립/운영(16개), 보호대책 요구사항(64개), 개인정보 처리 단계별 요구사항(22개)의 하위 통제 항목 구별과 인증 의무 대상자 요건이 기출됩니다.",
+        "scope": "정보보호 법규 및 개인정보보호 -> 정보보호 인증"
     },
-    "빅데이터 분산 플랫폼 (Hadoop/MapReduce)": {
-        "core_concept": "저가형 범용 서버를 이용해 대용량 빅데이터를 분산 저장하고 병렬 처리하는 에코시스템",
-        "features": "HDFS(하둡 분산 파일시스템)의 마스터-슬레이브 복제 아키텍처와 맵(Map) 단계 및 리듀스(Reduce) 단계 간 셔플링 연산의 파이프라인 특징을 다룹니다.",
-        "scope": "빅데이터 및 AI데이터 -> 분산 플랫폼"
+    "전송 계층 보안 암호 프로토콜 (SSL/TLS / IPsec)": {
+        "core_concept": "네트워크 통신망을 지나는 패킷의 위변조 방지 및 암호화 전송 표준 프로토콜",
+        "features": "TLS 레코드 및 핸드셰이크 프로토콜의 단계별 동작 원리, 그리고 IPsec의 두 가지 모드(전송 모드: 페이로드만 암호화, 터널 모드: 헤더 포함 전체 암호화) 차이를 대조 질문합니다.",
+        "scope": "공통 보안 기술 -> 암호학 -> 전송 프로토콜"
     },
-    "ER 데이터 모델링 및 식별/비식별 관계": {
-        "core_concept": "개념적 설계 단계의 엔티티, 속성, 관계 표현법 및 물리 스키마 맵핑 규칙",
-        "features": "식별 관계(부모 키를 자식의 주식별자로 상속)와 비식별 관계(일반 속성으로 상속)의 점선/실선 기호 해석 및 다대다 관계 해소를 위한 교차 테이블 설계를 묻습니다.",
-        "scope": "DB개념 및 설계 -> 개념적 설계 -> ERD"
+    "보안 공격 유형 및 대응 (DDoS/APT/Ransomware)": {
+        "core_concept": "시스템 자원을 고갈시키거나 표적 공격을 감행하는 악의적인 네트워크 해킹 및 악성코드 형태",
+        "features": "DDoS 공격 유형(HTTP Get Flooding, DRDoS - 반사 서버 이용), APT(지속적 표적 공격 수명주기), 랜섬웨어의 암호화 피해 특징을 사례 기반으로 출제합니다.",
+        "scope": "네트워크 및 시스템 보안 -> 시스템 해킹"
     }
 }
 
 TOPIC_CATEGORIES = {
-    "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)": "DB개념 및 설계",
-    "관계대수 및 순수 관계 연산자": "DB언어",
-    "트랜잭션 ACID 특성 및 상태 전이": "DBMS 기술",
-    "DBMS 회복 기법 (REDO / UNDO)": "DBMS 기술",
-    "동시성 제어 및 2단계 잠금 규약 (2PL)": "DBMS 기술",
-    "분산 데이터베이스 투명성 요건": "DB응용",
-    "NoSQL 데이터베이스 분류 및 CAP 이론": "빅데이터 및 AI데이터",
-    "데이터웨어하우스 스키마 설계 (스타/스노우플레이크)": "DB응용",
-    "SQL 쿼리 구문 (DDL/DML/DCL)": "DB언어",
-    "인덱스 및 B-Tree 구조 특징": "DB개념 및 설계",
-    "빅데이터 분산 플랫폼 (Hadoop/MapReduce)": "빅데이터 및 AI데이터",
-    "ER 데이터 모델링 및 식별/비식별 관계": "DB개념 및 설계"
+    "대칭키 및 비대칭키 암호화 알고리즘 비교 (AES/RSA/ECC)": "공통 보안 기술",
+    "암호학적 해시 함수 및 충돌 저항성 (SHA/MD5)": "공통 보안 기술",
+    "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)": "네트워크 및 시스템 보안",
+    "대표적 웹 보안 취약점 공격 기법 (SQLi/XSS/CSRF)": "네트워크 및 시스템 보안",
+    "클라우드 보안인증제도 (CSAP) 운영 기준": "응용 및 신기술 보안",
+    "인증 프레임워크 OAuth 2.0 프로토콜": "응용 및 신기술 보안",
+    "콘텐츠 저작권 통제 기술 (DRM / 워터마크)": "응용 및 신기술 보안",
+    "SW 개발보안 시큐어 코딩 및 7대 취약 영역": "개발 및 운영 보안",
+    "개인정보보호법 고유식별정보 및 가명조치 기술": "정보보호 법규 및 개인정보보호",
+    "정보보호 관리체계 ISMS-P 인증 기준": "정보보호 법규 및 개인정보보호",
+    "전송 계층 보안 암호 프로토콜 (SSL/TLS / IPsec)": "공통 보안 기술",
+    "보안 공격 유형 및 대응 (DDoS/APT/Ransomware)": "네트워크 및 시스템 보안"
 }
 
 def crop_question_images(pdf_path, year, output_dir):
-    """[공통 모듈 위임] PDF로부터 DB 과목 문항 영역을 추출하여 이미지로 저장하고 위치 좌표를 반환"""
+    """[공통 모듈 위임] PDF로부터 SC 과목 문항 영역을 추출하여 이미지로 저장하고 위치 좌표를 반환"""
     local_img_dir = r"e:\jolly-carson\reports\images"
     artifact_img_dir = os.path.join(ARTIFACT_DIR, "images")
     return image_cropper.get_question_positions_and_crop(
-        pdf_path, year, "DB", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
+        pdf_path, year, "SC", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
     )
 
 def extract_pdf_clean(file_path):
@@ -166,9 +166,9 @@ def extract_pdf_clean(file_path):
             cleaned_text.append("\n".join(page_text_parts))
     return "\n\n=== NEW PAGE ===\n\n".join(cleaned_text)
 
-def slice_db_section(full_text):
-    start_pattern = r"\b51\s*[\.\)]"
-    end_pattern = r"\b76\s*[\.\)]"
+def slice_sc_section(full_text):
+    start_pattern = r"\b101\s*[\.\)]"
+    end_pattern = r"\b121\s*[\.\)]"
     
     start_match = re.search(start_pattern, full_text)
     end_match = re.search(end_pattern, full_text)
@@ -179,33 +179,33 @@ def slice_db_section(full_text):
         return full_text[start_idx:end_idx].strip()
     return ""
 
-def parse_questions(db_text):
+def parse_questions(sc_text):
     questions = []
-    for num in range(51, 76):
+    for num in range(101, 121):
         curr_pat = rf"(?<![\.\d]){num}\s*[\.\)]"
         next_pat = rf"(?<![\.\d]){num+1}\s*[\.\)]"
         
-        curr_match = re.search(curr_pat, db_text)
+        curr_match = re.search(curr_pat, sc_text)
         if not curr_match:
             continue
             
         start_pos = curr_match.start()
-        next_match = re.search(next_pat, db_text)
+        next_match = re.search(next_pat, sc_text)
         
         if next_match:
             end_pos = next_match.start()
-            q_body = db_text[start_pos:end_pos].strip()
+            q_body = sc_text[start_pos:end_pos].strip()
         else:
-            q_body = db_text[start_pos:].strip()
+            q_body = sc_text[start_pos:].strip()
             
-        # [방어 코드] 보기 ④번 이후에 다단 텍스트 등의 영향으로 타 문제(예: 59번)가 달라붙는 버그 방지
+        # [방어 코드] 보기 ④번 이후에 다단 텍스트 등의 영향으로 타 문제(예: 42번)가 달라붙는 버그 방지
         if "④" in q_body:
             clean_match = re.search(r"④.*?(?=(?:\r?\n)\s*(?!(?:1|2|3|4)\b)\d+\s*[\.\)])", q_body, re.DOTALL)
             if clean_match:
                 q_body = q_body[:clean_match.end()].strip()
             
             # 과목 경계를 알리는 한글 구분자나 페이지 지시문이 붙어 있으면 잘라냅니다.
-            for separator in ["시스템구조", "보안", "프로젝트관리", "소프트웨어", "=== NEW PAGE ==="]:
+            for separator in ["프로젝트관리", "소프트웨어", "=== NEW PAGE ==="]:
                 sep_match = re.search(rf"\n\s*{separator}", q_body)
                 if sep_match:
                     q_body = q_body[:sep_match.start()].strip()
@@ -214,7 +214,7 @@ def parse_questions(db_text):
     return questions
 
 def load_exam_database_dict(subject_code):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
     
     # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조
@@ -425,10 +425,10 @@ def build_html_content(question_db, concept_map):
 
 def main():
     question_db, concept_map = run_extraction_and_mapping()
-    update_shared_db(question_db, "DB")
+    update_shared_db(question_db, "SC")
     html_content = build_html_content(question_db, concept_map)
     
-    local_path, artifact_path = get_output_paths("db_frequent_concepts.html")
+    local_path, artifact_path = get_output_paths("sc_frequent_concepts.html")
     
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     with open(local_path, "w", encoding="utf-8") as f:

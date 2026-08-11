@@ -313,7 +313,7 @@ def parse_questions(se_text):
     return questions
 
 def load_exam_database_dict(subject_code):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
     
     # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조

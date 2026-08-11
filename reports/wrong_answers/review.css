@@ -359,6 +359,9 @@
     color: var(--text-primary);
     margin-bottom: 1.6rem;
     white-space: pre-wrap;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
 }
 
 /* 보기 버튼 목록 */
@@ -385,6 +388,15 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 보기 텍스트 자체는 드래그로 선택/복사할 수 있도록 예외 허용 (문항 번호 배지는 제외) */
+.card-opt-text {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
 }
 
 .card-opt-btn:hover:not(:disabled) {

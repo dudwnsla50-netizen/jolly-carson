@@ -16,7 +16,7 @@ else:
     # render.com 등 리눅스 서버 환경 혹은 타 사용자 PC에서는 
     # 워크스페이스 내의 임시/더미 경로를 반환하여 os.path.join 시의 TypeError를 예방합니다.
     # 실제로 이 디렉토리를 물리적으로 생성하거나 쓸 때 예외가 나면 무시하도록 처리합니다.
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ARTIFACT_DIR = os.path.join(base_dir, "reports", "temp_artifacts_fallback")
 
 
@@ -24,7 +24,7 @@ def get_output_paths(filename):
     """
     주어진 파일명에 대해 로컬 워크스페이스 reports 경로와 아티팩트 경로를 반환합니다.
     """
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     local_path = os.path.join(base_dir, "reports", filename)
     artifact_path = os.path.join(ARTIFACT_DIR, filename)
     return local_path, artifact_path
@@ -117,7 +117,7 @@ def get_dashboard_html_template(dashboard_type, subject_code, subject_name, mapp
         print(f"[{subject_code} 데이터 JS] 아티팩트 저장 건너뜀 (배포 환경 혹은 권한 없음): {e}")
 
     # 2. 정적 HTML 뼈대 템플릿 로드 시도
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     template_path = os.path.join(base_dir, "reports", "dashboard_template.html")
     
     html_template = ""

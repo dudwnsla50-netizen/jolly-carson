@@ -4,9 +4,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 """
-[초프리미엄 보안(SC) 기출문제 뷰어 자동 빌더]
-- 목적: 2015년~2026년 기출 PDF에서 SC 과목 전체 문항(101~120번)을 추출하고,
-  12대 세부 토픽 사전을 기반으로 정형화된 빈출 분석 대시보드 웹앱(sc_frequent_concepts.html)을 생성합니다.
+[초프리미엄 시스템구조(SA) 기출문제 뷰어 자동 빌더]
+- 목적: 2015년~2026년 기출 PDF에서 SA 과목 전체 문항(76~100번)을 추출하고,
+  12대 세부 토픽 사전을 기반으로 정형화된 빈출 분석 대시보드 웹앱(sa_frequent_concepts.html)을 생성합니다.
 """
 
 import os
@@ -42,104 +42,104 @@ EXAM_FILES = [
 ]
 
 CONCEPT_KEYWORDS = {
-    "대칭키 및 비대칭키 암호화 알고리즘 비교 (AES/RSA/ECC)": ["대칭키", "비대칭키", "rsa", "des", "aes", "seed", "aria", "ecc", "공개키", "블록 암호", "스트림 암호"],
-    "암호학적 해시 함수 및 충돌 저항성 (SHA/MD5)": ["해시 함수", "sha-256", "md5", "충돌 저항성", "일방향성", "해시함수", "충돌 회피"],
-    "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)": ["방화벽", "ids", "ips", "침입탐지", "침입방지", "dmz", "패킷 필터링", "상태기반 방화벽"],
-    "대표적 웹 보안 취약점 공격 기법 (SQLi/XSS/CSRF)": ["sql 인젝션", "sql injection", "xss", "크로스 사이트", "취약점", "버퍼 오버플로우", "csrf", "사이트 간 요청 위조"],
-    "클라우드 보안인증제도 (CSAP) 운영 기준": ["csap", "클라우드 보안인증", "보안인증제도", "인증기준"],
-    "인증 프레임워크 OAuth 2.0 프로토콜": ["oauth", "토큰", "인증 프레임워크", "인증서", "권한 부여"],
-    "콘텐츠 저작권 통제 기술 (DRM / 워터마크)": ["drm", "저작권 관리", "워터마킹", "핑거프린팅", "디지털 저작권"],
-    "SW 개발보안 시큐어 코딩 및 7대 취약 영역": ["시큐어 코딩", "시큐어코딩", "개발보안", "입력데이터 검증", "보안 취약점", "행정안전부 가이드"],
-    "개인정보보호법 고유식별정보 및 가명조치 기술": ["개인정보", "가명정보", "익명정보", "비식별", "개인정보보호법", "고유식별정보", "가명 조치"],
-    "정보보호 관리체계 ISMS-P 인증 기준": ["isms", "isms-p", "관리체계 인증", "인증 기준"],
-    "전송 계층 보안 암호 프로토콜 (SSL/TLS / IPsec)": ["ssl", "tls", "https", "ipsec", "vpn", "보안 소켓"],
-    "보안 공격 유형 및 대응 (DDoS/APT/Ransomware)": ["ddos", "디도스", "랜섬웨어", "악성코드", "피싱", "스미싱", "apt", "사회공학"]
+    "CPU 정보 레지스터 및 명령어 사이클": ["cpu", "레지스터", "프로그램 카운터", "alu", "명령어 사이클", "간접 주소", "누산기"],
+    "명령어 파이프라이닝 및 해저드 종류 (구조적/데이터/제어)": ["파이프라인", "pipelining", "해저드", "hazard", "데이터 해저드", "구조적 해저드", "제어 해저드", "분기 예측"],
+    "캐시 메모리 매핑 및 쓰기 정책 (Write-through/Write-back)": ["캐시", "cache", "직접 매핑", "연관 매핑", "세트 연관", "캐시 쓰기", "쓰기 통과", "쓰기 되돌리기", "hit ratio", "캐시 일관성"],
+    "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)": ["가상 메모리", "가상메모리", "lru", "lfu", "fifo", "opt", "페이지 교체", "스래싱", "페이지폴트", "워킹셋"],
+    "RAID 레벨별 패리티 및 디스크 효율 (0/1/5/6/10)": ["raid", "스트라이핑", "미러링", "패리티", "raid 0", "raid 1", "raid 5", "raid 6", "raid 10"],
+    "고가용성 아키텍처 및 재해 복구 시스템 (DRS)": ["고가용성", "ha", "액티브-액티브", "액티브-스탠바이", "drs", "rto", "rpo", "클러스터링", "이중화"],
+    "OSI 7계층 및 TCP/IP 프로토콜 스택": ["osi 7", "osi 7계층", "물리 계층", "데이터 링크", "네트워크 계층", "전송 계층", "세션", "표현", "응용 계층", "캡슐화"],
+    "IP 주소 체계 비교 (IPv4 vs IPv6 헤더 필드)": ["ipv4", "ipv6", "ip 주소", "서브넷", "서브넷 마스크", "애니캐스트", "멀티캐스트", "ipv6 헤더"],
+    "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)": ["tcp", "혼잡 제어", "흐름 제어", "slow start", "혼잡 회피", "슬라이딩 윈도우", "빠른 재전송", "임계치"],
+    "클라우드 서비스 모델 (IaaS/PaaS/SaaS) 및 가상화": ["클라우드", "iaas", "paas", "saas", "가상화", "docker", "kubernetes", "컨테이너", "하이퍼바이저"],
+    "네트워크 라우팅 프로토콜 (RIP/OSPF/BGP)": ["라우터", "스위치", "라우팅", "rip", "ospf", "bgp", "거리 벡터", "링크 상태"],
+    "컴퓨터 조합/순서 논리 회로 (가산기/플립플롭 등)": ["논리 회로", "논리회로", "가산기", "디코더", "멀티플렉서", "플립플롭", "부울 대수", "카르노 맵"]
 }
 
 CONCEPT_METADATA = {
-    "대칭키 및 비대칭키 암호화 알고리즘 비교 (AES/RSA/ECC)": {
-        "core_concept": "키의 형태에 따른 데이터 기밀성 보장 알고리즘 특징 및 연산 효율 대조",
-        "features": "대칭키(블록 암호: AES/SEED, 스트림 암호: RC4)와 비대칭키(RSA, ECC - 짧은 키 길이로 고효율)의 연산 속도 및 키 관리 측면 장단점을 주로 출제합니다.",
-        "scope": "공통 보안 기술 -> 암호학 -> 암호 알고리즘"
+    "CPU 정보 레지스터 및 명령어 사이클": {
+        "core_concept": "중앙처리장치의 구성 요소 및 주소 지정 방식과 실행 주기 제어",
+        "features": "프로그램 카운터(PC), 누산기(AC), 메모리 주소 레지스터(MAR)의 흐름과 인출(Fetch)->간접(Indirect)->실행(Execute)->인터럽트(Interrupt) 사이클 상태 변화를 묻습니다.",
+        "scope": "공통기술 -> 컴퓨터 구조 -> CPU"
     },
-    "암호학적 해시 함수 및 충돌 저항성 (SHA/MD5)": {
-        "core_concept": "일방향성을 가진 고정 길이 메시지 다이제스트 산출 기술",
-        "features": "역상 저항성(다이제스트에서 평문 유추 불가능), 제2역상 저항성(동일 다이제스트를 내는 평문 찾기 불가능), 충돌 저항성(동일 다이제스트를 내는 평문 쌍 찾기 불가능)을 질문합니다.",
-        "scope": "공통 보안 기술 -> 암호학 -> 해시 함수"
+    "명령어 파이프라이닝 및 해저드 종류 (구조적/데이터/제어)": {
+        "core_concept": "여러 명령어를 중첩 실행하여 처리량(Throughput)을 높이는 병렬 처리 기술",
+        "features": "구조적 해저드(자원 충돌), 데이터 해저드(RAW, WAR, WAW 의존성), 제어 해저드(분기 명령 발생)의 발생 원인과 지연(Stall) 및 우회(Bypassing) 해결 기법을 출제합니다.",
+        "scope": "공통기술 -> 컴퓨터 구조 -> 파이프라인"
     },
-    "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)": {
-        "core_concept": "비인가 패킷 흐름을 탐지/차단하여 사설망을 보호하는 게이트웨이 보안 시스템",
-        "features": "방화벽(IP/Port 제어), IDS(오용/이상 탐지 및 모니터링), IPS(인라인 실시간 위협 차단)의 장비 배치 및 탐지 수준 차이를 구분하는 문제가 빈출됩니다.",
-        "scope": "네트워크 및 시스템 보안 -> 네트워크 보안"
+    "캐시 메모리 매핑 및 쓰기 정책 (Write-through/Write-back)": {
+        "core_concept": "CPU와 메인 메모리 간 속도 차이를 해소하기 위한 고속 버퍼 메모리 운영 기법",
+        "features": "직접(Direct), 연관(Associative), 세트 연관(Set-Associative) 매핑의 주소 구조 분석과 Write-through(즉시 기록) / Write-back(교체 시 기록)의 성능 특징을 비교합니다.",
+        "scope": "공통기술 -> 컴퓨터 구조 -> 캐시"
     },
-    "대표적 웹 보안 취약점 공격 기법 (SQLi/XSS/CSRF)": {
-        "core_concept": "입력값 검증 미흡에 따른 웹 서비스 상의 악성 스크립트 및 쿼리 실행 해킹",
-        "features": "SQL Injection(악성 SQL 구문 삽입), XSS(사용자 브라우저에서 스크립트 실행 -> 세션 탈취), CSRF(사용자의 권한을 도용하여 서버에 불법 요청 전송)의 원리와 방어책을 묻습니다.",
-        "scope": "네트워크 및 시스템 보안 -> 웹 보안 취약점"
+    "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)": {
+        "core_concept": "물리 메모리 크기 한계를 극복하고 가상 주소를 물리 주소로 사상하여 관리하는 메모리 관리 모델",
+        "features": "LRU(최근 최소 사용), LFU(최소 빈도 사용), FIFO 교체 알고리즘의 페이지 부재(Page Fault) 횟수 계산 문제 및 스래싱(Thrashing) 예방을 위한 워킹셋 모델을 다룹니다.",
+        "scope": "공통기술 -> 운영체제 -> 메모리 관리"
     },
-    "클라우드 보안인증제도 (CSAP) 운영 기준": {
-        "core_concept": "공공기관에 클라우드 서비스를 제공하는 민간 사업자의 보안성 평가 인증 표준",
-        "features": "CSAP 등급제(상/중/하)에 따른 데이터 물리적 분리(망분리) 의무 요건 및 시나리오별 적합 등급 선정 조항을 확인하는 문제가 기출됩니다.",
-        "scope": "응용 및 신기술 보안 -> 클라우드 보안인증"
+    "RAID 레벨별 패리티 및 디스크 효율 (0/1/5/6/10)": {
+        "core_concept": "여러 물리 디스크를 논리적 하나의 저장장치로 묶어 성능과 신뢰성을 올리는 기술",
+        "features": "RAID 0(스트라이핑), 1(미러링), 5(분산 단일 패리티), 6(분산 이중 패리티)의 필요 디스크 수 계산, 가용 용량 비율 및 결함 복구 한계를 물어봅니다.",
+        "scope": "아키텍처 설계 및 구축 -> 스토리지 아키텍처"
     },
-    "인증 프레임워크 OAuth 2.0 프로토콜": {
-        "core_concept": "제3자 애플리케이션에 사용자 리소스 접근 권한을 안전하게 위임하는 표준 프레임워크",
-        "features": "4가지 권한 부여 승인 코드 방식(Authorization Code, Implicit, Resource Owner Password, Client Credentials)의 흐름과 Access Token 발급 절차를 주로 다룹니다.",
-        "scope": "응용 및 신기술 보안 -> 접근 통제 및 인증"
+    "고가용성 아키텍처 및 재해 복구 시스템 (DRS)": {
+        "core_concept": "시스템 다운 타임을 최소화하기 위한 이중화 및 재해 복구(DR) 아키텍처 표준",
+        "features": "Active-Active, Active-Standby 구성의 세션 동기화 문제와 DRS 수준(Mirroring, Hot, Warm, Cold)에 따른 RTO(복구목표시간) 및 RPO(복구목표시점) 관계를 매년 질문합니다.",
+        "scope": "아키텍처 설계 및 구축 -> 가용성 설계"
     },
-    "콘텐츠 저작권 통제 기술 (DRM / 워터마크)": {
-        "core_concept": "디지털 콘텐츠 유통 전 과정의 저작권 보호 및 무단 배포 방지 기술",
-        "features": "DRM 패키징 구성 요소(클리어링 하우스, 패키저, 라이선스 서버 등)의 역할과 워터마킹(비가시적 저작권 정보 삽입) 및 핑거프린팅(구매자 정보 삽입 -> 추적)의 특징 차이를 묻습니다.",
-        "scope": "응용 및 신기술 보안 -> 디지털 콘텐츠 보안"
+    "OSI 7계층 및 TCP/IP 프로토콜 스택": {
+        "core_concept": "네트워크 통신망 구축을 위한 ISO 표준 개방형 아키텍처와 실제 인터넷 프로토콜 표준",
+        "features": "각 계층별 역할(데이터링크: 흐름/에러 제어, 전송: End-to-End 신뢰성 등)과 대표적인 프로토콜/장비 매핑 관계를 묻습니다.",
+        "scope": "데이터 통신 및 네트워크 설계 -> 네트워크 모델"
     },
-    "SW 개발보안 시큐어 코딩 및 7대 취약 영역": {
-        "core_concept": "SW 설계/구현 단계부터 보안 취약점을 예방하기 위해 준수하는 개발 가이드",
-        "features": "행정안전부 시큐어코딩 7대 취약 영역(입력데이터 검증 및 표현, 보안기능, 시간 및 상태, 에러 처리, 코드오류, 캡슐화, API 오용)의 세부 명세와 소스코드 분석이 단골 출제됩니다.",
-        "scope": "개발 및 운영 보안 -> 소프트웨어 개발 보안"
+    "IP 주소 체계 비교 (IPv4 vs IPv6 헤더 필드)": {
+        "core_concept": "인터넷망 상의 호스트 식별을 위한 주소 규격 및 차세대 인터넷 프로토콜 헤더 사양",
+        "features": "IPv4(32비트, 가변 헤더)와 IPv6(128비트, 고정 헤더, 흐름 레이블 필드 도입, 체크섬 필드 제거)의 헤더 필드 대조 및 서브넷 마스크 연산 문제가 빈출됩니다.",
+        "scope": "데이터 통신 및 네트워크 설계 -> IP 프로토콜"
     },
-    "개인정보보호법 고유식별정보 및 가명조치 기술": {
-        "core_concept": "개인정보 오남용 방지를 위한 법적 준수사항 및 데이터 비식별 처리 기법",
-        "features": "고유식별정보(주민등록번호, 여권번호 등)의 처리 요건, 가명정보(추가 정보 없이는 식별 불가 -> 통계/연구용 활용)와 익명정보의 차이, 그리고 비식별 기술(K-익명성, L-다양성)을 묻습니다.",
-        "scope": "정보보호 법규 및 개인정보보호 -> 개인정보 비식별 조치"
+    "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)": {
+        "core_concept": "송신 호스트가 네트워크 내의 혼잡 상태를 감지하여 전송률을 스스로 조절하는 흐름 제어 기법",
+        "features": "Slow Start(지수적 증가), Congestion Avoidance(선형적 증가), 빠른 재전송(3 Duplicate ACKs 시 임계값 조정 및 전송) 그래프 상의 윈도우 크기 변화를 계산합니다.",
+        "scope": "데이터 통신 및 네트워크 설계 -> 전송 프로토콜"
     },
-    "정보보호 관리체계 ISMS-P 인증 기준": {
-        "core_concept": "종합 정보보호 및 개인정보보호 관리체계의 적합성을 평가하는 국가 공인 인증제도",
-        "features": "3대 영역인 관리체계 수립/운영(16개), 보호대책 요구사항(64개), 개인정보 처리 단계별 요구사항(22개)의 하위 통제 항목 구별과 인증 의무 대상자 요건이 기출됩니다.",
-        "scope": "정보보호 법규 및 개인정보보호 -> 정보보호 인증"
+    "클라우드 서비스 모델 (IaaS/PaaS/SaaS) 및 가상화": {
+        "core_concept": "가상화된 컴퓨팅 리소스를 온디맨드로 제공하는 서비스 모델 및 컨테이너화 기술",
+        "features": "IaaS, PaaS, SaaS의 관리 책임 한계선 분기점 및 Type-1/Type-2 하이퍼바이저와 Docker 컨테이너(OS 커널 공유)의 성능 구조적 장단점을 비교 출제합니다.",
+        "scope": "기타 신기술 -> 클라우드 컴퓨팅"
     },
-    "전송 계층 보안 암호 프로토콜 (SSL/TLS / IPsec)": {
-        "core_concept": "네트워크 통신망을 지나는 패킷의 위변조 방지 및 암호화 전송 표준 프로토콜",
-        "features": "TLS 레코드 및 핸드셰이크 프로토콜의 단계별 동작 원리, 그리고 IPsec의 두 가지 모드(전송 모드: 페이로드만 암호화, 터널 모드: 헤더 포함 전체 암호화) 차이를 대조 질문합니다.",
-        "scope": "공통 보안 기술 -> 암호학 -> 전송 프로토콜"
+    "네트워크 라우팅 프로토콜 (RIP/OSPF/BGP)": {
+        "core_concept": "패킷을 목적지까지 가장 효율적인 경로로 전달하기 위한 네트워크 라우팅 프로토콜",
+        "features": "RIP(거리 벡터, 벨만-포드, 최대 15홉 제한)와 OSPF(링크 상태, 다익스트라, 계층 구조) 및 BGP(경로 벡터, 자율 시스템 간 연동)의 세부 명세 비교가 출제됩니다.",
+        "scope": "데이터 통신 및 네트워크 설계 -> 라우팅 프로토콜"
     },
-    "보안 공격 유형 및 대응 (DDoS/APT/Ransomware)": {
-        "core_concept": "시스템 자원을 고갈시키거나 표적 공격을 감행하는 악의적인 네트워크 해킹 및 악성코드 형태",
-        "features": "DDoS 공격 유형(HTTP Get Flooding, DRDoS - 반사 서버 이용), APT(지속적 표적 공격 수명주기), 랜섬웨어의 암호화 피해 특징을 사례 기반으로 출제합니다.",
-        "scope": "네트워크 및 시스템 보안 -> 시스템 해킹"
+    "컴퓨터 조합/순서 논리 회로 (가산기/플립플롭 등)": {
+        "core_concept": "하드웨어 회로 설계를 위한 기초 수학 논리 및 소자 아키텍처",
+        "features": "가산기, 디코더, 멀티플렉서(기억 소자 없음 -> 조합 회로)와 플립플롭, 카운터(기억 소자 있음 -> 순서 회로)의 출력 진리표 해석과 부울 대수 간소화를 질문합니다.",
+        "scope": "공통기술 -> 디지털 논리 설계"
     }
 }
 
 TOPIC_CATEGORIES = {
-    "대칭키 및 비대칭키 암호화 알고리즘 비교 (AES/RSA/ECC)": "공통 보안 기술",
-    "암호학적 해시 함수 및 충돌 저항성 (SHA/MD5)": "공통 보안 기술",
-    "네트워크 차단 및 보안 장비 (방화벽/IDS/IPS)": "네트워크 및 시스템 보안",
-    "대표적 웹 보안 취약점 공격 기법 (SQLi/XSS/CSRF)": "네트워크 및 시스템 보안",
-    "클라우드 보안인증제도 (CSAP) 운영 기준": "응용 및 신기술 보안",
-    "인증 프레임워크 OAuth 2.0 프로토콜": "응용 및 신기술 보안",
-    "콘텐츠 저작권 통제 기술 (DRM / 워터마크)": "응용 및 신기술 보안",
-    "SW 개발보안 시큐어 코딩 및 7대 취약 영역": "개발 및 운영 보안",
-    "개인정보보호법 고유식별정보 및 가명조치 기술": "정보보호 법규 및 개인정보보호",
-    "정보보호 관리체계 ISMS-P 인증 기준": "정보보호 법규 및 개인정보보호",
-    "전송 계층 보안 암호 프로토콜 (SSL/TLS / IPsec)": "공통 보안 기술",
-    "보안 공격 유형 및 대응 (DDoS/APT/Ransomware)": "네트워크 및 시스템 보안"
+    "CPU 정보 레지스터 및 명령어 사이클": "공통기술",
+    "명령어 파이프라이닝 및 해저드 종류 (구조적/데이터/제어)": "공통기술",
+    "캐시 메모리 매핑 및 쓰기 정책 (Write-through/Write-back)": "공통기술",
+    "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)": "공통기술",
+    "RAID 레벨별 패리티 및 디스크 효율 (0/1/5/6/10)": "아키텍처 설계 및 구축",
+    "고가용성 아키텍처 및 재해 복구 시스템 (DRS)": "아키텍처 설계 및 구축",
+    "OSI 7계층 및 TCP/IP 프로토콜 스택": "데이터 통신 및 네트워크 설계",
+    "IP 주소 체계 비교 (IPv4 vs IPv6 헤더 필드)": "데이터 통신 및 네트워크 설계",
+    "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)": "데이터 통신 및 네트워크 설계",
+    "클라우드 서비스 모델 (IaaS/PaaS/SaaS) 및 가상화": "기타 신기술",
+    "네트워크 라우팅 프로토콜 (RIP/OSPF/BGP)": "데이터 통신 및 네트워크 설계",
+    "컴퓨터 조합/순서 논리 회로 (가산기/플립플롭 등)": "공통기술"
 }
 
 def crop_question_images(pdf_path, year, output_dir):
-    """[공통 모듈 위임] PDF로부터 SC 과목 문항 영역을 추출하여 이미지로 저장하고 위치 좌표를 반환"""
+    """[공통 모듈 위임] PDF로부터 SA 과목 문항 영역을 추출하여 이미지로 저장하고 위치 좌표를 반환"""
     local_img_dir = r"e:\jolly-carson\reports\images"
     artifact_img_dir = os.path.join(ARTIFACT_DIR, "images")
     return image_cropper.get_question_positions_and_crop(
-        pdf_path, year, "SC", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
+        pdf_path, year, "SA", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
     )
 
 def extract_pdf_clean(file_path):
@@ -166,9 +166,9 @@ def extract_pdf_clean(file_path):
             cleaned_text.append("\n".join(page_text_parts))
     return "\n\n=== NEW PAGE ===\n\n".join(cleaned_text)
 
-def slice_sc_section(full_text):
-    start_pattern = r"\b101\s*[\.\)]"
-    end_pattern = r"\b121\s*[\.\)]"
+def slice_sa_section(full_text):
+    start_pattern = r"\b76\s*[\.\)]"
+    end_pattern = r"\b101\s*[\.\)]"
     
     start_match = re.search(start_pattern, full_text)
     end_match = re.search(end_pattern, full_text)
@@ -179,33 +179,33 @@ def slice_sc_section(full_text):
         return full_text[start_idx:end_idx].strip()
     return ""
 
-def parse_questions(sc_text):
+def parse_questions(sa_text):
     questions = []
-    for num in range(101, 121):
+    for num in range(76, 101):
         curr_pat = rf"(?<![\.\d]){num}\s*[\.\)]"
         next_pat = rf"(?<![\.\d]){num+1}\s*[\.\)]"
         
-        curr_match = re.search(curr_pat, sc_text)
+        curr_match = re.search(curr_pat, sa_text)
         if not curr_match:
             continue
             
         start_pos = curr_match.start()
-        next_match = re.search(next_pat, sc_text)
+        next_match = re.search(next_pat, sa_text)
         
         if next_match:
             end_pos = next_match.start()
-            q_body = sc_text[start_pos:end_pos].strip()
+            q_body = sa_text[start_pos:end_pos].strip()
         else:
-            q_body = sc_text[start_pos:].strip()
+            q_body = sa_text[start_pos:].strip()
             
-        # [방어 코드] 보기 ④번 이후에 다단 텍스트 등의 영향으로 타 문제(예: 42번)가 달라붙는 버그 방지
+        # [방어 코드] 보기 ④번 이후에 다단 텍스트 등의 영향으로 타 문제(예: 77번)가 달라붙는 버그 방지
         if "④" in q_body:
             clean_match = re.search(r"④.*?(?=(?:\r?\n)\s*(?!(?:1|2|3|4)\b)\d+\s*[\.\)])", q_body, re.DOTALL)
             if clean_match:
                 q_body = q_body[:clean_match.end()].strip()
             
             # 과목 경계를 알리는 한글 구분자나 페이지 지시문이 붙어 있으면 잘라냅니다.
-            for separator in ["프로젝트관리", "소프트웨어", "=== NEW PAGE ==="]:
+            for separator in ["보안", "보안공학", "정보보호", "소프트웨어", "=== NEW PAGE ==="]:
                 sep_match = re.search(rf"\n\s*{separator}", q_body)
                 if sep_match:
                     q_body = q_body[:sep_match.start()].strip()
@@ -214,7 +214,7 @@ def parse_questions(sc_text):
     return questions
 
 def load_exam_database_dict(subject_code):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
     
     # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조
@@ -425,10 +425,10 @@ def build_html_content(question_db, concept_map):
 
 def main():
     question_db, concept_map = run_extraction_and_mapping()
-    update_shared_db(question_db, "SC")
+    update_shared_db(question_db, "SA")
     html_content = build_html_content(question_db, concept_map)
     
-    local_path, artifact_path = get_output_paths("sc_frequent_concepts.html")
+    local_path, artifact_path = get_output_paths("sa_frequent_concepts.html")
     
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     with open(local_path, "w", encoding="utf-8") as f:

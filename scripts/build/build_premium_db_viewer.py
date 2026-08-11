@@ -4,9 +4,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 """
-[초프리미엄 시스템구조(SA) 기출문제 뷰어 자동 빌더]
-- 목적: 2015년~2026년 기출 PDF에서 SA 과목 전체 문항(76~100번)을 추출하고,
-  12대 세부 토픽 사전을 기반으로 정형화된 빈출 분석 대시보드 웹앱(sa_frequent_concepts.html)을 생성합니다.
+[초프리미엄 데이터베이스(DB) 기출문제 뷰어 자동 빌더]
+- 목적: 2015년~2026년 기출 PDF에서 DB 과목 전체 문항(51~75번)을 추출하고,
+  12대 세부 토픽 사전을 기반으로 정형화된 빈출 분석 대시보드 웹앱(db_frequent_concepts.html)을 생성합니다.
 """
 
 import os
@@ -42,104 +42,104 @@ EXAM_FILES = [
 ]
 
 CONCEPT_KEYWORDS = {
-    "CPU 정보 레지스터 및 명령어 사이클": ["cpu", "레지스터", "프로그램 카운터", "alu", "명령어 사이클", "간접 주소", "누산기"],
-    "명령어 파이프라이닝 및 해저드 종류 (구조적/데이터/제어)": ["파이프라인", "pipelining", "해저드", "hazard", "데이터 해저드", "구조적 해저드", "제어 해저드", "분기 예측"],
-    "캐시 메모리 매핑 및 쓰기 정책 (Write-through/Write-back)": ["캐시", "cache", "직접 매핑", "연관 매핑", "세트 연관", "캐시 쓰기", "쓰기 통과", "쓰기 되돌리기", "hit ratio", "캐시 일관성"],
-    "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)": ["가상 메모리", "가상메모리", "lru", "lfu", "fifo", "opt", "페이지 교체", "스래싱", "페이지폴트", "워킹셋"],
-    "RAID 레벨별 패리티 및 디스크 효율 (0/1/5/6/10)": ["raid", "스트라이핑", "미러링", "패리티", "raid 0", "raid 1", "raid 5", "raid 6", "raid 10"],
-    "고가용성 아키텍처 및 재해 복구 시스템 (DRS)": ["고가용성", "ha", "액티브-액티브", "액티브-스탠바이", "drs", "rto", "rpo", "클러스터링", "이중화"],
-    "OSI 7계층 및 TCP/IP 프로토콜 스택": ["osi 7", "osi 7계층", "물리 계층", "데이터 링크", "네트워크 계층", "전송 계층", "세션", "표현", "응용 계층", "캡슐화"],
-    "IP 주소 체계 비교 (IPv4 vs IPv6 헤더 필드)": ["ipv4", "ipv6", "ip 주소", "서브넷", "서브넷 마스크", "애니캐스트", "멀티캐스트", "ipv6 헤더"],
-    "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)": ["tcp", "혼잡 제어", "흐름 제어", "slow start", "혼잡 회피", "슬라이딩 윈도우", "빠른 재전송", "임계치"],
-    "클라우드 서비스 모델 (IaaS/PaaS/SaaS) 및 가상화": ["클라우드", "iaas", "paas", "saas", "가상화", "docker", "kubernetes", "컨테이너", "하이퍼바이저"],
-    "네트워크 라우팅 프로토콜 (RIP/OSPF/BGP)": ["라우터", "스위치", "라우팅", "rip", "ospf", "bgp", "거리 벡터", "링크 상태"],
-    "컴퓨터 조합/순서 논리 회로 (가산기/플립플롭 등)": ["논리 회로", "논리회로", "가산기", "디코더", "멀티플렉서", "플립플롭", "부울 대수", "카르노 맵"]
+    "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)": ["정규화", "BCNF", "3NF", "4NF", "5NF", "함수 종속", "다치 종속", "조인 종속", "이행적", "결정자"],
+    "관계대수 및 순수 관계 연산자": ["관계대수", "관계 대수", "셀렉트", "프로젝트", "조인", "디비전", "순수 관계 연산자", "관계해석", "division", "projection"],
+    "트랜잭션 ACID 특성 및 상태 전이": ["acid", "원자성", "일관성", "격리성", "영속성", "트랜잭션", "durability", "isolation"],
+    "DBMS 회복 기법 (REDO / UNDO)": ["회복 기법", "redo", "undo", "즉시 갱신", "지연 갱신", "체크포인트", "검사점 회복", "회복기법"],
+    "동시성 제어 및 2단계 잠금 규약 (2PL)": ["동시성 제어", "병행 제어", "락킹", "locking", "2단계 잠금", "2pl", "교착상태", "데드락", "로킹", "병행제어"],
+    "분산 데이터베이스 투명성 요건": ["분산 db", "분산 데이터베이스", "위치 투명성", "중복 투명성", "단편화 투명성", "장애 투명성", "분산 dbms"],
+    "NoSQL 데이터베이스 분류 및 CAP 이론": ["nosql", "cap 이론", "cap 정리", "key-value", "document store", "hbase", "cassandra", "mongodb"],
+    "데이터웨어하우스 스키마 설계 (스타/스노우플레이크)": ["데이터 웨어하우스", "data warehouse", "스타 스키마", "스노우플레이크", "dw", "스타스키마"],
+    "SQL 쿼리 구문 (DDL/DML/DCL)": ["sql", "select", "update", "insert", "delete", "create", "grant", "revoke", "having", "group by"],
+    "인덱스 및 B-Tree 구조 특징": ["인덱스", "index", "b-tree", "b+tree", "해싱", "데이터 물리", "클러스터드 인덱스"],
+    "빅데이터 분산 플랫폼 (Hadoop/MapReduce)": ["하둡", "hadoop", "맵리듀스", "mapreduce", "스파크", "spark", "hdfs"],
+    "ER 데이터 모델링 및 식별/비식별 관계": ["e-r", "er 다이어그램", "식별 관계", "비식별 관계", "다대다", "개체-관계"]
 }
 
 CONCEPT_METADATA = {
-    "CPU 정보 레지스터 및 명령어 사이클": {
-        "core_concept": "중앙처리장치의 구성 요소 및 주소 지정 방식과 실행 주기 제어",
-        "features": "프로그램 카운터(PC), 누산기(AC), 메모리 주소 레지스터(MAR)의 흐름과 인출(Fetch)->간접(Indirect)->실행(Execute)->인터럽트(Interrupt) 사이클 상태 변화를 묻습니다.",
-        "scope": "공통기술 -> 컴퓨터 구조 -> CPU"
+    "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)": {
+        "core_concept": "릴레이션 스키마 분해를 통해 중복을 제거하고 이상 현상을 방지하는 정밀 설계 기법",
+        "features": "제3정규형(이행적 함수 종속 제거)에서 BCNF(모든 결정자가 후보키), 제4정규형(다치종속), 제5정규형(조인종속)으로 가는 단계적 결정 조건을 구별하는 문제가 매년 고정 출제됩니다.",
+        "scope": "DB개념 및 설계 -> 논리적 설계 -> 정규화"
     },
-    "명령어 파이프라이닝 및 해저드 종류 (구조적/데이터/제어)": {
-        "core_concept": "여러 명령어를 중첩 실행하여 처리량(Throughput)을 높이는 병렬 처리 기술",
-        "features": "구조적 해저드(자원 충돌), 데이터 해저드(RAW, WAR, WAW 의존성), 제어 해저드(분기 명령 발생)의 발생 원인과 지연(Stall) 및 우회(Bypassing) 해결 기법을 출제합니다.",
-        "scope": "공통기술 -> 컴퓨터 구조 -> 파이프라인"
+    "관계대수 및 순수 관계 연산자": {
+        "core_concept": "릴레이션을 처리하는 절차적 정형 대수 언어 및 집합 연산",
+        "features": "순수 관계 연산자(Select: 시그마, Project: 파이, Join: 리본, Division: 나누기)의 수학적 기호 표현 및 SQL 질의문과의 상호 변환 동작을 깊이 있게 다룹니다.",
+        "scope": "DB언어 -> 관계 대수 및 관계 해석"
     },
-    "캐시 메모리 매핑 및 쓰기 정책 (Write-through/Write-back)": {
-        "core_concept": "CPU와 메인 메모리 간 속도 차이를 해소하기 위한 고속 버퍼 메모리 운영 기법",
-        "features": "직접(Direct), 연관(Associative), 세트 연관(Set-Associative) 매핑의 주소 구조 분석과 Write-through(즉시 기록) / Write-back(교체 시 기록)의 성능 특징을 비교합니다.",
-        "scope": "공통기술 -> 컴퓨터 구조 -> 캐시"
+    "트랜잭션 ACID 특성 및 상태 전이": {
+        "core_concept": "데이터베이스 논리적 연산 단위인 트랜잭션의 4대 필수 성질 보장",
+        "features": "원자성(Atomicity), 일관성(Consistency), 격리성(Isolation - 특히 격리 레벨별 Read phenomena), 영속성(Durability)의 정의와 위배 예시를 평가합니다.",
+        "scope": "DBMS 기술 -> 트랜잭션 정의"
     },
-    "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)": {
-        "core_concept": "물리 메모리 크기 한계를 극복하고 가상 주소를 물리 주소로 사상하여 관리하는 메모리 관리 모델",
-        "features": "LRU(최근 최소 사용), LFU(최소 빈도 사용), FIFO 교체 알고리즘의 페이지 부재(Page Fault) 횟수 계산 문제 및 스래싱(Thrashing) 예방을 위한 워킹셋 모델을 다룹니다.",
-        "scope": "공통기술 -> 운영체제 -> 메모리 관리"
+    "DBMS 회복 기법 (REDO / UNDO)": {
+        "core_concept": "트랜잭션 장애 발생 시 데이터베이스를 일관된 이전 상태로 복구하는 기술",
+        "features": "로그 기반 즉시 갱신(REDO/UNDO 모두 수행)과 지연 갱신(REDO만 수행)의 차이, 그리고 검사점(Checkpoint) 기법 적용 시점 기준 복구 로그 분석 연산이 출제됩니다.",
+        "scope": "DBMS 기술 -> 트랜잭션 회복"
     },
-    "RAID 레벨별 패리티 및 디스크 효율 (0/1/5/6/10)": {
-        "core_concept": "여러 물리 디스크를 논리적 하나의 저장장치로 묶어 성능과 신뢰성을 올리는 기술",
-        "features": "RAID 0(스트라이핑), 1(미러링), 5(분산 단일 패리티), 6(분산 이중 패리티)의 필요 디스크 수 계산, 가용 용량 비율 및 결함 복구 한계를 물어봅니다.",
-        "scope": "아키텍처 설계 및 구축 -> 스토리지 아키텍처"
+    "동시성 제어 및 2단계 잠금 규약 (2PL)": {
+        "core_concept": "다중 사용자 환경에서 트랜잭션들이 동시에 실행될 때 직렬 가능성을 보장하는 잠금 메커니즘",
+        "features": "2단계 잠금 규약(2PL)의 직렬화 가능성 보장 여부 및 교착상태(Deadlock) 발생 한계점, 낙관적 검증 기법, 다중 버전 동시성 제어(MVCC)의 특징을 비교합니다.",
+        "scope": "DBMS 기술 -> 동시성 제어"
     },
-    "고가용성 아키텍처 및 재해 복구 시스템 (DRS)": {
-        "core_concept": "시스템 다운 타임을 최소화하기 위한 이중화 및 재해 복구(DR) 아키텍처 표준",
-        "features": "Active-Active, Active-Standby 구성의 세션 동기화 문제와 DRS 수준(Mirroring, Hot, Warm, Cold)에 따른 RTO(복구목표시간) 및 RPO(복구목표시점) 관계를 매년 질문합니다.",
-        "scope": "아키텍처 설계 및 구축 -> 가용성 설계"
+    "분산 데이터베이스 투명성 요건": {
+        "core_concept": "물리적으로 분산된 여러 DB 노드를 단일 시스템처럼 투명하게 다루는 아키텍처",
+        "features": "4대 투명성인 위치(Location), 중복(Replication), 단편화(Fragmentation), 장애(Failure) 투명성의 정의를 명확히 구분하는 문제가 빈출됩니다.",
+        "scope": "DB응용 -> 분산 데이터베이스"
     },
-    "OSI 7계층 및 TCP/IP 프로토콜 스택": {
-        "core_concept": "네트워크 통신망 구축을 위한 ISO 표준 개방형 아키텍처와 실제 인터넷 프로토콜 표준",
-        "features": "각 계층별 역할(데이터링크: 흐름/에러 제어, 전송: End-to-End 신뢰성 등)과 대표적인 프로토콜/장비 매핑 관계를 묻습니다.",
-        "scope": "데이터 통신 및 네트워크 설계 -> 네트워크 모델"
+    "NoSQL 데이터베이스 분류 및 CAP 이론": {
+        "core_concept": "비관계형 대용량 데이터를 처리하기 위한 스키마리스 DBMS 아키텍처 표준",
+        "features": "일관성(C), 가용성(A), 분할 용인성(P) 중 2가지만 충족 가능한 CAP 이론의 한계와 CA, CP, AP 계열 NoSQL 제품군(MongoDB, Cassandra 등) 맵핑을 다룹니다.",
+        "scope": "빅데이터 및 AI데이터 -> NoSQL"
     },
-    "IP 주소 체계 비교 (IPv4 vs IPv6 헤더 필드)": {
-        "core_concept": "인터넷망 상의 호스트 식별을 위한 주소 규격 및 차세대 인터넷 프로토콜 헤더 사양",
-        "features": "IPv4(32비트, 가변 헤더)와 IPv6(128비트, 고정 헤더, 흐름 레이블 필드 도입, 체크섬 필드 제거)의 헤더 필드 대조 및 서브넷 마스크 연산 문제가 빈출됩니다.",
-        "scope": "데이터 통신 및 네트워크 설계 -> IP 프로토콜"
+    "데이터웨어하우스 스키마 설계 (스타/스노우플레이크)": {
+        "core_concept": "다차원 데이터 분석(OLAP)을 위한 의사결정 지원용 전사 통합 데이터 아키텍처",
+        "features": "스타 스키마(팩트 테이블과 역정규화된 디멘션 테이블 구성)와 이를 완전 정규화하여 조인 성능 조정을 시도하는 스노우플레이크 스키마의 구조적 장단점을 대조합니다.",
+        "scope": "DB응용 -> 데이터웨어하우스 및 OLAP"
     },
-    "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)": {
-        "core_concept": "송신 호스트가 네트워크 내의 혼잡 상태를 감지하여 전송률을 스스로 조절하는 흐름 제어 기법",
-        "features": "Slow Start(지수적 증가), Congestion Avoidance(선형적 증가), 빠른 재전송(3 Duplicate ACKs 시 임계값 조정 및 전송) 그래프 상의 윈도우 크기 변화를 계산합니다.",
-        "scope": "데이터 통신 및 네트워크 설계 -> 전송 프로토콜"
+    "SQL 쿼리 구문 (DDL/DML/DCL)": {
+        "core_concept": "표준 SQL 선언문 활용 및 하위 질의, 집계, 뷰, 권한 제어 연산",
+        "features": "Having 조건절 및 Group By 그룹 연산의 우선순위, EXISTS와 IN 연산자의 동작 효율, 그리고 Outer Join 수행 시 널(NULL) 값 분포 문제를 해석하는 쿼리 분석이 출제됩니다.",
+        "scope": "DB언어 -> 표준 SQL"
     },
-    "클라우드 서비스 모델 (IaaS/PaaS/SaaS) 및 가상화": {
-        "core_concept": "가상화된 컴퓨팅 리소스를 온디맨드로 제공하는 서비스 모델 및 컨테이너화 기술",
-        "features": "IaaS, PaaS, SaaS의 관리 책임 한계선 분기점 및 Type-1/Type-2 하이퍼바이저와 Docker 컨테이너(OS 커널 공유)의 성능 구조적 장단점을 비교 출제합니다.",
-        "scope": "기타 신기술 -> 클라우드 컴퓨팅"
+    "인덱스 및 B-Tree 구조 특징": {
+        "core_concept": "검색 성과를 극대화하기 위해 물리 디스크 블록 검색 빈도를 최적화하는 색인 설계",
+        "features": "B-Tree와 B+Tree(리프 노드 간 연결 리스트 제공)의 구조적 탐색 효율 차이, 클러스터드/넌클러스터드 인덱스 생성 시 테이블 물리 정렬 상태 차이를 질문합니다.",
+        "scope": "DB개념 및 설계 -> 물리적 설계 -> 색인"
     },
-    "네트워크 라우팅 프로토콜 (RIP/OSPF/BGP)": {
-        "core_concept": "패킷을 목적지까지 가장 효율적인 경로로 전달하기 위한 네트워크 라우팅 프로토콜",
-        "features": "RIP(거리 벡터, 벨만-포드, 최대 15홉 제한)와 OSPF(링크 상태, 다익스트라, 계층 구조) 및 BGP(경로 벡터, 자율 시스템 간 연동)의 세부 명세 비교가 출제됩니다.",
-        "scope": "데이터 통신 및 네트워크 설계 -> 라우팅 프로토콜"
+    "빅데이터 분산 플랫폼 (Hadoop/MapReduce)": {
+        "core_concept": "저가형 범용 서버를 이용해 대용량 빅데이터를 분산 저장하고 병렬 처리하는 에코시스템",
+        "features": "HDFS(하둡 분산 파일시스템)의 마스터-슬레이브 복제 아키텍처와 맵(Map) 단계 및 리듀스(Reduce) 단계 간 셔플링 연산의 파이프라인 특징을 다룹니다.",
+        "scope": "빅데이터 및 AI데이터 -> 분산 플랫폼"
     },
-    "컴퓨터 조합/순서 논리 회로 (가산기/플립플롭 등)": {
-        "core_concept": "하드웨어 회로 설계를 위한 기초 수학 논리 및 소자 아키텍처",
-        "features": "가산기, 디코더, 멀티플렉서(기억 소자 없음 -> 조합 회로)와 플립플롭, 카운터(기억 소자 있음 -> 순서 회로)의 출력 진리표 해석과 부울 대수 간소화를 질문합니다.",
-        "scope": "공통기술 -> 디지털 논리 설계"
+    "ER 데이터 모델링 및 식별/비식별 관계": {
+        "core_concept": "개념적 설계 단계의 엔티티, 속성, 관계 표현법 및 물리 스키마 맵핑 규칙",
+        "features": "식별 관계(부모 키를 자식의 주식별자로 상속)와 비식별 관계(일반 속성으로 상속)의 점선/실선 기호 해석 및 다대다 관계 해소를 위한 교차 테이블 설계를 묻습니다.",
+        "scope": "DB개념 및 설계 -> 개념적 설계 -> ERD"
     }
 }
 
 TOPIC_CATEGORIES = {
-    "CPU 정보 레지스터 및 명령어 사이클": "공통기술",
-    "명령어 파이프라이닝 및 해저드 종류 (구조적/데이터/제어)": "공통기술",
-    "캐시 메모리 매핑 및 쓰기 정책 (Write-through/Write-back)": "공통기술",
-    "가상 메모리 및 페이지 교체 알고리즘 (LRU/LFU/FIFO)": "공통기술",
-    "RAID 레벨별 패리티 및 디스크 효율 (0/1/5/6/10)": "아키텍처 설계 및 구축",
-    "고가용성 아키텍처 및 재해 복구 시스템 (DRS)": "아키텍처 설계 및 구축",
-    "OSI 7계층 및 TCP/IP 프로토콜 스택": "데이터 통신 및 네트워크 설계",
-    "IP 주소 체계 비교 (IPv4 vs IPv6 헤더 필드)": "데이터 통신 및 네트워크 설계",
-    "TCP 혼잡 제어 (Slow Start / Congestion Avoidance)": "데이터 통신 및 네트워크 설계",
-    "클라우드 서비스 모델 (IaaS/PaaS/SaaS) 및 가상화": "기타 신기술",
-    "네트워크 라우팅 프로토콜 (RIP/OSPF/BGP)": "데이터 통신 및 네트워크 설계",
-    "컴퓨터 조합/순서 논리 회로 (가산기/플립플롭 등)": "공통기술"
+    "DB 정규화 단계 및 정규형 특징 (1NF~5NF, BCNF)": "DB개념 및 설계",
+    "관계대수 및 순수 관계 연산자": "DB언어",
+    "트랜잭션 ACID 특성 및 상태 전이": "DBMS 기술",
+    "DBMS 회복 기법 (REDO / UNDO)": "DBMS 기술",
+    "동시성 제어 및 2단계 잠금 규약 (2PL)": "DBMS 기술",
+    "분산 데이터베이스 투명성 요건": "DB응용",
+    "NoSQL 데이터베이스 분류 및 CAP 이론": "빅데이터 및 AI데이터",
+    "데이터웨어하우스 스키마 설계 (스타/스노우플레이크)": "DB응용",
+    "SQL 쿼리 구문 (DDL/DML/DCL)": "DB언어",
+    "인덱스 및 B-Tree 구조 특징": "DB개념 및 설계",
+    "빅데이터 분산 플랫폼 (Hadoop/MapReduce)": "빅데이터 및 AI데이터",
+    "ER 데이터 모델링 및 식별/비식별 관계": "DB개념 및 설계"
 }
 
 def crop_question_images(pdf_path, year, output_dir):
-    """[공통 모듈 위임] PDF로부터 SA 과목 문항 영역을 추출하여 이미지로 저장하고 위치 좌표를 반환"""
+    """[공통 모듈 위임] PDF로부터 DB 과목 문항 영역을 추출하여 이미지로 저장하고 위치 좌표를 반환"""
     local_img_dir = r"e:\jolly-carson\reports\images"
     artifact_img_dir = os.path.join(ARTIFACT_DIR, "images")
     return image_cropper.get_question_positions_and_crop(
-        pdf_path, year, "SA", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
+        pdf_path, year, "DB", local_img_dir, artifact_img_dir, force_crop=FORCE_CROP
     )
 
 def extract_pdf_clean(file_path):
@@ -166,9 +166,9 @@ def extract_pdf_clean(file_path):
             cleaned_text.append("\n".join(page_text_parts))
     return "\n\n=== NEW PAGE ===\n\n".join(cleaned_text)
 
-def slice_sa_section(full_text):
-    start_pattern = r"\b76\s*[\.\)]"
-    end_pattern = r"\b101\s*[\.\)]"
+def slice_db_section(full_text):
+    start_pattern = r"\b51\s*[\.\)]"
+    end_pattern = r"\b76\s*[\.\)]"
     
     start_match = re.search(start_pattern, full_text)
     end_match = re.search(end_pattern, full_text)
@@ -179,33 +179,33 @@ def slice_sa_section(full_text):
         return full_text[start_idx:end_idx].strip()
     return ""
 
-def parse_questions(sa_text):
+def parse_questions(db_text):
     questions = []
-    for num in range(76, 101):
+    for num in range(51, 76):
         curr_pat = rf"(?<![\.\d]){num}\s*[\.\)]"
         next_pat = rf"(?<![\.\d]){num+1}\s*[\.\)]"
         
-        curr_match = re.search(curr_pat, sa_text)
+        curr_match = re.search(curr_pat, db_text)
         if not curr_match:
             continue
             
         start_pos = curr_match.start()
-        next_match = re.search(next_pat, sa_text)
+        next_match = re.search(next_pat, db_text)
         
         if next_match:
             end_pos = next_match.start()
-            q_body = sa_text[start_pos:end_pos].strip()
+            q_body = db_text[start_pos:end_pos].strip()
         else:
-            q_body = sa_text[start_pos:].strip()
+            q_body = db_text[start_pos:].strip()
             
-        # [방어 코드] 보기 ④번 이후에 다단 텍스트 등의 영향으로 타 문제(예: 77번)가 달라붙는 버그 방지
+        # [방어 코드] 보기 ④번 이후에 다단 텍스트 등의 영향으로 타 문제(예: 59번)가 달라붙는 버그 방지
         if "④" in q_body:
             clean_match = re.search(r"④.*?(?=(?:\r?\n)\s*(?!(?:1|2|3|4)\b)\d+\s*[\.\)])", q_body, re.DOTALL)
             if clean_match:
                 q_body = q_body[:clean_match.end()].strip()
             
             # 과목 경계를 알리는 한글 구분자나 페이지 지시문이 붙어 있으면 잘라냅니다.
-            for separator in ["보안", "보안공학", "정보보호", "소프트웨어", "=== NEW PAGE ==="]:
+            for separator in ["시스템구조", "보안", "프로젝트관리", "소프트웨어", "=== NEW PAGE ==="]:
                 sep_match = re.search(rf"\n\s*{separator}", q_body)
                 if sep_match:
                     q_body = q_body[:sep_match.start()].strip()
@@ -214,7 +214,7 @@ def parse_questions(sa_text):
     return questions
 
 def load_exam_database_dict(subject_code):
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     js_path = os.path.join(base_dir, "reports", "exam_db", f"{subject_code.lower()}_db.js")
     
     # 폴백: 개별 DB가 아직 없는 경우 공통 DB 참조
@@ -425,10 +425,10 @@ def build_html_content(question_db, concept_map):
 
 def main():
     question_db, concept_map = run_extraction_and_mapping()
-    update_shared_db(question_db, "SA")
+    update_shared_db(question_db, "DB")
     html_content = build_html_content(question_db, concept_map)
     
-    local_path, artifact_path = get_output_paths("sa_frequent_concepts.html")
+    local_path, artifact_path = get_output_paths("db_frequent_concepts.html")
     
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     with open(local_path, "w", encoding="utf-8") as f:

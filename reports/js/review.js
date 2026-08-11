@@ -302,7 +302,7 @@ function renderCard(idx) {
             if (selectedOpt === optNum) {
                 button.classList.add('selected');
             }
-            button.addEventListener('click', () => selectOption(quiz.id, optNum));
+            button.addEventListener('click', (event) => handleCardOptionClick(event, button, quiz.id, optNum));
         }
 
         optionsContainer.appendChild(button);
@@ -603,6 +603,28 @@ function closeEditReviewQuestion() {
     if (editBtn) editBtn.innerText = '✏️ 수정';
 
     renderCard(ReviewState.currentIdx);
+}
+
+/**
+ * [설계 의도] 보기 텍스트를 드래그해 복사하려는 시도가 클릭으로 이어졌을 때,
+ * 정답 선택이 함께 토글되어버리는 것을 막습니다(메인 인라인 퀴즈의 handleInlineOptionClick과 동일한 패턴).
+ * 실제로 카드 안에서 텍스트가 드래그 선택된 경우에만 토글을 건너뜁니다.
+ */
+function handleCardOptionClick(event, buttonEl, qId, optNum) {
+    const sel = (window.getSelection && window.getSelection()) ? window.getSelection() : null;
+    const hasSelection = !!(sel && !sel.isCollapsed && sel.toString && sel.toString().trim().length > 0);
+    const clickedTextNode = !!(event && event.target && event.target.closest && event.target.closest('.card-opt-text'));
+
+    if (hasSelection && clickedTextNode && buttonEl && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const selectionInsideButton = buttonEl.contains(range.startContainer) || buttonEl.contains(range.endContainer);
+        if (selectionInsideButton) {
+            return;
+        }
+    }
+
+    if (sel && sel.removeAllRanges) sel.removeAllRanges();
+    selectOption(qId, optNum);
 }
 
 /**
