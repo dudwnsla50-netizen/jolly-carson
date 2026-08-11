@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개념 우선순위 분석 — Jolly-Carson</title>
+
+    <!-- CSS 및 폰트 연동 (학습 이력 분석 센터와 동일한 디자인 시스템 재사용) -->
+    <link rel="stylesheet" href="history.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <!-- 장식 배경 글로우 -->
+    <div class="bg-glow"></div>
+    <div class="bg-glow-left"></div>
+
+    <div class="container">
+        <!-- 상단 헤더 영역 -->
+        <div class="header-row">
+            <div class="header-actions">
+                <a href="lhistory.html" class="back-btn">
+                    <i data-lucide="arrow-left"></i> 학습 분석으로
+                </a>
+            </div>
+        </div>
+
+        <h2 class="section-title"
+            style="margin-bottom: 0.6rem; font-size: 1.25rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
+            <i data-lucide="target" style="color: var(--accent-primary); width: 22px; height: 22px;"></i> 개념 우선순위 분석
+        </h2>
+        <div class="cp-methodology" id="cp-methodology">데이터를 불러오는 중입니다...</div>
+
+        <!-- 과목 탭 (오답 TOP 15와 동일한 탭 UI 재사용) -->
+        <div class="wrong-top-tab-bar" id="cp-tab-bar">
+            <button type="button" class="wrong-top-tab-btn" data-subject="PM">PM 사업관리</button>
+            <button type="button" class="wrong-top-tab-btn" data-subject="SE">SE 소프트웨어공학</button>
+            <button type="button" class="wrong-top-tab-btn" data-subject="DB">DB 데이터베이스</button>
+            <button type="button" class="wrong-top-tab-btn" data-subject="SA">SA 시스템아키텍처</button>
+            <button type="button" class="wrong-top-tab-btn" data-subject="SC">SC 보안</button>
+        </div>
+
+        <!-- 중요한 개념 TOP (출제 확률 기준) -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <span class="card-title">
+                        <i data-lucide="flame"></i> 중요한 개념 TOP
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                        최근 출제빈도가 가장 높은, 다음 시험에 나올 확률이 높은 개념입니다.
+                    </span>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>개념</th>
+                            <th style="width: 18%; text-align: center;">최근3년 출제</th>
+                            <th style="width: 18%; text-align: center;">12년 누적</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cp-important-tbody">
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 2rem;">로딩 중입니다...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 자주 나오는데 약한 개념 (실시간 개인 성과 교차) -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <span class="card-title">
+                        <i data-lucide="alert-triangle"></i> 자주 나오는데 약한 개념
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                        출제빈도와 내 오답률을 실시간으로 교차 계산한 우선 학습 순서입니다. 행을 클릭하면 실제 오답 문항을 볼 수 있습니다.
+                    </span>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>개념</th>
+                            <th style="width: 14%; text-align: center;">최근3년</th>
+                            <th style="width: 12%; text-align: center;">내 시도</th>
+                            <th style="width: 14%; text-align: center;">내 오답률</th>
+                            <th style="width: 12%;">상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cp-weak-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">로딩 중입니다...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비즈니스 스크립트 연결 -->
+    <script src="../js/config.js"></script>
+    <script src="concept_priority.js?v=20260811_1"></script>
+    <script>
+        // 루시드 아이콘 렌더링 구동
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+    <script src="../js/quick_add.js"></script>
+</body>
+
+</html>

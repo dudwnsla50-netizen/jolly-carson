@@ -209,6 +209,7 @@ body[data-theme="light"] .dashboard-theme-select:hover {
 
 body[data-theme="light"] .home-badge,
 body[data-theme="light"] .history-badge,
+body[data-theme="light"] .priority-badge,
 body[data-theme="light"] #wrong-answers-badge,
 body[data-theme="light"] #yearly-exam-badge {
     box-shadow: 0 1px 0 rgba(31, 35, 40, 0.08), 0 2px 8px rgba(31, 35, 40, 0.08);
@@ -239,6 +240,7 @@ body[data-theme="light"] [style*="color: rgba(255, 255, 255"] {
 /* 액션 버튼/강조 배지는 밝은 텍스트 유지 */
 body[data-theme="light"] .home-badge,
 body[data-theme="light"] .history-badge,
+body[data-theme="light"] .priority-badge,
 body[data-theme="light"] #wrong-answers-badge,
 body[data-theme="light"] #yearly-exam-badge,
 body[data-theme="light"] .inline-quiz-submit-btn,

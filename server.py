@@ -436,6 +436,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_db_mode(query)
         elif path == "/api/analytics/concept-diagnostics":
             self.get_concept_diagnostics(query)
+        elif path == "/api/analytics/concept-priority":
+            self.get_concept_priority(query)
         elif path == "/api/analytics/check-report":
             self.check_analytics_report(query)
         elif path == "/api/yearly-exams":
@@ -497,8 +499,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
     def get_concept_diagnostics(self, query):
         try:
             with get_db_connection() as conn:
-                # [설계 의도] 
-                # 순환 참조 문제를 완벽하게 회피하고, 초기 구동 성능을 위해 
+                # [설계 의도]
+                # 순환 참조 문제를 완벽하게 회피하고, 초기 구동 성능을 위해
                 # 분석 모듈을 호출 함수 시점에 지연 임포트(Lazy Import)합니다.
                 from analytics import analyze_student_history
                 result = analyze_student_history(conn, DB_TYPE)
@@ -506,6 +508,138 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database analytics error: {str(e)}")
+
+    def get_concept_priority(self, query):
+        """
+        [설계 의도]
+        dashboard_mappings에 미리 구축된 공식 출제기준 개념별 12개년/최근3개년 출제빈도와,
+        quiz_history(단문항 학습이력) + yearly_exam_history(120제 모의고사 이력)에 누적된
+        실제 학습 성과를 개념 단위로 매 요청마다 실시간으로 교차 집계합니다.
+        개인 성과 지표는 캐시하지 않으므로, 사용자가 문제를 풀 때마다 다음 조회 시 즉시 갱신됩니다.
+        """
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    def parse_json_field(v, default):
+                        if v is None or v == "":
+                            return default
+                        if isinstance(v, (list, dict)):
+                            return v
+                        try:
+                            return json.loads(v)
+                        except Exception:
+                            return default
+
+                    # 1) 공식 출제기준 개념 메타 (분류되지 않은 "[기타]" 버킷은 제외)
+                    sql_concepts = """
+                        SELECT subject, concept, category, count, questions
+                        FROM dashboard_mappings
+                        WHERE dashboard_type = %s AND concept != %s
+                    """
+                    execute_query(cursor, sql_concepts, ("official", "[기타]"))
+                    concept_rows = [dict(r) for r in cursor.fetchall()]
+
+                    # 2) "최근 3개년" 기준점 - exam_questions에 실제 존재하는 최신 연도를 기준으로 계산하여
+                    #    매년 새 기출이 반영되어도 하드코딩 없이 자동으로 최신 3개년을 추적합니다.
+                    execute_query(cursor, "SELECT MAX(year) as maxy FROM exam_questions")
+                    maxy_row = cursor.fetchone()
+                    max_year = dict(maxy_row).get("maxy") if maxy_row else None
+                    recent_threshold = (max_year - 2) if max_year else 0
+
+                    concept_meta = {}     # (subject, concept) -> 집계 dict
+                    qnum_to_concept = {}  # (subject, year, question_num) -> concept
+
+                    for r in concept_rows:
+                        subj = r["subject"]
+                        concept = r["concept"]
+                        qs = parse_json_field(r.get("questions"), [])
+                        last3 = sum(1 for q in qs if (q.get("year") or 0) >= recent_threshold)
+                        concept_meta[(subj, concept)] = {
+                            "subject": subj,
+                            "concept": concept,
+                            "category": r.get("category"),
+                            "exam_count_12y": r.get("count") or 0,
+                            "last3yr_count": last3,
+                            "my_attempts": 0,
+                            "my_wrong": 0,
+                            "wrong_questions": {},
+                        }
+                        for q in qs:
+                            qnum_to_concept[(subj, q.get("year"), q.get("num"))] = concept
+
+                    # 3) quiz_history(단문항 학습이력) - concept 컬럼에 공식 개념명이 이미 태깅되어 있어 직접 매칭
+                    execute_query(cursor, "SELECT subject, concept, total_questions, wrong_count, details FROM quiz_history")
+                    for row in cursor.fetchall():
+                        d = dict(row)
+                        meta = concept_meta.get((d["subject"], d["concept"]))
+                        if not meta:
+                            continue
+                        meta["my_attempts"] += d.get("total_questions") or 0
+                        wrong_count = d.get("wrong_count") or 0
+                        meta["my_wrong"] += wrong_count
+                        if wrong_count > 0:
+                            details = parse_json_field(d.get("details"), None)
+                            qid = details.get("q_id") if isinstance(details, dict) else None
+                            if qid:
+                                meta["wrong_questions"][qid] = meta["wrong_questions"].get(qid, 0) + 1
+
+                    # 4) yearly_exam_history(120제 모의고사 이력) - 문항번호를 개념으로 역매핑하여 집계
+                    execute_query(cursor, "SELECT exam_year, details FROM yearly_exam_history")
+                    for row in cursor.fetchall():
+                        d = dict(row)
+                        year = d.get("exam_year")
+                        details = parse_json_field(d.get("details"), [])
+                        for item in details:
+                            num = item.get("question_num")
+                            if num is None:
+                                continue
+                            concept = None
+                            subj_hit = None
+                            for subj in ("PM", "SE", "DB", "SA", "SC"):
+                                c = qnum_to_concept.get((subj, year, num))
+                                if c:
+                                    concept = c
+                                    subj_hit = subj
+                                    break
+                            if not concept:
+                                continue
+                            meta = concept_meta[(subj_hit, concept)]
+                            meta["my_attempts"] += 1
+                            if not item.get("is_correct"):
+                                meta["my_wrong"] += 1
+                                qid = f"{year}_{num}"
+                                meta["wrong_questions"][qid] = meta["wrong_questions"].get(qid, 0) + 1
+
+                    # 5) 최종 응답 조립
+                    result = []
+                    for meta in concept_meta.values():
+                        attempts = meta["my_attempts"]
+                        wrong = meta["my_wrong"]
+                        wrong_rate = round(wrong / attempts * 100, 1) if attempts > 0 else None
+                        wrong_q_list = sorted(
+                            [{"q_id": qid, "wrong_count": wc} for qid, wc in meta["wrong_questions"].items()],
+                            key=lambda x: -x["wrong_count"]
+                        )
+                        result.append({
+                            "subject": meta["subject"],
+                            "concept": meta["concept"],
+                            "category": meta["category"],
+                            "exam_count_12y": meta["exam_count_12y"],
+                            "last3yr_count": meta["last3yr_count"],
+                            "my_attempts": attempts,
+                            "my_wrong": wrong,
+                            "my_wrong_rate": wrong_rate,
+                            "wrong_questions": wrong_q_list,
+                        })
+
+                    self.send_json_response({
+                        "max_year": max_year,
+                        "recent_years_from": recent_threshold,
+                        "concepts": result,
+                    })
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Concept priority analysis error: {str(e)}")
 
     def check_analytics_report(self, query):
         """[설계 의도] 오답 분석 리포트 HTML 파일의 존재 여부를 확인합니다 (404 콘솔 로그 노출 차단 방지 목적)."""
