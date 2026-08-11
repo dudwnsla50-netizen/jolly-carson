@@ -673,9 +673,19 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "wrong_questions": wrong_q_list,
                         })
 
+                    # [설계 의도] 오답 TOP 15 등 문항 단위 화면에서 "이 문항이 어떤 개념인지"를 바로 보여줄 수 있도록,
+                    # (subject, year, question_num) -> 공식 개념 매핑을 "{year}_{num}" 키의 평면 맵으로도 함께 내려줍니다.
+                    # 과목별 문항번호 구간이 서로 겹치지 않으므로 subject 없이 "{year}_{num}" 만으로 충분히 고유합니다.
+                    question_concept_map = {}
+                    for (subj, year, num), concepts in qnum_to_concepts.items():
+                        if year is None or num is None:
+                            continue
+                        question_concept_map[f"{year}_{num}"] = concepts
+
                     self.send_json_response({
                         "max_year": max_year,
                         "recent_years_from": recent_threshold,
+                        "question_concept_map": question_concept_map,
                         "concepts": result,
                     })
         except Exception as e:

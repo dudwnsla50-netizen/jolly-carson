@@ -26,7 +26,8 @@ const HistoryState = {
     yearlySelectedChartSubject: null,
     wrongTopLists: null,
     wrongTopActiveSubject: 'PM',
-    wrongTopOpenKey: null
+    wrongTopOpenKey: null,
+    questionConceptMap: {}   // [NEW] "{year}_{questionNum}" -> [공식 개념 라벨, ...] 역매핑
 };
 
 const SUBJECT_NAMES = {
@@ -116,8 +117,14 @@ function loadAllHistoryData() {
         .then(res => res.ok ? res.json() : [])
         .catch(() => []);
 
-    Promise.all([statsAllPromise, expPromise, yearlyExamPromise])
-        .then(([results, expData, yearlyHistory]) => {
+    // [NEW] 오답 TOP 15에 문항별 공식 개념을 함께 표시하기 위한 문항→개념 역매핑
+    const conceptMapPromise = fetch('/api/analytics/concept-priority')
+        .then(res => res.ok ? res.json() : { question_concept_map: {} })
+        .catch(() => ({ question_concept_map: {} }));
+
+    Promise.all([statsAllPromise, expPromise, yearlyExamPromise, conceptMapPromise])
+        .then(([results, expData, yearlyHistory, conceptData]) => {
+            HistoryState.questionConceptMap = (conceptData && conceptData.question_concept_map) || {};
             const merged = [];
             const subjectAccuracies = {};
 
@@ -1621,9 +1628,14 @@ function buildWrongTopListsBySubject(limit = 15) {
         bumpStat(dObj.q_id, !!dObj.is_correct);
     });
 
+    // [NEW] 서버에서 미리 내려준 문항→공식 개념 매핑(question_concept_map)을 이용해
+    // 각 오답 문항이 어떤 세부개념에 해당하는지 함께 표시합니다. 매핑이 없으면(예: "[기타]") 빈 배열로 둡니다.
+    const conceptMap = HistoryState.questionConceptMap || {};
+
     const bySubject = { PM: [], SE: [], DB: [], SA: [], SC: [] };
     Object.values(statMap).forEach(entry => {
         if (entry.wrongCount > 0 && bySubject[entry.subject]) {
+            entry.concepts = conceptMap[`${entry.year}_${entry.questionNum}`] || [];
             bySubject[entry.subject].push(entry);
         }
     });
@@ -1676,7 +1688,7 @@ function renderWrongTopList(subjectCode) {
     if (list.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
                     💡 해당 과목의 오답 이력이 없습니다.
                 </td>
             </tr>
@@ -1686,16 +1698,21 @@ function renderWrongTopList(subjectCode) {
 
     tbody.innerHTML = list.map((entry, idx) => {
         const qKey = `${entry.year}_${entry.questionNum}`;
+        const concepts = Array.isArray(entry.concepts) ? entry.concepts : [];
+        const conceptCellHtml = concepts.length > 0
+            ? `<span title="${concepts.join(' · ').replace(/"/g, '&quot;')}">${concepts.join(' · ')}</span>`
+            : `<span style="color: var(--text-muted);">미분류</span>`;
         return `
             <tr class="wrong-top-row" onclick="toggleWrongTopDetail('${qKey}', ${entry.year}, ${entry.questionNum})">
                 <td>${idx + 1}</td>
                 <td>${entry.year}년</td>
                 <td>${entry.questionNum}번</td>
+                <td class="wrong-top-concept-cell">${conceptCellHtml}</td>
                 <td style="text-align: center; font-weight: 700; color: var(--error);">${entry.wrongCount}회</td>
                 <td style="color: var(--text-secondary); font-size: 0.8rem;">${entry.attemptCount}회 응시 중 ${entry.wrongCount}회 오답</td>
             </tr>
             <tr class="wrong-top-detail-row" id="wrong-top-detail-${qKey}" style="display: none;">
-                <td colspan="5"><div class="wrong-top-detail-body" id="wrong-top-detail-body-${qKey}">로딩 중...</div></td>
+                <td colspan="6"><div class="wrong-top-detail-body" id="wrong-top-detail-body-${qKey}">로딩 중...</div></td>
             </tr>
         `;
     }).join('');
