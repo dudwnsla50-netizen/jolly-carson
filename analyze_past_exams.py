@@ -18,6 +18,7 @@ from datetime import datetime
 # 기존 파서 모듈 로드
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import parser
+from server import get_db_connection, get_db_cursor, execute_query
 
 # ==========================================
 # 1. 아키텍처 상태 및 상수 정의
@@ -80,16 +81,37 @@ def split_exam_by_subjects(exam_text):
 def load_scope_details(subject_code):
     """
     [설계 의도]
-    data/exam_scopes/ 디렉토리 하위의 과목별 시험 범위를 읽어옵니다.
+    과목별 시험 범위를 exam_scope_topics 테이블(구 data/exam_scopes/*.txt를 DB화한 것)에서 조회하여
+    기존 텍스트 파일과 동일한 포맷("1. 대단원\\n\\ta. 소단원")으로 재구성합니다.
+    로컬 파일 존재 여부와 무관하게 운영 배포 환경(PostgreSQL)에서도 동일하게 동작합니다.
     """
-    scope_path = os.path.join("data", "exam_scopes", f"{subject_code}.txt")
-    if os.path.exists(scope_path):
-        try:
-            with open(scope_path, "r", encoding="utf-8") as f:
-                return f.read().strip()
-        except Exception as e:
-            print(f"[경고] {subject_code} 시험범위 파일 로딩 실패: {e}")
-    return "상세 시험범위 정보가 등록되어 있지 않습니다."
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                sql = """
+                    SELECT major_num, major_title, minor_code, minor_title
+                    FROM exam_scope_topics
+                    WHERE subject = %s
+                    ORDER BY display_order
+                """
+                execute_query(cursor, sql, (subject_code,))
+                rows = [dict(r) for r in cursor.fetchall()]
+    except Exception as e:
+        print(f"[경고] {subject_code} 시험범위 DB 조회 실패: {e}")
+        rows = []
+
+    if not rows:
+        return "상세 시험범위 정보가 등록되어 있지 않습니다."
+
+    lines = [f"{SUBJECT_NAMES.get(subject_code, subject_code)} 시험범위"]
+    last_major_num = None
+    for r in rows:
+        if r["major_num"] != last_major_num:
+            lines.append(f"{r['major_num']}. {r['major_title']}")
+            last_major_num = r["major_num"]
+        lines.append(f"\t{r['minor_code']}. {r['minor_title']}")
+
+    return "\n".join(lines)
 
 # ==========================================
 # 4. 오프라인 트렌드 키워드 매칭 분석 (Mock/Heuristic Engine)

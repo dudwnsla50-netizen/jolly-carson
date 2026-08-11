@@ -438,6 +438,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_concept_diagnostics(query)
         elif path == "/api/analytics/concept-priority":
             self.get_concept_priority(query)
+        elif path == "/api/exam-scopes":
+            self.get_exam_scopes(query)
         elif path == "/api/analytics/check-report":
             self.check_analytics_report(query)
         elif path == "/api/yearly-exams":
@@ -496,6 +498,41 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             traceback.print_exc()
             self.send_error_response(500, f"Error reading law file: {str(e)}")
 
+    def get_exam_scopes(self, query):
+        """
+        [설계 의도]
+        5과목 공식 시험범위(대단원/소단원)를 exam_scope_topics 테이블에서 조회합니다.
+        data/exam_scopes/*.txt를 DB화하여, 서버가 로컬 파일 존재 여부와 무관하게(운영 배포 환경 포함)
+        시험범위를 일관되게 제공할 수 있도록 합니다.
+        """
+        try:
+            subject = query.get("subject", [None])[0]
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    if subject:
+                        sql = """
+                            SELECT subject, major_num, major_title, minor_code, minor_title, display_order
+                            FROM exam_scope_topics WHERE subject = %s ORDER BY display_order
+                        """
+                        execute_query(cursor, sql, (subject,))
+                    else:
+                        sql = """
+                            SELECT subject, major_num, major_title, minor_code, minor_title, display_order
+                            FROM exam_scope_topics ORDER BY subject, display_order
+                        """
+                        execute_query(cursor, sql)
+
+                    grouped = {}
+                    for row in cursor.fetchall():
+                        r = dict(row)
+                        r["label"] = f"{r['major_num']}-{r['minor_code']}. {r['minor_title']}"
+                        grouped.setdefault(r["subject"], []).append(r)
+
+                    self.send_json_response(grouped)
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Exam scope query error: {str(e)}")
+
     def get_concept_diagnostics(self, query):
         try:
             with get_db_connection() as conn:
@@ -546,8 +583,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     max_year = dict(maxy_row).get("maxy") if maxy_row else None
                     recent_threshold = (max_year - 2) if max_year else 0
 
-                    concept_meta = {}     # (subject, concept) -> 집계 dict
-                    qnum_to_concept = {}  # (subject, year, question_num) -> concept
+                    concept_meta = {}       # (subject, concept) -> 집계 dict
+                    qnum_to_concepts = {}   # (subject, year, question_num) -> [concept, ...] (한 문항이 여러 개념에 동시 매핑될 수 있음)
 
                     for r in concept_rows:
                         subj = r["subject"]
@@ -565,7 +602,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             "wrong_questions": {},
                         }
                         for q in qs:
-                            qnum_to_concept[(subj, q.get("year"), q.get("num"))] = concept
+                            qnum_to_concepts.setdefault((subj, q.get("year"), q.get("num")), []).append(concept)
 
                     # 3) quiz_history(단문항 학습이력) - concept 컬럼에 공식 개념명이 이미 태깅되어 있어 직접 매칭
                     execute_query(cursor, "SELECT subject, concept, total_questions, wrong_count, details FROM quiz_history")
@@ -593,22 +630,26 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                             num = item.get("question_num")
                             if num is None:
                                 continue
-                            concept = None
+                            matched_concepts = []
                             subj_hit = None
                             for subj in ("PM", "SE", "DB", "SA", "SC"):
-                                c = qnum_to_concept.get((subj, year, num))
-                                if c:
-                                    concept = c
+                                cs = qnum_to_concepts.get((subj, year, num))
+                                if cs:
+                                    matched_concepts = cs
                                     subj_hit = subj
                                     break
-                            if not concept:
+                            if not matched_concepts:
                                 continue
-                            meta = concept_meta[(subj_hit, concept)]
-                            meta["my_attempts"] += 1
-                            if not item.get("is_correct"):
-                                meta["my_wrong"] += 1
-                                qid = f"{year}_{num}"
-                                meta["wrong_questions"][qid] = meta["wrong_questions"].get(qid, 0) + 1
+                            # [설계 의도] 한 문항이 여러 공식 개념에 동시에 매핑된 경우(예: DB의 "SQL"과
+                            # "데이터 모델" 개념을 동시에 다루는 문항), 해당 시도/오답을 매핑된 개념 전부에 반영합니다.
+                            # 개념 하나에만 크레딧하면 다중 매핑 문항의 취약도가 다른 개념에서는 조용히 누락됩니다.
+                            for concept in matched_concepts:
+                                meta = concept_meta[(subj_hit, concept)]
+                                meta["my_attempts"] += 1
+                                if not item.get("is_correct"):
+                                    meta["my_wrong"] += 1
+                                    qid = f"{year}_{num}"
+                                    meta["wrong_questions"][qid] = meta["wrong_questions"].get(qid, 0) + 1
 
                     # 5) 최종 응답 조립
                     result = []
@@ -3149,6 +3190,126 @@ def init_srs_review_state_table():
         print(f"[{DB_TYPE}] 경고 - 복습 스케줄러 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
 
 
+def init_exam_scope_topics_table():
+    """
+    [설계 의도]
+    기존에는 data/exam_scopes/{subject}.txt 평문 파일로만 존재하던 5과목 공식 시험범위(대단원/소단원)를
+    정규화된 테이블로 관리합니다. subject+major_num+minor_code 조합이 자연키이므로 별도 SERIAL/AUTOINCREMENT
+    분기 없이 SQLite/PostgreSQL 양쪽에서 동일한 CREATE TABLE 구문을 사용할 수 있습니다.
+    """
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS exam_scope_topics (
+                    subject TEXT NOT NULL,
+                    major_num INTEGER NOT NULL,
+                    major_title TEXT NOT NULL,
+                    minor_code TEXT NOT NULL,
+                    minor_title TEXT NOT NULL,
+                    display_order INTEGER NOT NULL,
+                    PRIMARY KEY (subject, major_num, minor_code)
+                );
+                """)
+                conn.commit()
+        print(f"[{DB_TYPE}] 시험범위(exam_scope_topics) 테이블 검증/초기화 완료.")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - 시험범위 테이블 초기화 중 예외가 발생했으나 시작을 속행합니다: {e}")
+
+
+EXAM_SCOPE_DIR = os.path.join(BASE_DIR, "data", "exam_scopes")
+EXAM_SCOPE_SUBJECTS = ["PM", "SE", "DB", "SA", "SC"]
+
+_SCOPE_MAJOR_LINE_RE = re.compile(r"^(\d+)\.\s*(.+?)\s*$")
+_SCOPE_MINOR_LINE_RE = re.compile(r"^\t([a-z])\.\s*(.+?)\s*$")
+
+
+def _parse_exam_scope_file(path):
+    """data/exam_scopes/{subject}.txt 한 과목분을 (major_num, major_title, minor_code, minor_title, order) 리스트로 파싱합니다."""
+    rows = []
+    current_major_num = None
+    current_major_title = None
+    order = 0
+    with open(path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.rstrip("\n")
+            if not line.strip():
+                continue
+            m = _SCOPE_MAJOR_LINE_RE.match(line)
+            if m:
+                current_major_num = int(m.group(1))
+                current_major_title = m.group(2)
+                continue
+            m = _SCOPE_MINOR_LINE_RE.match(line)
+            if m and current_major_num is not None:
+                minor_code, minor_title = m.group(1), m.group(2)
+                order += 1
+                rows.append((current_major_num, current_major_title, minor_code, minor_title, order))
+    return rows
+
+
+def sync_exam_scope_reference_data():
+    """
+    [설계 의도]
+    시험범위(exam_scope_topics)와 공식 개념 매핑(dashboard_mappings.official)은 개발 중 로컬에서
+    다듬어지는 "기준 데이터(reference data)"입니다. git에 커밋되는 data/exam_scopes/*.txt와 로컬
+    SQLite(reports/exam_db/jolly_carson.db)를 원본으로 삼아, 서버가 기동될 때마다(로컬/운영 DB_TYPE
+    무관하게) 활성 DB를 최신 상태로 맞춥니다. 두 단계 모두 자연키 기준 전체교체/UPDATE라서 반복 실행해도
+    안전(idempotent)하며, 이 함수 덕분에 시험범위·매핑을 로컬에서 고친 뒤 배포만 하면 운영 PostgreSQL에도
+    자동으로 반영됩니다(수동 마이그레이션 스크립트를 별도로 실행할 필요가 없습니다).
+    """
+    # 1) exam_scope_topics: txt 파일이 원본이므로 텍스트 → 활성 DB로 직접 동기화
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                for subject in EXAM_SCOPE_SUBJECTS:
+                    path = os.path.join(EXAM_SCOPE_DIR, f"{subject}.txt")
+                    if not os.path.exists(path):
+                        continue
+                    rows = _parse_exam_scope_file(path)
+                    execute_query(cursor, "DELETE FROM exam_scope_topics WHERE subject = %s", (subject,))
+                    for major_num, major_title, minor_code, minor_title, order in rows:
+                        execute_query(cursor, """
+                            INSERT INTO exam_scope_topics
+                                (subject, major_num, major_title, minor_code, minor_title, display_order)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                        """, (subject, major_num, major_title, minor_code, minor_title, order))
+                conn.commit()
+        print(f"[{DB_TYPE}] 시험범위(exam_scope_topics) 동기화 완료.")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - 시험범위 동기화 중 예외 발생, 시작을 속행합니다: {e}")
+
+    # 2) dashboard_mappings(official): git에 커밋된 로컬 SQLite 참조본을 기준으로,
+    #    활성 DB(운영이면 PostgreSQL)의 questions/count/years 컬럼만 subject+concept 기준으로 갱신
+    try:
+        if not os.path.exists(SQLITE_DB_PATH):
+            return
+        ref_conn = sqlite3.connect(SQLITE_DB_PATH)
+        ref_conn.row_factory = sqlite3.Row
+        ref_cur = ref_conn.cursor()
+        ref_cur.execute("""
+            SELECT subject, concept, questions, count, years
+            FROM dashboard_mappings WHERE dashboard_type = 'official'
+        """)
+        ref_rows = [dict(r) for r in ref_cur.fetchall()]
+        ref_conn.close()
+
+        updated = 0
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                for r in ref_rows:
+                    execute_query(cursor, """
+                        UPDATE dashboard_mappings
+                        SET questions = %s, count = %s, years = %s
+                        WHERE dashboard_type = 'official' AND subject = %s AND concept = %s
+                    """, (r["questions"], r["count"], r["years"], r["subject"], r["concept"]))
+                    updated += cursor.rowcount
+                conn.commit()
+        print(f"[{DB_TYPE}] 공식 개념 매핑(dashboard_mappings) 동기화 완료 ({updated}건 갱신).")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - 공식 개념 매핑 동기화 중 예외 발생, 시작을 속행합니다: {e}")
+
+
 def init_exam_questions_ai_explanation_column():
     """[설계 의도] exam_questions 테이블에 AI 생성 해설 캐시 컬럼(ai_explanation)이 없다면 추가합니다."""
     try:
@@ -3254,6 +3415,8 @@ def main():
         init_quiz_history_table()
         init_yearly_exam_history_table()
         init_srs_review_state_table()
+        init_exam_scope_topics_table()
+        sync_exam_scope_reference_data()
         init_exam_questions_ai_explanation_column()
         init_exam_questions_ai_explanation_model_column()
         init_yearly_exam_history_ai_diagnose_model_column()
