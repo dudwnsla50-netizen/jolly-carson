@@ -1480,16 +1480,46 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         오답 복습 스케줄러(망각곡선)의 문항별 상태를 과목 단위로 조회합니다. next_review_at이 현재 시각
         이전인 문항은 "오늘 복습 대상(due)"으로, 이후인 문항은 "대기중(upcoming)"으로 분류해 반환합니다.
         마스터 완료(stage가 SRS_INTERVAL_DAYS 길이 이상) 문항은 활성 큐에서 완전히 제외합니다.
+
+        subject=all 로 요청하면 5과목을 한 번의 쿼리로 모아 {"PM": {"due":[...],"upcoming":[...]}, ...}
+        형태로 반환합니다. 메인 대시보드/오답 복습 화면이 과목별로 5번 개별 호출하던 것을 1번으로
+        합쳐 초기 로딩 시 Postgres 왕복 지연이 5배로 누적되는 문제를 줄이기 위한 배치 모드입니다.
         """
         subject = query.get("subject", [None])[0]
         if not subject:
             self.send_error_response(400, "Missing parameter (subject)")
             return
-        subject = subject.upper()
 
         try:
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
+                    if subject.lower() == "all":
+                        sql = """
+                            SELECT q_id, subject, stage, next_review_at, wrong_streak, review_count, last_result
+                            FROM srs_review_state
+                            WHERE stage < %s
+                            ORDER BY subject ASC, next_review_at ASC
+                        """
+                        execute_query(cursor, sql, (len(SRS_INTERVAL_DAYS),))
+                        rows = cursor.fetchall()
+
+                        now = datetime.now()
+                        result = {s: {"due": [], "upcoming": []} for s in ("PM", "SE", "DB", "SA", "SC")}
+
+                        for r in rows:
+                            item = dict(r)
+                            sub_code = item.pop("subject", None)
+                            if sub_code not in result:
+                                continue
+                            next_at_dt = self._parse_srs_datetime(item["next_review_at"], now)
+                            item["next_review_at"] = next_at_dt.isoformat()
+                            bucket = "due" if next_at_dt <= now else "upcoming"
+                            result[sub_code][bucket].append(item)
+
+                        self.send_json_response(result)
+                        return
+
+                    subject = subject.upper()
                     sql = """
                         SELECT q_id, stage, next_review_at, wrong_streak, review_count, last_result
                         FROM srs_review_state
@@ -1505,15 +1535,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 
                     for r in rows:
                         item = dict(r)
-                        next_at_raw = item["next_review_at"]
-                        if isinstance(next_at_raw, str):
-                            try:
-                                next_at_dt = datetime.fromisoformat(next_at_raw.replace(" ", "T"))
-                            except Exception:
-                                next_at_dt = now
-                        else:
-                            next_at_dt = next_at_raw
-
+                        next_at_dt = self._parse_srs_datetime(item["next_review_at"], now)
                         item["next_review_at"] = next_at_dt.isoformat()
                         if next_at_dt <= now:
                             due_list.append(item)
@@ -1524,6 +1546,14 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"SRS schedule query error: {str(e)}")
+
+    def _parse_srs_datetime(self, raw, fallback):
+        if isinstance(raw, str):
+            try:
+                return datetime.fromisoformat(raw.replace(" ", "T"))
+            except Exception:
+                return fallback
+        return raw or fallback
 
     def get_yearly_exams(self, query):
         """[설계 의도] 기출문제 연도 목록과 유저의 과목별 최고 점수 및 풀이 연습 통계를 요약하여 반환합니다."""

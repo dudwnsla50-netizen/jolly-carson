@@ -49,20 +49,18 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function initWrongAnswers() {
     const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
-    const fetchPromises = subjects.map(sub => {
-        return fetch(`/api/srs/due?subject=${sub}`)
-            .then(res => res.ok ? res.json() : { due: [], upcoming: [] })
-            .catch(() => ({ due: [], upcoming: [] }));
-    });
 
-    Promise.all(fetchPromises)
-        .then(results => {
-            // 과목별 "오늘 복습 대상" 및 "대기중" 집계
+    // [설계 의도] 과목별로 5번 따로 호출하던 것을 subject=all 배치 모드 1회 호출로 합쳐
+    // 초기 로딩 시 원격 Postgres 왕복 지연이 누적되는 문제를 줄입니다.
+    fetch('/api/srs/due?subject=all')
+        .then(res => res.ok ? res.json() : {})
+        .catch(() => ({}))
+        .then(bySubject => {
             ReviewState.dueQuestionsMap = { 'DB': [], 'SE': [], 'PM': [], 'SA': [], 'SC': [] };
             ReviewState.upcomingCountMap = { 'DB': 0, 'SE': 0, 'PM': 0, 'SA': 0, 'SC': 0 };
 
-            results.forEach((data, index) => {
-                const sub = subjects[index];
+            subjects.forEach(sub => {
+                const data = (bySubject && bySubject[sub]) || { due: [], upcoming: [] };
                 const dueList = data.due || [];
                 const upcomingList = data.upcoming || [];
                 ReviewState.dueQuestionsMap[sub] = dueList.map(item => item.q_id);

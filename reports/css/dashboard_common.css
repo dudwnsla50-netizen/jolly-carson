@@ -154,20 +154,6 @@ body[data-theme="light"] .viewer-body {
     color: #1f2328;
 }
 
-body[data-theme="light"] .mode-switch-wrapper {
-    background: #ffffff;
-    border-color: #bcc6d1;
-}
-
-body[data-theme="light"] .slider {
-    background-color: #b6c2cf;
-    border: 1px solid #a5b3c2;
-}
-
-body[data-theme="light"] .slider:before {
-    background-color: #ffffff;
-}
-
 body[data-theme="light"] .modal-overlay {
     background: rgba(31, 35, 40, 0.25);
 }
@@ -662,75 +648,6 @@ span.badge[onclick]:hover {
     gap: 1.2rem;
     margin-bottom: 2rem;
     width: 100%;
-}
-
-.mode-switch-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: rgba(255, 255, 255, 0.02);
-    padding: 0.5rem 1.2rem;
-    border-radius: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-}
-
-.mode-label {
-    font-size: 0.88rem;
-    font-weight: 600;
-    transition: color 0.25s ease;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 46px;
-    height: 24px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.08);
-    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #ffffff;
-    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-input:checked+.slider {
-    background: var(--accent-gradient);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
-}
-
-input:checked+.slider:before {
-    transform: translateX(22px);
-}
-
-.slider.round {
-    border-radius: 34px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
 }
 
 /* 9. 세부 토픽 조회 팝업 모달 */

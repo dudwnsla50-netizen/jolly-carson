@@ -698,74 +698,25 @@ function goToHome(event) {
 }
 
 /**
- * 4. 빈출순 🔥 <-> 공식범위순 📋 토글 제어 및 즉시 이동
- */
-function toggleDashboardMode(toggleEl) {
-    const isOfficial = toggleEl.checked;
-
-    // 라벨 텍스트 하이라이트 색상 교체
-    const freqLabel = document.getElementById('label-freq');
-    const officialLabel = document.getElementById('label-official');
-    if (freqLabel) freqLabel.style.color = isOfficial ? 'var(--text-secondary)' : 'var(--text-primary)';
-    if (officialLabel) officialLabel.style.color = isOfficial ? 'var(--text-primary)' : 'var(--text-secondary)';
-
-    // 상단 과목 배지들의 링크 이동 타겟 정보 갱신
-    const badges = document.querySelectorAll('.subject-badge');
-    badges.forEach(badge => {
-        const target = isOfficial ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
-        if (target) {
-            badge.href = target + '?v=20260613';
-        }
-    });
-
-    // 현재 과목의 반대편 모드 뷰어로 리다이렉트 수행
-    const currentPath = window.location.pathname;
-    let targetRedirect = "";
-    badges.forEach(badge => {
-        const freqPath = badge.getAttribute('data-freq');
-        const officialPath = badge.getAttribute('data-official');
-        if (currentPath.includes(freqPath) && isOfficial) {
-            targetRedirect = officialPath;
-        } else if (currentPath.includes(officialPath) && !isOfficial) {
-            targetRedirect = freqPath;
-        }
-    });
-
-    if (targetRedirect) {
-        window.location.href = targetRedirect + '?v=20260613';
-    }
-}
-
-/**
  * [설계 의도] 5대 과목 전체를 대상으로 오답 복습 스케줄러의 "오늘 복습 대상" 문항 총 개수를 집계합니다.
  * 네비게이션 배지는 모든 과목을 한 번에 다루는 오답 복습 페이지로 연결되므로, 특정 과목이 아닌 전체 합계를 보여줍니다.
  */
 function fetchTotalSrsDueCount() {
-    const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
-    return Promise.all(
-        subjects.map(sub =>
-            fetch(`/api/srs/due?subject=${sub}`)
-                .then(res => res.ok ? res.json() : { due: [] })
-                .catch(() => ({ due: [] }))
-        )
-    ).then(results => results.reduce((sum, r) => sum + ((r.due || []).length), 0));
+    // [설계 의도] 과목마다 따로 호출하면 원격 Postgres 왕복 지연이 5배로 누적되어 메인 화면
+    // 로딩이 느려집니다. subject=all 배치 모드로 한 번에 받아와 합산합니다.
+    return fetch('/api/srs/due?subject=all')
+        .then(res => res.ok ? res.json() : {})
+        .catch(() => ({}))
+        .then(bySubject => {
+            return Object.values(bySubject || {}).reduce((sum, r) => sum + ((r.due || []).length), 0);
+        });
 }
 
 /**
  * 5. 페이지 진입 시 내비게이션바 하이라이트 매핑
  */
 function initDashboardNav() {
-    const toggle = document.getElementById('dashboard-mode-toggle');
     const currentPath = window.location.pathname;
-    const isOfficialPage = currentPath.includes('official_scopes');
-
-    if (toggle) {
-        toggle.checked = isOfficialPage;
-        const freqLabel = document.getElementById('label-freq');
-        const officialLabel = document.getElementById('label-official');
-        if (freqLabel) freqLabel.style.color = isOfficialPage ? 'var(--text-secondary)' : 'var(--text-primary)';
-        if (officialLabel) officialLabel.style.color = isOfficialPage ? 'var(--text-primary)' : 'var(--text-secondary)';
-    }
 
     // 오답 복습 배지 동적 삽입 연동
     const navBadges = document.getElementById('dynamic-nav-badges');
@@ -829,24 +780,21 @@ function initDashboardNav() {
     // [설계 의도] "IT 용어 사전" 메인 화면 배지는 더 이상 노출하지 않습니다(사용 빈도가 낮아 제거 요청).
     // 단어장 기능 자체(reports/vocabulary/)와 관련 API는 그대로 유지되며, 필요 시 주소로 직접 접근 가능합니다.
 
+    // [설계 의도] 빈출/공식 두 모드를 오가던 토글이 사라지고 항상 공식 범위순 페이지로만 연결되므로,
+    // 과목 배지는 이제 정적 href만 보고 "현재 보고 있는 과목"인지 판단해 강조 표시합니다.
     const badges = document.querySelectorAll('.subject-badge');
     badges.forEach(badge => {
-        const target = isOfficialPage ? badge.getAttribute('data-official') : badge.getAttribute('data-freq');
-        if (target) {
-            badge.href = target + '?v=20260613';
-
-            // 현재 페이지 파일명이 타겟 주소와 매칭되면 퍼플 글로우 테마 활성화
-            if (currentPath.includes(target)) {
-                badge.classList.add('accent');
-                badge.style.color = '#ffffff';
-                badge.style.background = 'rgba(139, 92, 246, 0.12)';
-                badge.style.borderColor = 'rgba(139, 92, 246, 0.25)';
-            } else {
-                badge.classList.remove('accent');
-                badge.style.color = '';
-                badge.style.background = '';
-                badge.style.borderColor = '';
-            }
+        const target = badge.getAttribute('href');
+        if (target && currentPath.includes(target)) {
+            badge.classList.add('accent');
+            badge.style.color = '#ffffff';
+            badge.style.background = 'rgba(139, 92, 246, 0.12)';
+            badge.style.borderColor = 'rgba(139, 92, 246, 0.25)';
+        } else {
+            badge.classList.remove('accent');
+            badge.style.color = '';
+            badge.style.background = '';
+            badge.style.borderColor = '';
         }
     });
 }
