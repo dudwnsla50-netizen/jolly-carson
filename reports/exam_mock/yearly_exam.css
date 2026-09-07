@@ -155,6 +155,31 @@
             border-color: var(--error);
         }
 
+        /* [설계 의도] 중요도별 문제 리스트로 가는 버튼. exception-exam-btn과 동일한 구조이되,
+           예외(경고) 색상과 구분되도록 보라색 accent-violet 계열로 채색합니다. */
+        .importance-list-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: var(--accent-glow);
+            border: 1px solid var(--card-hover-border);
+            color: var(--accent-violet) !important;
+            -webkit-text-fill-color: var(--accent-violet);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.3rem 0.65rem;
+            border-radius: 8px;
+            text-decoration: none;
+            vertical-align: middle;
+            transition: all 0.15s ease;
+        }
+
+        .importance-list-btn:hover {
+            background: rgba(139, 92, 246, 0.22);
+            border-color: var(--accent-violet);
+        }
+
         header .subtitle {
             color: var(--text-secondary);
             font-size: 0.82rem;

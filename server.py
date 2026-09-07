@@ -958,17 +958,22 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         if not subject:
             self.send_error_response(400, "Missing parameter (subject)")
             return
-            
+
         subject = subject.upper()
         try:
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
-                    sql = """
+                    base_select = """
                         SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, ai_explanation_model, difficulty AS importance
                         FROM exam_questions
-                        WHERE subject = %s
                     """
-                    execute_query(cursor, sql, (subject,))
+                    if subject == "ALL":
+                        # 중요도별 문제 리스트 화면 등 과목 구분 없이 전체 문항이 필요한 경우를 위한 배치 조회
+                        sql = base_select + " ORDER BY subject ASC"
+                        execute_query(cursor, sql)
+                    else:
+                        sql = base_select + " WHERE subject = %s"
+                        execute_query(cursor, sql, (subject,))
                     rows = cursor.fetchall()
 
                     data_dict = {}

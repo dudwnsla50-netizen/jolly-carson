@@ -1,0 +1,194 @@
+/* ==========================================================================
+   중요도별 문제 리스트 전용 스타일
+   [설계 의도] yearly_exam.css의 테마 변수(--card-bg, --card-border, --accent-violet 등)와
+   공통 컴포넌트(.status-screen, .spinner)를 그대로 재사용하고,
+   이 화면에만 필요한 필터바/문항 리스트/중요도 선택 UI만 여기서 새로 정의합니다.
+   ========================================================================== */
+
+.il-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.2rem;
+}
+
+.il-filter-bar select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+    transition: border 0.2s;
+    color-scheme: dark;
+}
+
+body[data-theme="light"] .il-filter-bar select {
+    color-scheme: light;
+}
+
+.il-filter-bar select:hover {
+    border-color: var(--card-hover-border);
+}
+
+/* [설계 의도] 네이티브 select 팝업(옵션 목록)은 color-scheme만으로는 배경/글자색이 완전히
+   맞춰지지 않는 브라우저가 있어, option 자체에도 명시적으로 배경/글자색을 지정합니다.
+   이게 없으면 다크테마의 밝은 글자색이 브라우저 기본 흰 배경 팝업 위에 그대로 찍혀
+   흰 글씨가 흰 배경에 묻히는 문제가 생깁니다. */
+.il-filter-bar select option,
+.il-importance-select option {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.il-count-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+
+.il-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.il-item {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+}
+
+.il-item-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.il-meta-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    background: var(--accent-glow);
+    color: var(--accent-violet);
+    border: 1px solid var(--card-hover-border);
+    white-space: nowrap;
+}
+
+.il-item-question {
+    flex: 1;
+    min-width: 160px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.il-importance-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-hover-border);
+    color: var(--accent-violet);
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+    color-scheme: dark;
+    transition: box-shadow 0.2s ease;
+}
+
+body[data-theme="light"] .il-importance-select {
+    color-scheme: light;
+}
+
+.il-save-btn {
+    background: var(--accent-gradient);
+    border: none;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.il-save-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.il-item-detail {
+    margin-top: 0.9rem;
+    padding-top: 0.8rem;
+    border-top: 1px dashed var(--card-border);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+}
+
+.il-item-detail .il-answer-line {
+    margin-bottom: 0.5rem;
+}
+
+.il-item-detail .il-answer-line b {
+    color: var(--text-primary);
+}
+
+.il-item-detail .il-explanation-line b {
+    color: var(--text-primary);
+}
+
+.il-toast {
+    position: fixed;
+    right: 1.2rem;
+    bottom: 1.2rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 0.7rem 1.1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.il-toast.il-toast-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.il-toast.il-toast-success {
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.il-toast.il-toast-success i {
+    color: var(--success);
+}
+
+.il-toast.il-toast-error {
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.il-toast.il-toast-error i {
+    color: var(--error);
+}
