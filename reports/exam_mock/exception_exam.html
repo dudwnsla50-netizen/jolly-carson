@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예외 문제 모의고사</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="yearly_exam.css">
+    <link rel="stylesheet" href="exception_exam.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <a href="yearly_exam.html" class="back-btn">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> 모의고사 화면으로
+            </a>
+            <h1 id="view-title">예외 문제 모의고사</h1>
+            <p class="subtitle">중요도를 "예외"로 표시해 둔 문항만 모아 과목·연도 구분 없이 한 세트로 풀어봅니다.</p>
+        </header>
+
+        <!-- [로딩 화면] -->
+        <div id="loading-view" class="status-screen">
+            <div class="spinner"></div>
+            <h3 style="color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">예외 문항을 불러오는 중입니다</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">잠시만 기다려 주십시오...</p>
+        </div>
+
+        <!-- [빈 상태 - 예외 문항이 하나도 없을 때] -->
+        <div id="empty-view" class="status-screen" style="display: none;">
+            <i data-lucide="inbox" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <p style="color: var(--text-secondary);">중요도가 "예외"로 표시된 문항이 아직 없습니다.</p>
+        </div>
+
+        <!-- [풀이 화면] -->
+        <div id="practice-view" style="display: none;">
+            <div class="ee-progress-row">
+                <span class="ee-progress-text" id="ee-progress-text">문항 1 / 12</span>
+                <div class="ee-progress-track"><div class="ee-progress-fill" id="ee-progress-fill"></div></div>
+            </div>
+
+            <div class="ee-card">
+                <div class="ee-card-meta">
+                    <span class="ee-meta-tag" id="ee-meta-subject">DB</span>
+                    <span class="ee-meta-tag" id="ee-meta-qid">2020년 74번</span>
+                    <span class="ee-meta-tag ee-meta-concept" id="ee-meta-concept"></span>
+                </div>
+                <div class="ee-question-text" id="ee-question-text">문제를 불러오는 중입니다...</div>
+                <div class="ee-options" id="ee-options-container"></div>
+            </div>
+
+            <div class="ee-nav-row">
+                <button class="ee-btn" id="ee-btn-prev" onclick="eePrev()"><i data-lucide="chevron-left"></i> 이전</button>
+                <button class="ee-btn ee-btn-submit" id="ee-btn-submit" onclick="eeSubmit()">
+                    <i data-lucide="send"></i> 채점하기
+                </button>
+                <button class="ee-btn" id="ee-btn-next" onclick="eeNext()">다음 <i data-lucide="chevron-right"></i></button>
+            </div>
+        </div>
+
+        <!-- [결과 화면] -->
+        <div id="result-view" style="display: none;">
+            <div class="result-summary-card">
+                <div class="result-score-title">맞춘 문항</div>
+                <div class="result-score-val" id="ee-result-score">0 / 12</div>
+                <div class="result-meta-grid" style="grid-template-columns: 1fr; max-width: 240px;">
+                    <div class="result-meta-box">
+                        <div class="result-meta-label">정답률</div>
+                        <div class="result-meta-val" id="ee-result-rate">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ee-result-list" id="ee-result-list"></div>
+
+            <div class="ee-nav-row" style="justify-content: center;">
+                <a href="yearly_exam.html" class="ee-btn ee-btn-submit" style="text-decoration: none; display: inline-flex;">
+                    <i data-lucide="arrow-left"></i> 모의고사 화면으로
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="exception_exam.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+    <script src="../js/quick_add.js"></script>
+</body>
+
+</html>

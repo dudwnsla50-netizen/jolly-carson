@@ -826,33 +826,8 @@ function initDashboardNav() {
         }
     }
 
-    // IT 용어 사전(단어장) 배지 동적 삽입 연동
-    if (navBadges && !document.getElementById('vocabulary-badge')) {
-        const vocabBadge = document.createElement('a');
-        vocabBadge.id = 'vocabulary-badge';
-        vocabBadge.href = 'vocabulary/index.html';
-        vocabBadge.className = 'badge';
-        vocabBadge.style.textDecoration = 'none';
-        vocabBadge.style.background = 'rgba(16, 185, 129, 0.15)';
-        vocabBadge.style.borderColor = 'rgba(16, 185, 129, 0.35)';
-        vocabBadge.style.color = '#34d399';
-        vocabBadge.style.fontWeight = '700';
-        vocabBadge.style.borderStyle = 'solid';
-        vocabBadge.style.borderWidth = '1px';
-        vocabBadge.innerHTML = '📖 IT 용어 사전';
-
-        const yearlyBadgeEl = document.getElementById('yearly-exam-badge');
-        if (yearlyBadgeEl) {
-            yearlyBadgeEl.parentNode.insertBefore(vocabBadge, yearlyBadgeEl.nextSibling);
-        } else {
-            const homeBadge = navBadges.querySelector('.home-badge');
-            if (homeBadge) {
-                homeBadge.parentNode.insertBefore(vocabBadge, homeBadge.nextSibling);
-            } else {
-                navBadges.appendChild(vocabBadge);
-            }
-        }
-    }
+    // [설계 의도] "IT 용어 사전" 메인 화면 배지는 더 이상 노출하지 않습니다(사용 빈도가 낮아 제거 요청).
+    // 단어장 기능 자체(reports/vocabulary/)와 관련 API는 그대로 유지되며, 필요 시 주소로 직접 접근 가능합니다.
 
     const badges = document.querySelectorAll('.subject-badge');
     badges.forEach(badge => {

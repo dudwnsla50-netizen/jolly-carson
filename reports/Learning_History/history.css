@@ -170,6 +170,28 @@ body[data-theme="light"] .bg-glow-left {
     transform: translateX(-2px);
 }
 
+/* 개념 우선순위 화면 이동 버튼 (원래 메인 대시보드 상단 배지였던 것을 이 화면으로 이동) */
+.priority-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    border: none;
+    color: #ffffff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.priority-nav-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
 /* 요약 카드 그리드 */
 .stats-grid {
     display: grid;
