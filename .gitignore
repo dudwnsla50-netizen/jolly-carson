@@ -32,3 +32,6 @@ scratch/
 
 # DB 작업 전 임시 로컬 백업 (git 히스토리에 이전 버전이 이미 남아있어 불필요)
 *.bak_*
+
+# 운영 Postgres에서 내려받는 CSV 덤프 (로컬 SQLite 갱신용, 대용량+수시 교체라 버전관리 제외)
+analytics/input/
