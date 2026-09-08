@@ -138,6 +138,17 @@ body[data-theme="light"] .il-importance-select {
     color: var(--text-secondary);
 }
 
+.il-question-line {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text-primary);
+    margin-bottom: 0.8rem;
+    white-space: pre-wrap;
+    -webkit-user-select: text;
+    user-select: text;
+    cursor: text;
+}
+
 .il-item-detail .il-answer-line {
     margin-bottom: 0.5rem;
 }

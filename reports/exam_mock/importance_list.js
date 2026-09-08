@@ -2,15 +2,14 @@
  * ==========================================================================
  * [중요도별 문제 리스트 - importance_list.js]
  * 과목/중요도 조건으로 문제·정답·해설을 리스트로 훑어보고, 중요도를 바로
- * 수정할 수 있는 가벼운 전용 화면입니다. exception_exam.js의 결과 리스트
- * 렌더링 패턴을 그대로 따르되, 채점 없이 조회/편집만 담당합니다.
+ * 수정할 수 있는 가벼운 전용 화면입니다.
  * ==========================================================================
  */
 
 const IL_THEME_KEY = 'jc_theme';
 const IL_IMPORTANCE_ORDER = { '상': 0, '중': 1, '하': 2, '예외': 3 };
 const IL_SUBJECT_NAMES = {
-    PM: '사업관리', SE: '소프트웨어공학', DB: '데이터베이스', SA: '시스템아키텍처', SC: '보안'
+    PM: '사업관리', SE: '소공', DB: 'DB', SA: '시구', SC: '보안'
 };
 
 const ILState = {
@@ -101,10 +100,11 @@ function ilRenderList() {
                     <span class="il-meta-tag">${IL_SUBJECT_NAMES[q.subject] || q.subject}</span>
                     <span class="il-item-question">${plainQuestion.slice(0, 50)}${plainQuestion.length > 50 ? '…' : ''}</span>
                     <select class="il-importance-select" id="il-importance-${q.id}" data-original="${savedImportance}" onclick="event.stopPropagation()" onchange="ilOnImportanceChange('${q.id}')">
-                        ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${displayImportance === d ? 'selected' : ''}>중요도 ${d}</option>`).join('')}
+                        ${['상', '중', '하', '예외'].map(d => `<option value="${d}" ${displayImportance === d ? 'selected' : ''}>${d}</option>`).join('')}
                     </select>
                 </div>
                 <div class="il-item-detail" id="il-detail-${q.id}" style="display: none;">
+                    <div class="il-question-line">${q.question}</div>
                     <div style="margin-bottom: 0.5rem;">${optionsHtml}</div>
                     ${q.explanation ? `<div class="il-explanation-line"><b>해설:</b> ${q.explanation}</div>` : ''}
                 </div>

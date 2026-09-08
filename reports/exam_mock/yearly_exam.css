@@ -130,9 +130,9 @@
             flex-wrap: wrap;
         }
 
-        /* [설계 의도] 예외 문제 모의고사로 가는 버튼. 부모 h1이 그라디언트 텍스트(투명 채우기)라
+        /* [설계 의도] 중요도별 문제 리스트로 가는 버튼. 부모 h1이 그라디언트 텍스트(투명 채우기)라
            명시적으로 배경/글자색/채우기를 재정의하지 않으면 버튼 글자까지 투명해집니다. */
-        .exception-exam-btn {
+        .importance-list-btn {
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
@@ -150,34 +150,9 @@
             transition: all 0.15s ease;
         }
 
-        .exception-exam-btn:hover {
+        .importance-list-btn:hover {
             background: rgba(239, 68, 68, 0.18);
             border-color: var(--error);
-        }
-
-        /* [설계 의도] 중요도별 문제 리스트로 가는 버튼. exception-exam-btn과 동일한 구조이되,
-           예외(경고) 색상과 구분되도록 보라색 accent-violet 계열로 채색합니다. */
-        .importance-list-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            background: var(--accent-glow);
-            border: 1px solid var(--card-hover-border);
-            color: var(--accent-violet) !important;
-            -webkit-text-fill-color: var(--accent-violet);
-            font-family: 'Inter', sans-serif;
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 0.3rem 0.65rem;
-            border-radius: 8px;
-            text-decoration: none;
-            vertical-align: middle;
-            transition: all 0.15s ease;
-        }
-
-        .importance-list-btn:hover {
-            background: rgba(139, 92, 246, 0.22);
-            border-color: var(--accent-violet);
         }
 
         header .subtitle {
@@ -218,6 +193,7 @@
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 16px;
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             padding: 3rem;
         }
@@ -248,6 +224,7 @@
             justify-content: space-between;
             gap: 1rem;
             animation: fadeIn 0.4s ease;
+            -webkit-backdrop-filter: blur(8px);
             backdrop-filter: blur(8px);
         }
 
@@ -331,6 +308,7 @@
             border: 1px solid var(--card-border);
             border-radius: 12px;
             padding: 1rem;
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -453,6 +431,7 @@
             border: 1px solid var(--card-border);
             border-radius: 16px;
             padding: 2rem;
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
@@ -708,6 +687,7 @@
             border: 1px solid var(--card-border);
             border-radius: 16px;
             padding: 1.5rem;
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             position: sticky;
@@ -856,6 +836,7 @@
             border: 1px solid var(--card-border);
             border-radius: 14px;
             padding: 1rem 1.2rem;
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             margin-bottom: 0.8rem;
@@ -979,6 +960,7 @@
             border: 1px solid var(--card-border);
             border-radius: 20px;
             padding: 2rem;
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
@@ -1302,6 +1284,7 @@
             border-radius: 12px;
             padding: 0.8rem;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             display: flex;
             flex-direction: column;

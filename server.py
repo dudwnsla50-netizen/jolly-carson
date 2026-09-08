@@ -401,8 +401,6 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.submit_quiz(data)
         elif path == "/api/yearly-exam/submit":
             self.submit_yearly_exam(data)
-        elif path == "/api/yearly-exam/submit-exception":
-            self.submit_exception_exam(data)
         # === 단어장(Vocabulary) POST API 라우팅 ===
         elif path == "/api/vocab/term":
             self.post_vocab_term(data)
@@ -448,8 +446,6 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_yearly_exams(query)
         elif path == "/api/yearly-exam/questions":
             self.get_yearly_exam_questions(query)
-        elif path == "/api/yearly-exam/exception-questions":
-            self.get_exception_questions(query)
         elif path == "/api/yearly-exam/history":
             self.get_yearly_exam_history(query)
         elif path == "/api/yearly-exam/ai-diagnose":
@@ -1837,124 +1833,6 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         data_list.append(item)
 
                     self.send_json_response(data_list)
-        except Exception as e:
-            traceback.print_exc()
-            self.send_error_response(500, f"Database error: {str(e)}")
-
-    def _build_qnum_to_concept_map(self, cursor):
-        """
-        [설계 의도] (subject, year, question_num) -> 공식 개념 라벨 리스트 역매핑을 만듭니다.
-        오답 TOP15, 개념 우선순위 분석, 예외 문제 모의고사 등 문항 단위로 개념을 붙여 보여줘야 하는
-        여러 화면에서 공통으로 필요해 별도 헬퍼로 분리했습니다.
-        """
-        execute_query(cursor, """
-            SELECT subject, concept, questions FROM dashboard_mappings
-            WHERE dashboard_type = 'official' AND concept != '[기타]'
-        """)
-        qnum_to_concept = {}
-        for row in cursor.fetchall():
-            r = dict(row)
-            qs = r.get("questions")
-            qs = json.loads(qs) if isinstance(qs, str) else (qs or [])
-            for q in qs:
-                qnum_to_concept.setdefault((r["subject"], q.get("year"), q.get("num")), []).append(r["concept"])
-        return qnum_to_concept
-
-    def get_exception_questions(self, query):
-        """
-        [설계 의도] 문제별 중요도(difficulty)가 "예외"로 표시된 문항들을 과목/연도에 상관없이 모아
-        하나의 작은 모의고사 세트로 제공합니다. 년도별 120제와 달리 특정 exam_year에 속하지 않으므로
-        별도 엔드포인트로 분리했습니다.
-        """
-        try:
-            with get_db_connection() as conn:
-                with get_db_cursor(conn) as cursor:
-                    sql = """
-                        SELECT id, year, subject, question_num, question, options, answer, explanation,
-                               is_new_trend, ai_explanation, ai_explanation_model, difficulty AS importance
-                        FROM exam_questions
-                        WHERE difficulty = %s
-                        ORDER BY subject ASC, year DESC, question_num ASC
-                    """
-                    execute_query(cursor, sql, ("예외",))
-                    rows = cursor.fetchall()
-
-                    qnum_to_concept = self._build_qnum_to_concept_map(cursor)
-
-                    data_list = []
-                    for row in rows:
-                        item = dict(row)
-                        item["options"] = json.loads(item["options"]) if item["options"] else []
-                        item["importance"] = item.get("importance") or "예외"
-
-                        raw_answer = item["answer"]
-                        if isinstance(raw_answer, int):
-                            item["answer"] = [raw_answer]
-                        elif isinstance(raw_answer, str) and raw_answer.strip():
-                            try:
-                                parsed_ans = json.loads(raw_answer)
-                                item["answer"] = [parsed_ans] if isinstance(parsed_ans, int) else parsed_ans
-                            except Exception:
-                                item["answer"] = [int(raw_answer)] if raw_answer.isdigit() else []
-                        else:
-                            item["answer"] = []
-
-                        item["concepts"] = qnum_to_concept.get((item["subject"], item["year"], item["question_num"]), [])
-                        data_list.append(item)
-
-                    self.send_json_response(data_list)
-        except Exception as e:
-            traceback.print_exc()
-            self.send_error_response(500, f"Database error: {str(e)}")
-
-    def submit_exception_exam(self, data):
-        """
-        [설계 의도] 예외 문제 모의고사는 exam_year 하나로 묶이지 않는 소규모 혼합 세트이므로
-        yearly_exam_history가 아니라, 문항 단위 학습이력(quiz_history)에 문항마다 한 행씩 기록합니다.
-        이렇게 하면 오답 TOP15/개념 우선순위 분석 등 기존 화면에도 자연스럽게 함께 집계됩니다.
-        """
-        details = data.get("details")
-        if not isinstance(details, list) or not details:
-            self.send_error_response(400, "Missing parameter (details)")
-            return
-
-        try:
-            correct_count = 0
-            srs_items = []
-            with get_db_connection() as conn:
-                with get_db_cursor(conn) as cursor:
-                    qnum_to_concept = self._build_qnum_to_concept_map(cursor)
-
-                    for item in details:
-                        subject = item.get("subject")
-                        year = item.get("year")
-                        q_num = item.get("question_num")
-                        is_correct = bool(item.get("is_correct"))
-                        if is_correct:
-                            correct_count += 1
-
-                        concepts = qnum_to_concept.get((subject, year, q_num), [])
-                        concept = concepts[0] if concepts else "[기타]"
-                        detail_json = json.dumps(item, ensure_ascii=False)
-
-                        execute_query(cursor, """
-                            INSERT INTO quiz_history (subject, concept, total_questions, correct_count, wrong_count, details)
-                            VALUES (%s, %s, 1, %s, %s, %s)
-                        """, (subject, concept, 1 if is_correct else 0, 0 if is_correct else 1, detail_json))
-
-                        q_id = item.get("q_id") or f"{year}_{q_num}"
-                        srs_items.append({"q_id": q_id, "subject": subject, "is_correct": is_correct})
-
-                    conn.commit()
-
-            if srs_items:
-                self._update_srs_states_batch(srs_items)
-
-            self.send_json_response({
-                "success": True,
-                "correct_count": correct_count,
-                "total_count": len(details),
-            })
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")

@@ -12,6 +12,7 @@
     border-radius: 16px;
     padding: 1rem 1.4rem;
     margin-bottom: 1.5rem;
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     box-shadow: 0 0 25px rgba(139, 92, 246, 0.06);
     animation: gamCardFadeIn 0.5s ease-out;

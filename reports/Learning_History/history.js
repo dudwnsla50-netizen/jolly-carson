@@ -594,9 +594,9 @@ function renderHistoryTable() {
     pageData.forEach(row => {
         const tr = document.createElement('tr');
 
-        // 날짜 포맷 (예: 2026년 06월 23일)
+        // 날짜 포맷 (예: 26.06.23)
         const dateParts = row.dateStr.split('-');
-        const dateFormatted = `${dateParts[0]}년 ${dateParts[1]}월 ${dateParts[2]}일`;
+        const dateFormatted = `${dateParts[0].slice(-2)}.${dateParts[1]}.${dateParts[2]}`;
 
         // 정답률 계산
         const acc = row.totalSolved > 0 ? Math.round((row.totalCorrect / row.totalSolved) * 100) : 0;
@@ -1327,7 +1327,7 @@ function renderYearlyExamHistoryTable(historyList) {
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${formattedDate}</td>
             <td style="font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-primary); font-size: 0.9rem;">${item.exam_year}</td>
             <td style="font-size: 0.8rem; color: var(--text-primary);">${subjectSummary}</td>
-            <td><span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">${displayPracticeCount}회차</span></td>
+            <td><span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.2); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">${displayPracticeCount}회</span></td>
             <td style="font-size: 0.88rem; font-weight: 500;">${item.correct_count} / ${item.total_questions}</td>
             <td style="font-size: 0.85rem; color: var(--text-secondary);">${timeStr}</td>
             <td style="font-weight: 700; color: var(--success); font-size: 0.95rem;">${score}점</td>
@@ -1705,7 +1705,7 @@ function renderWrongTopList(subjectCode) {
         return `
             <tr class="wrong-top-row" onclick="toggleWrongTopDetail('${qKey}', ${entry.year}, ${entry.questionNum})">
                 <td>${idx + 1}</td>
-                <td>${entry.year}년</td>
+                <td>${String(entry.year).slice(-2)}년</td>
                 <td>${entry.questionNum}번</td>
                 <td class="wrong-top-concept-cell">${conceptCellHtml}</td>
                 <td style="text-align: center; font-weight: 700; color: var(--error);">${entry.wrongCount}회</td>

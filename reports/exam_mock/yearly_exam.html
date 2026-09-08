@@ -24,9 +24,6 @@
             </a>
             <h1 id="view-title">
                 년도별 120제 모의고사
-                <a href="exception_exam.html" class="exception-exam-btn" title="중요도가 &quot;예외&quot;로 표시된 문항만 모아 풀기">
-                    <i data-lucide="alert-triangle" style="width: 14px; height: 14px;"></i> 예외
-                </a>
                 <a href="importance_list.html" class="importance-list-btn" title="중요도 기준으로 문제·정답·해설을 리스트로 보기">
                     <i data-lucide="list" style="width: 14px; height: 14px;"></i> 중요도 리스트
                 </a>
@@ -61,7 +58,7 @@
     </div>
 
     <!-- [신규] 모의고사 풀이 이력 모달 -->
-    <div id="history-modal" class="modal-overlay" onclick="closeHistoryModal(event)" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 11, 19, 0.85); backdrop-filter: blur(12px); z-index: 1000; align-items: center; justify-content: center;">
+    <div id="history-modal" class="modal-overlay" onclick="closeHistoryModal(event)" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 11, 19, 0.85); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); z-index: 1000; align-items: center; justify-content: center;">
         <div class="modal-card" onclick="event.stopPropagation()" style="background: var(--card-bg); border: 1px solid var(--accent-violet); border-radius: 20px; width: 100%; max-width: 750px; padding: 1.25rem; box-shadow: 0 15px 45px rgba(139, 92, 246, 0.25); display: flex; flex-direction: column; gap: 0.4rem; position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.3rem;">
                 <h3 id="history-modal-title" style="font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">

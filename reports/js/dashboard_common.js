@@ -686,18 +686,6 @@ function setupStatsBadges() {
 }
 
 /**
- * 3. 퀴즈 홈 이동 (로컬 file:/// 및 웹 서버 경로 분기 처리)
- */
-function goToHome(event) {
-    if (event) event.preventDefault();
-    if (window.location.protocol === 'file:') {
-        window.location.href = '../index.html';
-    } else {
-        window.location.href = '/';
-    }
-}
-
-/**
  * [설계 의도] 5대 과목 전체를 대상으로 오답 복습 스케줄러의 "오늘 복습 대상" 문항 총 개수를 집계합니다.
  * 네비게이션 배지는 모든 과목을 한 번에 다루는 오답 복습 페이지로 연결되므로, 특정 과목이 아닌 전체 합계를 보여줍니다.
  */

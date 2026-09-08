@@ -40,3 +40,7 @@
 
 ## 9. 프롬프트에 녹여낼 객체지향 원칙 핵심 요약
 HTML (프론트엔드): 컴포넌트 단위로 분리하여 단일 책임 원칙(SRP)을 적용합니다.
+
+## 10. 크로스브라우저 호환성 (Cross-Browsing)
+- **벤더 프리픽스 동반 작성**: `backdrop-filter`, `background-clip: text`, `user-select` 등 브라우저마다 지원 시점이 다른 CSS 속성은 반드시 `-webkit-` 등 벤더 프리픽스 버전과 표준 속성을 함께 작성합니다. 특히 `backdrop-filter`는 구버전 Safari에서 `-webkit-backdrop-filter` 없이는 블러 효과 자체가 적용되지 않으므로 항상 짝을 맞춰 작성합니다.
+- **신규 화면도 예외 없음**: 새 CSS 파일이나 인라인 스타일을 추가할 때도 동일하게 적용합니다.
