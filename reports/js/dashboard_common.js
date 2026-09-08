@@ -403,12 +403,44 @@ function loadQuizStatsAndMerge() {
         return isNaN(t) ? 0 : t;
     };
 
+    // [설계 의도] "나의 풀이 이력" 팝업에 년도별 120제 모의고사로 푼 이력도 함께 보여주기 위해,
+    // 통계 집계(recalculateQuizSummaryAndStats)에는 관여하지 않는 별도 버퍼(window.yearlyExamQuestionLogs)로
+    // 모의고사 이력을 문항 단위로 쪼개어 따로 적재합니다. quiz_history 기반 통계/가중치 계산 로직에는
+    // 영향을 주지 않고, 문항 상세 화면의 이력 리스트에서만 병합해 사용합니다.
+    const yearlyExamLogsPromise = fetch('/api/yearly-exam/history')
+        .then(res => res.ok ? res.json() : [])
+        .catch(() => [])
+        .then(examList => {
+            const questionLogs = [];
+            (Array.isArray(examList) ? examList : []).forEach(exam => {
+                let examDetails = [];
+                try {
+                    examDetails = (typeof exam.details === 'string') ? JSON.parse(exam.details) : (exam.details || []);
+                } catch (e) {
+                    examDetails = [];
+                }
+                examDetails.forEach(detail => {
+                    if (!detail.q_id) return;
+                    questionLogs.push({
+                        created_at: exam.created_at,
+                        details: {
+                            q_id: detail.q_id,
+                            is_correct: detail.is_correct,
+                            user_choice: detail.user_answer
+                        }
+                    });
+                });
+            });
+            window.yearlyExamQuestionLogs = questionLogs;
+        });
+
     return fetch(`/api/quiz/stats?subject=${subject}`)
         .then(res => {
             if (!res.ok) throw new Error("HTTP error " + res.status);
             return res.json();
         })
-        .then(data => {
+        .then(data => Promise.all([data, yearlyExamLogsPromise]))
+        .then(([data]) => {
             const mergedLogs = [];
             const serverLogs = data.logs || [];
 
@@ -1282,8 +1314,14 @@ function renderLoadedQuestion(idx, qId) {
         htmlContent += `</div>`;
     }
 
-    // 해당 문항의 모든 풀이 이력을 window.quizFullHistoryList 에서 필터링하여 가져옵니다.
-    const questionLogs = (window.quizFullHistoryList || []).filter(log => {
+    // 해당 문항의 모든 풀이 이력을 일반 퀴즈(quizFullHistoryList: 롤링 퀴즈+오답 복습)와
+    // 년도별 120제 모의고사(yearlyExamQuestionLogs) 양쪽에서 함께 모아 최신순으로 정렬합니다.
+    const combinedHistoryLogs = [
+        ...(window.quizFullHistoryList || []),
+        ...(window.yearlyExamQuestionLogs || [])
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const questionLogs = combinedHistoryLogs.filter(log => {
         if (!log.details) return false;
         // 신규 포맷
         if (log.details.q_id === qId) return true;
