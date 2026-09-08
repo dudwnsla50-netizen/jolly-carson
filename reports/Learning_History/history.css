@@ -723,6 +723,7 @@ body[data-theme="light"] .modal-subject-row {
     display: flex;
     flex-direction: column;
     position: relative;
+    cursor: pointer;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -734,6 +735,12 @@ body[data-theme="light"] .modal-subject-row {
     transform: translateY(-5px);
     border-color: var(--card-border-hover);
     box-shadow: 0 10px 20px rgba(139, 92, 246, 0.12);
+}
+
+/* [설계 의도] 클릭해 상단 요약 통계를 좁힌 과목 카드를 표시 - 눈에 띄는 보라색 테두리+글로우 */
+.subject-exp-card-active {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary), 0 10px 20px rgba(139, 92, 246, 0.18);
 }
 
 /* 카드 상단 영역 (과목명 & 약어 뱃지) */

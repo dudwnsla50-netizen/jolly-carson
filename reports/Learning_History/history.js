@@ -4,6 +4,10 @@
  * ==========================================================================
  */
 
+// [설계 의도] elapsed_time이 기록되지 않은 옛날 데이터(또는 예외 케이스)는 문항당 1분(60초)을 부여해
+// 실제 소요시간 합산에서 완전히 누락되지 않도록 합니다.
+const ELAPSED_TIME_FALLBACK_SECONDS = 60;
+
 // 전역 통계 상태 객체
 const HistoryState = {
     allLogs: [],         // 전체 과목의 로그 목록 병합 데이터
@@ -27,7 +31,8 @@ const HistoryState = {
     wrongTopLists: null,
     wrongTopActiveSubject: 'PM',
     wrongTopOpenKey: null,
-    questionConceptMap: {}   // [NEW] "{year}_{questionNum}" -> [공식 개념 라벨, ...] 역매핑
+    questionConceptMap: {},  // [NEW] "{year}_{questionNum}" -> [공식 개념 라벨, ...] 역매핑
+    summaryFilterSubject: 'all' // [NEW] 과목별 EXP 카드 클릭 시 상단 요약 통계(총 풀이 문항/정답률/공부시간)를 좁힐 과목
 };
 
 const SUBJECT_NAMES = {
@@ -141,7 +146,8 @@ function loadAllHistoryData() {
                     merged.push({
                         ...log,
                         subject: sub,
-                        parsedDate: parseDate(log.created_at)
+                        parsedDate: parseDate(log.created_at),
+                        elapsedSeconds: extractElapsedSeconds(log.details)
                     });
                 });
             });
@@ -178,7 +184,8 @@ function loadAllHistoryData() {
                             wrong_count: detail.is_correct ? 0 : 1,
                             created_at: exam.created_at,
                             subject: sub,
-                            parsedDate: examDate
+                            parsedDate: examDate,
+                            elapsedSeconds: (typeof detail.elapsed_time === 'number') ? detail.elapsed_time : ELAPSED_TIME_FALLBACK_SECONDS
                         });
                     });
                 });
@@ -220,6 +227,23 @@ function loadAllHistoryData() {
 }
 
 /**
+ * [설계 의도] quiz_history.details(JSON 문자열 또는 객체)에서 실제 풀이 소요초(elapsed_time)를 추출합니다.
+ * 값이 없거나 숫자가 아니면(옛날 데이터, 기록 누락 등) ELAPSED_TIME_FALLBACK_SECONDS로 대체합니다.
+ */
+function extractElapsedSeconds(details) {
+    let parsed = details;
+    if (typeof details === 'string') {
+        try {
+            parsed = JSON.parse(details);
+        } catch (e) {
+            parsed = null;
+        }
+    }
+    const value = parsed && parsed.elapsed_time;
+    return (typeof value === 'number') ? value : ELAPSED_TIME_FALLBACK_SECONDS;
+}
+
+/**
  * 2. 날짜 가공 헬퍼 함수 (타임존 보정 포함)
  */
 function parseDate(dateStr) {
@@ -238,45 +262,62 @@ function parseDate(dateStr) {
  * 4. 종합 학습 요약 통계 계산 및 화면 주입
  */
 function calculateSummaryStats() {
-    const logs = HistoryState.allLogs;
+    const allLogs = HistoryState.allLogs;
+
+    // [설계 의도] 과목별 EXP 카드를 클릭해 과목을 선택하면, 총 풀이 문항/누적 평균 정답률/추정 누적
+    // 공부시간 3개 카드만 해당 과목 기준으로 다시 계산합니다. 누적 공부일 수(스트릭)는 과목과 무관하게
+    // 항상 전체 학습일 기준을 유지합니다.
+    const filterSubject = HistoryState.summaryFilterSubject || 'all';
+    const filteredLogs = (filterSubject === 'all') ? allLogs : allLogs.filter(log => log.subject === filterSubject);
+
     let totalSolved = 0;
     let totalCorrect = 0;
-    const uniqueDays = new Set();
+    let totalSeconds = 0;
+    const filteredDays = new Set();
 
-    logs.forEach(log => {
+    filteredLogs.forEach(log => {
         totalSolved += (log.total_questions || 0);
         totalCorrect += (log.correct_count || 0);
-
+        totalSeconds += (log.elapsedSeconds || 0);
 
         // 로컬 YYYY-MM-DD 문자열 추출
-        const localDateStr = formatDateKey(log.parsedDate);
-        uniqueDays.add(localDateStr);
+        filteredDays.add(formatDateKey(log.parsedDate));
     });
 
     const avgAccuracy = totalSolved > 0 ? Math.round((totalCorrect / totalSolved) * 100) : 0;
 
 
-    // 학습 시간 계산: 문제당 평균 1.5분 소요 가정
-    const totalMinutes = Math.round(totalSolved * 1.5);
+    // 학습 시간 계산: 문항별 실제 풀이 소요시간 합산 (기록 없는 옛날 데이터는 1분으로 대체)
+    const totalMinutes = Math.round(totalSeconds / 60);
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
     const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
 
-    // 일평균 풀이량: 총 풀이량 / 공부한 날짜 수
-    const activeDaysCount = uniqueDays.size || 1;
-    const dailyAvg = (totalSolved / activeDaysCount).toFixed(1);
+    // 일평균 풀이량: 총 풀이량 / (선택된 과목 기준) 공부한 날짜 수
+    const filteredActiveDaysCount = filteredDays.size || 1;
+    const dailyAvg = (totalSolved / filteredActiveDaysCount).toFixed(1);
 
     // UI 반영
     document.getElementById('stat-total-solved').textContent = `${totalSolved}개`;
     document.getElementById('stat-avg-accuracy').textContent = `${avgAccuracy}%`;
     document.getElementById('stat-study-time').textContent = timeStr;
-    document.getElementById('stat-active-days').textContent = `${activeDaysCount}일`;
 
+    // 과목 필터가 걸려 있으면 카드 라벨에 과목명을 덧붙여 어떤 과목 기준인지 표시
+    const labelSuffix = (filterSubject !== 'all') ? ` (${SUBJECT_NAMES[filterSubject] || filterSubject})` : '';
+    document.getElementById('stat-total-solved-label').textContent = `총 풀이 문항${labelSuffix}`;
+    document.getElementById('stat-avg-accuracy-label').textContent = `누적 평균 정답률${labelSuffix}`;
+    document.getElementById('stat-study-time-label').textContent = `추정 누적 공부시간${labelSuffix}`;
 
     // 서브 텍스트 보충
     document.getElementById('stat-total-solved-sub').textContent = `정답 ${totalCorrect}개 / 오답 ${totalSolved - totalCorrect}개`;
     document.getElementById('stat-avg-accuracy-sub').textContent = `공부한 요일 기준 일평균 ${dailyAvg}문항`;
-    document.getElementById('stat-study-time-sub').textContent = `문제당 평균 1.5분 풀이 환산`;
+    document.getElementById('stat-study-time-sub').textContent = `문항별 실제 풀이 시간 합산 (기록 없는 문항은 1분)`;
+
+    // 누적 공부일 수 카드는 과목 필터와 무관하게 항상 전체 로그 기준으로 계산
+    const uniqueDays = new Set();
+    allLogs.forEach(log => uniqueDays.add(formatDateKey(log.parsedDate)));
+    const activeDaysCount = uniqueDays.size || 1;
+    document.getElementById('stat-active-days').textContent = `${activeDaysCount}일`;
 
 
     // 스트릭(연속성) 지수 계산
@@ -337,6 +378,7 @@ function generateDailyHistory() {
                 dateStr: dateKey,
                 totalSolved: 0,
                 totalCorrect: 0,
+                totalSeconds: 0,
                 subjectCounts: { 'DB': 0, 'SE': 0, 'PM': 0, 'SA': 0, 'SC': 0 }
             };
         }
@@ -347,6 +389,7 @@ function generateDailyHistory() {
 
         dailyMap[dateKey].totalSolved += solved;
         dailyMap[dateKey].totalCorrect += correct;
+        dailyMap[dateKey].totalSeconds += (log.elapsedSeconds || 0);
         if (dailyMap[dateKey].subjectCounts[sub] !== undefined) {
             dailyMap[dateKey].subjectCounts[sub] += solved;
         }
@@ -602,8 +645,8 @@ function renderHistoryTable() {
         const acc = row.totalSolved > 0 ? Math.round((row.totalCorrect / row.totalSolved) * 100) : 0;
 
 
-        // 추정 학습 시간 계산 (문제당 1.5분 환산)
-        const totalMinutes = Math.round(row.totalSolved * 1.5);
+        // 학습 시간 계산 (문항별 실제 풀이 소요시간 합산, 기록 없는 옛날 데이터는 1분으로 대체)
+        const totalMinutes = Math.round((row.totalSeconds || 0) / 60);
         const hours = Math.floor(totalMinutes / 60);
         const mins = totalMinutes % 60;
         const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
@@ -817,6 +860,11 @@ function renderSubjectExpCards(expData, subjectAccuracies = {}) {
 
         const card = document.createElement('div');
         card.className = 'subject-exp-card';
+        if (HistoryState.summaryFilterSubject === sub) {
+            card.classList.add('subject-exp-card-active');
+        }
+        card.title = '클릭하면 상단 요약 통계를 이 과목 기준으로 봅니다 (다시 클릭하면 전체 보기로 복귀)';
+        card.addEventListener('click', () => toggleSummaryFilterSubject(sub, card));
 
         // 경험치바 백분율 계산
         const expPercent = (subData.exp_in_level / 10) * 100;
@@ -860,6 +908,22 @@ function renderSubjectExpCards(expData, subjectAccuracies = {}) {
     if (window.lucide) {
         lucide.createIcons();
     }
+}
+
+/**
+ * [NEW] 과목별 EXP 카드 클릭 시, 상단 요약 통계(총 풀이 문항/누적 평균 정답률/추정 누적 공부시간)를
+ * 해당 과목 기준으로 좁힙니다. 이미 선택된 과목을 다시 클릭하면 전체 보기로 되돌립니다.
+ */
+function toggleSummaryFilterSubject(sub, cardEl) {
+    const isAlreadyActive = HistoryState.summaryFilterSubject === sub;
+    HistoryState.summaryFilterSubject = isAlreadyActive ? 'all' : sub;
+
+    document.querySelectorAll('.subject-exp-card').forEach(el => el.classList.remove('subject-exp-card-active'));
+    if (!isAlreadyActive && cardEl) {
+        cardEl.classList.add('subject-exp-card-active');
+    }
+
+    calculateSummaryStats();
 }
 
 /**
