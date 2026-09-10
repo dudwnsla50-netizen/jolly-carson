@@ -57,7 +57,7 @@ function loadLawReferences() {
             document.getElementById('lawref-sections').style.display = 'block';
         })
         .catch(err => {
-            console.error('법령·지침 출제 현황 로딩 실패', err);
+            console.error('법령·지침 로딩 실패', err);
             document.getElementById('lawref-loading').innerHTML =
                 '<p style="color: var(--text-secondary); font-size: 0.9rem;">데이터를 불러오지 못했습니다.</p>';
         });
