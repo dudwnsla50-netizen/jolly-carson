@@ -2415,14 +2415,9 @@ function gamInjectExpCard() {
     card.id = 'gam-exp-card';
     card.className = 'gamification-exp-card';
     card.innerHTML = `
-        <div class="gam-pet-widget" style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; position: relative; margin-right: 0.5rem;" onclick="gamCyclePet()" title="클릭 시 포켓몬 캐릭터 교체">
+        <div class="gam-pet-widget" style="display: flex; align-items: center; cursor: pointer; position: relative; margin-right: 0.5rem;" onclick="gamCyclePet()" title="클릭 시 포켓몬 캐릭터 교체">
             <div class="gam-pet-avatar-wrapper" style="width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; transition: all 0.2s;">
                 <img id="gam-pet-img" src="${activePet.src}" alt="${activePet.name}" style="width: 85%; height: 85%; object-fit: contain; transform: scale(1.1); transition: transform 0.2s;" />
-            </div>
-            <div class="gam-pet-bubble" style="background: var(--gam-pet-bubble-bg); border: 1px solid var(--gam-pet-bubble-border); color: var(--gam-pet-bubble-text); font-size: 0.72rem; padding: 0.4rem 0.6rem; border-radius: 8px; position: relative; max-width: 155px; line-height: 1.4; font-weight: 500; min-height: 38px; display: flex; align-items: center;">
-                <span id="gam-pet-bubble-text">${activePet.defaultMsg}</span>
-                <!-- 말풍선 꼬리 -->
-                <div style="position: absolute; left: -5px; top: 50%; transform: translateY(-50%) rotate(45deg); width: 8px; height: 8px; background: var(--gam-pet-bubble-tail-bg); border-left: 1px solid var(--gam-pet-bubble-border); border-bottom: 1px solid var(--gam-pet-bubble-border);"></div>
             </div>
         </div>
         <div class="gam-level-badge" style="margin-left: auto;">
