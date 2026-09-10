@@ -916,6 +916,7 @@ function submitExam(isInterim = false) {
         details.push({
             q_id: q.id,
             question_num: q.question_num,
+            subject: q.subject,
             user_answer: uAns ? [uAns] : [],
             is_correct: isCorrect,
             elapsed_time: qSeconds[idx]

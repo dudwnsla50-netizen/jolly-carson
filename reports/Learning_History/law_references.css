@@ -1,0 +1,187 @@
+/* ==========================================================================
+   법령·지침 출제 현황 전용 스타일
+   [설계 의도] history.css의 테마 변수(--bg-card, --card-border, --accent-primary 등)와
+   .back-btn/.header-row를 그대로 재사용하고, 이 화면에만 필요한 과목 탭/섹션/문서 목록/
+   건수 뱃지/문항 펼침 패널만 여기서 새로 정의합니다.
+   ========================================================================== */
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--card-border);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: lawref-spin 0.8s linear infinite;
+}
+
+@keyframes lawref-spin {
+    to { transform: rotate(360deg); }
+}
+
+.lawref-subject-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.4rem;
+}
+
+.lawref-subject-tab {
+    background: var(--bg-card);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lawref-subject-tab:hover {
+    border-color: var(--card-border-hover);
+    color: var(--text-primary);
+}
+
+.lawref-subject-tab.active {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.lawref-section {
+    margin-bottom: 1.8rem;
+}
+
+.lawref-section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.lawref-doc {
+    background: var(--bg-card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.lawref-doc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.lawref-doc-name {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.lawref-multi-subject-tag {
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 0.05rem 0.3rem;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+
+.lawref-source-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-muted);
+    vertical-align: middle;
+    transition: color 0.15s ease;
+}
+
+.lawref-source-link:hover {
+    color: var(--accent-primary);
+}
+
+.lawref-source-link svg {
+    width: 13px;
+    height: 13px;
+}
+
+.lawref-count-btn {
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid var(--card-border-hover);
+    color: var(--accent-primary);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.lawref-count-btn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.22);
+}
+
+.lawref-count-btn:disabled {
+    background: transparent;
+    border-color: var(--card-border);
+    color: var(--text-muted);
+    cursor: default;
+    font-weight: 500;
+}
+
+.lawref-detail {
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: 1px dashed var(--card-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.lawref-q-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.lawref-q-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 5px;
+    padding: 0.1rem 0.4rem;
+    margin-right: 0.4rem;
+}
+
+.lawref-q-text {
+    color: var(--text-primary);
+    margin: 0.35rem 0;
+    white-space: pre-wrap;
+}
+
+.lawref-q-answer {
+    color: var(--success);
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
+.lawref-q-explanation {
+    margin-top: 0.3rem;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    border-top: 1px dashed var(--card-border);
+    padding-top: 0.3rem;
+}

@@ -25,6 +25,7 @@
   - `SA`: 시스템 구조
   - `SC`: 보안
 - **디렉토리 정렬**: 파싱된 데이터 및 원본 문서는 해당 과목 코드별 하위 디렉토리(예: `data/uploaded_inputs/{SUBJECT_CODE}`, `extracted/{SUBJECT_CODE}`)에 논리적으로 분류되어 적재되어야 합니다.
+- **공식 시험범위 원본**: 5대 과목의 공식 시험범위(대단원/중단원 텍스트)는 `data/exam_scopes/{PM,SE,DB,SA,SC}.txt`에 과목 코드별로 저장되어 있습니다. 문항-공식범위 매핑, 범위 기준 분석/검증 작업 시 이 파일들을 기준(source of truth)으로 삼습니다.
 
 ## 6. 스마트 캐싱 (Smart Caching)
 - **중복 작업 방지**: 대용량 문서의 불필요한 반복 파싱을 피하기 위해 `data/data_status.json`을 활성화하여 파일의 크기(size) 및 마지막 수정 시간(mtime)을 기록 및 검증합니다.
@@ -44,3 +45,8 @@ HTML (프론트엔드): 컴포넌트 단위로 분리하여 단일 책임 원칙
 ## 10. 크로스브라우저 호환성 (Cross-Browsing)
 - **벤더 프리픽스 동반 작성**: `backdrop-filter`, `background-clip: text`, `user-select` 등 브라우저마다 지원 시점이 다른 CSS 속성은 반드시 `-webkit-` 등 벤더 프리픽스 버전과 표준 속성을 함께 작성합니다. 특히 `backdrop-filter`는 구버전 Safari에서 `-webkit-backdrop-filter` 없이는 블러 효과 자체가 적용되지 않으므로 항상 짝을 맞춰 작성합니다.
 - **신규 화면도 예외 없음**: 새 CSS 파일이나 인라인 스타일을 추가할 때도 동일하게 적용합니다.
+
+## 11. AI 생성 연습문제(모의고사) 데이터 규칙
+- **연도 마커 고정**: 실제 기출이 아닌 AI 생성 연습문제는 `exam_questions.year = 2000`으로 고정합니다(2015~2026 실제 기출 연도와 절대 겹치지 않도록). `id`는 기존과 동일하게 `{year}_{question_num}` 형식(`2000_1`, `2000_2` ...)을 따릅니다. 한 과목에 25개(PM/SE/DB/SA 기준, SC는 20개)를 초과하는 문항을 만들어도 되며, 전역 1~120 구간(1-25=PM 등)에 억지로 맞출 필요는 없습니다.
+- **"년도별 120제" 화면에도 정상 노출**: `get_yearly_exams`(`/api/yearly-exams`)는 실제 연도와 이 마커 연도를 구분 없이 모두 반환합니다(`question_count`가 120이 아니어도 카드에 그대로 표시되므로 문제 없음). 대신 과목 오분류를 막기 위해 `yearly_exam.js`의 제출 payload(`details[].subject`)와 `server.py`의 `submit_yearly_exam`/`_get_yearly_subject_key`가 문항번호 구간 추정보다 실제 `subject` 값을 우선 사용하도록 고쳐져 있습니다 — 한 과목의 문항 수가 25개를 넘어도(예: PM 33문항) 다른 과목 정답수로 잘못 집계되지 않습니다. 이 로직을 다시 건드릴 때는 이 우선순위(실제 subject > 구간 추정)를 유지해야 합니다.
+- **공식범위 매핑 갱신**: 특정 소단원을 겨냥해 생성한 문항은 `dashboard_mappings`(dashboard_type='official')의 해당 concept 행 `questions` 배열에 `{"year": 2000, "num": N}`을 추가하고 `count`를 갱신해야 화면(공식범위 대시보드)에서 올바르게 집계됩니다. 다만 `years`(실제 출제연도 목록)·`rep_question` 등 "실제 기출" 메타데이터는 건드리지 않습니다.

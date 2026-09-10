@@ -32,6 +32,127 @@ except ImportError:
 PORT = int(os.environ.get("PORT", 8000))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# [설계 의도] 5대 과목 공식 시험범위(data/exam_scopes/*.txt) 및 실제 기출문항 전수 스캔(「」 인용구 추출,
+# 2026-09-10 분석)으로 확인된 법령/고시/지침/가이드/표준 목록입니다. "법령·지침 출제 현황" 화면
+# (/api/analytics/law-references)에서 실제 기출 인용 건수를 집계할 때 문항 텍스트에서 찾을 검색어
+# (patterns)로 사용하고, url은 화면에서 최신판 원문으로 바로 연결하는 데 씁니다. law.go.kr 법령/행정규칙
+# URL은 "법령(또는 행정규칙)/이름" 형태로 접속하면 항상 최신(현행) 버전으로 자동 연결됩니다.
+# 각 항목: (subjects: 이 문서를 검색할 과목 목록, section: 화면 그룹핑 키, label, patterns, url(미확인 시 None))
+LAW_REFERENCE_DOCS = [
+    # ===== PM: 1-a. 정보화 및 소프트웨어 관련 법령/고시/가이드 =====
+    (["PM"], "1-a", "전자정부법", ["전자정부법"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%A0%84%EC%9E%90%EC%A0%95%EB%B6%80%EB%B2%95"),
+    (["PM"], "1-a", "전자정부법 시행령", ["전자정부법 시행령", "전자정부법시행령"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%A0%84%EC%9E%90%EC%A0%95%EB%B6%80%EB%B2%95%20%EC%8B%9C%ED%96%89%EB%A0%B9"),
+    (["PM"], "1-a", "지능정보화 기본법", ["지능정보화"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%A7%80%EB%8A%A5%EC%A0%95%EB%B3%B4%ED%99%94%20%EA%B8%B0%EB%B3%B8%EB%B2%95"),
+    (["PM"], "1-a", "소프트웨어 진흥법", ["소프트웨어 진흥법", "소프트웨어진흥법", "SW진흥법", "소프트웨어산업 진흥법", "소프트웨어산업진흥법"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%86%8C%ED%94%84%ED%8A%B8%EC%9B%A8%EC%96%B4%20%EC%A7%84%ED%9D%A5%EB%B2%95"),
+    (["PM"], "1-a", "소프트웨어 진흥법 시행령", ["소프트웨어 진흥법 시행령", "소프트웨어진흥법시행령", "소프트웨어산업진흥법시행령"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%86%8C%ED%94%84%ED%8A%B8%EC%9B%A8%EC%96%B4%20%EC%A7%84%ED%9D%A5%EB%B2%95%20%EC%8B%9C%ED%96%89%EB%A0%B9"),
+    (["PM"], "1-a", "행정기관 및 공공기관 정보시스템 구축·운영 지침", ["구축ㆍ운영 지침", "구축·운영 지침", "구축운영지침", "구축 운영 지침", "구축‧운영"],
+     "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%ED%96%89%EC%A0%95%EA%B8%B0%EA%B4%80%EB%B0%8F%EA%B3%B5%EA%B3%B5%EA%B8%B0%EA%B4%80%EC%A0%95%EB%B3%B4%EC%8B%9C%EC%8A%A4%ED%85%9C%EA%B5%AC%EC%B6%95%C2%B7%EC%9A%B4%EC%98%81%EC%A7%80%EC%B9%A8"),
+    (["PM"], "1-a", "공공데이터 관리지침", ["공공데이터 관리지침", "공공데이터관리지침"],
+     "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EA%B3%B5%EA%B3%B5%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EA%B4%80%EB%A6%AC%EC%A7%80%EC%B9%A8"),
+    (["PM", "DB"], "1-a", "공공데이터의 제공 및 이용 활성화에 관한 법률(공공데이터법)", ["공공데이터의 제공 및 이용 활성화에 관한 법률", "공공데이터법"],
+     "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=218743"),
+    (["PM"], "1-a", "공공기관의 데이터베이스 표준화 지침", ["데이터베이스 표준화 지침", "데이터베이스표준화지침"],
+     "https://law.go.kr/LSW//admRulInfoP.do?admRulSeq=2100000255382&chrClsCd=010201"),
+    (["PM"], "1-a", "전자정부 웹사이트 품질관리 지침", ["웹사이트 품질관리"],
+     "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EC%A0%84%EC%9E%90%EC%A0%95%EB%B6%80%20%EC%9B%B9%EC%82%AC%EC%9D%B4%ED%8A%B8%20%ED%92%88%EC%A7%88%EA%B4%80%EB%A6%AC%20%EC%A7%80%EC%B9%A8"),
+    (["PM"], "1-a", "전자정부 성과관리 지침", ["성과관리 지침", "전자정부 성과관리"],
+     "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000235358"),
+    (["PM"], "1-a", "소프트웨어사업 계약 및 관리감독에 관한 지침", ["계약 및 관리감독", "관리감독에 관한 지침"],
+     "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulId=33440&efYd=0"),
+    (["PM"], "1-a", "소프트웨어 프로세스 품질인증 운영에 관한 지침", ["소프트웨어프로세스품질인증", "프로세스 품질인증 운영에 관한 지침"], None),
+    (["PM"], "1-a", "정보화사업 단계별 관리점검 가이드", ["단계별 관리점검", "관리점검 가이드", "관리·점검가이드"],
+     "https://www.mois.go.kr/frt/bbs/type001/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000045&nttId=34423"),
+    (["PM"], "1-a", "CBD SW개발 표준 산출물관리 가이드", ["산출물관리 가이드", "산출물 관리 가이드", "CBD SW"],
+     "https://nia.or.kr/site/nia_kor/ex/bbs/View.do?cbIdx=99852&bcIdx=6453"),
+    (["PM"], "1-a", "총사업비 관리지침", ["총사업비 관리지침", "총사업비관리지침"],
+     "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000139729"),
+    (["PM"], "1-a", "ISP·ISMP 수립 공통가이드", ["ISP·ISMP", "ISP・ISMP", "ISP․ISMP", "ISPㆍISMP", "ISP‧ISMP"], None),
+    (["PM"], "1-a", "클라우드네이티브 정보시스템 구축을 위한 발주자 안내서", ["클라우드네이티브"], None),
+    (["PM"], "1-a", "프로젝트관리 표준(ISO21500) 이행가이드", ["ISO21500)이행가이드", "ISO 21500) 이행가이드", "이행가이드"], None),
+    (["PM", "SA"], "1-a", "AI 데이터 품질관리 가이드라인", ["데이터 품질관리 가이드라인", "데이터품질관리 가이드라인"],
+     "https://www.nia.or.kr/site/nia_kor/ex/bbs/View.do?cbIdx=26537&bcIdx=28106&parentSeq=28106"),
+    (["PM"], "1-a", "고영향 인공지능 판단 가이드라인", ["고영향 인공지능"], None),
+    (["PM"], "1-a", "공공부문 초거대AI 도입·활용 가이드라인", ["초거대AI 도입", "초거대AI도입"], None),
+
+    # ===== PM: 1-b. 계약 관련 법령 및 예규 =====
+    (["PM"], "1-b", "국가를 당사자로 하는 계약에 관한 법률", ["국가를 당사자로 하는 계약", "국가계약법"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EA%B5%AD%EA%B0%80%EB%A5%BC%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%ED%95%98%EB%8A%94%EA%B3%84%EC%95%BD%EC%97%90%EA%B4%80%ED%95%9C%EB%B2%95%EB%A5%A0"),
+    (["PM"], "1-b", "국가를 당사자로 하는 계약에 관한 법률 시행령(국가계약법 시행령)", ["국가계약법 시행령", "국가계약법시행령"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EA%B5%AD%EA%B0%80%EB%A5%BC%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%ED%95%98%EB%8A%94%EA%B3%84%EC%95%BD%EC%97%90%EA%B4%80%ED%95%9C%EB%B2%95%EB%A5%A0%EC%8B%9C%ED%96%89%EB%A0%B9"),
+    (["PM"], "1-b", "국가를 당사자로 하는 계약에 관한 법률 시행규칙", ["계약에 관한 법률 시행규칙"],
+     "https://law.go.kr/%EB%B2%95%EB%A0%B9/%EA%B5%AD%EA%B0%80%EB%A5%BC%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%ED%95%98%EB%8A%94%EA%B3%84%EC%95%BD%EC%97%90%EA%B4%80%ED%95%9C%EB%B2%95%EB%A5%A0%EC%8B%9C%ED%96%89%EA%B7%9C%EC%B9%99"),
+    (["PM"], "1-b", "협상에 의한 계약체결기준", ["협상에 의한 계약체결"],
+     "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/(%EA%B3%84%EC%95%BD%EC%98%88%EA%B7%9C)%ED%98%91%EC%83%81%EC%97%90%EC%9D%98%ED%95%9C%EA%B3%84%EC%95%BD%EC%B2%B4%EA%B2%B0%EA%B8%B0%EC%A4%80"),
+    (["PM"], "1-b", "경쟁적대화에 의한 계약체결기준", ["경쟁적대화", "경쟁적 대화"],
+     "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000184756"),
+    (["PM"], "1-b", "용역계약일반조건", ["용역계약일반조건", "용역계약 일반조건"],
+     "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000193215"),
+    (["PM"], "1-b", "공동계약운용요령", ["공동계약운용요령", "공동계약 운용요령"],
+     "https://law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000224894"),
+    (["PM"], "1-b", "민법", ["「민법」", "민법 제"], "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EB%AF%BC%EB%B2%95"),
+    (["PM"], "1-b", "지방공기업법", ["지방공기업법"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%A7%80%EB%B0%A9%EA%B3%B5%EA%B8%B0%EC%97%85%EB%B2%95"),
+
+    # ===== PM: 1-c. 대가산정 관련 고시 및 가이드 =====
+    (["PM"], "1-c", "엔지니어링사업대가의 기준", ["엔지니어링사업대가", "엔지니어링 사업대가"],
+     "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81%EC%82%AC%EC%97%85%EB%8C%80%EA%B0%80%EC%9D%98%20%EA%B8%B0%EC%A4%80"),
+    (["PM"], "1-c", "소프트웨어사업 대가산정 가이드", ["대가산정 가이드", "대가산정가이드"],
+     "https://www.sw.or.kr/site/sw/ex/board/View.do?cbIdx=276"),
+
+    # ===== PM: 1-d. IT거버넌스, CoBIT 등 국외 관련 지침 =====
+    (["PM"], "1-d", "IT거버넌스/CoBIT", ["CoBIT", "COBIT", "IT 거버넌스", "IT거버넌스"],
+     "https://www.isaca.org/resources/cobit"),
+
+    # ===== PM: 2-a. 감리 법제도 =====
+    (["PM"], "2-a", "정보시스템 감리기준", ["정보시스템 감리기준", "정보시스템감리기준"],
+     "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EC%A0%95%EB%B3%B4%EC%8B%9C%EC%8A%A4%ED%85%9C%EA%B0%90%EB%A6%AC%EA%B8%B0%EC%A4%80"),
+
+    # ===== PM: 2-c. 정보시스템 감리 관련 가이드 =====
+    (["PM"], "2-c", "정보시스템감리 발주관리가이드", ["발주관리가이드", "발주ㆍ관리가이드", "발주 관리 가이드"],
+     "https://www.nia.or.kr/site/nia_kor/ex/bbs/List.do?cbIdx=99860"),
+    (["PM"], "2-c", "감리수행가이드", ["감리수행가이드", "감리 수행 가이드", "감리 수행 가이드"],
+     "https://www.nia.or.kr/site/nia_kor/ex/bbs/List.do?cbIdx=99860"),
+    (["PM"], "2-c", "정보시스템 운영 및 유지보수 감리 점검가이드", ["유지보수 감리", "운영 및 유지보수 감리"],
+     "https://www.nia.or.kr/site/nia_kor/ex/bbs/View.do?cbIdx=99860&bcIdx=19572"),
+    (["PM"], "2-c", "정보시스템 감리원 윤리 가이드", ["감리원 윤리"],
+     "https://www.nia.or.kr/site/nia_kor/ex/bbs/View.do?cbIdx=99860&bcIdx=14940"),
+    (["PM"], "2-c", "지능정보기술 감리 실무 가이드", ["지능정보기술 감리"], None),
+    (["PM"], "2-c", "SW사업자를 위한 정보시스템 감리 준비(및 대응) 가이드", ["사업자를 위한 정보시스템감리", "사업자를 위한 정보시스템 감리"], None),
+
+    # ===== PM: 4-a. 프로젝트관리 관련 표준 및 가이드 =====
+    (["PM"], "4-a", "KS A ISO 21500", ["ISO 21500", "ISO21500"],
+     "https://www.kssn.net/search/stddetail.do?itemNo=K001010145066"),
+    (["PM"], "4-a", "PMBOK Guide", ["PMBOK"],
+     "https://www.pmi.org/standards/pmbok"),
+
+    # ===== DB: 관련 법령·지침 (DB.txt에 명시된 항목) =====
+    (["DB"], "db-1", "데이터베이스 구축 방법론 v.4.0(NIA, 2014)", ["데이터베이스 구축 방법론"], None),
+    (["DB"], "db-1", "공공기관의 데이터베이스 표준화 지침", ["데이터베이스 표준화 지침", "데이터베이스표준화지침"],
+     "https://law.go.kr/LSW//admRulInfoP.do?admRulSeq=2100000255382&chrClsCd=010201"),
+
+    # ===== SA: 관련 법령·고시 (기출 전수 스캔으로 발견) =====
+    (["SA"], "sa-1", "정보시스템 하드웨어 규모산정지침(TTAK.KO-10.0292)", ["하드웨어 규모산정 지침", "하드웨어규모산정지침"], None),
+    (["SA"], "sa-1", "디지털서비스 심사·선정 등에 관한 고시", ["디지털서비스 심사", "디지털서비스심사"],
+     "https://law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EB%94%94%EC%A7%80%ED%84%B8%EC%84%9C%EB%B9%84%EC%8A%A4%EC%8B%AC%EC%82%AC%C2%B7%EC%84%A0%EC%A0%95%EB%93%B1%EC%97%90%EA%B4%80%ED%95%9C%EA%B3%A0%EC%8B%9C"),
+    (["SA"], "sa-1", "행정기관 및 공공기관 정보자원 통합기준", ["정보자원 통합기준", "정보자원통합기준"],
+     "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulId=72547&efYd=0"),
+
+    # ===== SC: 정보보호·개인정보보호 관련 법규 (기출 전수 스캔으로 발견) =====
+    (["SC"], "sc-1", "개인정보보호법", ["개인정보보호법", "개인정보 보호법"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EA%B0%9C%EC%9D%B8%EC%A0%95%EB%B3%B4%EB%B3%B4%ED%98%B8%EB%B2%95"),
+    (["SC"], "sc-1", "개인정보보호법 시행령", ["개인정보보호법 시행령", "개인정보보호법시행령"],
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EA%B0%9C%EC%9D%B8%EC%A0%95%EB%B3%B4%EB%B3%B4%ED%98%B8%EB%B2%95%EC%8B%9C%ED%96%89%EB%A0%B9"),
+    (["SC"], "sc-1", "전기통신사업법", ["전기통신사업법"],
+     "https://law.go.kr/%EB%B2%95%EB%A0%B9/%EC%A0%84%EA%B8%B0%ED%86%B5%EC%8B%A0%EC%82%AC%EC%97%85%EB%B2%95"),
+    (["SC"], "sc-1", "개인정보의 기술적·관리적 보호조치 기준", ["기술적·관리적 보호조치", "기술적ㆍ관리적 보호조치"], None),
+    (["SC"], "sc-1", "비식별 조치 적정성 평가단", ["비식별 조치 적정성 평가단", "비식별조치 적정성평가단"], None),
+]
+
 # [설계 의도] 오답 복습 스케줄러(망각곡선)의 단계별 재복습 간격(일). 오답 시 stage 0으로 리셋되며,
 # 정답을 맞힐 때마다 stage가 한 칸씩 올라가 다음 간격이 길어집니다. 배열 길이를 넘어서면 마스터 완료로 간주합니다.
 SRS_INTERVAL_DAYS = [1, 3, 7, 14, 30]
@@ -438,6 +559,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.get_concept_diagnostics(query)
         elif path == "/api/analytics/concept-priority":
             self.get_concept_priority(query)
+        elif path == "/api/analytics/law-references":
+            self.get_law_references(query)
         elif path == "/api/exam-scopes":
             self.get_exam_scopes(query)
         elif path == "/api/analytics/check-report":
@@ -691,6 +814,56 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Concept priority analysis error: {str(e)}")
+
+    def get_law_references(self, query):
+        """
+        [설계 의도] 5대 과목 공식 시험범위에 나열되거나 실제 기출 전수 스캔으로 발견된 법령/고시/지침/가이드가
+        실제 기출문제(연습문제 마커인 year=2000 제외) 본문·해설에 몇 건이나 직접 인용됐는지 과목별로 집계합니다.
+        각 문서(LAW_REFERENCE_DOCS)는 자신이 속한 과목(subjects)의 문항에서만 검색합니다 - 예를 들어
+        개인정보보호법은 SC 문항에서만 찾고 PM/DB 등 다른 과목 문항은 뒤지지 않습니다.
+        문항에 첨부된 base64 이미지 데이터 안에서 검색어와 우연히 겹치는 오탐을 막기 위해 base64 구간은
+        먼저 제거하고 검색합니다.
+        """
+        try:
+            with get_db_connection() as conn:
+                with get_db_cursor(conn) as cursor:
+                    sql = """
+                        SELECT id, subject, year, question_num, question, options, answer, explanation
+                        FROM exam_questions
+                        WHERE year != 2000
+                    """
+                    execute_query(cursor, sql)
+                    rows = [dict(r) for r in cursor.fetchall()]
+
+            base64_pattern = re.compile(r'data:image/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+')
+            cleaned_rows = []
+            for r in rows:
+                text = (r.get("question") or "") + " " + (r.get("explanation") or "")
+                text = base64_pattern.sub('', text)
+                cleaned_rows.append((r["id"], r["subject"], r["year"], r["question_num"], text))
+
+            result = []
+            for subjects, section, label, patterns, url in LAW_REFERENCE_DOCS:
+                subject_set = set(subjects)
+                matches = []
+                for qid, subject, year, qnum, text in cleaned_rows:
+                    if subject not in subject_set:
+                        continue
+                    if any(p in text for p in patterns):
+                        matches.append({"id": qid, "subject": subject, "year": year, "question_num": qnum})
+                result.append({
+                    "subjects": subjects,
+                    "section": section,
+                    "label": label,
+                    "url": url,
+                    "count": len(matches),
+                    "questions": matches,
+                })
+
+            self.send_json_response({"total_questions": len(rows), "documents": result})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"Law reference analysis error: {str(e)}")
 
     def check_analytics_report(self, query):
         """[설계 의도] 오답 분석 리포트 HTML 파일의 존재 여부를 확인합니다 (404 콘솔 로그 노출 차단 방지 목적)."""
@@ -1561,7 +1734,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         try:
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
-                    # 1. 기출 연도 및 문항 수 목록 조회
+                    # 1. 기출 연도 및 문항 수 목록 조회 (AI 생성 연습문제 마커 연도인 2000년도 포함)
                     sql_years = """
                         SELECT year, COUNT(DISTINCT id) as question_count
                         FROM exam_questions
@@ -1838,10 +2011,21 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def _get_yearly_subject_key(self, details):
+        """
+        [설계 의도] 문항이 속한 과목은 원래 전역 1~120 문항번호 구간(1-25=PM 등)으로만 추정했으나,
+        AI 생성 연습문제(year=2000 마커)처럼 한 과목만의 문항이 25개를 초과하는 경우 구간 추정이
+        틀어질 수 있습니다. details 항목에 subject가 실려 있으면 이를 우선 신뢰하고,
+        없는 경우(기존에 저장된 실제 기출 이력 등)에만 구간 추정으로 폴백합니다.
+        """
         if not details:
             return 'ALL'
+        valid_codes = {'PM', 'SE', 'DB', 'SA', 'SC'}
         code_set = set()
         for item in details:
+            sub = item.get("subject")
+            if sub in valid_codes:
+                code_set.add(sub)
+                continue
             q_num = item.get("question_num")
             if q_num is not None:
                 if 1 <= q_num <= 25: code_set.add('PM')
@@ -1849,7 +2033,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                 elif 51 <= q_num <= 75: code_set.add('DB')
                 elif 76 <= q_num <= 100: code_set.add('SA')
                 elif 101 <= q_num <= 120: code_set.add('SC')
-        
+
         ordered = [c for c in ['PM', 'SE', 'DB', 'SA', 'SC'] if c in code_set]
         if not ordered or len(ordered) == 5:
             return 'ALL'
@@ -1870,17 +2054,30 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             return
             
         # 과목별 정답수 산출
+        # [설계 의도] details에 subject가 실려 있으면 이를 우선 신뢰합니다. AI 생성 연습문제
+        # (year=2000 마커)처럼 한 과목의 문항 수가 전역 구간(1-25=PM 등)을 벗어날 수 있는 경우,
+        # 구간 추정만으로는 다른 과목으로 오분류되어 전체 통계가 오염될 수 있기 때문입니다.
+        # subject가 없는 기존 실제 기출 이력은 그대로 구간 추정으로 폴백합니다.
         pm_c = se_c = db_c = sa_c = sc_c = 0
         if details:
             for item in details:
-                q_num = item.get("question_num")
                 is_corr = item.get("is_correct", False)
-                if is_corr and q_num is not None:
-                    if 1 <= q_num <= 25: pm_c += 1
-                    elif 26 <= q_num <= 50: se_c += 1
-                    elif 51 <= q_num <= 75: db_c += 1
-                    elif 76 <= q_num <= 100: sa_c += 1
-                    elif 101 <= q_num <= 120: sc_c += 1
+                if not is_corr:
+                    continue
+                sub = item.get("subject")
+                if sub == 'PM': pm_c += 1
+                elif sub == 'SE': se_c += 1
+                elif sub == 'DB': db_c += 1
+                elif sub == 'SA': sa_c += 1
+                elif sub == 'SC': sc_c += 1
+                else:
+                    q_num = item.get("question_num")
+                    if q_num is not None:
+                        if 1 <= q_num <= 25: pm_c += 1
+                        elif 26 <= q_num <= 50: se_c += 1
+                        elif 51 <= q_num <= 75: db_c += 1
+                        elif 76 <= q_num <= 100: sa_c += 1
+                        elif 101 <= q_num <= 120: sc_c += 1
 
         try:
             question_times_json = json.dumps(question_times) if question_times is not None else None

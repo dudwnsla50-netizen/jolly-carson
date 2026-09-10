@@ -104,7 +104,8 @@ body[data-theme="light"] .bg-glow-left {
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
 }
 
 .theme-toggle-btn {
@@ -174,22 +175,52 @@ body[data-theme="light"] .bg-glow-left {
 .priority-nav-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
     background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
     border: none;
     color: #ffffff;
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    font-size: 0.85rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.2s ease;
 }
 
 .priority-nav-btn:hover {
     opacity: 0.9;
     transform: translateY(-1px);
+}
+
+/* 법령·지침 출제 현황 화면 이동 버튼 (priority-nav-btn과 동일한 축소 사이즈, 색만 구분) */
+.law-ref-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+    border: none;
+    color: #ffffff;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.law-ref-nav-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.priority-nav-btn svg,
+.law-ref-nav-btn svg {
+    width: 14px;
+    height: 14px;
 }
 
 /* 요약 카드 그리드 */

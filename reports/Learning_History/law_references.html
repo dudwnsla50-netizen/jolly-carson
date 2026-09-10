@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>법령·지침 출제 현황</title>
+
+    <link rel="stylesheet" href="history.css">
+    <link rel="stylesheet" href="law_references.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-left"></div>
+
+    <div class="container">
+        <div class="header-row">
+            <div class="header-actions">
+                <a href="lhistory.html" class="back-btn">
+                    <i data-lucide="arrow-left"></i> 학습 분석으로 복귀
+                </a>
+            </div>
+        </div>
+
+        <h1 style="font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="scale" style="color: var(--accent-primary);"></i> 법령·지침 출제 현황
+        </h1>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.2rem;">
+            5대 과목 공식 시험범위 및 실제 기출 전수 스캔으로 확인된 법령·고시·지침·가이드가 실제 기출문제(12개년)에 몇 건이나
+            직접 인용됐는지 과목별로 보여줍니다. 건수를 클릭하면 해당 문항을 바로 아래에서 확인할 수 있습니다.
+        </p>
+
+        <div class="lawref-subject-tabs" id="lawref-subject-tabs"></div>
+
+        <div id="lawref-loading" class="status-screen" style="display: flex; flex-direction: column; align-items: center; padding: 3rem 0;">
+            <div class="spinner"></div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.8rem;">불러오는 중입니다...</p>
+        </div>
+
+        <div id="lawref-sections" style="display: none;"></div>
+    </div>
+
+    <script src="law_references.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+</body>
+
+</html>
