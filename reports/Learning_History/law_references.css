@@ -134,6 +134,12 @@
     font-weight: 500;
 }
 
+.lawref-recent-years {
+    font-size: 0.76rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
 .lawref-multi-subject-tag {
     font-size: 0.66rem;
     font-weight: 700;
@@ -194,6 +200,12 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+}
+
+.lawref-q-loading {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 0.4rem 0;
 }
 
 .lawref-q-item {

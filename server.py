@@ -828,7 +828,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
                     sql = """
-                        SELECT id, subject, year, question_num, question, options, answer, explanation
+                        SELECT id, subject, year, question_num, question, explanation
                         FROM exam_questions
                         WHERE year != 2000
                     """
@@ -1124,11 +1124,11 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 
     def get_questions(self, query):
         subject = query.get("subject", [None])[0]
-        if not subject:
-            self.send_error_response(400, "Missing parameter (subject)")
+        ids_param = query.get("ids", [None])[0]
+        if not subject and not ids_param:
+            self.send_error_response(400, "Missing parameter (subject or ids)")
             return
 
-        subject = subject.upper()
         try:
             with get_db_connection() as conn:
                 with get_db_cursor(conn) as cursor:
@@ -1136,13 +1136,24 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         SELECT id, subject, question, options, answer, explanation, is_new_trend, similar_past_questions, ai_explanation, ai_explanation_model, difficulty AS importance
                         FROM exam_questions
                     """
-                    if subject == "ALL":
-                        # 중요도별 문제 리스트 화면 등 과목 구분 없이 전체 문항이 필요한 경우를 위한 배치 조회
-                        sql = base_select + " ORDER BY subject ASC"
-                        execute_query(cursor, sql)
+                    if ids_param:
+                        # 법령·지침 현황 화면 등에서 특정 문항 상세만 필요할 때의 소량 배치 조회
+                        id_list = [i for i in ids_param.split(",") if i]
+                        if not id_list:
+                            self.send_json_response({})
+                            return
+                        placeholders = ", ".join(["%s"] * len(id_list))
+                        sql = base_select + f" WHERE id IN ({placeholders})"
+                        execute_query(cursor, sql, tuple(id_list))
                     else:
-                        sql = base_select + " WHERE subject = %s"
-                        execute_query(cursor, sql, (subject,))
+                        subject = subject.upper()
+                        if subject == "ALL":
+                            # 중요도별 문제 리스트 화면 등 과목 구분 없이 전체 문항이 필요한 경우를 위한 배치 조회
+                            sql = base_select + " ORDER BY subject ASC"
+                            execute_query(cursor, sql)
+                        else:
+                            sql = base_select + " WHERE subject = %s"
+                            execute_query(cursor, sql, (subject,))
                     rows = cursor.fetchall()
 
                     data_dict = {}

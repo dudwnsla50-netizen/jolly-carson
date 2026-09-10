@@ -29,7 +29,7 @@ const SECTION_ORDER = ['1-a', '1-b', '1-c', '1-d', '2-a', '2-c', '4-a', 'db-1', 
 
 let LawRefState = {
     documents: [],       // /api/analytics/law-references 응답
-    questionMap: {},     // id -> 전체 문항 상세 (/api/questions?subject=all)
+    questionMap: {},     // id -> 문항 상세 (펼쳐볼 때 /api/questions?ids=...로 필요한 것만 지연 조회해 채움)
     selectedYear: null,  // 연도별 건수 표에서 클릭한 연도 (없으면 null)
 };
 
@@ -44,13 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadLawReferences() {
-    Promise.all([
-        fetch('/api/analytics/law-references').then(res => res.ok ? res.json() : { documents: [] }),
-        fetch('/api/questions?subject=all').then(res => res.ok ? res.json() : {})
-    ])
-        .then(([refData, questionsData]) => {
+    fetch('/api/analytics/law-references')
+        .then(res => res.ok ? res.json() : { documents: [] })
+        .then(refData => {
             LawRefState.documents = refData.documents || [];
-            LawRefState.questionMap = questionsData || {};
             renderYearSummary();
             renderSections();
             document.getElementById('lawref-loading').style.display = 'none';
@@ -61,6 +58,21 @@ function loadLawReferences() {
             document.getElementById('lawref-loading').innerHTML =
                 '<p style="color: var(--text-secondary); font-size: 0.9rem;">데이터를 불러오지 못했습니다.</p>';
         });
+}
+
+// 문항 원문(질문/보기/정답/해설)은 목록 로딩 시점엔 필요 없고 펼쳐볼 때만 필요하므로,
+// 아직 확보하지 못한 id만 골라 그때그때 조회해 questionMap에 채워 넣습니다.
+async function ensureQuestionDetails(ids) {
+    const missing = ids.filter(id => !LawRefState.questionMap[id]);
+    if (missing.length === 0) return;
+    try {
+        const res = await fetch(`/api/questions?ids=${encodeURIComponent(missing.join(','))}`);
+        if (res.ok) {
+            Object.assign(LawRefState.questionMap, await res.json());
+        }
+    } catch (err) {
+        console.error('문항 상세 조회 실패', err);
+    }
 }
 
 function renderYearSummary() {
@@ -136,7 +148,7 @@ function renderYearDetail(year) {
         return `
             <div class="lawref-doc" id="lawref-doc-${docKey}">
                 <div class="lawref-doc-row">
-                    <span class="lawref-doc-name">${doc.label} ${linkHtml}${subjectTagHtml}</span>
+                    <span class="lawref-doc-name">${doc.label}${recentYearsLabel(doc.questions)} ${linkHtml}${subjectTagHtml}</span>
                     <button type="button" class="lawref-count-btn" onclick="toggleDetailPanel('${docKey}', '${yearQuestions.map(q => q.id).join(',')}')">
                         ${yearQuestions.length}건
                     </button>
@@ -191,6 +203,12 @@ function renderSections() {
     if (window.lucide) lucide.createIcons();
 }
 
+function recentYearsLabel(questions) {
+    const years = [...new Set(questions.map(q => q.year))].sort((a, b) => b - a).slice(0, 3);
+    if (years.length === 0) return '';
+    return ` <span class="lawref-recent-years">(${years.map(y => `${String(y).slice(-2)}`).join(', ')})</span>`;
+}
+
 function renderDocRow(doc, subject) {
     const docKey = docIdKey(doc.label, subject);
     const subjectQuestions = doc.questions.filter(q => q.subject === subject);
@@ -208,7 +226,7 @@ function renderDocRow(doc, subject) {
     return `
         <div class="lawref-doc" id="lawref-doc-${docKey}">
             <div class="lawref-doc-row">
-                <span class="lawref-doc-name">${doc.label} ${linkHtml}${multiSubjectHtml}</span>
+                <span class="lawref-doc-name">${doc.label}${recentYearsLabel(subjectQuestions)} ${linkHtml}${multiSubjectHtml}</span>
                 <button type="button" class="lawref-count-btn" ${disabled} onclick="toggleLawRefDetail('${docKey}')">
                     ${count}건
                 </button>
@@ -223,7 +241,7 @@ function docIdKey(label, subject) {
     return `${subject}_${label}`.replace(/[^a-zA-Z0-9가-힣]/g, '_');
 }
 
-function toggleLawRefDetail(docKey) {
+async function toggleLawRefDetail(docKey) {
     const detailEl = document.getElementById(`lawref-detail-${docKey}`);
     if (!detailEl) return;
 
@@ -237,19 +255,22 @@ function toggleLawRefDetail(docKey) {
         const subject = docKey.split('_')[0];
         const doc = LawRefState.documents.find(d => docIdKey(d.label, subject) === docKey);
         if (doc) {
-            const subjectQuestions = doc.questions.filter(q => q.subject === subject);
-            detailEl.innerHTML = subjectQuestions
+            const subjectQuestions = doc.questions
+                .filter(q => q.subject === subject)
                 .slice()
-                .sort((a, b) => b.year - a.year || a.question_num - b.question_num)
-                .map(q => renderQuestionItem(q))
-                .join('');
+                .sort((a, b) => b.year - a.year || a.question_num - b.question_num);
+            detailEl.innerHTML = '<div class="lawref-q-loading">불러오는 중...</div>';
+            detailEl.style.display = 'flex';
+            await ensureQuestionDetails(subjectQuestions.map(q => q.id));
+            detailEl.innerHTML = subjectQuestions.map(q => renderQuestionItem(q)).join('');
             detailEl.dataset.rendered = '1';
+            return;
         }
     }
     detailEl.style.display = 'flex';
 }
 
-function toggleDetailPanel(docKey, questionIdsCsv) {
+async function toggleDetailPanel(docKey, questionIdsCsv) {
     const detailEl = document.getElementById(`lawref-detail-${docKey}`);
     if (!detailEl) return;
 
@@ -264,14 +285,14 @@ function toggleDetailPanel(docKey, questionIdsCsv) {
         const allQuestions = LawRefState.documents.flatMap(d => d.questions);
         const byId = {};
         allQuestions.forEach(q => { byId[q.id] = q; });
+        const orderedRefs = questionIds.map(id => byId[id]).filter(Boolean).sort((a, b) => a.question_num - b.question_num);
 
-        detailEl.innerHTML = questionIds
-            .map(id => byId[id])
-            .filter(Boolean)
-            .sort((a, b) => a.question_num - b.question_num)
-            .map(q => renderQuestionItem(q))
-            .join('');
+        detailEl.innerHTML = '<div class="lawref-q-loading">불러오는 중...</div>';
+        detailEl.style.display = 'flex';
+        await ensureQuestionDetails(questionIds);
+        detailEl.innerHTML = orderedRefs.map(q => renderQuestionItem(q)).join('');
         detailEl.dataset.rendered = '1';
+        return;
     }
     detailEl.style.display = 'flex';
 }
