@@ -174,9 +174,9 @@ function setLawRefSearch(value) {
 
 function renderSections() {
     const container = document.getElementById('lawref-sections');
-    const query = LawRefState.searchQuery.trim().toLowerCase();
+    const query = searchStripWhitespace(LawRefState.searchQuery).toLowerCase();
 
-    const matchesQuery = doc => !query || doc.label.toLowerCase().includes(query);
+    const matchesQuery = doc => !query || searchStripWhitespace(doc.label).toLowerCase().includes(query);
 
     const subjectsWithDocs = LAWREF_SUBJECT_ORDER.filter(s =>
         LawRefState.documents.some(doc => (doc.subjects || []).includes(s) && matchesQuery(doc))

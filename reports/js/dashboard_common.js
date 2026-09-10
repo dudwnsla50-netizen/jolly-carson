@@ -948,7 +948,7 @@ function runQuestionSearch(rawQuery) {
     const resultsEl = document.getElementById('qsearch-results');
     if (!resultsEl) return;
 
-    const query = (rawQuery || '').trim();
+    const query = searchCollapseWhitespace(rawQuery);
     QSearchState.query = query;
 
     if (!query) {
@@ -966,10 +966,11 @@ function runQuestionSearch(rawQuery) {
     }
 
     const lowerQuery = query.toLowerCase();
+    const strippedQuery = searchStripWhitespace(query).toLowerCase();
     const matches = [];
     for (const key in db) {
         const text = db[key];
-        if (typeof text === 'string' && text.toLowerCase().includes(lowerQuery)) {
+        if (typeof text === 'string' && searchStripWhitespace(text).toLowerCase().includes(strippedQuery)) {
             matches.push({ key, text });
         }
     }
@@ -991,9 +992,11 @@ function runQuestionSearch(rawQuery) {
     const shown = matches.slice(0, MAX_RESULTS);
     let html = shown.map(({ key, text }) => {
         const [year, num] = key.split('_');
-        const idx = text.toLowerCase().indexOf(lowerQuery);
+        const collapsedText = searchCollapseWhitespace(text);
+        let idx = collapsedText.toLowerCase().indexOf(lowerQuery);
+        if (idx === -1) idx = 0; // 공백 차이로만 일치한 경우, 문항 시작부터 스니펫을 보여줍니다.
         const snippetStart = Math.max(0, idx - 15);
-        const rawSnippet = text.replace(/\n/g, ' ').slice(snippetStart, idx + lowerQuery.length + 40);
+        const rawSnippet = collapsedText.slice(snippetStart, idx + lowerQuery.length + 40);
         const snippet = qsearchEscapeHtml((snippetStart > 0 ? '…' : '') + rawSnippet);
         return `
             <div class="qsearch-result-item" onclick="jumpToSearchedQuestion(${year}, ${num})">
@@ -1031,14 +1034,14 @@ function applyAccordionSearchFilter() {
     }
 
     const db = (typeof examDatabase !== 'undefined') ? examDatabase : window.examDatabase;
-    const lowerQuery = query.toLowerCase();
+    const strippedQuery = searchStripWhitespace(query).toLowerCase();
     const matchedGlobalIdx = new Set();
 
     if (db) {
         (window.dashboardData || []).forEach(item => {
             const hasMatch = (item.questions || []).some(q => {
                 const text = db[`${q.year}_${q.num}`];
-                return typeof text === 'string' && text.toLowerCase().includes(lowerQuery);
+                return typeof text === 'string' && searchStripWhitespace(text).toLowerCase().includes(strippedQuery);
             });
             if (hasMatch) matchedGlobalIdx.add(String(item.global_idx));
         });
