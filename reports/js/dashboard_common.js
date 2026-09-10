@@ -376,6 +376,7 @@ function initDashboard() {
         if (typeof initGamification === 'function') {
             initGamification();
         }
+        injectQuestionSearchBox();
     });
 }
 
@@ -466,16 +467,13 @@ function loadQuizStatsAndMerge() {
             window.quizFullHistoryList = mergedLogs;
 
             // 데이터베이스(서버 로그)를 전적으로 활용하여 실시간 재카운팅(집계)
+            // (집계 결과는 아코디언 항목별 📝 퀴즈 이력 뱃지에서 계속 사용됩니다)
             recalculateQuizSummaryAndStats();
-
-            // 대시보드 상단 요약 카드 렌더링
-            renderQuizSummarySection();
         })
         .catch(error => {
             console.error("[퀴즈 통계 오류] 퀴즈 통계 API 조회 실패.", error);
             window.quizFullHistoryList = [];
             recalculateQuizSummaryAndStats();
-            renderQuizSummarySection();
         });
 }
 
@@ -568,110 +566,6 @@ function recalculateQuizSummaryAndStats() {
         total_solved: totalSolved,
         avg_score: totalSolved > 0 ? Math.round((totalCorrect * 100.0 / totalSolved) * 10) / 10 : 0.0
     };
-}
-
-/**
- * 1-B. 대시보드 상단에 퀴즈 누적 기록 및 취약 개념 분석 리포트를 동적으로 렌더링합니다.
- */
-function renderQuizSummarySection() {
-    const container = document.querySelector('.container');
-    if (!container) return;
-
-    let oldSection = document.getElementById('quiz-summary-section');
-    if (oldSection) oldSection.remove();
-
-    // 취약 개념 TOP 3 정렬 산출 (평균 정답률 오름차순, 시도 횟수 내림차순)
-    const sortedWeak = Object.keys(window.quizStats)
-        .map(key => {
-            return {
-                concept: key,
-                attempt_count: window.quizStats[key].attempt_count,
-                avg_score: window.quizStats[key].avg_score
-            };
-        })
-        .sort((a, b) => {
-            if (a.avg_score !== b.avg_score) return a.avg_score - b.avg_score;
-            return b.attempt_count - a.attempt_count;
-        });
-
-    const topWeak = sortedWeak.slice(0, 3);
-    let weakListHtml = '';
-    if (topWeak.length > 0) {
-        topWeak.forEach((item, idx) => {
-            const colors = ['#ef4444', '#f59e0b', '#fbbf24'];
-            const color = colors[idx] || '#ef4444';
-            weakListHtml += `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem;">
-                    <span style="color: var(--text-primary); font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 65%;" title="${item.concept}">
-                        ${idx + 1}. ${item.concept}
-                    </span>
-                    <span style="color: ${color}; font-weight: 700;">
-                        ${item.avg_score}% (시도 ${item.attempt_count}회)
-                    </span>
-                </div>
-            `;
-        });
-    } else {
-        weakListHtml = `
-            <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 1.2rem 0; line-height: 1.6;">
-                📢 아직 테스트한 이력이 없습니다.<br>하단의 문제를 풀면 취약 분석이 시작됩니다.
-            </div>
-        `;
-    }
-
-    const totalAttempts = window.quizSummary ? (window.quizSummary.total_attempts || 0) : 0;
-    const totalSolved = window.quizSummary ? (window.quizSummary.total_solved || 0) : 0;
-    const avgScore = window.quizSummary ? (window.quizSummary.avg_score || 0) : 0;
-
-    const section = document.createElement('div');
-    section.id = 'quiz-summary-section';
-    section.className = 'quiz-summary-card';
-    section.style.background = 'var(--card-bg)';
-    section.style.border = '1px solid var(--card-border)';
-    section.style.borderRadius = '16px';
-    section.style.padding = '1.2rem';
-    section.style.marginBottom = '1.5rem';
-    section.style.boxShadow = '0 10px 25px rgba(0,0,0,0.25)';
-    section.style.backdropFilter = 'blur(12px)';
-    section.style.webkitBackdropFilter = 'blur(12px)';
-
-    section.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
-            <h3 style="font-size: 0.95rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 0.3rem;">📊 나의 기출 분석 리포트</h3>
-            <button onclick="startGlobalRolling(event)" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); transition: all 0.2s; outline: none; font-family: inherit;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
-                🔄 전체 문제 롤링 시작
-            </button>
-        </div>
-        
-        <div class="summary-report-grid">
-            <!-- 좌측: 누적 스코어 -->
-            <div class="summary-stats-column">
-                <div class="summary-stat-row">
-                    <span class="summary-stat-label">총 테스트 횟수</span>
-                    <span class="summary-stat-val">${totalAttempts}회</span>
-                </div>
-                <div class="summary-stat-row">
-                    <span class="summary-stat-label">해결한 문항 수</span>
-                    <span class="summary-stat-val">${totalSolved}개</span>
-                </div>
-                <div class="summary-stat-row total">
-                    <span class="summary-stat-label">평균 정답률</span>
-                    <span class="summary-stat-val-big">${avgScore}%</span>
-                </div>
-            </div>
-            
-            <!-- 우측: 취약점 분석 -->
-            <div class="summary-weakness-column">
-                <div class="summary-weak-title">🚨 보완이 필요한 취약 개념 TOP 3</div>
-                ${weakListHtml}
-            </div>
-        </div>
-    `;
-
-    const header = document.querySelector('header');
-    if (header) {
-        header.parentNode.insertBefore(section, header.nextSibling);
-    }
 }
 
 /**
@@ -796,6 +690,9 @@ function initDashboardNav() {
             }
         }
     }
+
+    // [설계 의도] "전체 문제 롤링 시작" 버튼은 지문 검색창과 같은 줄에 배치되므로
+    // (injectQuestionSearchBox 참고) 여기서는 더 이상 내비게이션 배지로 만들지 않습니다.
 
     // [설계 의도] "IT 용어 사전" 메인 화면 배지는 더 이상 노출하지 않습니다(사용 빈도가 낮아 제거 요청).
     // 단어장 기능 자체(reports/vocabulary/)와 관련 API는 그대로 유지되며, 필요 시 주소로 직접 접근 가능합니다.
@@ -989,6 +886,215 @@ function renderDashboard(filter = 'all') {
         `;
         container.appendChild(accordion);
     });
+
+    // 카테고리 필터를 바꿔도 기존에 입력해 둔 지문 검색어로 다시 필터링합니다.
+    applyAccordionSearchFilter();
+}
+
+/**
+ * 7-B. 지문(문제 본문) 검색 - 각 과목 페이지가 <script src="exam_db/{과목}_db.js">로 이미
+ * 로드해 둔 전역 examDatabase({"연도_번호": "본문 텍스트"})를 그대로 재사용하므로 별도 API 호출이 없습니다.
+ */
+function injectQuestionSearchBox() {
+    if (document.getElementById('qsearch-box')) return;
+
+    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    if (!container) return;
+
+    const box = document.createElement('div');
+    box.id = 'qsearch-box';
+    box.className = 'qsearch-box';
+    box.innerHTML = `
+        <div class="qsearch-top-row">
+            <div class="qsearch-input-row">
+                <span class="qsearch-icon">🔍</span>
+                <input type="text" id="qsearch-input" class="qsearch-input" placeholder="지문(문제 본문) 검색" autocomplete="off"
+                    oninput="handleQuestionSearchInput(this.value)">
+            </div>
+            <button type="button" class="qsearch-rolling-btn" onclick="startGlobalRolling(event)">🔄 전체 문제 롤링 시작</button>
+        </div>
+        <div class="qsearch-results" id="qsearch-results" style="display: none;"></div>
+    `;
+
+    const filterSection = document.querySelector('.filter-section');
+    if (filterSection) {
+        filterSection.parentNode.insertBefore(box, filterSection);
+    } else {
+        container.parentNode.insertBefore(box, container);
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!box.contains(e.target)) {
+            document.getElementById('qsearch-results').style.display = 'none';
+        }
+    });
+}
+
+// [설계 의도] 검색창 입력값을 전역으로 들고 있다가, 카테고리 필터로 아코디언이 재렌더링될 때도
+// (renderDashboard 끝에서) 같은 검색어로 다시 필터링해 "검색 결과만 남기기" 상태가 유지되게 합니다.
+let QSearchState = { query: '' };
+
+let qsearchDebounceTimer = null;
+function handleQuestionSearchInput(value) {
+    clearTimeout(qsearchDebounceTimer);
+    qsearchDebounceTimer = setTimeout(() => runQuestionSearch(value), 150);
+}
+
+function qsearchEscapeHtml(str) {
+    return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function runQuestionSearch(rawQuery) {
+    const resultsEl = document.getElementById('qsearch-results');
+    if (!resultsEl) return;
+
+    const query = (rawQuery || '').trim();
+    QSearchState.query = query;
+
+    if (!query) {
+        resultsEl.style.display = 'none';
+        resultsEl.innerHTML = '';
+        applyAccordionSearchFilter();
+        return;
+    }
+
+    const db = (typeof examDatabase !== 'undefined') ? examDatabase : window.examDatabase;
+    if (!db) {
+        resultsEl.innerHTML = '<div class="qsearch-no-results">검색 가능한 지문 데이터가 없습니다.</div>';
+        resultsEl.style.display = 'block';
+        return;
+    }
+
+    const lowerQuery = query.toLowerCase();
+    const matches = [];
+    for (const key in db) {
+        const text = db[key];
+        if (typeof text === 'string' && text.toLowerCase().includes(lowerQuery)) {
+            matches.push({ key, text });
+        }
+    }
+
+    matches.sort((a, b) => {
+        const [ay, an] = a.key.split('_').map(Number);
+        const [by, bn] = b.key.split('_').map(Number);
+        return (by - ay) || (an - bn);
+    });
+
+    if (matches.length === 0) {
+        resultsEl.innerHTML = '<div class="qsearch-no-results">검색 결과가 없습니다.</div>';
+        resultsEl.style.display = 'block';
+        applyAccordionSearchFilter();
+        return;
+    }
+
+    const MAX_RESULTS = 30;
+    const shown = matches.slice(0, MAX_RESULTS);
+    let html = shown.map(({ key, text }) => {
+        const [year, num] = key.split('_');
+        const idx = text.toLowerCase().indexOf(lowerQuery);
+        const snippetStart = Math.max(0, idx - 15);
+        const rawSnippet = text.replace(/\n/g, ' ').slice(snippetStart, idx + lowerQuery.length + 40);
+        const snippet = qsearchEscapeHtml((snippetStart > 0 ? '…' : '') + rawSnippet);
+        return `
+            <div class="qsearch-result-item" onclick="jumpToSearchedQuestion(${year}, ${num})">
+                <span class="qsearch-result-tag">${year}년 ${num}번</span>
+                <span class="qsearch-result-snippet">${snippet}</span>
+            </div>
+        `;
+    }).join('');
+
+    if (matches.length > MAX_RESULTS) {
+        html += `<div class="qsearch-more-note">외 ${matches.length - MAX_RESULTS}건 더 있습니다. 검색어를 구체화해 보세요.</div>`;
+    }
+
+    resultsEl.innerHTML = html;
+    resultsEl.style.display = 'block';
+    applyAccordionSearchFilter();
+}
+
+/**
+ * [설계 의도] 지문 검색어와 일치하는 기출문제가 하나라도 있는 중단원 카드만 아코디언 목록에 남기고
+ * 나머지는 숨깁니다. 카테고리(대단원) 필터와 동시에 걸려도 되도록 renderDashboard() 끝에서도 호출됩니다.
+ */
+function applyAccordionSearchFilter() {
+    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    if (!container) return;
+
+    const items = container.querySelectorAll('.accordion-item');
+    const query = QSearchState.query;
+    let emptyMsg = document.getElementById('qsearch-empty-msg');
+
+    if (!query) {
+        items.forEach(el => { el.style.display = ''; });
+        if (emptyMsg) emptyMsg.style.display = 'none';
+        return;
+    }
+
+    const db = (typeof examDatabase !== 'undefined') ? examDatabase : window.examDatabase;
+    const lowerQuery = query.toLowerCase();
+    const matchedGlobalIdx = new Set();
+
+    if (db) {
+        (window.dashboardData || []).forEach(item => {
+            const hasMatch = (item.questions || []).some(q => {
+                const text = db[`${q.year}_${q.num}`];
+                return typeof text === 'string' && text.toLowerCase().includes(lowerQuery);
+            });
+            if (hasMatch) matchedGlobalIdx.add(String(item.global_idx));
+        });
+    }
+
+    let visibleCount = 0;
+    items.forEach(el => {
+        const idx = el.id.replace('item-', '');
+        const show = matchedGlobalIdx.has(idx);
+        el.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+
+    if (visibleCount === 0) {
+        if (!emptyMsg) {
+            emptyMsg = document.createElement('div');
+            emptyMsg.id = 'qsearch-empty-msg';
+            emptyMsg.className = 'qsearch-no-results';
+            container.appendChild(emptyMsg);
+        }
+        emptyMsg.textContent = '검색어와 일치하는 기출문제가 있는 중단원이 없습니다.';
+        emptyMsg.style.display = 'block';
+    } else if (emptyMsg) {
+        emptyMsg.style.display = 'none';
+    }
+}
+
+function jumpToSearchedQuestion(year, num) {
+    const resultsEl = document.getElementById('qsearch-results');
+    if (resultsEl) resultsEl.style.display = 'none';
+
+    const target = (window.dashboardData || []).find(item =>
+        (item.questions || []).some(q => q.year === year && q.num === num)
+    );
+    if (!target) {
+        alert('이 문항은 현재 공식 중단원 매핑에 포함되어 있지 않아 바로 이동할 수 없습니다.');
+        return;
+    }
+
+    const globalIdx = target.global_idx;
+    let item = document.getElementById(`item-${globalIdx}`);
+    if (!item && typeof filterCategory === 'function') {
+        filterCategory('all');
+        item = document.getElementById(`item-${globalIdx}`);
+    }
+    if (!item) return;
+
+    if (!item.classList.contains('active')) {
+        toggleAccordion(String(globalIdx));
+    }
+    item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    setTimeout(() => {
+        const btn = document.getElementById(`btn-${globalIdx}-${year}-${num}`);
+        showQuestion(String(globalIdx), year, num, btn);
+    }, 350);
 }
 
 /**
@@ -2339,15 +2445,10 @@ function gamInjectExpCard() {
         </div>
     `;
 
-    // header와 quiz-summary-section 사이 또는 header 직후에 삽입
+    // header 직후에 삽입
     const header = document.querySelector('header');
     if (header) {
-        const summarySection = document.getElementById('quiz-summary-section');
-        if (summarySection) {
-            summarySection.parentNode.insertBefore(card, summarySection);
-        } else {
-            header.parentNode.insertBefore(card, header.nextSibling);
-        }
+        header.parentNode.insertBefore(card, header.nextSibling);
     }
 }
 

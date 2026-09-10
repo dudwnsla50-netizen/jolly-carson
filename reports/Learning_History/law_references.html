@@ -31,6 +31,11 @@
 
         <div class="lawref-year-detail" id="lawref-year-detail" style="display: none;"></div>
 
+        <div class="lawref-search-box">
+            <i data-lucide="search"></i>
+            <input type="text" id="lawref-search-input" placeholder="가이드·지침명 검색" oninput="setLawRefSearch(this.value)">
+        </div>
+
         <div id="lawref-loading" class="status-screen" style="display: flex; flex-direction: column; align-items: center; padding: 3rem 0;">
             <div class="spinner"></div>
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.8rem;">불러오는 중입니다...</p>

@@ -31,6 +31,7 @@ let LawRefState = {
     documents: [],       // /api/analytics/law-references 응답
     questionMap: {},     // id -> 문항 상세 (펼쳐볼 때 /api/questions?ids=...로 필요한 것만 지연 조회해 채움)
     selectedYear: null,  // 연도별 건수 표에서 클릭한 연도 (없으면 null)
+    searchQuery: '',     // 가이드·지침명 검색어
 };
 
 function lawrefInitTheme() {
@@ -166,15 +167,23 @@ function renderYearDetail(year) {
     if (window.lucide) lucide.createIcons();
 }
 
+function setLawRefSearch(value) {
+    LawRefState.searchQuery = value;
+    renderSections();
+}
+
 function renderSections() {
     const container = document.getElementById('lawref-sections');
+    const query = LawRefState.searchQuery.trim().toLowerCase();
+
+    const matchesQuery = doc => !query || doc.label.toLowerCase().includes(query);
 
     const subjectsWithDocs = LAWREF_SUBJECT_ORDER.filter(s =>
-        LawRefState.documents.some(doc => (doc.subjects || []).includes(s))
+        LawRefState.documents.some(doc => (doc.subjects || []).includes(s) && matchesQuery(doc))
     );
 
-    container.innerHTML = subjectsWithDocs.map(subject => {
-        const docsForSubject = LawRefState.documents.filter(doc => (doc.subjects || []).includes(subject));
+    const html = subjectsWithDocs.map(subject => {
+        const docsForSubject = LawRefState.documents.filter(doc => (doc.subjects || []).includes(subject) && matchesQuery(doc));
         const bySection = {};
         docsForSubject.forEach(doc => {
             (bySection[doc.section] = bySection[doc.section] || []).push(doc);
@@ -199,6 +208,8 @@ function renderSections() {
             </div>
         `;
     }).join('');
+
+    container.innerHTML = html || '<div class="lawref-no-results">검색 결과가 없습니다.</div>';
 
     if (window.lucide) lucide.createIcons();
 }
