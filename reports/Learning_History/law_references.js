@@ -2,8 +2,9 @@
  * ==========================================================================
  * [법령·지침 출제 현황 - law_references.js]
  * 5대 과목 공식 시험범위 및 기출 전수 스캔으로 확인된 법령/고시/지침/가이드별
- * 실제 기출 인용 건수를 과목 탭으로 보여주고, 건수를 클릭하면 같은 화면에서
- * 해당 문항을 바로 펼쳐 볼 수 있게 합니다.
+ * 실제 기출 인용 건수를 과목 구분과 함께 한 화면에 보여주고, 건수를 클릭하면
+ * 같은 화면에서 해당 문항을 바로 펼쳐 볼 수 있게 합니다. 연도별 건수 표의 숫자를
+ * 클릭하면 그 해에 인용된 법령/지침 목록을 확인할 수 있습니다.
  * ==========================================================================
  */
 
@@ -29,7 +30,7 @@ const SECTION_ORDER = ['1-a', '1-b', '1-c', '1-d', '2-a', '2-c', '4-a', 'db-1', 
 let LawRefState = {
     documents: [],       // /api/analytics/law-references 응답
     questionMap: {},     // id -> 전체 문항 상세 (/api/questions?subject=all)
-    activeSubject: 'PM',
+    selectedYear: null,  // 연도별 건수 표에서 클릭한 연도 (없으면 null)
 };
 
 function lawrefInitTheme() {
@@ -50,7 +51,7 @@ function loadLawReferences() {
         .then(([refData, questionsData]) => {
             LawRefState.documents = refData.documents || [];
             LawRefState.questionMap = questionsData || {};
-            renderSubjectTabs();
+            renderYearSummary();
             renderSections();
             document.getElementById('lawref-loading').style.display = 'none';
             document.getElementById('lawref-sections').style.display = 'block';
@@ -62,54 +63,137 @@ function loadLawReferences() {
         });
 }
 
-function renderSubjectTabs() {
-    const subjectsWithDocs = new Set();
-    LawRefState.documents.forEach(doc => (doc.subjects || []).forEach(s => subjectsWithDocs.add(s)));
-
-    const tabs = LAWREF_SUBJECT_ORDER.filter(s => subjectsWithDocs.has(s));
-    const container = document.getElementById('lawref-subject-tabs');
-    container.innerHTML = tabs.map(s => `
-        <button type="button" class="lawref-subject-tab ${s === LawRefState.activeSubject ? 'active' : ''}"
-            onclick="selectLawRefSubject('${s}')">
-            ${LAWREF_SUBJECT_NAMES[s] || s}
-        </button>
-    `).join('');
-}
-
-function selectLawRefSubject(subject) {
-    LawRefState.activeSubject = subject;
-    renderSubjectTabs();
-    renderSections();
-}
-
-function renderSections() {
-    const container = document.getElementById('lawref-sections');
-    const activeSubject = LawRefState.activeSubject;
-
-    const docsForSubject = LawRefState.documents.filter(doc => (doc.subjects || []).includes(activeSubject));
-    const bySection = {};
-    docsForSubject.forEach(doc => {
-        (bySection[doc.section] = bySection[doc.section] || []).push(doc);
+function renderYearSummary() {
+    const seenIds = new Set();
+    const yearCounts = {};
+    LawRefState.documents.forEach(doc => {
+        doc.questions.forEach(q => {
+            if (seenIds.has(q.id)) return;
+            seenIds.add(q.id);
+            yearCounts[q.year] = (yearCounts[q.year] || 0) + 1;
+        });
     });
 
-    container.innerHTML = SECTION_ORDER
-        .filter(sec => bySection[sec] && bySection[sec].length > 0)
-        .map(sec => {
-            const docsHtml = bySection[sec].map(doc => renderDocRow(doc, activeSubject)).join('');
-            return `
-                <div class="lawref-section">
-                    <div class="lawref-section-title">${LAWREF_SECTION_NAMES[sec] || sec}</div>
-                    ${docsHtml}
+    const years = Object.keys(yearCounts).map(Number).sort((a, b) => a - b);
+    const headerCells = years.map(y => `<th>${y}</th>`).join('') + '<th class="lawref-year-total-cell">합계</th>';
+    const dataCells = years.map(y => {
+        const isSelected = LawRefState.selectedYear === y;
+        return `<td class="lawref-year-count ${isSelected ? 'selected' : ''}" onclick="toggleYearDetail(${y})">${yearCounts[y]}</td>`;
+    }).join('') + `<td class="lawref-year-total-cell">${seenIds.size}</td>`;
+
+    document.getElementById('lawref-year-summary').innerHTML = `
+        <table class="lawref-year-table">
+            <thead><tr>${headerCells}</tr></thead>
+            <tbody><tr>${dataCells}</tr></tbody>
+        </table>
+    `;
+
+    const detailContainer = document.getElementById('lawref-year-detail');
+    if (LawRefState.selectedYear !== null && years.includes(LawRefState.selectedYear)) {
+        renderYearDetail(LawRefState.selectedYear);
+        detailContainer.style.display = 'block';
+    } else {
+        LawRefState.selectedYear = null;
+        detailContainer.style.display = 'none';
+        detailContainer.innerHTML = '';
+    }
+}
+
+function toggleYearDetail(year) {
+    LawRefState.selectedYear = (LawRefState.selectedYear === year) ? null : year;
+    renderYearSummary();
+}
+
+function renderYearDetail(year) {
+    const container = document.getElementById('lawref-year-detail');
+
+    const hits = LawRefState.documents
+        .map(doc => {
+            const yearQuestions = doc.questions.filter(q => q.year === year);
+            return yearQuestions.length ? { doc, yearQuestions } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.yearQuestions.length - a.yearQuestions.length);
+
+    if (hits.length === 0) {
+        container.innerHTML = `
+            <div class="lawref-year-detail-title">${year}년에 인용된 법령·지침</div>
+            <p style="color: var(--text-muted); font-size: 0.82rem;">해당 연도에 인용된 법령·지침이 없습니다.</p>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    const rowsHtml = hits.map(({ doc, yearQuestions }) => {
+        const docKey = `year${year}_${docIdKey(doc.label, doc.subjects.join('-'))}`;
+        const linkHtml = doc.url
+            ? `<a class="lawref-source-link" href="${doc.url}" target="_blank" rel="noopener" title="최신판 원문 보기" onclick="event.stopPropagation()">
+                   <i data-lucide="external-link"></i>
+               </a>`
+            : '';
+        const subjectTagHtml = `<span class="lawref-multi-subject-tag">${doc.subjects.join('/')}</span>`;
+
+        return `
+            <div class="lawref-doc" id="lawref-doc-${docKey}">
+                <div class="lawref-doc-row">
+                    <span class="lawref-doc-name">${doc.label} ${linkHtml}${subjectTagHtml}</span>
+                    <button type="button" class="lawref-count-btn" onclick="toggleDetailPanel('${docKey}', '${yearQuestions.map(q => q.id).join(',')}')">
+                        ${yearQuestions.length}건
+                    </button>
                 </div>
-            `;
-        }).join('');
+                <div class="lawref-detail" id="lawref-detail-${docKey}" style="display: none;"></div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="lawref-year-detail-title">${year}년에 인용된 법령·지침 (${hits.length}종)</div>
+        ${rowsHtml}
+    `;
 
     if (window.lucide) lucide.createIcons();
 }
 
-function renderDocRow(doc, activeSubject) {
-    const docKey = docIdKey(doc.label, activeSubject);
-    const subjectQuestions = doc.questions.filter(q => q.subject === activeSubject);
+function renderSections() {
+    const container = document.getElementById('lawref-sections');
+
+    const subjectsWithDocs = LAWREF_SUBJECT_ORDER.filter(s =>
+        LawRefState.documents.some(doc => (doc.subjects || []).includes(s))
+    );
+
+    container.innerHTML = subjectsWithDocs.map(subject => {
+        const docsForSubject = LawRefState.documents.filter(doc => (doc.subjects || []).includes(subject));
+        const bySection = {};
+        docsForSubject.forEach(doc => {
+            (bySection[doc.section] = bySection[doc.section] || []).push(doc);
+        });
+
+        const sectionsHtml = SECTION_ORDER
+            .filter(sec => bySection[sec] && bySection[sec].length > 0)
+            .map(sec => {
+                const docsHtml = bySection[sec].map(doc => renderDocRow(doc, subject)).join('');
+                return `
+                    <div class="lawref-section">
+                        <div class="lawref-section-title">${LAWREF_SECTION_NAMES[sec] || sec}</div>
+                        ${docsHtml}
+                    </div>
+                `;
+            }).join('');
+
+        return `
+            <div class="lawref-subject-group">
+                <div class="lawref-subject-heading">${LAWREF_SUBJECT_NAMES[subject] || subject}</div>
+                ${sectionsHtml}
+            </div>
+        `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderDocRow(doc, subject) {
+    const docKey = docIdKey(doc.label, subject);
+    const subjectQuestions = doc.questions.filter(q => q.subject === subject);
     const count = subjectQuestions.length;
     const disabled = count === 0 ? 'disabled' : '';
     const linkHtml = doc.url
@@ -135,7 +219,7 @@ function renderDocRow(doc, activeSubject) {
 }
 
 function docIdKey(label, subject) {
-    // 문서명+과목을 DOM id로 쓸 수 있는 안전한 문자열로 변환 (같은 문서가 여러 과목 탭에 걸쳐 있어도 충돌 방지)
+    // 문서명+과목을 DOM id로 쓸 수 있는 안전한 문자열로 변환 (같은 문서가 여러 과목 구간에 걸쳐 있어도 충돌 방지)
     return `${subject}_${label}`.replace(/[^a-zA-Z0-9가-힣]/g, '_');
 }
 
@@ -150,10 +234,10 @@ function toggleLawRefDetail(docKey) {
     }
 
     if (!detailEl.dataset.rendered) {
-        const activeSubject = LawRefState.activeSubject;
-        const doc = LawRefState.documents.find(d => docIdKey(d.label, activeSubject) === docKey);
+        const subject = docKey.split('_')[0];
+        const doc = LawRefState.documents.find(d => docIdKey(d.label, subject) === docKey);
         if (doc) {
-            const subjectQuestions = doc.questions.filter(q => q.subject === activeSubject);
+            const subjectQuestions = doc.questions.filter(q => q.subject === subject);
             detailEl.innerHTML = subjectQuestions
                 .slice()
                 .sort((a, b) => b.year - a.year || a.question_num - b.question_num)
@@ -161,6 +245,33 @@ function toggleLawRefDetail(docKey) {
                 .join('');
             detailEl.dataset.rendered = '1';
         }
+    }
+    detailEl.style.display = 'flex';
+}
+
+function toggleDetailPanel(docKey, questionIdsCsv) {
+    const detailEl = document.getElementById(`lawref-detail-${docKey}`);
+    if (!detailEl) return;
+
+    const isOpen = detailEl.style.display !== 'none';
+    if (isOpen) {
+        detailEl.style.display = 'none';
+        return;
+    }
+
+    if (!detailEl.dataset.rendered) {
+        const questionIds = questionIdsCsv.split(',');
+        const allQuestions = LawRefState.documents.flatMap(d => d.questions);
+        const byId = {};
+        allQuestions.forEach(q => { byId[q.id] = q; });
+
+        detailEl.innerHTML = questionIds
+            .map(id => byId[id])
+            .filter(Boolean)
+            .sort((a, b) => a.question_num - b.question_num)
+            .map(q => renderQuestionItem(q))
+            .join('');
+        detailEl.dataset.rendered = '1';
     }
     detailEl.style.display = 'flex';
 }
@@ -178,10 +289,11 @@ function renderQuestionItem(qRef) {
         const isAns = answerNums.includes(n);
         return `${isAns ? '✔ ' : ''}${n}. ${opt}`;
     }).join('\n');
+    const subjectLabel = LAWREF_SUBJECT_NAMES[qRef.subject] || qRef.subject;
 
     return `
         <div class="lawref-q-item">
-            <span class="lawref-q-tag">${qRef.year}년 ${qRef.question_num}번</span>
+            <span class="lawref-q-tag">${qRef.year}년 ${subjectLabel} ${qRef.question_num}번</span>
             <div class="lawref-q-text">${plainQuestion}</div>
             <div class="lawref-q-answer">${optionsText}</div>
             ${full.explanation ? `<div class="lawref-q-explanation"><b>해설:</b> ${full.explanation}</div>` : ''}

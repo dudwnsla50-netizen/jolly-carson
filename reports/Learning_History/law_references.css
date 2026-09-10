@@ -18,34 +18,84 @@
     to { transform: rotate(360deg); }
 }
 
-.lawref-subject-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.4rem;
+.lawref-year-summary {
+    margin-bottom: 1.1rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--card-border);
+    overflow-x: auto;
 }
 
-.lawref-subject-tab {
-    background: var(--bg-card);
+.lawref-year-table {
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.lawref-year-table th,
+.lawref-year-table td {
+    padding: 0.25rem 0.6rem;
+    text-align: center;
     border: 1px solid var(--card-border);
+}
+
+.lawref-year-table th {
     color: var(--text-secondary);
-    font-size: 0.82rem;
     font-weight: 600;
-    padding: 0.4rem 0.9rem;
-    border-radius: 20px;
+    background: var(--bg-card);
+}
+
+.lawref-year-table td {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.lawref-year-table .lawref-year-total-cell {
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
+.lawref-year-count {
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
-.lawref-subject-tab:hover {
-    border-color: var(--card-border-hover);
-    color: var(--text-primary);
+.lawref-year-count:hover {
+    background: rgba(139, 92, 246, 0.14);
+    color: var(--accent-primary);
 }
 
-.lawref-subject-tab.active {
+.lawref-year-count.selected {
     background: var(--accent-gradient);
-    border-color: transparent;
     color: #ffffff;
+}
+
+.lawref-year-detail {
+    background: var(--bg-card);
+    border: 1px solid var(--card-border-hover);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.6rem;
+}
+
+.lawref-year-detail-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.7rem;
+}
+
+.lawref-subject-group {
+    margin-bottom: 2.2rem;
+}
+
+.lawref-subject-heading {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--accent-primary);
 }
 
 .lawref-section {
