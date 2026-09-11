@@ -1836,7 +1836,7 @@ function handleRichEditorPaste(event) {
 
                 const reader = new FileReader();
                 reader.onload = () => {
-                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block;">`);
+                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block; resize: both; overflow: hidden;">`);
                     refreshAccordionHeightFor(editorEl);
                 };
                 reader.readAsDataURL(file);
@@ -1848,6 +1848,22 @@ function handleRichEditorPaste(event) {
     const text = clipboardData ? clipboardData.getData('text/plain') : '';
     if (text) insertTextAtCursor(text);
     refreshAccordionHeightFor(editorEl);
+}
+
+/**
+ * [설계 의도] 지문/해설 편집창의 이미지에 드래그로 크기를 조절할 수 있는 리사이즈 핸들을 붙입니다.
+ * 새로 붙여넣는 이미지는 삽입 시점에 이미 이 스타일이 적용돼 있지만, 이 기능이 생기기 전에
+ * 저장된 기존 이미지는 편집창을 열 때마다 한 번씩 입혀 줘야 하므로 startEditQuestion에서 호출합니다.
+ */
+function enableRichEditorImageResize(idx) {
+    [`edit-q-text-${idx}`, `edit-q-explanation-${idx}`].forEach(elId => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        el.querySelectorAll('img').forEach(img => {
+            img.style.resize = 'both';
+            img.style.overflow = 'hidden';
+        });
+    });
 }
 
 /**
@@ -1989,6 +2005,7 @@ function startEditQuestion(idx, qId) {
 
     body.innerHTML = htmlContent;
     initEditImagePreview(idx, qId);
+    enableRichEditorImageResize(idx);
 
     const editBtn = document.getElementById(`edit-btn-${idx}`);
     if (editBtn) editBtn.innerText = "✕ 취소";
