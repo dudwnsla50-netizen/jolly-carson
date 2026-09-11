@@ -8,6 +8,7 @@
 #   4. psycopg2.extras.RealDictCursor 및 sqlite3.Row의 리턴 형식을 통일성 있게 제어하여 API 비즈니스 로직을 변경 없이 양방향 지원합니다.
 import os
 import sys
+import io
 import json
 import base64
 import sqlite3
@@ -20,6 +21,11 @@ import traceback
 import psycopg2
 import psycopg2.extras
 import re
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 from http.server import SimpleHTTPRequestHandler
 try:
     from http.server import ThreadingHTTPServer
@@ -211,7 +217,43 @@ class AllProvidersFailedError(RuntimeError):
         super().__init__(message)
         self.logs = logs or []
 
-def call_gemini_raw_prompt(prompt, timeout=10):
+IMAGE_DATA_URI_PATTERN = re.compile(r'data:image/([a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)')
+
+def extract_and_compress_images(text, images=None, max_images=3, max_dimension=768, jpeg_quality=70):
+    """
+    [설계 의도] 문항 본문/해설에 base64로 그대로 박혀 있는 이미지(다이어그램·표 등)를
+    텍스트 프롬프트에 그대로 넣으면 요청이 지나치게 커지고, AI는 텍스트로는 이미지를
+    "보지" 못해 의미도 없습니다. Gemini 멀티모달 API로 이미지 자체를 함께 보내되,
+    AI가 내용을 읽어내는 데 필요한 수준으로만 축소·재압축해 전송량을 최소화합니다.
+    문항+해설처럼 여러 텍스트에서 이미지를 함께 모을 때는 같은 images 리스트를 넘겨
+    total 개수 상한(max_images)이 호출 전체에 걸쳐 누적 적용되게 합니다.
+    반환: (이미지 자리를 안내 문구로 치환한 텍스트, [{mime_type, data} ...])
+    """
+    if images is None:
+        images = []
+
+    def _replace(match):
+        if not PIL_AVAILABLE or len(images) >= max_images:
+            return "(첨부 이미지 - 처리되지 않음)"
+        try:
+            raw = base64.b64decode(match.group(2))
+            with Image.open(io.BytesIO(raw)) as img:
+                img = img.convert("RGB")
+                img.thumbnail((max_dimension, max_dimension))
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=jpeg_quality)
+                images.append({
+                    "mime_type": "image/jpeg",
+                    "data": base64.b64encode(buf.getvalue()).decode("ascii")
+                })
+            return f"(첨부 이미지 {len(images)}번 참고)"
+        except Exception:
+            return "(첨부 이미지 - 처리 실패)"
+
+    cleaned = IMAGE_DATA_URI_PATTERN.sub(_replace, text or "")
+    return cleaned, images
+
+def call_gemini_raw_prompt(prompt, timeout=10, images=None):
     logs = []
     model_name = "gemini-3.5-flash"
     keys = [k for k in [GEMINI_API_KEY, GEMINI_API_KEY2] if k]
@@ -222,10 +264,14 @@ def call_gemini_raw_prompt(prompt, timeout=10):
     retry_wait_seconds = 1.5
     max_attempts_per_key = 2  # 최초 시도 + 동일 키로 1회 재시도
 
+    parts = [{"text": prompt}]
+    for img in (images or []):
+        parts.append({"inline_data": {"mime_type": img["mime_type"], "data": img["data"]}})
+
     for i, api_key in enumerate(keys):
         url = f"{GEMINI_API_URL}?key={api_key}"
         payload = {
-            "contents": [{"parts": [{"text": prompt}]}]
+            "contents": [{"parts": parts}]
         }
 
         for attempt in range(1, max_attempts_per_key + 1):
@@ -1053,11 +1099,20 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     answer_str = ", ".join([f"{a}번" for a in answer_list]) if answer_list else "미등록"
                     existing_explanation = row_dict.get("explanation") or "등록된 해설 없음"
 
+                    # [설계 의도] 지문/기존 해설에 base64로 박혀 있는 이미지(다이어그램·표 등)를
+                    # 그대로 텍스트 프롬프트에 넣으면 요청이 과도하게 커지고 AI가 읽지도 못합니다.
+                    # 실제로 읽을 수 있는 크기로 압축해 멀티모달 첨부로 함께 보내고,
+                    # 프롬프트 본문에는 이미지 자리에 참고 안내 문구만 남깁니다.
+                    image_pool = []
+                    cleaned_question, image_pool = extract_and_compress_images(row_dict['question'], images=image_pool)
+                    cleaned_existing_explanation, image_pool = extract_and_compress_images(existing_explanation, images=image_pool)
+
                     prompt = f"""당신은 대한민국 '정보시스템 감리사 자격검정' 수험 전문 강사입니다.
 아래 기출문제의 정답이 왜 정답인지, 그리고 나머지 오답 보기들은 왜 틀렸는지 수험생이 이해하기 쉽게 해설해 주세요.
+문제나 해설에 첨부 이미지가 함께 제공된 경우, 그 이미지(다이어그램·표 등)의 내용도 실제로 참고해서 해설하세요.
 
 [문제]
-{row_dict['question']}
+{cleaned_question}
 
 [보기]
 {options_str}
@@ -1066,7 +1121,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
 {answer_str}
 
 [기존 등록된 참고 해설 (있는 경우 참고만 하고, 그대로 베끼지 말고 더 상세하고 이해하기 쉽게 재구성하세요)]
-{existing_explanation}
+{cleaned_existing_explanation}
 
 [출력 요구사항]
 1. 순수 해설 텍스트만 출력하세요. 마크다운 코드블록(```)이나 JSON 포맷, 불필요한 인사말은 절대 포함하지 마세요.
@@ -1080,7 +1135,7 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                     conn_logs = []
                     error_msg = ""
                     try:
-                        raw_res, ai_model_used, conn_logs = call_gemini_raw_prompt(prompt)
+                        raw_res, ai_model_used, conn_logs = call_gemini_raw_prompt(prompt, images=image_pool)
                         raw_res = raw_res.strip() if raw_res else ""
                         if raw_res.startswith("```"):
                             lines = raw_res.split("\n")
