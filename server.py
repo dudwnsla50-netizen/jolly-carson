@@ -26,11 +26,6 @@ try:
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
-try:
-    from kiwipiepy import Kiwi
-    KIWI_AVAILABLE = True
-except ImportError:
-    KIWI_AVAILABLE = False
 from http.server import SimpleHTTPRequestHandler
 try:
     from http.server import ThreadingHTTPServer
@@ -257,16 +252,6 @@ def extract_and_compress_images(text, images=None, max_images=3, max_dimension=7
 
     cleaned = IMAGE_DATA_URI_PATTERN.sub(_replace, text or "")
     return cleaned, images
-
-_KIWI_INSTANCE = None
-
-def get_kiwi_instance():
-    """[설계 의도] Kiwi 형태소 분석기 모델 로딩은 다소 시간이 걸리므로, 프로세스당 한 번만
-    초기화해 재사용합니다(최초 호출 시 지연 로딩)."""
-    global _KIWI_INSTANCE
-    if _KIWI_INSTANCE is None and KIWI_AVAILABLE:
-        _KIWI_INSTANCE = Kiwi()
-    return _KIWI_INSTANCE
 
 def call_gemini_raw_prompt(prompt, timeout=10, images=None):
     logs = []
@@ -1270,30 +1255,71 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def post_auto_space(self, data):
-        """[설계 의도] 지문/보기 편집창의 "띄어쓰기 교정" 버튼에서 호출됩니다. 프론트엔드가 이미
-        contenteditable의 텍스트 노드 단위(이미지/태그 제외)로 쪼개서 보내므로, 여기서는 HTML을
-        신경 쓸 필요 없이 순수 텍스트 문자열 배열을 Kiwi로 교정만 하면 됩니다. 완벽한 맞춤법 교정이
-        아니라 "읽기 불편하지 않은 수준"의 자동 띄어쓰기가 목표입니다."""
+        """[설계 의도] 지문/보기 편집창의 "띄어쓰기" 버튼에서 호출됩니다. Kiwi 등 로컬 형태소 분석
+        라이브러리는 모델 로딩에 300MB+ 메모리가 필요해 Render 무료 티어(512MB)에서 인스턴스가
+        OOM으로 죽는 원인이 되었습니다(실제 배포 환경에서 재현 확인). 대신 이미 AI 해설 기능에 쓰고
+        있는 Gemini API를 그대로 재사용해 띄어쓰기만 교정합니다 - 별도 모델/의존성이 없어 로컬/배포
+        환경 모두에서 안전하게 동작합니다. 완벽한 맞춤법 교정이 아니라 "읽기 불편하지 않은 수준"의
+        자동 띄어쓰기가 목표이므로, 내용 자체는 절대 바꾸지 말라고 프롬프트에 명시합니다."""
         texts = data.get("texts")
         if not isinstance(texts, list):
             self.send_error_response(400, "Missing or invalid parameter (texts, array required)")
             return
 
-        kiwi = get_kiwi_instance()
-        if not kiwi:
+        non_empty_indices = [i for i, t in enumerate(texts) if isinstance(t, str) and t.strip()]
+        if not non_empty_indices:
+            self.send_json_response({"success": True, "texts": texts})
+            return
+
+        if not GEMINI_API_KEY and not GEMINI_API_KEY2:
             self.send_json_response({
                 "success": False,
-                "error": "서버에 띄어쓰기 교정 모듈(kiwipiepy)이 설치되어 있지 않습니다.",
+                "error": "서버 환경변수 GEMINI_API_KEY가 설정되어 있지 않아 띄어쓰기 교정을 사용할 수 없습니다.",
                 "texts": texts
             })
             return
 
+        target_texts = [texts[i] for i in non_empty_indices]
+        prompt = f"""다음은 대한민국 IT 자격시험 문제의 지문/보기 텍스트 조각들입니다. 각 항목은 단어 사이 띄어쓰기가 없거나 잘못되어 있을 수 있습니다.
+각 항목의 실제 내용(단어, 숫자, 기호, 영문 표기 등)은 절대 바꾸지 말고, 오직 띄어쓰기만 자연스럽게 교정하세요.
+
+[입력 JSON 배열 ({len(target_texts)}개 항목)]
+{json.dumps(target_texts, ensure_ascii=False)}
+
+[출력 규칙]
+1. 입력과 정확히 같은 개수({len(target_texts)}개)의 문자열로 이루어진 JSON 배열만 출력하세요.
+2. 각 문자열은 입력의 같은 순서(인덱스) 항목에 대응해야 합니다.
+3. 마크다운 코드블록, 설명, 인사말 등 다른 텍스트는 절대 포함하지 말고 순수 JSON 배열만 출력하세요."""
+
         try:
-            spaced = [kiwi.space(t) if isinstance(t, str) and t.strip() else t for t in texts]
-            self.send_json_response({"success": True, "texts": spaced})
+            raw_res, ai_model_used, conn_logs = call_gemini_raw_prompt(prompt, timeout=20)
+            raw_res = (raw_res or "").strip()
+            if raw_res.startswith("```"):
+                lines = raw_res.split("\n")
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("```"):
+                    lines = lines[:-1]
+                raw_res = "\n".join(lines).strip()
+
+            corrected_list = json.loads(raw_res)
+            if not isinstance(corrected_list, list) or len(corrected_list) != len(target_texts):
+                got = len(corrected_list) if isinstance(corrected_list, list) else "N/A"
+                raise ValueError(f"AI 응답 형식이 예상과 다릅니다 (받은 항목 수: {got}, 기대 개수: {len(target_texts)})")
+
+            result_texts = list(texts)
+            for idx, corrected in zip(non_empty_indices, corrected_list):
+                if isinstance(corrected, str) and corrected.strip():
+                    result_texts[idx] = corrected
+
+            self.send_json_response({"success": True, "texts": result_texts})
         except Exception as e:
             traceback.print_exc()
-            self.send_error_response(500, f"띄어쓰기 교정 중 오류: {str(e)}")
+            self.send_json_response({
+                "success": False,
+                "error": f"띄어쓰기 교정 중 오류가 발생했습니다: {str(e)}",
+                "texts": texts
+            })
 
     def update_question(self, data):
         q_id = data.get("id")
