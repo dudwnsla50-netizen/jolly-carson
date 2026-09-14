@@ -1517,26 +1517,35 @@ function makeImageResizable(img) {
     handle.style.position = 'absolute';
     handle.style.right = '2px';
     handle.style.bottom = '2px';
-    handle.style.width = '16px';
-    handle.style.height = '16px';
-    handle.style.borderRadius = '4px';
+    handle.style.width = '22px';
+    handle.style.height = '22px';
+    handle.style.borderRadius = '5px';
     handle.style.background = 'rgba(139, 92, 246, 0.9)';
     handle.style.border = '2px solid #ffffff';
     handle.style.boxShadow = '0 1px 4px rgba(0,0,0,0.4)';
     handle.style.cursor = 'nwse-resize';
+    handle.style.touchAction = 'none'; // 모바일에서 드래그 중 페이지 스크롤/줌과 충돌하지 않도록 함
     handle.style.zIndex = '5';
     wrap.appendChild(handle);
+
+    // 마우스와 터치는 서로 다른 이벤트 체계라서 mousedown만 등록하면 모바일에서 반응하지 않습니다.
+    // 두 입력 방식이 같은 리사이즈 로직(startResize)을 공유하도록 처리합니다.
+    function startResize(clientX) {
+        const startWidth = img.getBoundingClientRect().width;
+        return function (currentX) {
+            const newWidth = Math.max(40, Math.round(startWidth + (currentX - clientX)));
+            img.style.width = newWidth + 'px';
+            img.style.height = 'auto';
+        };
+    }
 
     handle.addEventListener('mousedown', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        const startX = e.clientX;
-        const startWidth = img.getBoundingClientRect().width;
+        const applyResize = startResize(e.clientX);
 
         function onMove(moveEvt) {
-            const newWidth = Math.max(40, Math.round(startWidth + (moveEvt.clientX - startX)));
-            img.style.width = newWidth + 'px';
-            img.style.height = 'auto';
+            applyResize(moveEvt.clientX);
         }
         function onUp() {
             document.removeEventListener('mousemove', onMove);
@@ -1545,6 +1554,28 @@ function makeImageResizable(img) {
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
     });
+
+    handle.addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        if (!touch) return;
+        const applyResize = startResize(touch.clientX);
+
+        function onTouchMove(moveEvt) {
+            moveEvt.preventDefault();
+            const t = moveEvt.touches[0];
+            if (t) applyResize(t.clientX);
+        }
+        function onTouchEnd() {
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('touchend', onTouchEnd);
+            document.removeEventListener('touchcancel', onTouchEnd);
+        }
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', onTouchEnd);
+        document.addEventListener('touchcancel', onTouchEnd);
+    }, { passive: false });
 }
 
 function insertTextAtCursor(text) {
