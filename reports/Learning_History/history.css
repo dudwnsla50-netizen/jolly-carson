@@ -217,8 +217,32 @@ body[data-theme="light"] .bg-glow-left {
     transform: translateY(-1px);
 }
 
+/* 년도별 120제 모의고사 화면 이동 버튼 (priority-nav-btn/law-ref-nav-btn과 동일 사이즈, 색만 구분) */
+.yearly-exam-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border: none;
+    color: #ffffff;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.yearly-exam-nav-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
 .priority-nav-btn svg,
-.law-ref-nav-btn svg {
+.law-ref-nav-btn svg,
+.yearly-exam-nav-btn svg {
     width: 14px;
     height: 14px;
 }
