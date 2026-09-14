@@ -1472,7 +1472,7 @@ function toEditableHtml(raw) {
 
 function insertHtmlAtCursor(html) {
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
+    if (!sel || sel.rangeCount === 0) return null;
 
     const range = sel.getRangeAt(0);
     range.deleteContents();
@@ -1486,6 +1486,65 @@ function insertHtmlAtCursor(html) {
         sel.removeAllRanges();
         sel.addRange(range);
     }
+    return lastNode;
+}
+
+/**
+ * [설계 의도] 브라우저 네이티브 CSS `resize` 속성은 이미지 모서리의 아주 작은 영역에서만
+ * 커서가 바뀌고 아무 시각적 표시도 없어 사용자가 정확한 지점을 못 찾는 문제가 실측 확인됐습니다.
+ * dashboard_common.js와 동일하게, 눈에 보이는 보라색 손잡이를 직접 그려 넣어 드래그로 가로폭을
+ * 조절합니다. wrapper/핸들은 편집 중에만 존재하며 저장 시(getRichEditorValue) 벗겨냅니다.
+ */
+function makeImageResizable(img) {
+    if (!img || !img.parentElement || img.parentElement.classList.contains('img-resize-wrap')) return;
+
+    const wrap = document.createElement('span');
+    wrap.className = 'img-resize-wrap';
+    wrap.contentEditable = 'false';
+    wrap.style.position = 'relative';
+    wrap.style.display = 'inline-block';
+    wrap.style.maxWidth = '100%';
+    wrap.style.lineHeight = '0';
+
+    img.parentNode.insertBefore(wrap, img);
+    wrap.appendChild(img);
+    img.style.resize = 'none';
+    img.style.overflow = 'visible';
+
+    const handle = document.createElement('span');
+    handle.className = 'img-resize-handle';
+    handle.title = '드래그해서 이미지 크기 조절';
+    handle.style.position = 'absolute';
+    handle.style.right = '2px';
+    handle.style.bottom = '2px';
+    handle.style.width = '16px';
+    handle.style.height = '16px';
+    handle.style.borderRadius = '4px';
+    handle.style.background = 'rgba(139, 92, 246, 0.9)';
+    handle.style.border = '2px solid #ffffff';
+    handle.style.boxShadow = '0 1px 4px rgba(0,0,0,0.4)';
+    handle.style.cursor = 'nwse-resize';
+    handle.style.zIndex = '5';
+    wrap.appendChild(handle);
+
+    handle.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startWidth = img.getBoundingClientRect().width;
+
+        function onMove(moveEvt) {
+            const newWidth = Math.max(40, Math.round(startWidth + (moveEvt.clientX - startX)));
+            img.style.width = newWidth + 'px';
+            img.style.height = 'auto';
+        }
+        function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
 }
 
 function insertTextAtCursor(text) {
@@ -1521,7 +1580,8 @@ function handleRichEditorPaste(event) {
 
                 const reader = new FileReader();
                 reader.onload = () => {
-                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block; resize: both; overflow: hidden;">`);
+                    const inserted = insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block;">`);
+                    if (inserted) makeImageResizable(inserted);
                 };
                 reader.readAsDataURL(file);
                 return;
@@ -1543,7 +1603,19 @@ function getRichEditorValue(elId) {
 
     const hasImage = el.querySelector('img') !== null;
     const hasText = el.textContent.trim().length > 0;
-    return (hasImage || hasText) ? el.innerHTML : '';
+    if (!hasImage && !hasText) return '';
+
+    // 편집 중에만 씌운 리사이즈 핸들(wrapper span)은 저장되는 HTML에서 벗겨내고 순수 <img>만 남깁니다.
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.img-resize-wrap').forEach(wrap => {
+        const img = wrap.querySelector('img');
+        if (img) {
+            img.style.resize = '';
+            img.style.overflow = '';
+            wrap.replaceWith(img);
+        }
+    });
+    return clone.innerHTML;
 }
 
 /**
@@ -1709,10 +1781,7 @@ function startEditYearlyQuestion(qId) {
     ['yearly-edit-q-text', 'yearly-edit-q-explanation'].forEach(elId => {
         const el = document.getElementById(elId);
         if (!el) return;
-        el.querySelectorAll('img').forEach(img => {
-            img.style.resize = 'both';
-            img.style.overflow = 'hidden';
-        });
+        el.querySelectorAll('img').forEach(img => makeImageResizable(img));
     });
 }
 
