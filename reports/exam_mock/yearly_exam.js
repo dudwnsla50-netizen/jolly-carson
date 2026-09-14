@@ -1521,7 +1521,7 @@ function handleRichEditorPaste(event) {
 
                 const reader = new FileReader();
                 reader.onload = () => {
-                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block;">`);
+                    insertHtmlAtCursor(`<img src="${reader.result}" style="max-width: 100%; border-radius: 4px; margin: 0.4rem 0; display: block; resize: both; overflow: hidden;">`);
                 };
                 reader.readAsDataURL(file);
                 return;
@@ -1544,6 +1544,72 @@ function getRichEditorValue(elId) {
     const hasImage = el.querySelector('img') !== null;
     const hasText = el.textContent.trim().length > 0;
     return (hasImage || hasText) ? el.innerHTML : '';
+}
+
+/**
+ * [설계 의도] contenteditable 안의 실제 텍스트 노드만 골라냅니다(이미지·줄바꿈 태그 등 마크업은
+ * 절대 건드리지 않기 위함). dashboard_common.js의 동명 함수와 동일하되, 이 페이지가
+ * dashboard_common.js를 로드하지 않아 별도로 둡니다.
+ */
+function getEditableTextNodes(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) {
+        if (node.textContent && node.textContent.trim().length > 0) {
+            nodes.push(node);
+        }
+    }
+    return nodes;
+}
+
+/**
+ * [설계 의도] "🔤 지문·보기 띄어쓰기" 버튼 핸들러. 질문 본문(텍스트 노드 단위)과 보기 입력창들의
+ * 값을 모아 서버의 Kiwi 기반 자동 띄어쓰기 API에 한 번에 보내고, 결과를 그대로 반영합니다.
+ */
+async function autoSpaceYearlyQuestionAndOptions() {
+    const questionEl = document.getElementById('yearly-edit-q-text');
+    if (!questionEl) return;
+    const optionInputs = Array.from(document.querySelectorAll('.yearly-edit-opt-input'));
+
+    const textNodes = getEditableTextNodes(questionEl);
+    const questionTexts = textNodes.map(n => n.textContent);
+    const optionTexts = optionInputs.map(inp => inp.value);
+    const allTexts = questionTexts.concat(optionTexts);
+
+    if (!allTexts.some(t => t && t.trim())) return;
+
+    const btn = document.getElementById('yearly-autospace-btn');
+    const originalLabel = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ 처리 중...';
+    }
+
+    try {
+        const res = await fetch('/api/text/auto-space', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: allTexts })
+        });
+        const data = await res.json();
+        if (!data || !data.success) {
+            alert((data && data.error) || '띄어쓰기 교정에 실패했습니다.');
+            return;
+        }
+
+        const spaced = data.texts;
+        textNodes.forEach((node, i) => { node.textContent = spaced[i]; });
+        optionInputs.forEach((inp, i) => { inp.value = spaced[questionTexts.length + i]; });
+    } catch (err) {
+        console.error('띄어쓰기 교정 요청 실패', err);
+        alert('띄어쓰기 교정 요청 중 오류가 발생했습니다.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+        }
+    }
 }
 
 /**
@@ -1587,7 +1653,10 @@ function startEditYearlyQuestion(qId) {
         <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:1rem; display:flex; flex-direction:column; gap:0.8rem;">
             <div style="font-weight:700; font-size:0.85rem; color:#c084fc;">✏️ Q.${q.question_num} 문항 수정</div>
             <div>
-                <label style="font-size:0.76rem; color:#a78bfa; font-weight:700; display:block; margin-bottom:0.3rem;">❓ 질문 본문</label>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+                    <label style="font-size:0.76rem; color:#a78bfa; font-weight:700;">❓ 질문 본문</label>
+                    <button type="button" id="yearly-autospace-btn" onclick="autoSpaceYearlyQuestionAndOptions()" title="지문과 보기의 띄어쓰기를 자동으로 교정합니다" style="background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.35); color:#ffffff; padding:0.28rem 0.55rem; border-radius:4px; font-size:0.7rem; cursor:pointer; font-family:inherit;">🔤 띄어쓰기</button>
+                </div>
                 <div id="yearly-edit-q-text" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" style="width:100%; min-height:110px; max-height:360px; overflow-y:auto; background:rgba(15,23,42,0.6); border:1px solid rgba(139,92,246,0.3); color:#ffffff; padding:0.55rem; border-radius:6px; font-size:0.82rem; line-height:1.5; outline:none; white-space:pre-wrap;">${toEditableHtml(q.question)}</div>
                 <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.25rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
             </div>
@@ -1635,6 +1704,16 @@ function startEditYearlyQuestion(qId) {
     `;
 
     window.yearlyPendingImageEdit = { dataUrl: null, remove: false };
+
+    // 이 기능이 생기기 전에 저장된 이미지도 편집창을 열 때 리사이즈 핸들이 붙도록 업그레이드합니다.
+    ['yearly-edit-q-text', 'yearly-edit-q-explanation'].forEach(elId => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        el.querySelectorAll('img').forEach(img => {
+            img.style.resize = 'both';
+            img.style.overflow = 'hidden';
+        });
+    });
 }
 
 /**
@@ -2770,6 +2849,7 @@ window.cancelYearlyQuestionEdit = cancelYearlyQuestionEdit;
 window.onYearlyEditImageFileSelected = onYearlyEditImageFileSelected;
 window.onYearlyEditImageRemoveToggled = onYearlyEditImageRemoveToggled;
 window.handleRichEditorPaste = handleRichEditorPaste;
+window.autoSpaceYearlyQuestionAndOptions = autoSpaceYearlyQuestionAndOptions;
 
 // =======================================================
 // [신규 기능] 문제를 풀다가 드래그 시 용어사전에 단어 추가 기능

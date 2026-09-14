@@ -26,6 +26,11 @@ try:
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
+try:
+    from kiwipiepy import Kiwi
+    KIWI_AVAILABLE = True
+except ImportError:
+    KIWI_AVAILABLE = False
 from http.server import SimpleHTTPRequestHandler
 try:
     from http.server import ThreadingHTTPServer
@@ -252,6 +257,16 @@ def extract_and_compress_images(text, images=None, max_images=3, max_dimension=7
 
     cleaned = IMAGE_DATA_URI_PATTERN.sub(_replace, text or "")
     return cleaned, images
+
+_KIWI_INSTANCE = None
+
+def get_kiwi_instance():
+    """[설계 의도] Kiwi 형태소 분석기 모델 로딩은 다소 시간이 걸리므로, 프로세스당 한 번만
+    초기화해 재사용합니다(최초 호출 시 지연 로딩)."""
+    global _KIWI_INSTANCE
+    if _KIWI_INSTANCE is None and KIWI_AVAILABLE:
+        _KIWI_INSTANCE = Kiwi()
+    return _KIWI_INSTANCE
 
 def call_gemini_raw_prompt(prompt, timeout=10, images=None):
     logs = []
@@ -564,6 +579,8 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.update_question(data)
         elif path == "/api/question/upload-image":
             self.upload_question_image(data)
+        elif path == "/api/text/auto-space":
+            self.post_auto_space(data)
         elif path == "/api/quiz/submit":
             self.submit_quiz(data)
         elif path == "/api/yearly-exam/submit":
@@ -1251,6 +1268,32 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             self.send_error_response(500, f"Database error: {str(e)}")
+
+    def post_auto_space(self, data):
+        """[설계 의도] 지문/보기 편집창의 "띄어쓰기 교정" 버튼에서 호출됩니다. 프론트엔드가 이미
+        contenteditable의 텍스트 노드 단위(이미지/태그 제외)로 쪼개서 보내므로, 여기서는 HTML을
+        신경 쓸 필요 없이 순수 텍스트 문자열 배열을 Kiwi로 교정만 하면 됩니다. 완벽한 맞춤법 교정이
+        아니라 "읽기 불편하지 않은 수준"의 자동 띄어쓰기가 목표입니다."""
+        texts = data.get("texts")
+        if not isinstance(texts, list):
+            self.send_error_response(400, "Missing or invalid parameter (texts, array required)")
+            return
+
+        kiwi = get_kiwi_instance()
+        if not kiwi:
+            self.send_json_response({
+                "success": False,
+                "error": "서버에 띄어쓰기 교정 모듈(kiwipiepy)이 설치되어 있지 않습니다.",
+                "texts": texts
+            })
+            return
+
+        try:
+            spaced = [kiwi.space(t) if isinstance(t, str) and t.strip() else t for t in texts]
+            self.send_json_response({"success": True, "texts": spaced})
+        except Exception as e:
+            traceback.print_exc()
+            self.send_error_response(500, f"띄어쓰기 교정 중 오류: {str(e)}")
 
     def update_question(self, data):
         q_id = data.get("id")

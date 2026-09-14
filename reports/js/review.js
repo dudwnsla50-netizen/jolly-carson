@@ -409,7 +409,10 @@ function startEditReviewQuestion() {
     let htmlContent = `
         <div class="edit-form-container" id="card-edit-form-container" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
             <div>
-                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">❓ 질문 본문 수정</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold;">❓ 질문 본문 수정</label>
+                    <button type="button" id="autospace-btn-${idx}" onclick="autoSpaceQuestionAndOptions('${idx}')" title="지문과 보기의 띄어쓰기를 자동으로 교정합니다" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-family: inherit;">🔤 띄어쓰기</button>
+                </div>
                 <div id="edit-q-text-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 120px; max-height: 420px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.question)}</div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
             </div>
@@ -489,6 +492,9 @@ function startEditReviewQuestion() {
     editContainer.classList.remove('hidden');
 
     initEditImagePreview(idx, qId);
+    // dashboard_common.js의 공용 헬퍼 재사용 - 이 기능이 생기기 전에 저장된 이미지도
+    // 편집창을 열 때 리사이즈 핸들이 붙도록 업그레이드합니다.
+    if (typeof enableRichEditorImageResize === 'function') enableRichEditorImageResize(idx);
 
     const editBtn = document.getElementById('edit-question-btn');
     if (editBtn) editBtn.innerText = '✕ 취소';

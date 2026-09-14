@@ -1855,6 +1855,75 @@ function handleRichEditorPaste(event) {
  * 새로 붙여넣는 이미지는 삽입 시점에 이미 이 스타일이 적용돼 있지만, 이 기능이 생기기 전에
  * 저장된 기존 이미지는 편집창을 열 때마다 한 번씩 입혀 줘야 하므로 startEditQuestion에서 호출합니다.
  */
+/**
+ * [설계 의도] contenteditable 안의 실제 텍스트 노드만 골라냅니다(이미지·줄바꿈 태그 등 마크업은
+ * 절대 건드리지 않기 위함). 서버에는 이 텍스트 노드들의 내용만 순수 문자열로 보내 띄어쓰기 교정을
+ * 받고, 돌아온 결과를 같은 순서로 다시 textContent에 대입하므로 HTML 구조가 깨질 위험이 없습니다.
+ */
+function getEditableTextNodes(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) {
+        if (node.textContent && node.textContent.trim().length > 0) {
+            nodes.push(node);
+        }
+    }
+    return nodes;
+}
+
+/**
+ * [설계 의도] 편집창의 "🔤 지문·보기 띄어쓰기" 버튼 핸들러. 질문 본문(텍스트 노드 단위)과
+ * 보기 입력창들의 값을 모아 서버의 Kiwi 기반 자동 띄어쓰기 API에 한 번에 보내고,
+ * 돌아온 결과를 같은 위치에 그대로 반영합니다. 완벽한 맞춤법 교정이 목적이 아니라
+ * "읽기 불편하지 않은 수준"으로만 보정하는 보조 기능입니다.
+ */
+async function autoSpaceQuestionAndOptions(idx) {
+    const questionEl = document.getElementById(`edit-q-text-${idx}`);
+    if (!questionEl) return;
+    const optionInputs = Array.from(document.querySelectorAll(`.edit-opt-input-${idx}`));
+
+    const textNodes = getEditableTextNodes(questionEl);
+    const questionTexts = textNodes.map(n => n.textContent);
+    const optionTexts = optionInputs.map(inp => inp.value);
+    const allTexts = questionTexts.concat(optionTexts);
+
+    if (!allTexts.some(t => t && t.trim())) return;
+
+    const btn = document.getElementById(`autospace-btn-${idx}`);
+    const originalLabel = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ 처리 중...';
+    }
+
+    try {
+        const res = await fetch('/api/text/auto-space', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: allTexts })
+        });
+        const data = await res.json();
+        if (!data || !data.success) {
+            alert((data && data.error) || '띄어쓰기 교정에 실패했습니다.');
+            return;
+        }
+
+        const spaced = data.texts;
+        textNodes.forEach((node, i) => { node.textContent = spaced[i]; });
+        optionInputs.forEach((inp, i) => { inp.value = spaced[questionTexts.length + i]; });
+        refreshAccordionHeightFor(questionEl);
+    } catch (err) {
+        console.error('띄어쓰기 교정 요청 실패', err);
+        alert('띄어쓰기 교정 요청 중 오류가 발생했습니다.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+        }
+    }
+}
+
 function enableRichEditorImageResize(idx) {
     [`edit-q-text-${idx}`, `edit-q-explanation-${idx}`].forEach(elId => {
         const el = document.getElementById(elId);
@@ -1927,7 +1996,10 @@ function startEditQuestion(idx, qId) {
     let htmlContent = `
         <div class="edit-form-container" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
             <div>
-                <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold; display: block; margin-bottom: 0.4rem;">❓ 질문 본문 수정</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label style="font-size: 0.85rem; color: #a78bfa; font-weight: bold;">❓ 질문 본문 수정</label>
+                    <button type="button" id="autospace-btn-${idx}" onclick="autoSpaceQuestionAndOptions('${idx}')" title="지문과 보기의 띄어쓰기를 자동으로 교정합니다" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-family: inherit;">🔤 띄어쓰기</button>
+                </div>
                 <div id="edit-q-text-${idx}" class="rich-editor" contenteditable="true" onpaste="handleRichEditorPaste(event)" oninput="refreshAccordionHeightFor(this)" style="width: 100%; min-height: 120px; max-height: 420px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(139, 92, 246, 0.3); color: #ffffff; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; outline: none; white-space: pre-wrap;">${toEditableHtml(data.question)}</div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem;">텍스트와 이미지를 함께 붙여넣을 수 있습니다 (Ctrl+V)</div>
             </div>
