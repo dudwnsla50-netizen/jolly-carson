@@ -9,6 +9,7 @@
 import os
 import sys
 import io
+import math
 import json
 import base64
 import sqlite3
@@ -218,6 +219,112 @@ class AllProvidersFailedError(RuntimeError):
         self.logs = logs or []
 
 IMAGE_DATA_URI_PATTERN = re.compile(r'data:image/([a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)')
+
+# [설계 의도] 지문·보기 띄어쓰기 교정은 애초에 외부 AI API(Gemini/HF/Groq)로 시도했으나, 세 곳
+# 백업 API가 전부 동시에 실패(레이트리밋/404)하는 것을 실제 배포 환경에서 확인했습니다. 그렇다고
+# 로컬 형태소 분석 라이브러리(Kiwi 등)를 쓰자니 모델 로딩에 300MB+가 필요해 Render 무료 티어
+# (512MB)에서 인스턴스가 OOM으로 죽는 것도 재현했습니다. 그래서 외부 API도, 무거운 모델도 없이
+# 완전히 로컬에서 즉시 계산되는 사전 기반 방식을 씁니다: 이미 올바르게 띄어쓰기된 1,440개 실제
+# 기출 지문에서 추출한 단어 빈도 사전(data/ko_word_dict.txt, "단어\t빈도" 약 5천 개)으로
+# 단순 최장 일치(그리디)가 아니라 "빈도 가중 DP(비터비 스타일)" 분할을 씁니다. 그리디 방식은
+# 예를 들어 "설계시정규화"를 앞에서부터 욕심내어 자르다가 "시정"(개정/시정 의미)이라는 실존
+# 단어에 걸려 "설계 시정 규화"처럼 잘못 끊는 문제가 실측에서 나왔습니다. DP는 전체 구간을
+# 단어 빈도의 로그 확률 합으로 비교해 가장 그럴듯한 전체 분할("설계 시 정규화")을 고릅니다.
+# 사전에 없는 글자는 큰 페널티를 주고 1글자 단위로도 허용해 "포기하지 않고" 항상 뭔가는
+# 반환하되, 모르는 글자가 연속되면 다시 하나로 합쳐 원문 그대로 보존합니다(고유명사 등 보호).
+KO_WORD_FREQ = None
+KO_WORD_DICT_MAX_LEN = 0
+KO_TOTAL_WORD_COUNT = 0
+KOREAN_RUN_PATTERN = re.compile(r'[가-힣]+')
+UNKNOWN_CHAR_LOG_COST = 25.0  # 사전에 없는 글자 1개를 쓰는 데 부과하는 큰 페널티(비터비 비용)
+
+def load_ko_word_dict():
+    global KO_WORD_FREQ, KO_WORD_DICT_MAX_LEN, KO_TOTAL_WORD_COUNT
+    if KO_WORD_FREQ is not None:
+        return
+    KO_WORD_FREQ = {}
+    dict_path = os.path.join(BASE_DIR, "data", "ko_word_dict.txt")
+    try:
+        with open(dict_path, encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) != 2:
+                    continue
+                word, count_str = parts
+                if not word or not count_str.isdigit():
+                    continue
+                count = int(count_str)
+                KO_WORD_FREQ[word] = count
+                KO_WORD_DICT_MAX_LEN = max(KO_WORD_DICT_MAX_LEN, len(word))
+                KO_TOTAL_WORD_COUNT += count
+    except FileNotFoundError:
+        print(f"[Warning] 띄어쓰기 사전 파일을 찾을 수 없습니다: {dict_path}")
+
+def _word_log_cost(word):
+    """단어의 "쓰기 비용"을 음의 로그 확률로 계산합니다. 빈도가 높을수록(자주 쓰이는 단어일수록)
+    비용이 낮아(=선택되기 쉬워)집니다. 짧을수록 무조건 유리해지는 것을 막기 위해 길이에 비례한
+    작은 보너스도 더해 "정규화"처럼 더 긴 진짜 단어가 "시정"+"규화" 같은 우연한 조각 조합보다
+    유리하도록 합니다."""
+    count = KO_WORD_FREQ.get(word)
+    if count is None:
+        return None
+    return -math.log(count / KO_TOTAL_WORD_COUNT) - 0.3 * len(word)
+
+def segment_run_viterbi(run):
+    """붙어있는 한글 어절 뭉치(run)를 빈도 가중 DP로 분할합니다. best_cost[i] = run[:i]를 만드는
+    최소 비용, best_len[i] = 그 최적해에서 마지막으로 쓰인 단어(또는 미상 글자)의 길이."""
+    n = len(run)
+    best_cost = [0.0] + [float("inf")] * n
+    best_len = [0] * (n + 1)
+
+    for i in range(1, n + 1):
+        max_len = min(KO_WORD_DICT_MAX_LEN, i)
+        for length in range(1, max_len + 1):
+            if length == 1:
+                # 사전에 1글자짜리 단어는 없으므로(2글자 이상만 수록) 항상 "미상 글자" 취급합니다.
+                cost = UNKNOWN_CHAR_LOG_COST
+            else:
+                cost = _word_log_cost(run[i - length:i])
+                if cost is None:
+                    continue
+            total = best_cost[i - length] + cost
+            if total < best_cost[i]:
+                best_cost[i] = total
+                best_len[i] = length
+
+    # 역추적으로 (단어, 사전에 있었는지 여부) 토큰 목록을 구성합니다.
+    tokens = []
+    i = n
+    while i > 0:
+        length = best_len[i] or 1
+        word = run[i - length:i]
+        tokens.append((word, word in KO_WORD_FREQ))
+        i -= length
+    tokens.reverse()
+
+    # 사전에 없던 1글자 토큰들이 연속되면 다시 하나로 합쳐, 모르는 고유명사·표현을
+    # 글자 단위로 쪼개 띄어쓰지 않고 원래처럼 하나의 덩어리로 보존합니다.
+    merged = []
+    for word, known in tokens:
+        if not known and merged and not merged[-1][1]:
+            merged[-1] = (merged[-1][0] + word, False)
+        else:
+            merged.append((word, known))
+    return [word for word, _known in merged]
+
+def auto_space_text(text):
+    load_ko_word_dict()
+    if not KO_WORD_FREQ or not text:
+        return text
+
+    def _replace(match):
+        run = match.group(0)
+        if len(run) < 6:
+            # 6글자 미만은 이미 정상적인 단일 어절일 가능성이 높아 건드리지 않습니다.
+            return run
+        return ' '.join(segment_run_viterbi(run))
+
+    return KOREAN_RUN_PATTERN.sub(_replace, text)
 
 def extract_and_compress_images(text, images=None, max_images=3, max_dimension=768, jpeg_quality=70):
     """
@@ -1255,64 +1362,19 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
             self.send_error_response(500, f"Database error: {str(e)}")
 
     def post_auto_space(self, data):
-        """[설계 의도] 지문/보기 편집창의 "띄어쓰기" 버튼에서 호출됩니다. Kiwi 등 로컬 형태소 분석
-        라이브러리는 모델 로딩에 300MB+ 메모리가 필요해 Render 무료 티어(512MB)에서 인스턴스가
-        OOM으로 죽는 원인이 되었습니다(실제 배포 환경에서 재현 확인). 대신 이미 AI 해설 기능에 쓰고
-        있는 Gemini API를 그대로 재사용해 띄어쓰기만 교정합니다 - 별도 모델/의존성이 없어 로컬/배포
-        환경 모두에서 안전하게 동작합니다. 완벽한 맞춤법 교정이 아니라 "읽기 불편하지 않은 수준"의
-        자동 띄어쓰기가 목표이므로, 내용 자체는 절대 바꾸지 말라고 프롬프트에 명시합니다."""
+        """[설계 의도] 지문/보기 편집창의 "띄어쓰기" 버튼에서 호출됩니다. 처음엔 Gemini API로
+        시도했으나 배포 환경에서 Gemini/HF/Groq 백업이 동시에 실패하는 것을 확인했고, 로컬
+        형태소 분석 라이브러리(Kiwi 등)는 모델 로딩에 300MB+가 필요해 Render 무료 티어(512MB)를
+        OOM으로 죽이는 것도 확인했습니다. 그래서 외부 API도, 무거운 모델도 없는 auto_space_text()
+        (자체 기출 데이터 기반 사전 + 최장 일치 분리, 위쪽 정의부 참고)로 완전히 대체했습니다."""
         texts = data.get("texts")
         if not isinstance(texts, list):
             self.send_error_response(400, "Missing or invalid parameter (texts, array required)")
             return
 
-        non_empty_indices = [i for i, t in enumerate(texts) if isinstance(t, str) and t.strip()]
-        if not non_empty_indices:
-            self.send_json_response({"success": True, "texts": texts})
-            return
-
-        if not GEMINI_API_KEY and not GEMINI_API_KEY2:
-            self.send_json_response({
-                "success": False,
-                "error": "서버 환경변수 GEMINI_API_KEY가 설정되어 있지 않아 띄어쓰기 교정을 사용할 수 없습니다.",
-                "texts": texts
-            })
-            return
-
-        target_texts = [texts[i] for i in non_empty_indices]
-        prompt = f"""다음은 대한민국 IT 자격시험 문제의 지문/보기 텍스트 조각들입니다. 각 항목은 단어 사이 띄어쓰기가 없거나 잘못되어 있을 수 있습니다.
-각 항목의 실제 내용(단어, 숫자, 기호, 영문 표기 등)은 절대 바꾸지 말고, 오직 띄어쓰기만 자연스럽게 교정하세요.
-
-[입력 JSON 배열 ({len(target_texts)}개 항목)]
-{json.dumps(target_texts, ensure_ascii=False)}
-
-[출력 규칙]
-1. 입력과 정확히 같은 개수({len(target_texts)}개)의 문자열로 이루어진 JSON 배열만 출력하세요.
-2. 각 문자열은 입력의 같은 순서(인덱스) 항목에 대응해야 합니다.
-3. 마크다운 코드블록, 설명, 인사말 등 다른 텍스트는 절대 포함하지 말고 순수 JSON 배열만 출력하세요."""
-
         try:
-            raw_res, ai_model_used, conn_logs = call_gemini_raw_prompt(prompt, timeout=20)
-            raw_res = (raw_res or "").strip()
-            if raw_res.startswith("```"):
-                lines = raw_res.split("\n")
-                if lines[0].startswith("```"):
-                    lines = lines[1:]
-                if lines and lines[-1].startswith("```"):
-                    lines = lines[:-1]
-                raw_res = "\n".join(lines).strip()
-
-            corrected_list = json.loads(raw_res)
-            if not isinstance(corrected_list, list) or len(corrected_list) != len(target_texts):
-                got = len(corrected_list) if isinstance(corrected_list, list) else "N/A"
-                raise ValueError(f"AI 응답 형식이 예상과 다릅니다 (받은 항목 수: {got}, 기대 개수: {len(target_texts)})")
-
-            result_texts = list(texts)
-            for idx, corrected in zip(non_empty_indices, corrected_list):
-                if isinstance(corrected, str) and corrected.strip():
-                    result_texts[idx] = corrected
-
-            self.send_json_response({"success": True, "texts": result_texts})
+            spaced = [auto_space_text(t) if isinstance(t, str) and t.strip() else t for t in texts]
+            self.send_json_response({"success": True, "texts": spaced})
         except Exception as e:
             traceback.print_exc()
             self.send_json_response({
