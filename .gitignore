@@ -35,3 +35,7 @@ scratch/
 
 # 운영 Postgres에서 내려받는 CSV 덤프 (로컬 SQLite 갱신용, 대용량+수시 교체라 버전관리 제외)
 analytics/input/
+
+# 로컬 개발/오프라인 폴백 전용 SQLite DB (37MB+, 운영 서버는 Postgres만 사용하고
+# 이 파일을 전혀 읽지 않음 - USE_SQLITE=true 환경변수를 켤 때만 로컬에서 참조됨)
+reports/exam_db/jolly_carson.db
