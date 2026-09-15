@@ -3276,17 +3276,19 @@ window.autoSpaceYearlyQuestionAndOptions = autoSpaceYearlyQuestionAndOptions;
 /**
  * [신규] 모의고사 기존 풀이 이력 조회 모달 제어 함수군
  */
-function getHistorySubjectName(details) {
-    if (!details) return '전체 (120문항)';
+// item.details(문항별 응답 기록)에 실제로 포함된 과목 코드 목록을 계산합니다.
+// 빈 배열은 "전체(120문항)" 또는 데이터 없음을 의미합니다.
+function getHistorySubjectCodes(details) {
+    if (!details) return [];
     let parsedDetails = details;
     if (typeof details === 'string') {
         try {
             parsedDetails = JSON.parse(details);
         } catch (e) {
-            return '전체 (120문항)';
+            return [];
         }
     }
-    if (!Array.isArray(parsedDetails) || parsedDetails.length === 0) return '전체 (120문항)';
+    if (!Array.isArray(parsedDetails) || parsedDetails.length === 0) return [];
 
     const codeSet = new Set();
     parsedDetails.forEach(item => {
@@ -3300,7 +3302,11 @@ function getHistorySubjectName(details) {
         }
     });
 
-    const ordered = ['PM', 'SE', 'DB', 'SA', 'SC'].filter(c => codeSet.has(c));
+    return ['PM', 'SE', 'DB', 'SA', 'SC'].filter(c => codeSet.has(c));
+}
+
+function getHistorySubjectName(details) {
+    const ordered = getHistorySubjectCodes(details);
     if (ordered.length === 0 || ordered.length === 5) return '전체 (120문항)';
 
     const subNames = {
@@ -3311,6 +3317,16 @@ function getHistorySubjectName(details) {
         'SC': '보안'
     };
     return ordered.map(c => subNames[c] || c).join(', ');
+}
+
+// 풀이 이력이 특정 과목 필터와 관련 있는지 판단합니다.
+// 전체(120문항) 세션은 어떤 과목 필터에도 해당 과목의 부분 점수를 보여줄 수 있으므로 항상 포함하고,
+// 특정 과목만 연습한 세션은 그 과목 필터와 일치할 때만 포함합니다.
+function isHistoryItemRelevantToSubject(item, subjectFilter) {
+    if (subjectFilter === 'ALL') return true;
+    const codes = getHistorySubjectCodes(item.details);
+    if (codes.length === 0 || codes.length === 5) return true;
+    return codes.includes(subjectFilter);
 }
 
 function calculateSubjectScore(details, subject) {
@@ -3505,7 +3521,10 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
         })
         .then(data => {
             // 해당 연도로 필터링
-            const filtered = data.filter(item => Number(item.exam_year) === Number(year));
+            const filtered = data.filter(item =>
+                Number(item.exam_year) === Number(year) &&
+                isHistoryItemRelevantToSubject(item, subjectFilter)
+            );
             window.currentHistoryList = filtered;
 
             if (filtered.length === 0) {
