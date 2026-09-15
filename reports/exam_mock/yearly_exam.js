@@ -357,6 +357,10 @@ function loadYearlyExams() {
 
 // 연도 선택 뷰 렌더링
 function renderYearSelection(data) {
+    // [설계 의도] 카드형/리스트형 두 보기가 같은 원본 데이터를 공유하도록 캐싱해 둡니다.
+    // 리스트 보기는 이 캐시에서 바로 60행(연도×과목)을 만들어 재사용하므로 재조회가 없습니다.
+    YearlyExamListState.rawData = data;
+
     const container = document.getElementById('exam-card-container');
     container.innerHTML = '';
 
@@ -471,6 +475,171 @@ function renderYearSelection(data) {
         container.appendChild(card);
     });
     initLucide();
+}
+
+/**
+ * [설계 의도] "카드로 보기"(연도별 큰 카드, 기존)와 "연도·과목별 리스트로 보기"(60행 표) 두 가지
+ * 방식을 전환할 수 있게 합니다. 리스트 보기는 카드와 동일한 /api/yearly-exams 데이터를
+ * 재사용하므로 전환 시 재조회 없이 즉시 렌더링됩니다.
+ */
+const YearlyExamListState = {
+    rawData: [],       // /api/yearly-exams 원본 응답 (renderYearSelection에서 캐싱)
+    sortKey: 'year',
+    sortOrder: 'desc',
+};
+
+const YEARLY_LIST_SUBJECTS = [
+    { code: 'PM', name: '감리 및 사업관리', color: '#f472b6' },
+    { code: 'SE', name: '소프트웨어공학', color: '#60a5fa' },
+    { code: 'DB', name: '데이터베이스', color: '#a78bfa' },
+    { code: 'SA', name: '시스템 아키텍처', color: '#fbbf24' },
+    { code: 'SC', name: '보안', color: '#34d399' },
+];
+
+/**
+ * [설계 의도] startYearlyExam()은 카드 화면의 과목 선택 드롭다운(#subject-select-{year})이
+ * 있으면 그 값을 우선시하도록 되어 있는데, 리스트 보기에서는 카드 화면이 숨겨진 채로 DOM에
+ * 남아 있어(display:none) 같은 연도의 드롭다운이 여전히 존재합니다. 그 결과 리스트에서 특정
+ * 과목을 눌러도 카드의 기본값("전체")으로 덮어써지는 문제가 있어, 리스트 전용으로 드롭다운
+ * 조회 없이 곧장 과목을 확정해 이동하는 별도 함수를 둡니다.
+ */
+function startYearlyExamFromList(year, subjectCode) {
+    localStorage.setItem('session_exam_year', year);
+    localStorage.setItem('session_is_new_trend', 'false');
+    localStorage.setItem('session_trend_subject', subjectCode);
+    window.location.href = 'yearly_practice.html';
+}
+
+function switchExamViewMode(mode) {
+    const cardBtn = document.getElementById('view-mode-card-btn');
+    const listBtn = document.getElementById('view-mode-list-btn');
+    const cardContainer = document.getElementById('exam-card-container');
+    const listContainer = document.getElementById('exam-list-container');
+    if (!cardBtn || !listBtn || !cardContainer || !listContainer) return;
+
+    const isList = mode === 'list';
+    cardBtn.classList.toggle('active', !isList);
+    listBtn.classList.toggle('active', isList);
+    cardContainer.style.display = isList ? 'none' : 'grid';
+    listContainer.style.display = isList ? 'block' : 'none';
+
+    if (isList) {
+        bindYearlyListSortHeaders();
+        renderYearlyListTable();
+    }
+}
+
+/**
+ * 캐싱된 원본 데이터(연도 단위)를 연도×과목 조합 60행으로 평탄화합니다.
+ */
+function buildYearlyListRows() {
+    const rows = [];
+    YearlyExamListState.rawData.forEach(item => {
+        YEARLY_LIST_SUBJECTS.forEach(sub => {
+            const maxScores = item.subject_max_scores || {};
+            const recentScores = item.subject_recent_scores || {};
+            const trendInfo = (item.new_trends && item.new_trends.subjects && item.new_trends.subjects[sub.code]) || { count: 0 };
+            rows.push({
+                year: item.year,
+                subjectCode: sub.code,
+                subjectName: sub.name,
+                subjectColor: sub.color,
+                max: maxScores[sub.code] || 0,
+                recent: recentScores[sub.code] || 0,
+                trend: trendInfo.count || 0,
+                // 특정 한 과목만으로 구성된 연습(신규 기출 과목별 연습)을 몇 번 풀었는지 (카드 화면과 동일 지표)
+                practiceCount: trendInfo.practice_count || 0,
+                // [설계 의도] 최근 연습일은 과목별이 아니라 연도 단위로만 집계되는 값이라
+                // (server.py get_yearly_exams 참고) 같은 연도의 5개 과목 행이 모두 공유합니다.
+                lastAttempt: item.last_attempt_at || null,
+            });
+        });
+    });
+    return rows;
+}
+
+function sortYearlyListRows(rows) {
+    const key = YearlyExamListState.sortKey;
+    const order = YearlyExamListState.sortOrder;
+    const dir = order === 'asc' ? 1 : -1;
+
+    const sorted = rows.slice().sort((a, b) => {
+        let av, bv;
+        if (key === 'subject') {
+            av = a.subjectCode;
+            bv = b.subjectCode;
+            return av < bv ? -1 * dir : (av > bv ? 1 * dir : (a.year - b.year) * -1);
+        }
+        if (key === 'lastAttempt') {
+            // 이력 없음(null)은 항상 가장 오래된 값 취급 (정렬 방향과 무관하게 일관되게 끝쪽에 위치)
+            av = a.lastAttempt || '';
+            bv = b.lastAttempt || '';
+            if (av === bv) return 0;
+            return av < bv ? -1 * dir : 1 * dir;
+        }
+        av = a[key];
+        bv = b[key];
+        if (av === bv) return 0;
+        return av < bv ? -1 * dir : 1 * dir;
+    });
+    return sorted;
+}
+
+function renderYearlyListTable() {
+    const tbody = document.getElementById('yearly-list-tbody');
+    if (!tbody) return;
+
+    const rows = sortYearlyListRows(buildYearlyListRows());
+
+    tbody.innerHTML = rows.map((row, idx) => {
+        const isYearStart = idx === 0 || rows[idx - 1].year !== row.year;
+        const lastAttemptText = row.lastAttempt ? formatDate(row.lastAttempt) : '이력 없음';
+        return `
+            <tr class="${isYearStart ? 'year-group-start' : ''}" ondblclick="showHistoryModal(${row.year}, '${row.subjectCode}')" title="더블클릭: 풀이 이력 보기">
+                <td>${row.year}년</td>
+                <td><span class="yearly-list-subject-badge" style="background:${row.subjectColor}22; color:${row.subjectColor};">${row.subjectCode}</span> ${row.subjectName}</td>
+                <td>${row.recent} / ${row.max}</td>
+                <td>${row.trend}개</td>
+                <td>${row.practiceCount}회</td>
+                <td>${lastAttemptText}</td>
+                <td><button type="button" class="yearly-list-start-btn" onclick="event.stopPropagation(); startYearlyExamFromList(${row.year}, '${row.subjectCode}')">📝 시작</button></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+let yearlyListSortHeadersBound = false;
+function bindYearlyListSortHeaders() {
+    if (yearlyListSortHeadersBound) return;
+    const thRow = document.getElementById('yearly-list-th-row');
+    if (!thRow) return;
+
+    thRow.querySelectorAll('th[data-sort-key]').forEach(th => {
+        th.addEventListener('click', () => {
+            const key = th.getAttribute('data-sort-key');
+            if (!key) return;
+
+            if (YearlyExamListState.sortKey === key) {
+                YearlyExamListState.sortOrder = (YearlyExamListState.sortOrder === 'desc') ? 'asc' : 'desc';
+            } else {
+                YearlyExamListState.sortKey = key;
+                YearlyExamListState.sortOrder = 'desc';
+            }
+
+            thRow.querySelectorAll('th[data-sort-key]').forEach(t => {
+                const span = t.querySelector('.sort-icon');
+                if (!span) return;
+                if (t.getAttribute('data-sort-key') === YearlyExamListState.sortKey) {
+                    span.textContent = (YearlyExamListState.sortOrder === 'desc') ? ' ▼' : ' ▲';
+                } else {
+                    span.textContent = '';
+                }
+            });
+
+            renderYearlyListTable();
+        });
+    });
+    yearlyListSortHeadersBound = true;
 }
 
 // 화면 전환 헬퍼 (존재하지 않는 뷰 엘리먼트에 대한 크래시 예방 조치 적용)

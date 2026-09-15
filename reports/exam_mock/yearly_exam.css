@@ -303,6 +303,114 @@
             margin-top: 1.2rem;
         }
 
+        /* 카드형 / 리스트형 보기 전환 토글 (아이콘 전용, 제목 옆 중요도 리스트 버튼과 나란히 배치) */
+        .view-mode-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary) !important;
+            -webkit-text-fill-color: var(--text-secondary);
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            vertical-align: middle;
+            transition: all 0.15s ease;
+        }
+
+        .view-mode-btn svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        .view-mode-btn:hover {
+            color: var(--text-primary) !important;
+            -webkit-text-fill-color: var(--text-primary);
+            border-color: rgba(139, 92, 246, 0.35);
+        }
+
+        .view-mode-btn.active {
+            background: var(--accent-gradient);
+            border-color: transparent;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff;
+        }
+
+        /* 연도·과목별 리스트 보기 */
+        .yearly-list-wrap {
+            margin-top: 1rem;
+            overflow-x: auto;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+        }
+
+        .yearly-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .yearly-list-table th {
+            padding: 0.7rem 0.9rem;
+            text-align: left;
+            font-weight: 700;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--card-border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .yearly-list-table th:hover {
+            color: var(--text-primary);
+        }
+
+        .yearly-list-table th .sort-icon {
+            font-size: 0.7rem;
+        }
+
+        .yearly-list-table td {
+            padding: 0.65rem 0.9rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .yearly-list-table tbody tr:hover {
+            background: rgba(139, 92, 246, 0.06);
+            cursor: pointer;
+        }
+
+        .yearly-list-table tr.year-group-start td {
+            border-top: 2px solid var(--card-border);
+        }
+
+        .yearly-list-subject-badge {
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 0.1rem 0.4rem;
+            border-radius: 5px;
+        }
+
+        .yearly-list-start-btn {
+            background: var(--accent-gradient);
+            border: none;
+            color: #ffffff;
+            padding: 0.32rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .yearly-list-start-btn:hover {
+            opacity: 0.9;
+        }
+
         .exam-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);

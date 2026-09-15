@@ -27,6 +27,12 @@
                 <a href="importance_list.html" class="importance-list-btn" title="중요도 기준으로 문제·정답·해설을 리스트로 보기">
                     <i data-lucide="list" style="width: 14px; height: 14px;"></i> 중요도 리스트
                 </a>
+                <button type="button" id="view-mode-card-btn" class="view-mode-btn active" onclick="switchExamViewMode('card')" title="카드로 보기">
+                    <i data-lucide="layout-grid"></i>
+                </button>
+                <button type="button" id="view-mode-list-btn" class="view-mode-btn" onclick="switchExamViewMode('list')" title="연도·과목별 리스트로 보기">
+                    <i data-lucide="list"></i>
+                </button>
             </h1>
             <p class="subtitle" id="view-subtitle">연도별 1회분 기출문제(120문항) 전체 또는 과목 범위를 선택해 타이머 측정과 함께 응시합니다.</p>
         </header>
@@ -53,6 +59,22 @@
         <div id="selection-view">
             <div class="exam-grid" id="exam-card-container">
                 <!-- API 조회를 통해 연도별 카드가 동적으로 주입됩니다. -->
+            </div>
+            <div class="yearly-list-wrap" id="exam-list-container" style="display: none;">
+                <table class="yearly-list-table">
+                    <thead>
+                        <tr id="yearly-list-th-row">
+                            <th data-sort-key="year">연도 <span class="sort-icon"></span></th>
+                            <th data-sort-key="subject">과목 <span class="sort-icon"></span></th>
+                            <th data-sort-key="recent">정답수(최근/최고) <span class="sort-icon"></span></th>
+                            <th data-sort-key="trend">신규 기출 <span class="sort-icon"></span></th>
+                            <th data-sort-key="practiceCount">연습 횟수 <span class="sort-icon"></span></th>
+                            <th data-sort-key="lastAttempt">최근 연습일 <span class="sort-icon"></span></th>
+                            <th>풀기</th>
+                        </tr>
+                    </thead>
+                    <tbody id="yearly-list-tbody"></tbody>
+                </table>
             </div>
         </div>
     </div>
