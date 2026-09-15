@@ -3341,6 +3341,137 @@ function calculateSubjectScore(details, subject) {
     };
 }
 
+const HistoryModalState = {
+    year: null,
+    subjectFilter: 'ALL',
+    rows: [],       // buildHistoryModalRows() 결과 (정렬 대상)
+    sortKey: null,
+    sortOrder: 'desc',
+};
+
+function historyTimeToSeconds(timeVal) {
+    if (!timeVal) return 0;
+    if (typeof timeVal === 'string' && timeVal.includes(':')) {
+        const parts = timeVal.split(':');
+        if (parts.length === 3) {
+            return (parseInt(parts[1]) || 0) * 60 + (parseInt(parts[2]) || 0);
+        } else if (parts.length === 2) {
+            return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+        }
+    }
+    const sec = parseInt(timeVal);
+    return isNaN(sec) ? 0 : sec;
+}
+
+function formatHistoryTime(timeVal) {
+    const sec = historyTimeToSeconds(timeVal);
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${mins}분 ${secs}초`;
+}
+
+function buildHistoryModalRows(filtered, subjectFilter) {
+    return filtered.map(item => {
+        let correct, total;
+        if (subjectFilter === 'ALL') {
+            correct = item.correct_count !== undefined ? Number(item.correct_count) : 0;
+            total = item.total_questions;
+        } else {
+            const scoreInfo = calculateSubjectScore(item.details, subjectFilter);
+            correct = scoreInfo.correct;
+            total = scoreInfo.total;
+        }
+        return {
+            item,
+            practiceCount: item.practice_count || 1,
+            createdAt: item.created_at || '',
+            subjectName: getHistorySubjectName(item.details),
+            correct,
+            total,
+            timeSec: historyTimeToSeconds(item.total_time),
+        };
+    });
+}
+
+function sortHistoryModalRows(rows) {
+    const key = HistoryModalState.sortKey;
+    if (!key) return rows;
+    const dir = HistoryModalState.sortOrder === 'asc' ? 1 : -1;
+
+    return rows.slice().sort((a, b) => {
+        let av, bv;
+        if (key === 'subject') {
+            av = a.subjectName;
+            bv = b.subjectName;
+        } else if (key === 'time') {
+            av = a.timeSec;
+            bv = b.timeSec;
+        } else {
+            av = a[key];
+            bv = b[key];
+        }
+        if (av === bv) return 0;
+        return av < bv ? -1 * dir : 1 * dir;
+    });
+}
+
+function historySortIconText(key) {
+    if (HistoryModalState.sortKey !== key) return '';
+    return HistoryModalState.sortOrder === 'desc' ? ' ▼' : ' ▲';
+}
+
+function renderHistoryModalTbody() {
+    const tbody = document.getElementById('history-modal-tbody');
+    if (!tbody) return;
+
+    const rows = sortHistoryModalRows(HistoryModalState.rows);
+    tbody.innerHTML = rows.map(row => {
+        const item = row.item;
+        const dateStr = formatDate(item.created_at);
+        const itemJsonStr = JSON.stringify(item).replace(/"/g, '&quot;');
+        const formattedTime = formatHistoryTime(item.total_time);
+
+        return `
+            <tr onclick="viewHistoryDetail(this)" data-history="${itemJsonStr}" title="클릭 시 정밀 오답 분석 화면으로 이동">
+                <td>${row.practiceCount}회차</td>
+                <td style="font-size: 0.8rem; color: var(--text-secondary);">${dateStr}</td>
+                <td><span class="badge-subject">${row.subjectName}</span></td>
+                <td style="text-align: center; font-weight: 600;">${row.correct} <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">/ ${row.total}</span></td>
+                <td style="text-align: right; font-family: monospace;">${formattedTime}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function bindHistoryModalSortHeaders() {
+    const thRow = document.getElementById('history-modal-th-row');
+    if (!thRow) return;
+
+    thRow.querySelectorAll('th[data-sort-key]').forEach(th => {
+        th.addEventListener('click', () => {
+            const key = th.getAttribute('data-sort-key');
+            if (!key) return;
+
+            if (HistoryModalState.sortKey === key) {
+                HistoryModalState.sortOrder = (HistoryModalState.sortOrder === 'desc') ? 'asc' : 'desc';
+            } else {
+                HistoryModalState.sortKey = key;
+                HistoryModalState.sortOrder = 'desc';
+            }
+
+            thRow.querySelectorAll('th[data-sort-key]').forEach(t => {
+                const span = t.querySelector('.sort-icon');
+                if (!span) return;
+                span.textContent = (t.getAttribute('data-sort-key') === HistoryModalState.sortKey)
+                    ? (HistoryModalState.sortOrder === 'desc' ? ' ▼' : ' ▲')
+                    : '';
+            });
+
+            renderHistoryModalTbody();
+        });
+    });
+}
+
 function showHistoryModal(year, subjectFilter = 'ALL') {
     const modal = document.getElementById('history-modal');
     const modalTitle = document.getElementById('history-modal-title');
@@ -3386,15 +3517,13 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                 return;
             }
 
+            HistoryModalState.year = year;
+            HistoryModalState.subjectFilter = subjectFilter;
+            HistoryModalState.rows = buildHistoryModalRows(filtered, subjectFilter);
+
             // 요약 수치 계산
-            const totalAttempts = filtered.length;
-            const counts = filtered.map(item => {
-                if (subjectFilter === 'ALL') {
-                    return item.correct_count !== undefined ? Number(item.correct_count) : 0;
-                } else {
-                    return calculateSubjectScore(item.details, subjectFilter).correct;
-                }
-            });
+            const totalAttempts = HistoryModalState.rows.length;
+            const counts = HistoryModalState.rows.map(row => row.correct);
             const topCount = Math.max(...counts);
             const avgCount = Math.round(counts.reduce((a, b) => a + b, 0) / totalAttempts);
 
@@ -3415,70 +3544,25 @@ function showHistoryModal(year, subjectFilter = 'ALL') {
                 </div>
             `;
 
-            // 테이블 템플릿 생성
-            let tableHtml = `
+            // 테이블 템플릿 생성 (헤더는 클릭 시 정렬, 본문은 renderHistoryModalTbody가 채움)
+            const tableHtml = `
                 <table class="history-table">
                     <thead>
-                        <tr>
-                            <th style="width: 15%;">풀이 회차</th>
-                            <th style="width: 25%;">응시 일시</th>
-                            <th style="width: 30%;">풀이 과목</th>
-                            <th style="width: 15%; text-align: center;">정답 개수</th>
-                            <th style="width: 15%; text-align: right;">소요 시간</th>
+                        <tr id="history-modal-th-row">
+                            <th style="width: 15%;" data-sort-key="practiceCount">풀이 회차 <span class="sort-icon">${historySortIconText('practiceCount')}</span></th>
+                            <th style="width: 25%;" data-sort-key="createdAt">응시 일시 <span class="sort-icon">${historySortIconText('createdAt')}</span></th>
+                            <th style="width: 30%;" data-sort-key="subject">풀이 과목 <span class="sort-icon">${historySortIconText('subject')}</span></th>
+                            <th style="width: 15%; text-align: center;" data-sort-key="correct">정답 개수 <span class="sort-icon">${historySortIconText('correct')}</span></th>
+                            <th style="width: 15%; text-align: right;" data-sort-key="time">소요 시간 <span class="sort-icon">${historySortIconText('time')}</span></th>
                         </tr>
                     </thead>
-                    <tbody>
-            `;
-
-            const formatHistoryTime = (timeVal) => {
-                if (!timeVal) return '0분 0초';
-                if (typeof timeVal === 'string' && timeVal.includes(':')) {
-                    const parts = timeVal.split(':');
-                    if (parts.length === 3) {
-                        const mins = parseInt(parts[1]) || 0;
-                        const secs = parseInt(parts[2]) || 0;
-                        return `${mins}분 ${secs}초`;
-                    } else if (parts.length === 2) {
-                        const mins = parseInt(parts[0]) || 0;
-                        const secs = parseInt(parts[1]) || 0;
-                        return `${mins}분 ${secs}초`;
-                    }
-                }
-                const sec = parseInt(timeVal);
-                if (!isNaN(sec)) {
-                    const mins = Math.floor(sec / 60);
-                    const secs = sec % 60;
-                    return `${mins}분 ${secs}초`;
-                }
-                return timeVal;
-            };
-
-            filtered.forEach(item => {
-                const subName = getHistorySubjectName(item.details);
-                const correct = item.correct_count;
-                const total = item.total_questions;
-                const dateStr = formatDate(item.created_at);
-
-                const itemJsonStr = JSON.stringify(item).replace(/"/g, '&quot;');
-                const formattedTime = formatHistoryTime(item.total_time);
-
-                tableHtml += `
-                    <tr onclick="viewHistoryDetail(this)" data-history="${itemJsonStr}" title="클릭 시 정밀 오답 분석 화면으로 이동">
-                        <td>${item.practice_count || 1}회차</td>
-                        <td style="font-size: 0.8rem; color: var(--text-secondary);">${dateStr}</td>
-                        <td><span class="badge-subject">${subName}</span></td>
-                        <td style="text-align: center; font-weight: 600;">${correct} <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">/ ${total}</span></td>
-                        <td style="text-align: right; font-family: monospace;">${formattedTime}</td>
-                    </tr>
-                `;
-            });
-
-            tableHtml += `
-                    </tbody>
+                    <tbody id="history-modal-tbody"></tbody>
                 </table>
             `;
 
             modalBody.innerHTML = summaryHtml + tableHtml;
+            bindHistoryModalSortHeaders();
+            renderHistoryModalTbody();
         })
         .catch(err => {
             console.error("이력 로드 실패:", err);
