@@ -538,6 +538,7 @@ function buildYearlyListRows() {
         YEARLY_LIST_SUBJECTS.forEach(sub => {
             const maxScores = item.subject_max_scores || {};
             const recentScores = item.subject_recent_scores || {};
+            const subjectLastAttempts = item.subject_last_attempts || {};
             const trendInfo = (item.new_trends && item.new_trends.subjects && item.new_trends.subjects[sub.code]) || { count: 0 };
             rows.push({
                 year: item.year,
@@ -549,9 +550,8 @@ function buildYearlyListRows() {
                 trend: trendInfo.count || 0,
                 // 특정 한 과목만으로 구성된 연습(신규 기출 과목별 연습)을 몇 번 풀었는지 (카드 화면과 동일 지표)
                 practiceCount: trendInfo.practice_count || 0,
-                // [설계 의도] 최근 연습일은 과목별이 아니라 연도 단위로만 집계되는 값이라
-                // (server.py get_yearly_exams 참고) 같은 연도의 5개 과목 행이 모두 공유합니다.
-                lastAttempt: item.last_attempt_at || null,
+                // 연도·과목별 실제 최근 응시일 (server.py get_yearly_exams의 subject_last_attempts)
+                lastAttempt: subjectLastAttempts[sub.code] || null,
             });
         });
     });

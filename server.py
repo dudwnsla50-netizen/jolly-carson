@@ -2134,11 +2134,16 @@ class JollyCarsonRequestHandler(SimpleHTTPRequestHandler):
                         if item["last_attempt_at"]:
                             if not isinstance(item["last_attempt_at"], str):
                                 item["last_attempt_at"] = item["last_attempt_at"].isoformat()
-                        
-                        # datetime 객체가 섞여있어 json 직렬화 시 500 에러를 유발하는 subject_last_attempts 제거
-                        if "subject_last_attempts" in item:
-                            del item["subject_last_attempts"]
-                            
+
+                        # [설계 의도] 과목별 최근 연습일도 datetime 객체를 문자열로 변환만 하면 정상
+                        # 직렬화되는데, 예전에는 이 작업 없이 통째로 삭제해서 연도 단위 날짜만 쓸 수
+                        # 있었습니다. 그 결과 한 번도 안 푼 과목에도 다른 과목을 푼 날짜가 잘못
+                        # 표시되는 문제가 있어(예: 년도별 120제 리스트 보기), 과목별 값을 그대로 내려줍니다.
+                        subject_last_attempts = item.get("subject_last_attempts") or {}
+                        for sub_code, attempt_at in subject_last_attempts.items():
+                            if attempt_at and not isinstance(attempt_at, str):
+                                subject_last_attempts[sub_code] = attempt_at.isoformat()
+
                         data_list.append(item)
                         
                     self.send_json_response(data_list)
