@@ -353,6 +353,37 @@
             border-collapse: collapse;
             font-size: 0.85rem;
             white-space: nowrap;
+            table-layout: auto;
+        }
+
+        /* 모바일에서는 좌우 스크롤 없이 화면 폭 100% 안에 표가 들어오도록,
+           줄바꿈을 허용하고 과목명(전체 텍스트)은 숨겨 약어(배지)만 남깁니다. */
+        @media (max-width: 640px) {
+            .yearly-list-wrap {
+                overflow-x: hidden;
+            }
+
+            .yearly-list-table {
+                table-layout: fixed;
+                white-space: normal;
+                font-size: 0.72rem;
+            }
+
+            .yearly-list-table th,
+            .yearly-list-table td {
+                padding: 0.45rem 0.3rem;
+                word-break: keep-all;
+            }
+
+            .yearly-list-subject-name {
+                display: none;
+            }
+
+            .yearly-list-start-btn {
+                padding: 0.28rem 0.4rem;
+                font-size: 0.68rem;
+                white-space: nowrap;
+            }
         }
 
         .yearly-list-table th {

@@ -547,7 +547,6 @@ function buildYearlyListRows() {
                 subjectColor: sub.color,
                 max: maxScores[sub.code] || 0,
                 recent: recentScores[sub.code] || 0,
-                trend: trendInfo.count || 0,
                 // 특정 한 과목만으로 구성된 연습(신규 기출 과목별 연습)을 몇 번 풀었는지 (카드 화면과 동일 지표)
                 practiceCount: trendInfo.practice_count || 0,
                 // 연도·과목별 실제 최근 응시일 (server.py get_yearly_exams의 subject_last_attempts)
@@ -594,12 +593,12 @@ function renderYearlyListTable() {
     tbody.innerHTML = rows.map((row, idx) => {
         const isYearStart = idx === 0 || rows[idx - 1].year !== row.year;
         const lastAttemptText = row.lastAttempt ? formatDate(row.lastAttempt) : '이력 없음';
+        const yy = String(row.year).slice(-2);
         return `
             <tr class="${isYearStart ? 'year-group-start' : ''}" ondblclick="showHistoryModal(${row.year}, '${row.subjectCode}')" title="더블클릭: 풀이 이력 보기">
-                <td>${row.year}년</td>
-                <td><span class="yearly-list-subject-badge" style="background:${row.subjectColor}22; color:${row.subjectColor};">${row.subjectCode}</span> ${row.subjectName}</td>
+                <td>${yy}</td>
+                <td><span class="yearly-list-subject-badge" style="background:${row.subjectColor}22; color:${row.subjectColor};">${row.subjectCode}</span> <span class="yearly-list-subject-name">${row.subjectName}</span></td>
                 <td>${row.recent} / ${row.max}</td>
-                <td>${row.trend}개</td>
                 <td>${row.practiceCount}회</td>
                 <td>${lastAttemptText}</td>
                 <td><button type="button" class="yearly-list-start-btn" onclick="event.stopPropagation(); startYearlyExamFromList(${row.year}, '${row.subjectCode}')">📝 시작</button></td>
