@@ -485,7 +485,7 @@ function renderYearSelection(data) {
 const YearlyExamListState = {
     rawData: [],       // /api/yearly-exams 원본 응답 (renderYearSelection에서 캐싱)
     sortKey: 'lastAttempt',
-    sortOrder: 'desc',
+    sortOrder: 'asc',
 };
 
 const YEARLY_LIST_SUBJECTS = [
