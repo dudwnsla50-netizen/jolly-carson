@@ -417,7 +417,7 @@ function renderYearSelection(data) {
                                     <span onclick="event.stopPropagation(); startYearlyExam(${item.year}, true, 'ALL')" style="color: var(--success); text-decoration: underline;" title="클릭 시 전체 신규 기출 모의고사 풀기 시작">신규: ${totalTrend}개</span>
                                 </span>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; text-align: center;">
+                            <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.25rem; text-align: center; min-width: 0;">
                                 <div style="display:flex; flex-direction:column; gap:0.1rem;">
                                     <span style="font-size:0.62rem; color:#f472b6; font-weight:700;">PM</span>
                                     <span class="clickable-score" style="font-size:0.74rem; font-weight:700; color:var(--text-primary); text-decoration:underline;" onclick="event.stopPropagation(); showHistoryModal(${item.year}, 'PM')" title="PM 과목 풀이 이력 보기">${pmMax}<span style="font-size:0.58rem; color:var(--text-muted); font-weight:normal;"> / ${pmRecent}</span></span>
@@ -484,7 +484,7 @@ function renderYearSelection(data) {
  */
 const YearlyExamListState = {
     rawData: [],       // /api/yearly-exams 원본 응답 (renderYearSelection에서 캐싱)
-    sortKey: 'year',
+    sortKey: 'lastAttempt',
     sortOrder: 'desc',
 };
 
