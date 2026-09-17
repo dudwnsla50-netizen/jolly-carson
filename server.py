@@ -3822,6 +3822,98 @@ def init_exam_questions_importance_column():
         print(f"[{DB_TYPE}] 경고 - exam_questions 중요도 컬럼 초기화 중 예외 발생: {e}")
 
 
+def compress_embedded_data_uri(text, max_dimension=1200, quality=80):
+    """[설계 의도] text 안에 박혀 있는 모든 data:image 임베드를 무조건 리사이즈(필요 시)+JPEG
+    재압축합니다. 이미 충분히 작거나 이미 JPEG인 이미지까지 매번 다시 인코딩하면 화질이 조금씩
+    계속 깎이는 문제(세대 손실)가 생기므로, 이 함수가 아니라 호출부(init_compress_embedded_
+    question_images)가 행(row) 단위 플래그(images_compressed)로 이미 처리된 행을 걸러내
+    각 행이 정확히 한 번만 이 함수를 거치도록 보장합니다."""
+    if not text or 'data:image' not in text or not PIL_AVAILABLE:
+        return text, 0
+
+    changed_count = 0
+
+    def _replace(match):
+        nonlocal changed_count
+        try:
+            raw = base64.b64decode(match.group(2))
+            with Image.open(io.BytesIO(raw)) as img:
+                img = img.convert("RGB")
+                img.thumbnail((max_dimension, max_dimension))
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=quality)
+                new_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        except Exception:
+            return match.group(0)
+        changed_count += 1
+        return f"data:image/jpeg;base64,{new_b64}"
+
+    new_text = IMAGE_DATA_URI_PATTERN.sub(_replace, text)
+    return new_text, changed_count
+
+
+def init_compress_embedded_question_images():
+    """[설계 의도] 문항/해설 본문에 압축 없이 그대로 박힌 base64 이미지(다이어그램·스크린샷 등)를
+    서버 기동 시 자동으로 리사이즈+재압축합니다. 연도별 모의고사 시작 시 해당 연도 120문항 전체를
+    한 번에 내려받는 구조상, 압축되지 않은 이미지가 매 요청마다 수 MB씩 함께 전송되었고, 이것이
+    모바일 등 불안정한 네트워크에서 다운로드 중단 -> JSON 파싱 실패로 이어져 "문제를 로드하는 중
+    오류가 발생했습니다" 에러의 실제 원인이었습니다.
+
+    images_compressed 컬럼(행 단위 완료 플래그)으로 이미 처리된 행을 걸러내 각 행을 정확히
+    한 번만 압축합니다. 파일 크기나 픽셀 치수 같은 이미지 자체의 속성으로 "이미 처리됨"을
+    추정하는 방식은 압축해도 여전히 큰 이미지(고밀도 다이어그램)나 이미 적당히 작은 이미지
+    (스크린샷)를 서버가 재기동될 때마다 반복 재인코딩하며 화질이 조금씩 깎이는 문제(세대 손실)로
+    이어지므로 피했습니다. 편집 화면에서 이후 새 이미지가 첨부된 행은 플래그가 이미 1로 남아
+    있어 이 작업 대상이 되지 않는데, 이는 알려진 범위 제한이며 필요해지면 저장 시점에 플래그를
+    리셋하는 방식으로 확장할 수 있습니다."""
+    if not PIL_AVAILABLE:
+        return
+    try:
+        with get_db_connection() as conn:
+            with get_db_cursor(conn) as cursor:
+                try:
+                    cursor.execute("SELECT images_compressed FROM exam_questions LIMIT 1")
+                except Exception:
+                    conn.rollback()
+                    cursor.execute("ALTER TABLE exam_questions ADD COLUMN images_compressed INTEGER DEFAULT 0")
+                    conn.commit()
+                    print(f"[{DB_TYPE}] exam_questions 테이블에 이미지 압축 완료 플래그 컬럼 추가: images_compressed")
+
+                execute_query(cursor, """
+                    SELECT id, question, explanation FROM exam_questions
+                    WHERE (images_compressed IS NULL OR images_compressed = 0)
+                      AND (question LIKE %s OR explanation LIKE %s)
+                """, ('%data:image%', '%data:image%'))
+                rows = [dict(r) for r in cursor.fetchall()]
+
+                updated_rows = 0
+                updated_images = 0
+                for row in rows:
+                    new_question, cnt_q = compress_embedded_data_uri(row.get("question"))
+                    new_explanation, cnt_e = compress_embedded_data_uri(row.get("explanation"))
+                    execute_query(
+                        cursor,
+                        "UPDATE exam_questions SET question = %s, explanation = %s, images_compressed = 1 WHERE id = %s",
+                        (new_question, new_explanation, row["id"])
+                    )
+                    if cnt_q + cnt_e:
+                        updated_rows += 1
+                        updated_images += cnt_q + cnt_e
+
+                # 임베드 이미지가 없어 위 SELECT에 애초에 걸리지 않은 행들도 플래그만 채워
+                # 다음 재기동부터는 이 함수의 LIKE 스캔 대상에서 완전히 제외되게 합니다.
+                execute_query(cursor, """
+                    UPDATE exam_questions SET images_compressed = 1
+                    WHERE (images_compressed IS NULL OR images_compressed = 0)
+                """)
+
+                conn.commit()
+                if updated_images:
+                    print(f"[{DB_TYPE}] 문항 임베드 이미지 압축 완료: {updated_rows}개 행, {updated_images}개 이미지")
+    except Exception as e:
+        print(f"[{DB_TYPE}] 경고 - 문항 임베드 이미지 압축 중 예외 발생: {e}")
+
+
 def main():
     global DB_TYPE
     os.chdir(BASE_DIR)
@@ -3865,6 +3957,7 @@ def main():
         init_exam_questions_ai_explanation_model_column()
         init_yearly_exam_history_ai_diagnose_model_column()
         init_exam_questions_importance_column()
+        init_compress_embedded_question_images()
     except Exception as e:
         print(f"[Server] 경고: DB 연결 제한 상황에서 구동을 대기합니다. -> {e}")
         
