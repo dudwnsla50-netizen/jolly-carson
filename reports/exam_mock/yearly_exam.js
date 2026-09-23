@@ -833,6 +833,12 @@ function stopTimers() {
 
 // OMR 카드 초기화
 function initOMRCard() {
+    const headerLabel = document.getElementById('omr-header-label');
+    if (headerLabel) {
+        const yy = String(examYear).slice(-2);
+        headerLabel.innerText = `📝 (${yy}년) OMR카드`;
+    }
+
     const container = document.getElementById('omr-grid-container');
     container.innerHTML = '';
 
