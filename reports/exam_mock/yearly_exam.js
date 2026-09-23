@@ -671,6 +671,25 @@ function showScreen(screenId) {
 }
 
 // 시험 시작
+// [설계 의도] 과목 범위/신규 기출 필터링 로직을 startYearlyExam()과 restoreBackup() 양쪽에서
+// 재사용합니다. 신규 시작과 이어풀기 복원 모두 "같은 연도의 원본 문항을 받아 같은 기준으로
+// 골라내는" 동일한 절차이므로, 필터 규칙을 한 곳에만 두면 나중에 규칙이 바뀌어도 한쪽만
+// 고치고 다른 쪽을 빠뜨리는 실수를 막을 수 있습니다.
+function filterQuestionsForRange(data, isNewTrendOnly, trendSubject, selectedSubjectRange, year) {
+    if (isNewTrendOnly) {
+        return data.filter(q => {
+            const isNew = (q.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[`${year}_${q.question_num}`] === 1);
+            if (!isNew) return false;
+            if (trendSubject === 'ALL') return true;
+
+            const qSub = getSubjectInfo(q.question_num).code;
+            return qSub === trendSubject;
+        });
+    }
+    const rangeInfo = SUBJECT_RANGES[selectedSubjectRange].range;
+    return data.filter(q => q.question_num >= rangeInfo[0] && q.question_num <= rangeInfo[1]);
+}
+
 function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
     // 1. 선택 화면(yearly_exam.html)에서 호출 시 풀이 페이지(yearly_practice.html)로 던지며 리다이렉트
     if (!window.location.pathname.includes('yearly_practice.html')) {
@@ -715,20 +734,7 @@ function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
             }
 
             // 과목별 슬라이싱 필터링 또는 신규 기출 필터 적용
-            let filteredData;
-            if (isNewTrendOnly) {
-                filteredData = data.filter(q => {
-                    const isNew = (q.is_new_trend === 1) || (window.NEW_TREND_MAPPING && window.NEW_TREND_MAPPING[`${year}_${q.question_num}`] === 1);
-                    if (!isNew) return false;
-                    if (trendSubject === 'ALL') return true;
-
-                    const qSub = getSubjectInfo(q.question_num).code;
-                    return qSub === trendSubject;
-                });
-            } else {
-                const rangeInfo = SUBJECT_RANGES[selectedSubjectRange].range;
-                filteredData = data.filter(q => q.question_num >= rangeInfo[0] && q.question_num <= rangeInfo[1]);
-            }
+            const filteredData = filterQuestionsForRange(data, isNewTrendOnly, trendSubject, selectedSubjectRange, year);
 
             if (filteredData.length === 0) {
                 alert("선택한 범위에 해당하는 문제가 존재하지 않습니다.");
@@ -763,36 +769,82 @@ function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
 }
 
 // 백업 데이터 복원
+// [설계 의도] 문항 본문(이미지 포함)은 백업에 저장하지 않으므로, 복원 시 서버에서 해당 연도의
+// 원문을 다시 받아 startYearlyExam()과 동일한 기준(filterQuestionsForRange)으로 골라냅니다.
+// 보기 순서(shuffledIndices)만은 이미 화면에 노출됐던 순서와 어긋나면 안 되므로, saveBackup()이
+// 문항번호 기준으로 따로 저장해 둔 shuffleMap에서 복원합니다.
 function restoreBackup(backup) {
     examYear = backup.examYear;
     selectedSubjectRange = backup.selectedSubjectRange || 'ALL';
-    questions = backup.questions;
-    currentIdx = backup.currentIdx;
-    userAnswers = backup.userAnswers;
-    totalSeconds = backup.totalSeconds;
-    qSeconds = backup.qSeconds;
 
-    initOMRCard();
+    const isNewTrendOnly = selectedSubjectRange.startsWith('NEW_TREND_');
+    const trendSubject = isNewTrendOnly ? selectedSubjectRange.replace('NEW_TREND_', '') : 'ALL';
 
-    for (let qNum in userAnswers) {
-        const node = document.getElementById(`omr-${qNum}`);
-        if (node) {
-            node.classList.add('marked');
-            node.querySelector('.omr-node-val').innerText = userAnswers[qNum];
-        }
-    }
-    updateOMRCount();
-    renderQuestion();
-    startTimers();
-    showScreen('practice-view');
+    showScreen('loading-screen');
+
+    fetch(`/api/yearly-exam/questions?year=${examYear}`)
+        .then(res => {
+            if (!res.ok) throw new Error("Questions load failed");
+            return res.json();
+        })
+        .then(data => {
+            const filteredData = filterQuestionsForRange(data, isNewTrendOnly, trendSubject, selectedSubjectRange, examYear);
+            const shuffleMap = backup.shuffleMap || {};
+            filteredData.forEach(q => {
+                if (q.options && q.options.length > 0) {
+                    q.shuffledIndices = shuffleMap[q.question_num] ||
+                        shuffleArray(Array.from({ length: q.options.length }, (_, i) => i));
+                }
+            });
+
+            questions = filteredData;
+            currentIdx = Math.min(backup.currentIdx || 0, questions.length - 1);
+            userAnswers = backup.userAnswers || {};
+            totalSeconds = backup.totalSeconds || 0;
+            qSeconds = (backup.qSeconds && backup.qSeconds.length === questions.length)
+                ? backup.qSeconds
+                : Array.from({ length: questions.length }, () => 0);
+
+            initOMRCard();
+
+            for (let qNum in userAnswers) {
+                const node = document.getElementById(`omr-${qNum}`);
+                if (node) {
+                    node.classList.add('marked');
+                    node.querySelector('.omr-node-val').innerText = userAnswers[qNum];
+                }
+            }
+            updateOMRCount();
+            renderQuestion();
+            startTimers();
+            showScreen('practice-view');
+        })
+        .catch(err => {
+            console.error("이어풀기 문제 재조회 실패:", err);
+            alert("이어풀던 문제를 불러오는 중 오류가 발생했습니다. 연도 선택 화면으로 이동합니다.");
+            localStorage.removeItem(BACKUP_KEY);
+            window.location.href = 'yearly_exam.html';
+        });
 }
 
 // 진행 상태 백업
+// [설계 의도] 문항 본문(이미지 포함)은 백업에 넣지 않습니다. 답을 하나 마킹할 때마다 호출되는
+// 함수라 이미지까지 통째로 저장하면 모바일 브라우저의 좁은 localStorage 한도를 쉽게 넘겨
+// QuotaExceededError가 났었습니다. 복원 시 서버에서 문항 원문을 다시 받아오므로(restoreBackup
+// 참고), 여기서는 화면에 이미 노출된 보기 순서(shuffledIndices)만 문항번호 기준으로 가볍게
+// 함께 저장해 복원 후에도 보기 번호가 어긋나지 않게 합니다.
 function saveBackup() {
+    const shuffleMap = {};
+    questions.forEach(q => {
+        if (q.shuffledIndices) {
+            shuffleMap[q.question_num] = q.shuffledIndices;
+        }
+    });
+
     const backup = {
         examYear,
         selectedSubjectRange,
-        questions,
+        shuffleMap,
         currentIdx,
         userAnswers,
         totalSeconds,
@@ -801,10 +853,8 @@ function saveBackup() {
     try {
         localStorage.setItem(BACKUP_KEY, JSON.stringify(backup));
     } catch (e) {
-        // [설계 의도] 문항 데이터(이미지 포함)가 큰 연도의 경우 모바일 브라우저의 좁은
-        // localStorage 용량 한도를 넘겨 QuotaExceededError가 발생할 수 있습니다. 이 백업은
-        // "풀던 시험 이어풀기" 편의 기능일 뿐 시험 진행 자체에는 필수가 아니므로, 저장에
-        // 실패해도 전체 흐름(문제 로딩/풀이/제출)을 막지 않고 조용히 넘어갑니다.
+        // 이 백업은 "풀던 시험 이어풀기" 편의 기능일 뿐 시험 진행 자체에는 필수가 아니므로,
+        // 저장에 실패해도(예: 다른 이유로 저장공간이 이미 꽉 찬 경우) 전체 흐름을 막지 않습니다.
         console.warn("풀이 백업 저장 실패(저장공간 부족 등으로 이어풀기가 동작하지 않을 수 있습니다):", e);
     }
 }
