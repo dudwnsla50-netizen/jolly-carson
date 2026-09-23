@@ -1444,7 +1444,7 @@ function renderResultReport(result, practiceCount, isFromHistory = false) {
             comparePanel.style.padding = '0.7rem 0.8rem';
             comparePanel.style.marginBottom = '0';
             comparePanel.innerHTML = `
-                <h3 style="font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.3rem; color: var(--text-primary);">
+                <h3 id="recurrence-compare-title" style="font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.3rem; color: var(--text-primary);">
                     <i data-lucide="git-branch" style="color: var(--accent-violet); width: 14px; height: 14px;"></i> 누적 답안 이력 비교
                 </h3>
                 <div id="recurrence-inline-compare-box" style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.4;">
@@ -2326,6 +2326,12 @@ function renderRecurrenceAnswerComparison(item, detail) {
     const qNum = Number(detail.question_num);
     const qKey = `${item.exam_year}_${qNum}`;
 
+    const titleEl = document.getElementById('recurrence-compare-title');
+    if (titleEl) {
+        titleEl.innerHTML = `<i data-lucide="git-branch" style="color: var(--accent-violet); width: 14px; height: 14px;"></i> 누적 답안 이력(${qNum})`;
+        if (window.lucide) lucide.createIcons();
+    }
+
     const parseJsonSafely = (value, fallback) => {
         if (value === null || value === undefined) return fallback;
         if (typeof value === 'object') return value;
@@ -2425,8 +2431,8 @@ function renderRecurrenceAnswerComparison(item, detail) {
         });
     });
 
-    // 시간순 정렬 (과거 -> 현재)
-    records.sort((a, b) => a.dateTs - b.dateTs);
+    // 시간순 정렬 (최신 -> 과거, 왼쪽에 최신이 오도록)
+    records.sort((a, b) => b.dateTs - a.dateTs);
 
     // 현재 항목만 존재할 경우에도 안내 카드를 노출해 사용자가 히스토리 부재를 인지할 수 있도록 합니다.
     box.style.display = 'block';
