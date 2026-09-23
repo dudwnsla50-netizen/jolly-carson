@@ -150,6 +150,7 @@ function checkPendingSubmits() {
     const pending = localStorage.getItem(PENDING_KEY);
     const banner = document.getElementById('sync-banner-element');
     const countBadge = document.getElementById('pending-sync-count');
+    if (!banner || !countBadge) return; // 배너 요소가 없는 화면(연도 선택 화면이 아닌 곳)에서 호출된 경우
 
     if (pending) {
         try {
@@ -709,7 +710,7 @@ function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
         .then(data => {
             if (data.length === 0) {
                 alert("해당 연도의 기출문제가 데이터베이스에 없습니다.");
-                loadYearlyExams();
+                window.location.href = 'yearly_exam.html';
                 return;
             }
 
@@ -731,7 +732,7 @@ function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
 
             if (filteredData.length === 0) {
                 alert("선택한 범위에 해당하는 문제가 존재하지 않습니다.");
-                loadYearlyExams();
+                window.location.href = 'yearly_exam.html';
                 return;
             }
 
@@ -757,7 +758,7 @@ function startYearlyExam(year, isNewTrendOnly = false, trendSubject = 'ALL') {
         .catch(err => {
             console.error(err);
             alert("문제를 로드하는 중 오류가 발생했습니다.");
-            loadYearlyExams();
+            window.location.href = 'yearly_exam.html';
         });
 }
 
@@ -797,7 +798,15 @@ function saveBackup() {
         totalSeconds,
         qSeconds
     };
-    localStorage.setItem(BACKUP_KEY, JSON.stringify(backup));
+    try {
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(backup));
+    } catch (e) {
+        // [설계 의도] 문항 데이터(이미지 포함)가 큰 연도의 경우 모바일 브라우저의 좁은
+        // localStorage 용량 한도를 넘겨 QuotaExceededError가 발생할 수 있습니다. 이 백업은
+        // "풀던 시험 이어풀기" 편의 기능일 뿐 시험 진행 자체에는 필수가 아니므로, 저장에
+        // 실패해도 전체 흐름(문제 로딩/풀이/제출)을 막지 않고 조용히 넘어갑니다.
+        console.warn("풀이 백업 저장 실패(저장공간 부족 등으로 이어풀기가 동작하지 않을 수 있습니다):", e);
+    }
 }
 
 // 타이머 구동
@@ -1103,6 +1112,30 @@ function submitExam(isInterim = false) {
         details: details
     };
 
+    // [설계 의도] 문항 본문(이미지 포함)까지 통째로 들고 있는 session_result_data는 용량이 커서
+    // 모바일 브라우저의 좁은 localStorage 한도를 넘기면 QuotaExceededError가 날 수 있습니다.
+    // 이때는 문항 없이 훨씬 가벼운 채점 결과만 저장해 두고, yearly_result.html이 이미 지원하는
+    // "이력 재조회(from_history)" 경로로 문항을 서버에서 다시 받아오도록 대체합니다.
+    function navigateToResult(practiceCount) {
+        try {
+            localStorage.setItem('session_result_data', JSON.stringify({
+                payload: payload,
+                questions: questions,
+                practice_count: practiceCount
+            }));
+            window.location.href = 'yearly_result.html';
+        } catch (e) {
+            console.warn("결과 데이터 로컬 저장 실패(저장공간 부족), 이력 재조회 방식으로 대체합니다:", e);
+            try {
+                localStorage.setItem('selected_history_item', JSON.stringify({ ...payload, practice_count: practiceCount }));
+                window.location.href = 'yearly_result.html?from_history=true';
+            } catch (e2) {
+                alert("결과 화면 데이터를 저장할 공간이 부족합니다. 메인 화면으로 돌아갑니다.");
+                window.location.href = 'yearly_exam.html';
+            }
+        }
+    }
+
     fetch('/api/yearly-exam/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1114,12 +1147,7 @@ function submitExam(isInterim = false) {
         })
         .then(data => {
             localStorage.removeItem(BACKUP_KEY);
-            localStorage.setItem('session_result_data', JSON.stringify({
-                payload: payload,
-                questions: questions,
-                practice_count: data.practice_count || 1
-            }));
-            window.location.href = 'yearly_result.html';
+            navigateToResult(data.practice_count || 1);
         })
         .catch(err => {
             console.error("제출 실패. 로컬스토리지 임시 대기열에 저장합니다:", err);
@@ -1130,12 +1158,7 @@ function submitExam(isInterim = false) {
             alert("네트워크 통신 불안정으로 인해 서버 DB 반영에 실패했습니다.\n채점 결과는 브라우저 로컬 저장소에 안전하게 백업되었으며, 연결 복구 후 메인 화면 상단 배너를 통해 언제든지 수동으로 DB에 전송(반영)할 수 있습니다.");
 
             localStorage.removeItem(BACKUP_KEY);
-            localStorage.setItem('session_result_data', JSON.stringify({
-                payload: payload,
-                questions: questions,
-                practice_count: 1
-            }));
-            window.location.href = 'yearly_result.html';
+            navigateToResult(1);
         });
 }
 
