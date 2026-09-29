@@ -137,27 +137,61 @@
     transform: translateY(-2px);
 }
 
+.upcoming-detail-table-wrap {
+    margin-top: 1rem;
+    overflow-x: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
 .upcoming-detail-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.82rem;
+    white-space: nowrap;
 }
 
 .upcoming-detail-table th {
     text-align: left;
-    padding: 0.5rem 0.6rem;
+    padding: 0.7rem 0.6rem;
     color: var(--text-secondary);
     font-weight: 600;
     border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    background: var(--card-bg);
+}
+
+.upcoming-detail-table th[data-sort-key] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.upcoming-detail-table th[data-sort-key]:hover {
+    color: var(--text-primary);
+}
+
+.upcoming-detail-table th .sort-icon {
+    font-size: 0.7rem;
 }
 
 .upcoming-detail-table td {
     padding: 0.5rem 0.6rem;
     color: var(--text-primary);
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.upcoming-detail-table tbody tr {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.upcoming-detail-table tbody tr:hover {
+    background: var(--accent-glow);
+}
+
+.upcoming-detail-table .col-rownum {
+    width: 3rem;
+    text-align: center;
+    color: var(--text-muted);
 }
 
 .upcoming-subject-badge {

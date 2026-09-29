@@ -101,7 +101,8 @@ function buildStageBreakdown(upcomingList) {
 }
 
 /**
- * 대기중(upcoming) 문항 전체(5과목 합산)를 다음 복습일이 가까운 순서로 정렬한 목록을 만듭니다.
+ * 대기중(upcoming) 문항 전체(5과목 합산) 원본 목록을 만듭니다. 정렬은 화면 상태
+ * (UpcomingDetailState)에 따라 별도로 적용합니다.
  */
 function buildUpcomingDetailRows() {
     const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
@@ -111,7 +112,6 @@ function buildUpcomingDetailRows() {
             rows.push(Object.assign({ subject: sub }, item));
         });
     });
-    rows.sort((a, b) => new Date(a.next_review_at) - new Date(b.next_review_at));
     return rows;
 }
 
@@ -126,52 +126,165 @@ function formatUpcomingDate(iso) {
     }
 }
 
-/**
- * "대기중인 복습" 요약 수치를 클릭하면 5과목 전체의 대기중 문항을 다음 복습일이 가까운 순서로
- * 나열한 상세 목록 팝업을 띄웁니다.
- */
-window.showUpcomingDetailModal = function () {
-    const modal = document.getElementById('upcoming-detail-modal');
-    const body = document.getElementById('upcoming-detail-body');
-    if (!modal || !body) return;
-
-    const rows = buildUpcomingDetailRows();
-    if (rows.length === 0) {
-        body.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-secondary);">대기중인 복습 문항이 없습니다.</div>`;
-    } else {
-        const rowsHtml = rows.map(r => {
-            const [year, num] = String(r.q_id).split('_');
-            const days = SRS_INTERVAL_DAYS[r.stage];
-            return `
-                <tr>
-                    <td><span class="upcoming-subject-badge">${SUBJECT_NAMES[r.subject] || r.subject}</span></td>
-                    <td>${year}년 ${num}번</td>
-                    <td>${days}일 후</td>
-                    <td>${formatUpcomingDate(r.next_review_at)}</td>
-                    <td>${r.wrong_streak}회</td>
-                </tr>
-            `;
-        }).join('');
-        body.innerHTML = `
-            <table class="upcoming-detail-table">
-                <thead>
-                    <tr><th>과목</th><th>문항</th><th>복습 간격</th><th>다음 복습일</th><th>누적 오답</th></tr>
-                </thead>
-                <tbody>${rowsHtml}</tbody>
-            </table>
-        `;
-    }
-
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('show'), 10);
+// "대기중인 복습 상세" 화면의 정렬 상태. 기본값은 다음 복습일이 가까운 순(오름차순).
+const UpcomingDetailState = {
+    sortKey: 'next_review_at',
+    sortOrder: 'asc',
 };
 
-window.closeUpcomingDetailModal = function (event) {
-    if (event && event.target && event.target.id !== 'upcoming-detail-modal') return;
-    const modal = document.getElementById('upcoming-detail-modal');
+/**
+ * q_id("연도_문항번호")를 연도->문항번호 순으로 비교 가능한 숫자로 변환합니다.
+ * 문자열 그대로 비교하면 "2020_10"이 "2020_2"보다 사전식으로 앞에 와버리는 문제를 피합니다.
+ */
+function upcomingQIdSortValue(qId) {
+    const [year, num] = String(qId).split('_').map(Number);
+    return (year || 0) * 1000 + (num || 0);
+}
+
+function sortUpcomingRows(rows) {
+    const key = UpcomingDetailState.sortKey;
+    const dir = UpcomingDetailState.sortOrder === 'asc' ? 1 : -1;
+
+    return rows.slice().sort((a, b) => {
+        let av, bv;
+        if (key === 'q_id') {
+            av = upcomingQIdSortValue(a.q_id);
+            bv = upcomingQIdSortValue(b.q_id);
+        } else if (key === 'next_review_at') {
+            av = new Date(a.next_review_at).getTime();
+            bv = new Date(b.next_review_at).getTime();
+        } else {
+            av = a[key];
+            bv = b[key];
+        }
+        if (av === bv) return 0;
+        return av < bv ? -1 * dir : 1 * dir;
+    });
+}
+
+function renderUpcomingDetailTbody() {
+    const tbody = document.getElementById('upcoming-detail-tbody');
+    if (!tbody) return;
+
+    const rows = sortUpcomingRows(buildUpcomingDetailRows());
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-secondary);">대기중인 복습 문항이 없습니다.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = rows.map((r, idx) => {
+        const [year, num] = String(r.q_id).split('_');
+        const days = SRS_INTERVAL_DAYS[r.stage];
+        return `
+            <tr onclick="showUpcomingQuestionDetail('${r.q_id}')" title="클릭하면 문항 내용을 확인할 수 있습니다">
+                <td class="col-rownum">${idx + 1}</td>
+                <td><span class="upcoming-subject-badge">${SUBJECT_NAMES[r.subject] || r.subject}</span></td>
+                <td>${year}년 ${num}번</td>
+                <td>${days}일 후</td>
+                <td>${formatUpcomingDate(r.next_review_at)}</td>
+                <td>${r.wrong_streak}회</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * 대기중인 복습 상세 목록에서 문항 행을 클릭하면, 실제 지문/보기/정답/해설을 팝업으로 보여줍니다.
+ * 풀이 세션(플래시카드)과 달리 채점 없이 "이 문항이 뭐였는지" 확인만 하는 용도입니다.
+ */
+window.showUpcomingQuestionDetail = function (qId) {
+    const modal = document.getElementById('upcoming-question-modal');
+    const body = document.getElementById('upcoming-question-body');
+    if (!modal || !body) return;
+
+    body.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-secondary);">불러오는 중...</div>`;
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('show'), 10);
+
+    fetch(`/api/questions?ids=${encodeURIComponent(qId)}`)
+        .then(res => res.ok ? res.json() : {})
+        .then(data => {
+            const q = data[qId];
+            if (!q) {
+                body.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-secondary);">문항 정보를 불러올 수 없습니다.</div>`;
+                return;
+            }
+
+            const answerSet = new Set((q.answer || []).map(Number));
+            const optionsHtml = (q.options || []).map((opt, idx) => {
+                const optNum = idx + 1;
+                const isCorrect = answerSet.has(optNum);
+                return `
+                    <div style="display:flex; gap:0.5rem; align-items:flex-start; padding:0.5rem 0.6rem; border-radius:6px; margin-bottom:0.35rem; background:${isCorrect ? 'rgba(16,185,129,0.08)' : 'transparent'}; border:1px solid ${isCorrect ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.05)'};">
+                        <span style="font-weight:700; color:${isCorrect ? 'var(--success)' : 'var(--text-secondary)'};">${optNum}${isCorrect ? ' ✓' : ''}</span>
+                        <span style="color:var(--text-primary); white-space:pre-wrap;">${opt}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const [year, num] = String(qId).split('_');
+            body.innerHTML = `
+                <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:0.6rem;">${year}년 ${num}번</div>
+                <div style="font-size:0.92rem; color:var(--text-primary); line-height:1.5; margin-bottom:1rem; white-space:pre-wrap;">${q.question}</div>
+                <div style="margin-bottom:1rem;">${optionsHtml}</div>
+                <div style="background:rgba(139,92,246,0.04); border:1px solid rgba(139,92,246,0.1); border-radius:8px; padding:0.7rem 0.8rem; font-size:0.82rem; line-height:1.5; color:var(--text-secondary); white-space:pre-wrap;">
+                    <strong style="color:var(--text-primary);">해설</strong><br>${q.explanation || '등록된 해설이 없습니다.'}
+                </div>
+            `;
+        })
+        .catch(() => {
+            body.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-secondary);">문항 정보를 불러오는 중 오류가 발생했습니다.</div>`;
+        });
+};
+
+window.closeUpcomingQuestionModal = function (event) {
+    if (event && event.target && event.target.id !== 'upcoming-question-modal') return;
+    const modal = document.getElementById('upcoming-question-modal');
     if (!modal) return;
     modal.classList.remove('show');
     setTimeout(() => { modal.style.display = 'none'; }, 250);
+};
+
+let upcomingDetailSortHeadersBound = false;
+function bindUpcomingDetailSortHeaders() {
+    if (upcomingDetailSortHeadersBound) return;
+    const thRow = document.getElementById('upcoming-detail-th-row');
+    if (!thRow) return;
+
+    thRow.querySelectorAll('th[data-sort-key]').forEach(th => {
+        th.addEventListener('click', () => {
+            const key = th.getAttribute('data-sort-key');
+            if (!key) return;
+
+            if (UpcomingDetailState.sortKey === key) {
+                UpcomingDetailState.sortOrder = (UpcomingDetailState.sortOrder === 'asc') ? 'desc' : 'asc';
+            } else {
+                UpcomingDetailState.sortKey = key;
+                UpcomingDetailState.sortOrder = 'asc';
+            }
+
+            thRow.querySelectorAll('th[data-sort-key]').forEach(t => {
+                const span = t.querySelector('.sort-icon');
+                if (!span) return;
+                span.textContent = (t.getAttribute('data-sort-key') === UpcomingDetailState.sortKey)
+                    ? (UpcomingDetailState.sortOrder === 'desc' ? ' ▼' : ' ▲')
+                    : '';
+            });
+
+            renderUpcomingDetailTbody();
+        });
+    });
+    upcomingDetailSortHeadersBound = true;
+}
+
+/**
+ * "대기중인 복습" 요약 수치를 클릭하면 5과목 전체의 대기중 문항을 별도 화면(목록)으로 보여줍니다.
+ */
+window.showUpcomingDetailView = function () {
+    switchView('upcoming-detail-view');
+    bindUpcomingDetailSortHeaders();
+    renderUpcomingDetailTbody();
+    if (window.lucide) lucide.createIcons();
 };
 
 /**
