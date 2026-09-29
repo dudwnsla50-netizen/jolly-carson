@@ -126,11 +126,22 @@ function formatUpcomingDate(iso) {
     }
 }
 
-// "대기중인 복습 상세" 화면의 정렬 상태. 기본값은 다음 복습일이 가까운 순(오름차순).
+// "대기중인 복습 상세" 화면의 정렬/필터 상태. 기본값은 다음 복습일이 가까운 순(오름차순)이며,
+// 필터는 각 Set에 "표시할 값"만 담아두고(초기값 = 전체 포함), 값이 5개 미만이면 일부만 선택된
+// 것으로 간주해 필터 아이콘을 활성 상태로 표시합니다.
 const UpcomingDetailState = {
     sortKey: 'next_review_at',
     sortOrder: 'asc',
+    filters: {
+        subject: new Set(['DB', 'SE', 'PM', 'SA', 'SC']),
+        stage: new Set([0, 1, 2, 3, 4]),
+    },
 };
+
+function applyUpcomingFilters(rows) {
+    const f = UpcomingDetailState.filters;
+    return rows.filter(r => f.subject.has(r.subject) && f.stage.has(r.stage));
+}
 
 /**
  * q_id("연도_문항번호")를 연도->문항번호 순으로 비교 가능한 숫자로 변환합니다.
@@ -166,9 +177,9 @@ function renderUpcomingDetailTbody() {
     const tbody = document.getElementById('upcoming-detail-tbody');
     if (!tbody) return;
 
-    const rows = sortUpcomingRows(buildUpcomingDetailRows());
+    const rows = sortUpcomingRows(applyUpcomingFilters(buildUpcomingDetailRows()));
     if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-secondary);">대기중인 복습 문항이 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-secondary);">필터 조건에 해당하는 대기중인 복습 문항이 없습니다.</td></tr>`;
         return;
     }
 
@@ -278,11 +289,109 @@ function bindUpcomingDetailSortHeaders() {
 }
 
 /**
+ * 과목/복습 간격 헤더의 필터 드롭다운(체크박스 목록)을 채우고 이벤트를 바인딩합니다.
+ * [설계 의도] 값의 종류가 5개로 고정된 두 열(과목, 복습 간격)만 필터 대상으로 삼았습니다.
+ * 체크박스 목록은 SUBJECT_NAMES/SRS_INTERVAL_DAYS를 기준으로 매번 동일하게 생성되므로
+ * HTML에 값을 직접 하드코딩하지 않고 여기서 한 번만 만듭니다.
+ */
+let upcomingDetailFiltersBound = false;
+function bindUpcomingDetailFilters() {
+    if (upcomingDetailFiltersBound) return;
+
+    const filterConfigs = [
+        {
+            key: 'subject',
+            values: ['DB', 'SE', 'PM', 'SA', 'SC'].map(code => ({ value: code, label: SUBJECT_NAMES[code] })),
+        },
+        {
+            key: 'stage',
+            values: SRS_INTERVAL_DAYS.map((days, stage) => ({ value: stage, label: `${days}일 후` })),
+        },
+    ];
+
+    filterConfigs.forEach(({ key, values }) => {
+        const dropdown = document.getElementById(`filter-dropdown-${key}`);
+        if (!dropdown) return;
+
+        dropdown.innerHTML = `
+            <div class="col-filter-actions">
+                <button type="button" data-action="all">전체</button>
+                <button type="button" data-action="none">해제</button>
+            </div>
+            ${values.map(v => `
+                <label><input type="checkbox" data-filter-key="${key}" data-filter-value="${v.value}" checked> ${v.label}</label>
+            `).join('')}
+        `;
+
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        dropdown.addEventListener('change', (e) => {
+            const input = e.target;
+            if (input.type !== 'checkbox') return;
+            const rawValue = input.getAttribute('data-filter-value');
+            const value = key === 'stage' ? Number(rawValue) : rawValue;
+            if (input.checked) {
+                UpcomingDetailState.filters[key].add(value);
+            } else {
+                UpcomingDetailState.filters[key].delete(value);
+            }
+            updateUpcomingFilterToggleState(key);
+            renderUpcomingDetailTbody();
+        });
+
+        dropdown.querySelectorAll('.col-filter-actions button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const selectAll = btn.getAttribute('data-action') === 'all';
+                const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+                UpcomingDetailState.filters[key].clear();
+                checkboxes.forEach(cb => {
+                    cb.checked = selectAll;
+                    if (selectAll) {
+                        const v = key === 'stage' ? Number(cb.getAttribute('data-filter-value')) : cb.getAttribute('data-filter-value');
+                        UpcomingDetailState.filters[key].add(v);
+                    }
+                });
+                updateUpcomingFilterToggleState(key);
+                renderUpcomingDetailTbody();
+            });
+        });
+    });
+
+    // 필터 아이콘 클릭 -> 해당 드롭다운만 토글 (다른 드롭다운은 닫음). th의 정렬 클릭으로는 전파하지 않음.
+    document.querySelectorAll('.col-filter-toggle').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const key = toggle.getAttribute('data-filter-key');
+            const dropdown = document.getElementById(`filter-dropdown-${key}`);
+            if (!dropdown) return;
+            const willOpen = !dropdown.classList.contains('open');
+            document.querySelectorAll('.col-filter-dropdown').forEach(d => d.classList.remove('open'));
+            if (willOpen) dropdown.classList.add('open');
+        });
+    });
+
+    // 드롭다운 바깥을 클릭하면 열려 있는 드롭다운을 닫음
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.col-filter-dropdown').forEach(d => d.classList.remove('open'));
+    });
+
+    upcomingDetailFiltersBound = true;
+}
+
+function updateUpcomingFilterToggleState(key) {
+    const totalCount = key === 'subject' ? 5 : SRS_INTERVAL_DAYS.length;
+    const toggle = document.querySelector(`.col-filter-toggle[data-filter-key="${key}"]`);
+    if (!toggle) return;
+    toggle.classList.toggle('active', UpcomingDetailState.filters[key].size < totalCount);
+}
+
+/**
  * "대기중인 복습" 요약 수치를 클릭하면 5과목 전체의 대기중 문항을 별도 화면(목록)으로 보여줍니다.
  */
 window.showUpcomingDetailView = function () {
     switchView('upcoming-detail-view');
     bindUpcomingDetailSortHeaders();
+    bindUpcomingDetailFilters();
     renderUpcomingDetailTbody();
     if (window.lucide) lucide.createIcons();
 };

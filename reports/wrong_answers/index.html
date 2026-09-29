@@ -152,9 +152,19 @@
                     <thead>
                         <tr id="upcoming-detail-th-row">
                             <th class="col-rownum">#</th>
-                            <th data-sort-key="subject">과목 <span class="sort-icon"></span></th>
+                            <th data-sort-key="subject">
+                                <span class="th-label-row">과목 <span class="sort-icon"></span>
+                                    <span class="col-filter-toggle" data-filter-key="subject" title="과목 필터"><i data-lucide="filter"></i></span>
+                                </span>
+                                <div class="col-filter-dropdown" id="filter-dropdown-subject"></div>
+                            </th>
                             <th data-sort-key="q_id">문항 <span class="sort-icon"></span></th>
-                            <th data-sort-key="stage">복습 간격 <span class="sort-icon"></span></th>
+                            <th data-sort-key="stage">
+                                <span class="th-label-row">복습 간격 <span class="sort-icon"></span>
+                                    <span class="col-filter-toggle" data-filter-key="stage" title="복습 간격 필터"><i data-lucide="filter"></i></span>
+                                </span>
+                                <div class="col-filter-dropdown" id="filter-dropdown-stage"></div>
+                            </th>
                             <th data-sort-key="next_review_at">다음 복습일 <span class="sort-icon"> ▲</span></th>
                             <th data-sort-key="wrong_streak">누적 오답 <span class="sort-icon"></span></th>
                         </tr>
