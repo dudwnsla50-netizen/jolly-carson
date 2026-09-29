@@ -127,6 +127,49 @@
     border-color: var(--card-hover-border);
 }
 
+.summary-stats-banner .stat-item.clickable {
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+}
+
+.summary-stats-banner .stat-item.clickable:hover {
+    border-color: var(--card-hover-border);
+    transform: translateY(-2px);
+}
+
+.upcoming-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.upcoming-detail-table th {
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    background: var(--card-bg);
+}
+
+.upcoming-detail-table td {
+    padding: 0.5rem 0.6rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.upcoming-subject-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    background: var(--accent-glow);
+    color: var(--accent-violet);
+}
+
 .summary-stats-banner .stat-label {
     font-size: 0.8rem;
     color: var(--text-secondary);
@@ -201,6 +244,19 @@
     font-size: 0.8rem;
     color: var(--text-secondary);
     line-height: 1.5;
+}
+
+.card-stage-breakdown {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    padding-top: 0.3rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.card-stage-breakdown strong {
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .start-btn {

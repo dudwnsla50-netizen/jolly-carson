@@ -51,7 +51,7 @@
                     <span class="stat-label">오늘 복습할 문항</span>
                     <span class="stat-value" id="stats-total-wrong">0개</span>
                 </div>
-                <div class="stat-item">
+                <div class="stat-item clickable" onclick="showUpcomingDetailModal()" title="클릭하면 대기중인 복습 문항 상세 목록을 볼 수 있습니다">
                     <span class="stat-label">대기중인 복습</span>
                     <span class="stat-value" id="stats-total-upcoming">0개</span>
                 </div>
@@ -139,6 +139,18 @@
         </section>
 
     </main>
+
+    <!-- 대기중인 복습 상세 목록 팝업 -->
+    <div id="upcoming-detail-modal" class="modal-overlay" onclick="closeUpcomingDetailModal(event)">
+        <div class="modal-card" style="max-width: 640px;" onclick="event.stopPropagation()">
+            <div class="modal-card-header">
+                <h2 class="modal-card-title"><i data-lucide="clock" style="width:20px; height:20px; vertical-align:-3px;"></i> 대기중인 복습 상세</h2>
+                <button class="modal-close-x" onclick="closeUpcomingDetailModal()">✕</button>
+            </div>
+            <div class="modal-card-body" id="upcoming-detail-body">
+            </div>
+        </div>
+    </div>
 
     <footer class="footer-note"
         style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4rem;">

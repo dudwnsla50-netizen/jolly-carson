@@ -6,10 +6,16 @@
  * ==========================================================================
  */
 
+// 서버 SRS_INTERVAL_DAYS(server.py)와 동일한 간격 값. item.stage는 "현재 이 문항이 통과한
+// 단계"를 뜻하며, next_review_at은 이미 (마지막 복습 시각 + SRS_INTERVAL_DAYS[stage])로
+// 예약돼 있으므로 stage 값 그대로 몇 일 간격 대기열인지 구분하는 라벨로 재사용할 수 있습니다.
+const SRS_INTERVAL_DAYS = [1, 3, 7, 14, 30];
+
 // 전역 상태 관리 객체 (State Machine)
 const ReviewState = {
     dueQuestionsMap: {},       // 과목별 "오늘 복습 대상" 문항 ID 배열 {'DB': [...], 'SE': [...]}
     upcomingCountMap: {},      // 과목별 "아직 복습 시기가 안 된" 대기중 문항 개수 {'DB': 3, ...}
+    upcomingListMap: {},       // 과목별 대기중 문항 원본 목록(stage 등 포함) {'DB': [...], ...}
     questionsData: {},         // 현재 진행 과목의 전체 문항 본문 캐시
     sessionQIds: [],           // 이번 복습 세션에서 풀 문항 ID 리스트
     sessionQuizzes: [],        // 이번 복습 세션에 필터링된 문제 객체 목록
@@ -58,6 +64,7 @@ function initWrongAnswers() {
         .then(bySubject => {
             ReviewState.dueQuestionsMap = { 'DB': [], 'SE': [], 'PM': [], 'SA': [], 'SC': [] };
             ReviewState.upcomingCountMap = { 'DB': 0, 'SE': 0, 'PM': 0, 'SA': 0, 'SC': 0 };
+            ReviewState.upcomingListMap = { 'DB': [], 'SE': [], 'PM': [], 'SA': [], 'SC': [] };
 
             subjects.forEach(sub => {
                 const data = (bySubject && bySubject[sub]) || { due: [], upcoming: [] };
@@ -65,6 +72,7 @@ function initWrongAnswers() {
                 const upcomingList = data.upcoming || [];
                 ReviewState.dueQuestionsMap[sub] = dueList.map(item => item.q_id);
                 ReviewState.upcomingCountMap[sub] = upcomingList.length;
+                ReviewState.upcomingListMap[sub] = upcomingList;
             });
 
             renderReviewDashboard();
@@ -76,9 +84,101 @@ function initWrongAnswers() {
 }
 
 /**
+ * 대기중(upcoming) 문항 목록을 stage(=몇 일 간격 대기열인지)별로 묶어 개수를 셉니다.
+ * 예: [{stage:0}, {stage:0}, {stage:2}] -> "1일 3 · 3일 2" 형태의 표시용 문자열을 만드는 데 사용합니다.
+ */
+function buildStageBreakdown(upcomingList) {
+    const counts = new Array(SRS_INTERVAL_DAYS.length).fill(0);
+    (upcomingList || []).forEach(item => {
+        const stage = item.stage;
+        if (typeof stage === 'number' && stage >= 0 && stage < counts.length) {
+            counts[stage]++;
+        }
+    });
+    return counts
+        .map((cnt, stage) => ({ days: SRS_INTERVAL_DAYS[stage], cnt }))
+        .filter(entry => entry.cnt > 0);
+}
+
+/**
+ * 대기중(upcoming) 문항 전체(5과목 합산)를 다음 복습일이 가까운 순서로 정렬한 목록을 만듭니다.
+ */
+function buildUpcomingDetailRows() {
+    const subjects = ['DB', 'SE', 'PM', 'SA', 'SC'];
+    const rows = [];
+    subjects.forEach(sub => {
+        (ReviewState.upcomingListMap[sub] || []).forEach(item => {
+            rows.push(Object.assign({ subject: sub }, item));
+        });
+    });
+    rows.sort((a, b) => new Date(a.next_review_at) - new Date(b.next_review_at));
+    return rows;
+}
+
+function formatUpcomingDate(iso) {
+    try {
+        const d = new Date(iso);
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${d.getFullYear()}-${mm}-${dd}`;
+    } catch (e) {
+        return '-';
+    }
+}
+
+/**
+ * "대기중인 복습" 요약 수치를 클릭하면 5과목 전체의 대기중 문항을 다음 복습일이 가까운 순서로
+ * 나열한 상세 목록 팝업을 띄웁니다.
+ */
+window.showUpcomingDetailModal = function () {
+    const modal = document.getElementById('upcoming-detail-modal');
+    const body = document.getElementById('upcoming-detail-body');
+    if (!modal || !body) return;
+
+    const rows = buildUpcomingDetailRows();
+    if (rows.length === 0) {
+        body.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-secondary);">대기중인 복습 문항이 없습니다.</div>`;
+    } else {
+        const rowsHtml = rows.map(r => {
+            const [year, num] = String(r.q_id).split('_');
+            const days = SRS_INTERVAL_DAYS[r.stage];
+            return `
+                <tr>
+                    <td><span class="upcoming-subject-badge">${SUBJECT_NAMES[r.subject] || r.subject}</span></td>
+                    <td>${year}년 ${num}번</td>
+                    <td>${days}일 후</td>
+                    <td>${formatUpcomingDate(r.next_review_at)}</td>
+                    <td>${r.wrong_streak}회</td>
+                </tr>
+            `;
+        }).join('');
+        body.innerHTML = `
+            <table class="upcoming-detail-table">
+                <thead>
+                    <tr><th>과목</th><th>문항</th><th>복습 간격</th><th>다음 복습일</th><th>누적 오답</th></tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+        `;
+    }
+
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('show'), 10);
+};
+
+window.closeUpcomingDetailModal = function (event) {
+    if (event && event.target && event.target.id !== 'upcoming-detail-modal') return;
+    const modal = document.getElementById('upcoming-detail-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    setTimeout(() => { modal.style.display = 'none'; }, 250);
+};
+
+/**
  * 2. 메인 대시보드 및 통계 렌더링
  * [설계 의도] 카드에는 "오늘 복습 N개"(due)만 강조해 표시하고, 아직 복습 시기가 안 된 문항은
  * "대기중 M개"로 별도 노출해 사용자가 전체 백로그와 오늘 할 일을 구분할 수 있게 합니다.
+ * 대기중 문항은 추가로 몇 일 간격(stage) 대기열에 몇 개씩 쌓여있는지도 함께 보여줍니다.
  */
 function renderReviewDashboard() {
     const container = document.getElementById('subject-grid-container');
@@ -108,12 +208,18 @@ function renderReviewDashboard() {
             ? `${SUBJECT_DESCS[sub]} (대기중 ${upcomingCount}개)`
             : SUBJECT_DESCS[sub];
 
+        const stageBreakdown = buildStageBreakdown(ReviewState.upcomingListMap[sub]);
+        const stageBreakdownHtml = stageBreakdown.length > 0
+            ? `<p class="card-stage-breakdown">${stageBreakdown.map(e => `${e.days}일 후 <strong>${e.cnt}</strong>개`).join(' &middot; ')}</p>`
+            : '';
+
         card.innerHTML = `
             <div class="card-top-row">
                 <span class="sub-title">${SUBJECT_NAMES[sub]}</span>
                 <span class="${countClass}">${countLabel}</span>
             </div>
             <p class="card-desc">${descText}</p>
+            ${stageBreakdownHtml}
             <button class="start-btn" onclick="startReview('${sub}')" ${isBtnDisabled}>
                 <i data-lucide="play"></i> 복습 시작
             </button>
