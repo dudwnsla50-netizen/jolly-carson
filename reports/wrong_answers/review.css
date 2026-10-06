@@ -703,6 +703,30 @@
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+.feedback-banner.exception {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* [설계 의도] 중요도 '예외' 문항은 채점 대상이 아니라 정답만 바로 확인하는 용도라,
+   보기 선택/제출 버튼과는 별개로 importance 배지 색(회색 계열)과 맞춘 보조 버튼입니다. */
+.exception-reveal-btn {
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    color: #94a3b8;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.exception-reveal-btn:hover {
+    background: rgba(148, 163, 184, 0.2);
+}
+
 .explanation-box {
     background: var(--card-bg);
     border: 1px solid var(--border-color);

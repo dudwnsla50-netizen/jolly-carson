@@ -22,6 +22,7 @@ const ReviewState = {
     currentIdx: 0,             // 현재 진행 중인 카드 인덱스
     userSelections: {},        // 이번 세션에서 사용자가 선택한 답 캐시
     isSubmitted: {},           // 각 카드별 제출 완료 여부
+    isRevealedException: {},   // 중요도 '예외' 문항을 채점 없이 "중요도예외" 버튼으로 정답만 확인한 카드 {q_id: true}
     questionStartTimes: {}     // 카드별 풀이 시작 시각(ms) - 최초 렌더 시 1회만 기록되어 소요시간 측정에 사용
 };
 
@@ -586,6 +587,16 @@ function renderCard(idx) {
     const isSubmitted = !!ReviewState.isSubmitted[quiz.id];
     const selectedOpt = ReviewState.userSelections[quiz.id];
 
+    // [설계 의도] 중요도 '예외' 문항은 채점 대상이 아니므로, 보기를 고르고 제출하는 대신
+    // "중요도예외" 버튼 한 번으로 채점 없이 정답만 바로 확인할 수 있게 합니다. 이미 제출(또는
+    // 확인)된 카드에서는 버튼을 다시 눌러 상태가 꼬이지 않도록 숨깁니다.
+    const exceptionBtn = document.getElementById('exception-reveal-btn');
+    if (exceptionBtn) {
+        const showExceptionBtn = quiz.importance === '예외' && !isSubmitted;
+        exceptionBtn.classList.toggle('hidden', !showExceptionBtn);
+        exceptionBtn.onclick = () => revealExceptionAnswer(quiz.id);
+    }
+
     // 실제 정답 리스트 파싱
     let cAns = [];
     if (quiz.answer) {
@@ -651,15 +662,20 @@ function renderCard(idx) {
     if (isSubmitted) {
         const isUserCorrect = cAns.includes(selectedOpt);
         const banner = document.getElementById('card-feedback-banner');
+        const ansStr = cAns.map(n => {
+            const displayIdx = quiz.shuffledIndices ? quiz.shuffledIndices.indexOf(n - 1) : (n - 1);
+            return numSymbols[displayIdx] || (displayIdx + 1);
+        }).join(', ');
 
-        if (isUserCorrect) {
+        if (ReviewState.isRevealedException[quiz.id]) {
+            // 중요도 '예외' 문항을 버튼으로 바로 확인한 경우: 맞고 틀림을 채점하지 않고
+            // 중립적인 안내 문구로 정답만 알려줍니다.
+            banner.className = 'feedback-banner exception';
+            banner.innerHTML = `<i data-lucide="info"></i> 중요도 예외 문항입니다. (정답: ${ansStr})`;
+        } else if (isUserCorrect) {
             banner.className = 'feedback-banner correct';
             banner.innerHTML = '<i data-lucide="check-circle"></i> 정답입니다!';
         } else {
-            const ansStr = cAns.map(n => {
-                const displayIdx = quiz.shuffledIndices ? quiz.shuffledIndices.indexOf(n - 1) : (n - 1);
-                return numSymbols[displayIdx] || (displayIdx + 1);
-            }).join(', ');
             banner.className = 'feedback-banner wrong';
             banner.innerHTML = `<i data-lucide="x-circle"></i> 오답입니다. (정답: ${ansStr})`;
         }
@@ -966,6 +982,19 @@ function handleCardOptionClick(event, buttonEl, qId, optNum) {
 function selectOption(qId, optNum) {
     if (ReviewState.isSubmitted[qId]) return;
     ReviewState.userSelections[qId] = optNum;
+    renderCard(ReviewState.currentIdx);
+}
+
+/**
+ * [설계 의도] 중요도 '예외' 문항은 정상적인 채점 대상이 아니므로, 보기를 고르고 "답안 제출"을
+ * 누르는 일반 흐름 대신 이 버튼 하나로 채점 없이 정답만 바로 확인합니다. submitAnswer()와
+ * 달리 /api/quiz/submit을 호출하지 않으므로 이력(quiz_history)에 남지 않고 SRS 복습 간격도
+ * 바뀌지 않습니다 — 단지 "정답 확인"일 뿐 "풀이 시도"로 취급하지 않기 위함입니다.
+ */
+function revealExceptionAnswer(qId) {
+    if (ReviewState.isSubmitted[qId]) return;
+    ReviewState.isRevealedException[qId] = true;
+    ReviewState.isSubmitted[qId] = true;
     renderCard(ReviewState.currentIdx);
 }
 
