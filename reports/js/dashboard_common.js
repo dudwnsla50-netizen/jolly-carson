@@ -875,10 +875,12 @@ function renderDashboard(filter = 'all') {
                         <div class="viewer-body" id="viewer-body-${globalIdx}"></div>
                         
                         <div class="viewer-image-wrapper" id="viewer-img-wrap-${globalIdx}">
-                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 700;">
-                                ▼ 시험지 원본 이미지 (다이어그램 및 수식 확인용)
+                            <div onclick="toggleQuestionImageWrap('${globalIdx}')" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 700; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <span id="viewer-img-toggle-icon-${globalIdx}">▶</span> 시험지 원본 이미지 (다이어그램 및 수식 확인용)
                             </div>
-                            <img class="viewer-img" id="viewer-img-${globalIdx}" src="" alt="크롭 문제지 영역" onerror="hideImageContainer('${globalIdx}')">
+                            <div id="viewer-img-content-${globalIdx}" style="display: none;">
+                                <img class="viewer-img" id="viewer-img-${globalIdx}" src="" alt="크롭 문제지 영역" onerror="hideImageContainer('${globalIdx}')">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2429,9 +2431,15 @@ function updateAccordionContentHeight(item) {
 function bindQuestionImage(idx, qId) {
     const imgWrap = document.getElementById(`viewer-img-wrap-${idx}`);
     const img = document.getElementById(`viewer-img-${idx}`);
+    const content = document.getElementById(`viewer-img-content-${idx}`);
+    const icon = document.getElementById(`viewer-img-toggle-icon-${idx}`);
     if (!imgWrap || !img) return;
 
     imgWrap.style.display = 'flex';
+    // [설계 의도] 같은 뷰어 슬롯에서 다른 문항으로 전환될 때 이전 문항에서 펼쳐뒀던 상태가
+    // 그대로 남아있지 않도록, 새 이미지를 불러올 때마다 기본값인 "접힘"으로 초기화합니다.
+    if (content) content.style.display = 'none';
+    if (icon) icon.textContent = '▶';
     img.src = `/reports/images/${qId}.png?t=${Date.now()}`;
 }
 
@@ -2440,6 +2448,25 @@ function hideImageContainer(idx) {
     if (imgWrap) {
         imgWrap.style.display = 'none';
     }
+}
+
+/**
+ * [설계 의도] 시험지 원본 이미지는 기본으로 접혀 있다가, 사용자가 다이어그램/수식 확인이
+ * 필요할 때만 직접 펼쳐 보도록 합니다. .viewer-img에는 display:block !important 규칙이
+ * 걸려 있어 img 자체의 인라인 style로는 숨길 수 없으므로, 감싸는 컨테이너를 토글합니다.
+ * 펼친 뒤에는 아코디언의 max-height도 함께 갱신해 이미지가 잘리지 않게 합니다.
+ */
+function toggleQuestionImageWrap(idx) {
+    const content = document.getElementById(`viewer-img-content-${idx}`);
+    const icon = document.getElementById(`viewer-img-toggle-icon-${idx}`);
+    if (!content || !icon) return;
+
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    icon.textContent = isHidden ? '▼' : '▶';
+
+    const accordionItem = content.closest('.accordion-item');
+    if (accordionItem) updateAccordionContentHeight(accordionItem);
 }
 
 /**

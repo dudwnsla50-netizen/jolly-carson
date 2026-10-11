@@ -585,14 +585,15 @@ function renderCard(idx) {
 
     const numSymbols = ["①", "②", "③", "④", "⑤"];
     const isSubmitted = !!ReviewState.isSubmitted[quiz.id];
+    const isRevealedException = !!ReviewState.isRevealedException[quiz.id];
     const selectedOpt = ReviewState.userSelections[quiz.id];
 
-    // [설계 의도] 중요도 '예외' 문항은 채점 대상이 아니므로, 보기를 고르고 제출하는 대신
-    // "중요도예외" 버튼 한 번으로 채점 없이 정답만 바로 확인할 수 있게 합니다. 이미 제출(또는
-    // 확인)된 카드에서는 버튼을 다시 눌러 상태가 꼬이지 않도록 숨깁니다.
+    // [설계 의도] 중요도 '예외' 문항은 채점 대상이 아니므로 "중요도예외" 버튼으로 정답을
+    // 먼저 보여주되, 일반 제출처럼 보기를 잠그지는 않습니다. 정답을 확인한 뒤에도 보기를
+    // 계속 눌러보며 자기 자신의 선택이 맞았는지 직접 체크할 수 있게 둡니다.
     const exceptionBtn = document.getElementById('exception-reveal-btn');
     if (exceptionBtn) {
-        const showExceptionBtn = quiz.importance === '예외' && !isSubmitted;
+        const showExceptionBtn = quiz.importance === '예외' && !isSubmitted && !isRevealedException;
         exceptionBtn.classList.toggle('hidden', !showExceptionBtn);
         exceptionBtn.onclick = () => revealExceptionAnswer(quiz.id);
     }
@@ -634,6 +635,17 @@ function renderCard(idx) {
             } else {
                 button.classList.add('disabled-ans');
             }
+        } else if (isRevealedException) {
+            // [설계 의도] 정답은 항상 초록으로 표시해 두고, 보기는 계속 클릭 가능하게 둡니다.
+            // 사용자가 다른 보기를 눌러보면 그 보기에 정오 표시가 곧바로 반영되어, 제출 없이도
+            // "내가 골랐으면 맞았을지" 직접 체크해볼 수 있습니다.
+            const isCorrectOpt = cAns.includes(optNum);
+            if (isCorrectOpt) {
+                button.classList.add('correct-ans');
+            } else if (selectedOpt === optNum) {
+                button.classList.add('wrong-ans');
+            }
+            button.addEventListener('click', (event) => handleCardOptionClick(event, button, quiz.id, optNum));
         } else {
             // [설계 의도] 클릭 즉시 채점하지 않고 선택만 표시합니다. 실제 채점은 "답안 제출" 버튼을 눌러야 진행됩니다.
             if (selectedOpt === optNum) {
@@ -645,10 +657,11 @@ function renderCard(idx) {
         optionsContainer.appendChild(button);
     });
 
-    // 답안 제출 버튼 상태 갱신: 제출 전엔 선택된 보기가 있어야만 활성화, 제출 후엔 숨김
+    // 답안 제출 버튼 상태 갱신: 제출 전엔 선택된 보기가 있어야만 활성화, 제출 후엔(혹은 중요도예외
+    // 확인 후에는) 숨김 - 예외 확인 모드는 제출이라는 개념 자체가 없으므로 버튼이 필요 없습니다.
     const submitBtn = document.getElementById('btn-submit-answer');
     if (submitBtn) {
-        if (isSubmitted) {
+        if (isSubmitted || isRevealedException) {
             submitBtn.classList.add('hidden');
         } else {
             submitBtn.classList.remove('hidden');
@@ -659,7 +672,7 @@ function renderCard(idx) {
     // 피드백 박스 노출 분기 제어
     const feedbackBox = document.getElementById('card-feedback-box');
 
-    if (isSubmitted) {
+    if (isSubmitted || isRevealedException) {
         const isUserCorrect = cAns.includes(selectedOpt);
         const banner = document.getElementById('card-feedback-banner');
         const ansStr = cAns.map(n => {
@@ -667,7 +680,7 @@ function renderCard(idx) {
             return numSymbols[displayIdx] || (displayIdx + 1);
         }).join(', ');
 
-        if (ReviewState.isRevealedException[quiz.id]) {
+        if (isRevealedException) {
             // 중요도 '예외' 문항을 버튼으로 바로 확인한 경우: 맞고 틀림을 채점하지 않고
             // 중립적인 안내 문구로 정답만 알려줍니다.
             banner.className = 'feedback-banner exception';
@@ -705,9 +718,9 @@ function renderCard(idx) {
     // 컨트롤 버튼 활성화 상태 갱신
     document.getElementById('btn-prev').disabled = (idx === 0);
 
-    // 제출 전에는 다음 카드 이동을 원천 차단하여 순차 풀이 강제
+    // 제출(또는 중요도예외 확인) 전에는 다음 카드 이동을 원천 차단하여 순차 풀이 강제
     const nextBtn = document.getElementById('btn-next');
-    nextBtn.disabled = !isSubmitted;
+    nextBtn.disabled = !(isSubmitted || isRevealedException);
 
     // 아이콘 새로고침
     if (window.lucide) {
@@ -992,9 +1005,8 @@ function selectOption(qId, optNum) {
  * 바뀌지 않습니다 — 단지 "정답 확인"일 뿐 "풀이 시도"로 취급하지 않기 위함입니다.
  */
 function revealExceptionAnswer(qId) {
-    if (ReviewState.isSubmitted[qId]) return;
+    if (ReviewState.isSubmitted[qId] || ReviewState.isRevealedException[qId]) return;
     ReviewState.isRevealedException[qId] = true;
-    ReviewState.isSubmitted[qId] = true;
     renderCard(ReviewState.currentIdx);
 }
 
