@@ -10,6 +10,7 @@
 // 페이지 로드 완료 시 초기화 구동
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboardDataAndInit();
+    initDashboardSubjectSelector();
     initDashboardThemeSelector();
     updateTabTitleWithDbMode();
 });
@@ -37,6 +38,50 @@ function applyDashboardTheme(theme, persist = false) {
 
     if (persist) {
         localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, normalized);
+    }
+}
+
+/**
+ * [설계 의도] 메인 대시보드 상단에 5개 과목을 각각 배지(링크)로 나열하던 것을 콤보박스
+ * 하나로 축약합니다. 기본값은 "전체"이며(특정 과목으로 고정 표시하지 않음), 과목을
+ * 선택하면 해당 과목 페이지로 바로 이동합니다. 테마 셀렉터와 동일한 배지 스타일을 써서
+ * 시각적으로 통일감 있게 맞춥니다.
+ */
+function initDashboardSubjectSelector() {
+    if (document.getElementById('dashboard-subject-select')) return;
+
+    const navBadges = document.getElementById('dynamic-nav-badges');
+    if (!navBadges) return;
+
+    const subjectLinks = Array.from(navBadges.querySelectorAll('.subject-badge'));
+    if (subjectLinks.length === 0) return;
+
+    const options = subjectLinks.map(a => ({
+        href: a.getAttribute('href'),
+        label: a.textContent.trim()
+    }));
+
+    const wrapper = document.createElement('span');
+    wrapper.className = 'badge dashboard-theme-badge';
+    wrapper.id = 'dashboard-subject-selector-wrap';
+    wrapper.innerHTML = `
+        <select id="dashboard-subject-select" class="dashboard-theme-select" aria-label="과목 선택">
+            <option value="">전체</option>
+            ${options.map(o => `<option value="${o.href}">${o.label}</option>`).join('')}
+        </select>
+    `;
+
+    // 기존 과목 링크들이 있던 자리에 콤보박스를 끼워 넣고, 정적 링크는 제거합니다.
+    subjectLinks[0].parentNode.insertBefore(wrapper, subjectLinks[0]);
+    subjectLinks.forEach(a => a.remove());
+
+    const selector = document.getElementById('dashboard-subject-select');
+    if (selector) {
+        selector.addEventListener('change', (e) => {
+            if (e.target.value) {
+                window.location.href = e.target.value;
+            }
+        });
     }
 }
 
