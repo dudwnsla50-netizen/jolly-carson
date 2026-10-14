@@ -226,23 +226,33 @@ body[data-theme="light"] button[style*="background: var(--accent-gradient)"] {
     margin: 0 auto;
 }
 
-/* 전체 과목 통합 뷰(all_official_scopes.html) - 과목별 페이지를 iframe으로 이어붙인 영역 */
-.all-subjects-stack {
+/* 전체 과목 통합 뷰(all_official_scopes.html) - 5개 과목을 한 DOM에 직접 렌더링한 섹션들 */
+#all-subjects-stack {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
-.subject-frame {
-    width: 100%;
-    border: none;
-    display: block;
-    border-radius: 12px;
+.subject-section {
+    padding-top: 0.5rem;
 }
 
-.subject-frame:not(:last-child) {
+.subject-section:not(:last-child) {
     border-bottom: 1px dashed var(--border-color);
     padding-bottom: 1.5rem;
+}
+
+.subject-section .subject-section-title {
+    font-size: 1.3rem;
+    text-align: center;
+    margin-bottom: 0.8rem;
+}
+
+/* 통합 뷰에서는 문항 리치 에디터(수정 버튼)를 지원하지 않습니다 - window.pendingImageEdits 등
+   편집기 내부 버퍼가 과목별로 분리되지 않아(idx가 과목마다 0부터 다시 시작) 과목 간 충돌 위험이
+   있고, 애초에 통합 뷰는 열람용이라 편집 기능이 필요하지 않습니다. */
+.subject-section .viewer-edit-btn {
+    display: none !important;
 }
 
 /* 3. 헤더 및 상단 메타 정보 영역 */

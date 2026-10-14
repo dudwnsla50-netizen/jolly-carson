@@ -7,9 +7,74 @@
  * ==========================================================================
  */
 
+// [설계 의도] 이 파일은 원래 "페이지당 과목 1개"를 전제로 설계되어 window.SUBJECT_CODE 등
+// bare 전역 변수를 그대로 썼습니다. 5개 과목을 한 페이지에서 동시에 보여주는 통합 뷰
+// (all_official_scopes.html)를 지원하기 위해, "현재 어느 과목을 대상으로 동작 중인가"를
+// 가리키는 활성 컨텍스트 포인터(DashboardCtx)를 도입합니다. 과목별 단독 페이지는 과목이
+// 하나뿐이므로 인스턴스를 1개만 등록해 그대로 동일하게 동작하고, 통합 뷰는 5개를 등록해
+// 각각 독립된 데이터/DOM을 갖습니다.
+//
+// 비동기 레이스 방지 원칙: fetch(...).then(...) 콜백이나 onclick 핸들러로 실행되는 모든
+// 진입점 함수는 본문 첫 줄에서 DashboardCtx.active = code를 다시 설정합니다(이때 code는
+// 인자로 받거나 클로저로 캡처한 값이며, 그 시점에 window.SUBJECT_CODE를 다시 읽지 않습니다).
+// JS는 싱글스레드이므로 동기 블록 시작 시점에 포인터를 재확정하면 그 블록 안에서는
+// 5개 과목의 fetch가 동시에 날아가도 서로 상태가 섞이지 않습니다.
+const DashboardCtx = { active: null, instances: {} };
+
+function dctx() {
+    return DashboardCtx.instances[DashboardCtx.active];
+}
+
+function registerDashboardInstance(code, container, name) {
+    DashboardCtx.instances[code] = {
+        code,
+        name: name || window.SUBJECT_NAME || null,
+        container: container || document,
+        dashboardData: null,
+        quizStats: {},
+        quizSummary: { total_attempts: 0, total_correct: 0, total_solved: 0, avg_score: 0.0 },
+        quizFullHistoryList: [],
+        yearlyExamQuestionLogs: [],
+        loadedQuestions: {},
+        questionStartTimes: {},
+        currentDraftAnswers: {},
+        quizSubmittedResults: {},
+        rollingSession: null,
+        gamState: null,
+        gamComboCount: 0,
+        gamPetBubbleTimeout: null,
+        QSearchState: { query: '' },
+        qsearchDebounceTimer: null,
+        pendingImageEdits: {},
+        examDatabase: null
+    };
+}
+
+// 페이지 전체에 1개만 존재한다고 가정하는 정적 컨테이너 id(아코디언 컨테이너, 검색창,
+// EXP 카드, 토픽 모달 등)를 조회하는 헬퍼입니다. 통합 뷰는 id에 과목 코드 접미사를 붙여
+// 5벌을 구분하고, 기존 단독 페이지는 접미사 없는 원래 id 그대로이므로 그 경우 폴백으로
+// 동작합니다(단독 페이지 HTML은 변경하지 않습니다).
+function $id(base) {
+    return document.getElementById(base + '-' + DashboardCtx.active) || document.getElementById(base);
+}
+
 // 페이지 로드 완료 시 초기화 구동
 document.addEventListener('DOMContentLoaded', () => {
-    loadDashboardDataAndInit();
+    // [설계 의도] 단독 과목 페이지는 window.SUBJECT_CODE 하나만 존재하는 "단일 인스턴스" 케이스입니다.
+    // 통합 뷰(all_official_scopes.html)는 이 DOMContentLoaded 부트스트랩을 타지 않고, 자신의
+    // 인라인 스크립트에서 5개 과목에 대해 registerDashboardInstance + loadDashboardDataAndInit을
+    // 직접 호출합니다(아래 window.SUBJECT_CODE가 없으므로 이 블록은 과목 데이터가 없는 페이지에서도
+    // 안전하게 no-op됩니다 - loadDashboardDataAndInit 내부의 accordionContainer 가드 참고).
+    const defaultCode = window.SUBJECT_CODE || '__default__';
+    registerDashboardInstance(defaultCode, document);
+    // [설계 의도] 리치 텍스트 에디터(startEditQuestion/saveEditQuestion 등, 통합 뷰에서는
+    // 쓰이지 않아 이번 리팩터링 범위에서 제외함)는 여전히 bare window.loadedQuestions/
+    // window.pendingImageEdits를 직접 참조합니다. 단독 과목 페이지는 인스턴스가 1개뿐이라
+    // 과목 간 충돌 우려가 없으므로, 이 인스턴스의 버퍼를 window.* 전역과 같은 객체로
+    // 공유(별칭)시켜 에디터 코드를 전혀 건드리지 않고도 계속 동작하게 합니다.
+    DashboardCtx.instances[defaultCode].loadedQuestions = window.loadedQuestions = window.loadedQuestions || {};
+    DashboardCtx.instances[defaultCode].pendingImageEdits = window.pendingImageEdits = window.pendingImageEdits || {};
+    loadDashboardDataAndInit(defaultCode);
     initDashboardSubjectSelector();
     initDashboardThemeSelector();
     updateTabTitleWithDbMode();
@@ -214,14 +279,15 @@ function shuffleArray(array) {
 /**
  * 🔄 개별 기출문항의 최종 롤링 가중치를 계산합니다.
  */
-function calculateQuestionWeight(qId) {
+function calculateQuestionWeight(code, qId) {
     if (!window.APP_CONFIG || !window.APP_CONFIG.ROLLING_WEIGHT_CONFIG) {
         console.error("[오류] config.js가 정상적으로 로드되지 않았거나 ROLLING_WEIGHT_CONFIG가 설정되지 않았습니다.");
         return 0;
     }
     const config = window.APP_CONFIG.ROLLING_WEIGHT_CONFIG;
 
-    const history = window.quizFullHistoryList || [];
+    const ctx = DashboardCtx.instances[code];
+    const history = (ctx && ctx.quizFullHistoryList) || [];
     // 해당 문제(qId)의 모든 학습 시도 이력을 필터링합니다.
     const qAttempts = history.filter(log => {
         if (!log.details) return false;
@@ -313,7 +379,7 @@ function calculateQuestionWeight(qId) {
 /**
  * 🔄 문제별 롤링 가중치를 반영한 가중 비복원 추출 기반의 셔플을 수행합니다. (Weighted Random Sampling without replacement)
  */
-function weightedShuffle(array) {
+function weightedShuffle(code, array) {
     if (!array || array.length === 0) return [];
 
     const list = [...array];
@@ -322,7 +388,7 @@ function weightedShuffle(array) {
     // 1. 각 문제의 롤링 가중치를 미리 연산
     const weightsMap = {};
     list.forEach(q => {
-        weightsMap[q.qId] = calculateQuestionWeight(q.qId);
+        weightsMap[q.qId] = calculateQuestionWeight(code, q.qId);
     });
 
     // 2. 가중치가 음수일 때 비복원 추출 확률 계산이 불가능하므로 최소값 양수 보정 처리
@@ -373,14 +439,15 @@ function weightedShuffle(array) {
  * API 서버로부터 대시보드 데이터를 로드한 후 초기화를 구동합니다.
  * 서버에 연결할 수 없는 경우, 로컬 폴백을 시도합니다.
  */
-function loadDashboardDataAndInit() {
+function loadDashboardDataAndInit(code) {
+    DashboardCtx.active = code;
     // [설계 의도] 이 스크립트는 대시보드 페이지뿐 아니라 오답 복습 스케줄러 등 독립 페이지에서도
     // 공용 유틸리티(테마, 이미지 편집 등)를 쓰기 위해 함께 로드됩니다. 기출문제 아코디언 컨테이너가
     // 없는 페이지에서는 이 초기화(및 "나의 기출 분석 리포트" 카드 등 대시보드 전용 UI 주입)를 건너뜁니다.
-    const accordionContainer = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    const accordionContainer = $id('accordionContainer') || $id('accordion-container');
     if (!accordionContainer) return;
 
-    const subject = window.SUBJECT_CODE || "DB";
+    const subject = code || window.SUBJECT_CODE || "DB";
     const type = window.DASHBOARD_TYPE || "frequent";
 
     // API 주소 구성
@@ -392,16 +459,19 @@ function loadDashboardDataAndInit() {
             return response.json();
         })
         .then(data => {
-            window.dashboardData = data;
-            initDashboard();
+            DashboardCtx.active = code;
+            dctx().dashboardData = data;
+            initDashboard(code);
         })
         .catch(error => {
+            DashboardCtx.active = code;
             console.warn("[경고] API 서버 연동 실패. 로컬 폴백 모드로 구동을 시도합니다.", error);
             // 만약 HTML 내부에 기존 window.dashboardData가 이미 정의되어 있다면 로드
             if (window.dashboardData) {
-                initDashboard();
+                dctx().dashboardData = window.dashboardData;
+                initDashboard(code);
             } else {
-                const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+                const container = $id('accordionContainer') || $id('accordion-container');
                 if (container) {
                     container.innerHTML = '<div style="padding: 3rem 2rem; text-align: center; color: var(--text-secondary); font-size: 0.95rem; line-height: 1.8;">' +
                         '⚠️ API 서버가 구동되지 않았거나 로컬 파일로 열려 있습니다.<br>' +
@@ -416,33 +486,33 @@ function loadDashboardDataAndInit() {
 /**
  * 1. 대시보드 초기 셋업
  */
-function initDashboard() {
+function initDashboard(code) {
+    DashboardCtx.active = code;
     // 1) 상단 내비게이션 및 모드 스위치 초기화
     initDashboardNav();
 
     // 2) 전체 문제 개수 뱃지 계산 및 세팅
-    setupStatsBadges();
+    setupStatsBadges(code);
 
     // 3) 퀴즈 통계 로드 및 병합 후 렌더링 시작
-    loadQuizStatsAndMerge().then(() => {
-        renderDashboard();
+    loadQuizStatsAndMerge(code).then(() => {
+        DashboardCtx.active = code;
+        renderDashboard(code);
         if (typeof initGamification === 'function') {
-            initGamification();
+            initGamification(code);
         }
-        injectQuestionSearchBox();
+        injectQuestionSearchBox(code);
     });
 }
-
-// 퀴즈 관련 전역 데이터 버퍼
-window.quizStats = {};
-window.quizSummary = { total_attempts: 0, total_correct: 0, total_solved: 0, avg_score: 0.0 };
 
 /**
  * 1-A. 백엔드 통계 API 정보와 LocalStorage 백업 이력을 병합(Hybrid Merge)합니다.
  * render.com의 DB 영속성 초기화 리스크를 방어하기 위함입니다.
  */
-function loadQuizStatsAndMerge() {
-    const subject = window.SUBJECT_CODE || "DB";
+function loadQuizStatsAndMerge(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const subject = code || window.SUBJECT_CODE || "DB";
 
     // [설계 의도] 시간 문자열을 UTC 타임스탬프로 통일하여 정합성 비교를 수행하는 헬퍼 함수
     const getUTCTime = (dateStr) => {
@@ -485,7 +555,7 @@ function loadQuizStatsAndMerge() {
                     });
                 });
             });
-            window.yearlyExamQuestionLogs = questionLogs;
+            ctx.yearlyExamQuestionLogs = questionLogs;
         });
 
     return fetch(`/api/quiz/stats?subject=${subject}`)
@@ -517,30 +587,32 @@ function loadQuizStatsAndMerge() {
 
             // 시간 정렬을 위해 정밀화된 UTC 타임스탬프 순으로 정렬 (오직 서버 데이터베이스(DB) 기준 일관성 유지)
             mergedLogs.sort((a, b) => getUTCTime(b.created_at) - getUTCTime(a.created_at));
-            window.quizFullHistoryList = mergedLogs;
+            ctx.quizFullHistoryList = mergedLogs;
 
             // 데이터베이스(서버 로그)를 전적으로 활용하여 실시간 재카운팅(집계)
             // (집계 결과는 아코디언 항목별 📝 퀴즈 이력 뱃지에서 계속 사용됩니다)
-            recalculateQuizSummaryAndStats();
+            recalculateQuizSummaryAndStats(code);
         })
         .catch(error => {
             console.error("[퀴즈 통계 오류] 퀴즈 통계 API 조회 실패.", error);
-            window.quizFullHistoryList = [];
-            recalculateQuizSummaryAndStats();
+            ctx.quizFullHistoryList = [];
+            recalculateQuizSummaryAndStats(code);
         });
 }
 
 /**
- * window.quizFullHistoryList(최종 마스터 로그 배열)를 기반으로
- * 전역 통계 변수(window.quizStats, window.quizSummary)를 직접 전수 재계산(집계)합니다.
+ * ctx.quizFullHistoryList(최종 마스터 로그 배열)를 기반으로
+ * 인스턴스별 통계 변수(ctx.quizStats, ctx.quizSummary)를 직접 전수 재계산(집계)합니다.
  */
-function recalculateQuizSummaryAndStats() {
+function recalculateQuizSummaryAndStats(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     const conceptStats = {};
     let totalAttempts = 0;
     let totalCorrect = 0;
     let totalSolved = 0;
 
-    (window.quizFullHistoryList || []).forEach(log => {
+    (ctx.quizFullHistoryList || []).forEach(log => {
         // 1) 이 로그가 가리키는 문제 ID가 무엇인지 확인
         let qId = null;
         if (log.details) {
@@ -556,12 +628,12 @@ function recalculateQuizSummaryAndStats() {
 
         // 2) 이 q_id를 포함하고 있는 모든 concept들을 dashboardData에서 탐색
         let targetConcepts = [];
-        if (qId && window.dashboardData) {
+        if (qId && ctx.dashboardData) {
             const parts = qId.split('_'); // [year, num]
             if (parts.length === 2) {
                 const yearVal = parts[0];
                 const numVal = parts[1];
-                window.dashboardData.forEach(d => {
+                ctx.dashboardData.forEach(d => {
                     const hasQ = d.questions && d.questions.some(q => String(q.year) === String(yearVal) && String(q.num) === String(numVal));
                     if (hasQ) {
                         targetConcepts.push(d.concept);
@@ -601,24 +673,31 @@ function recalculateQuizSummaryAndStats() {
         totalSolved += (log.total_questions || 0);
     });
 
-    // window.quizStats 초기화 및 갱신
-    window.quizStats = {};
+    // ctx.quizStats 초기화 및 갱신
+    ctx.quizStats = {};
     Object.keys(conceptStats).forEach(con => {
         const s = conceptStats[con];
-        window.quizStats[con] = {
+        ctx.quizStats[con] = {
             attempt_count: s.attempt_count,
             avg_score: s.total_solved > 0 ? Math.round((s.total_correct * 100.0 / s.total_solved) * 10) / 10 : 0.0,
             last_attempt_at: s.last_attempt_at
         };
     });
 
-    // window.quizSummary 갱신
-    window.quizSummary = {
+    // ctx.quizSummary 갱신
+    ctx.quizSummary = {
         total_attempts: totalAttempts,
         total_correct: totalCorrect,
         total_solved: totalSolved,
         avg_score: totalSolved > 0 ? Math.round((totalCorrect * 100.0 / totalSolved) * 10) / 10 : 0.0
     };
+
+    // [설계 의도] Learning_History 등 이 파일 바깥의 다른 페이지가 여전히 bare
+    // window.quizStats/window.quizSummary를 직접 읽습니다. 단독 과목 페이지(인스턴스 1개)에서는
+    // 이 값이 항상 "그 과목의" 통계와 같으므로 안전하게 미러링합니다. 통합 뷰(인스턴스 5개)는
+    // 이 bare 전역을 다른 페이지와 공유할 일이 없으므로 미러링돼도 무해합니다.
+    window.quizStats = ctx.quizStats;
+    window.quizSummary = ctx.quizSummary;
 }
 
 /**
@@ -643,17 +722,19 @@ function startQuiz(sub, concept, event) {
 /**
  * 2. 상단 헤더의 통계 뱃지 데이터 자동 계산
  */
-function setupStatsBadges() {
-    const topicCountEl = document.getElementById('topic-count-badge');
-    const totalQuestionEl = document.getElementById('total-question-badge');
+function setupStatsBadges(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const topicCountEl = $id('topic-count-badge');
+    const totalQuestionEl = $id('total-question-badge');
 
-    if (topicCountEl && window.dashboardData) {
-        topicCountEl.textContent = window.dashboardData.length;
+    if (topicCountEl && ctx.dashboardData) {
+        topicCountEl.textContent = ctx.dashboardData.length;
     }
 
-    if (totalQuestionEl && window.dashboardData) {
+    if (totalQuestionEl && ctx.dashboardData) {
         const uniqueQuestions = new Set();
-        window.dashboardData.forEach(item => {
+        ctx.dashboardData.forEach(item => {
             if (item.questions) {
                 item.questions.forEach(q => {
                     uniqueQuestions.add(`${q.year}_${q.num}`);
@@ -772,9 +853,17 @@ function initDashboardNav() {
 /**
  * 6. 카테고리(대단원) 필터 기능
  */
-function filterCategory(category) {
-    // 1) 필터 버튼 액티브 토글
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+function filterCategory(codeOrCategory, categoryMaybe) {
+    // [설계 의도] 5개 단독 과목 페이지의 정적 HTML에 이미 박혀 있는 필터 버튼들은
+    // onclick="filterCategory('all')"처럼 과목 코드 없이 인자 1개(카테고리)만 넘깁니다.
+    // 그 HTML을 건드리지 않기 위해, 인자 1개로 호출되면 과목 코드를 window.SUBJECT_CODE에서
+    // 추론하고, 인자 2개(새 통합 뷰에서 생성하는 호출)로 오면 그대로 (code, category)로 받습니다.
+    const code = categoryMaybe !== undefined ? codeOrCategory : (window.SUBJECT_CODE || DashboardCtx.active);
+    const category = categoryMaybe !== undefined ? categoryMaybe : codeOrCategory;
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    // 1) 필터 버튼 액티브 토글 (통합 뷰에서는 이 과목 섹션 안의 버튼만 토글)
+    ctx.container.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
         const btnTxt = btn.innerText.trim();
         if (btnTxt === category || (category === 'all' && btnTxt === '전체 대단원') || (category === '전체' && btnTxt === '전체')) {
@@ -783,27 +872,29 @@ function filterCategory(category) {
     });
 
     // 2) 필터링된 아코디언 재렌더링
-    renderDashboard(category);
+    renderDashboard(code, category);
 }
 
 /**
  * 7. 아코디언 메인 목록 통합 렌더러
  */
-function renderDashboard(filter = 'all') {
-    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
-    if (!container || !window.dashboardData) return;
+function renderDashboard(code, filter = 'all') {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const container = $id('accordionContainer') || $id('accordion-container');
+    if (!container || !ctx.dashboardData) return;
 
     container.innerHTML = '';
     const isOfficial = (window.DASHBOARD_TYPE === 'official');
 
     // 필터 조건 처리 ('all' 또는 '전체'는 모든 카테고리)
-    const filteredData = window.dashboardData.filter(item => {
+    const filteredData = ctx.dashboardData.filter(item => {
         if (filter === 'all' || filter === '전체') return true;
         return item.category === filter;
     });
 
     // 필터링된 카운트 헤더 동기화
-    const countBadge = document.getElementById('topic-count-badge');
+    const countBadge = $id('topic-count-badge');
     if (countBadge) {
         countBadge.textContent = filteredData.length;
     }
@@ -823,6 +914,10 @@ function renderDashboard(filter = 'all') {
         const accordion = document.createElement('div');
         accordion.className = 'accordion-item';
         accordion.dataset.category = item.category;
+        // [설계 의도] item-/viewer-body-/edit-btn- 이 3개 id는 범위에서 제외한 리치 에디터
+        // 코드(onEditBtnClick/startEditQuestion 등)가 과목 코드 없이 그대로 참조합니다.
+        // 그 코드를 건드리지 않기 위해 이 3개만 예외적으로 과목 코드 접미사 없이 유지하고,
+        // 대신 이 파일의 새(리팩터링된) 코드 쪽에서 ctx.container로 스코프를 좁혀 조회합니다.
         accordion.id = `item-${globalIdx}`;
 
         // 연도별 기출 선택 버튼 생성
@@ -830,7 +925,7 @@ function renderDashboard(filter = 'all') {
         if (item.questions) {
             item.questions.forEach(q => {
                 yearButtonsHtml += `
-                    <button class="year-btn q-btn-${q.year}-${q.num}" id="btn-${globalIdx}-${q.year}-${q.num}" onclick="showQuestion('${globalIdx}', ${q.year}, ${q.num}, this)">
+                    <button class="year-btn q-btn-${q.year}-${q.num}" id="btn-${code}-${globalIdx}-${q.year}-${q.num}" onclick="showQuestion('${code}', '${globalIdx}', ${q.year}, ${q.num}, this)">
                         ${q.year}년 <span class="num-label">${q.num}번</span>
                     </button>
                 `;
@@ -864,7 +959,7 @@ function renderDashboard(filter = 'all') {
         }
 
         // 퀴즈 푼 이력 뱃지 구성 (정답률에 따른 다이나믹 네온 스타일 적용)
-        const qStat = window.quizStats && window.quizStats[item.concept];
+        const qStat = ctx.quizStats && ctx.quizStats[item.concept];
         let quizStatBadgeHtml = '';
         if (qStat && qStat.attempt_count > 0) {
             const glowColor = qStat.avg_score >= 80 ? 'rgba(16, 185, 129, 0.15)' : (qStat.avg_score >= 50 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)');
@@ -876,11 +971,9 @@ function renderDashboard(filter = 'all') {
             `;
         }
 
-        const subjectCode = window.SUBJECT_CODE || "DB";
-
         // 세부 아코디언 마크업 구조 결합
         accordion.innerHTML = `
-            <button class="accordion-trigger" onclick="toggleAccordion('${globalIdx}')">
+            <button class="accordion-trigger" onclick="toggleAccordion('${code}', '${globalIdx}')">
                 <div class="card-header-row">
                     <div class="card-title-group">
                         <span class="rank-badge">${rankBadgeText}</span>
@@ -910,29 +1003,29 @@ function renderDashboard(filter = 'all') {
                     ` : ''}
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.4rem;">
-                            <h4 class="section-title" style="margin: 0;">출제 문항 일람 (선택 시 아래에 표시)</h4>                            
+                            <h4 class="section-title" style="margin: 0;">출제 문항 일람 (선택 시 아래에 표시)</h4>
                         </div>
                         <div class="year-grid" style="margin-top: 0.6rem;">
                             ${yearButtonsHtml}
                         </div>
                     </div>
-                    
-                    <div class="inline-question-viewer hidden" id="viewer-${globalIdx}">
+
+                    <div class="inline-question-viewer hidden" id="viewer-${code}-${globalIdx}">
                         <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center;">
-                            <span class="viewer-title" id="viewer-title-${globalIdx}"></span>
+                            <span class="viewer-title" id="viewer-title-${code}-${globalIdx}"></span>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <button class="viewer-edit-btn" id="edit-btn-${globalIdx}" onclick="onEditBtnClick('${globalIdx}', event)" style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); color: #ffffff; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: none; align-items: center; gap: 0.2rem; transition: all 0.2s; outline: none; font-family: inherit;">✏️ 수정</button>
-                                <button class="viewer-close-btn" onclick="closeViewer('${globalIdx}', event)">닫기 ✕</button>
+                                <button class="viewer-close-btn" onclick="closeViewer('${code}', '${globalIdx}', event)">닫기 ✕</button>
                             </div>
                         </div>
                         <div class="viewer-body" id="viewer-body-${globalIdx}"></div>
-                        
-                        <div class="viewer-image-wrapper" id="viewer-img-wrap-${globalIdx}">
-                            <div onclick="toggleQuestionImageWrap('${globalIdx}')" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 700; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 0.3rem;">
-                                <span id="viewer-img-toggle-icon-${globalIdx}">▶</span> 시험지 원본 이미지 (다이어그램 및 수식 확인용)
+
+                        <div class="viewer-image-wrapper" id="viewer-img-wrap-${code}-${globalIdx}">
+                            <div onclick="toggleQuestionImageWrap('${code}', '${globalIdx}')" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 700; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                <span id="viewer-img-toggle-icon-${code}-${globalIdx}">▶</span> 시험지 원본 이미지 (다이어그램 및 수식 확인용)
                             </div>
-                            <div id="viewer-img-content-${globalIdx}" style="display: none;">
-                                <img class="viewer-img" id="viewer-img-${globalIdx}" src="" alt="크롭 문제지 영역" onerror="hideImageContainer('${globalIdx}')">
+                            <div id="viewer-img-content-${code}-${globalIdx}" style="display: none;">
+                                <img class="viewer-img" id="viewer-img-${code}-${globalIdx}" src="" alt="크롭 문제지 영역" onerror="hideImageContainer('${code}', '${globalIdx}')">
                             </div>
                         </div>
                     </div>
@@ -943,35 +1036,36 @@ function renderDashboard(filter = 'all') {
     });
 
     // 카테고리 필터를 바꿔도 기존에 입력해 둔 지문 검색어로 다시 필터링합니다.
-    applyAccordionSearchFilter();
+    applyAccordionSearchFilter(code);
 }
 
 /**
  * 7-B. 지문(문제 본문) 검색 - 각 과목 페이지가 <script src="exam_db/{과목}_db.js">로 이미
  * 로드해 둔 전역 examDatabase({"연도_번호": "본문 텍스트"})를 그대로 재사용하므로 별도 API 호출이 없습니다.
  */
-function injectQuestionSearchBox() {
-    if (document.getElementById('qsearch-box')) return;
+function injectQuestionSearchBox(code) {
+    DashboardCtx.active = code;
+    if ($id('qsearch-box')) return;
 
-    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    const container = $id('accordionContainer') || $id('accordion-container');
     if (!container) return;
 
     const box = document.createElement('div');
-    box.id = 'qsearch-box';
+    box.id = `qsearch-box-${code}`;
     box.className = 'qsearch-box';
     box.innerHTML = `
         <div class="qsearch-top-row">
             <div class="qsearch-input-row">
                 <span class="qsearch-icon">🔍</span>
-                <input type="text" id="qsearch-input" class="qsearch-input" placeholder="지문(문제 본문) 검색" autocomplete="off"
-                    oninput="handleQuestionSearchInput(this.value)">
+                <input type="text" id="qsearch-input-${code}" class="qsearch-input" placeholder="지문(문제 본문) 검색" autocomplete="off"
+                    oninput="handleQuestionSearchInput('${code}', this.value)">
             </div>
-            <button type="button" class="qsearch-rolling-btn" onclick="startGlobalRolling(event)">🔄 전체 문제 롤링 시작</button>
+            <button type="button" class="qsearch-rolling-btn" onclick="startGlobalRolling('${code}', event)">🔄 전체 문제 롤링 시작</button>
         </div>
-        <div class="qsearch-results" id="qsearch-results" style="display: none;"></div>
+        <div class="qsearch-results" id="qsearch-results-${code}" style="display: none;"></div>
     `;
 
-    const filterSection = document.querySelector('.filter-section');
+    const filterSection = dctx().container.querySelector('.filter-section');
     if (filterSection) {
         filterSection.parentNode.insertBefore(box, filterSection);
     } else {
@@ -980,40 +1074,39 @@ function injectQuestionSearchBox() {
 
     document.addEventListener('click', (e) => {
         if (!box.contains(e.target)) {
-            document.getElementById('qsearch-results').style.display = 'none';
+            const resultsEl = document.getElementById(`qsearch-results-${code}`);
+            if (resultsEl) resultsEl.style.display = 'none';
         }
     });
 }
 
-// [설계 의도] 검색창 입력값을 전역으로 들고 있다가, 카테고리 필터로 아코디언이 재렌더링될 때도
-// (renderDashboard 끝에서) 같은 검색어로 다시 필터링해 "검색 결과만 남기기" 상태가 유지되게 합니다.
-let QSearchState = { query: '' };
-
 let qsearchDebounceTimer = null;
-function handleQuestionSearchInput(value) {
+function handleQuestionSearchInput(code, value) {
     clearTimeout(qsearchDebounceTimer);
-    qsearchDebounceTimer = setTimeout(() => runQuestionSearch(value), 150);
+    qsearchDebounceTimer = setTimeout(() => runQuestionSearch(code, value), 150);
 }
 
 function qsearchEscapeHtml(str) {
     return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function runQuestionSearch(rawQuery) {
-    const resultsEl = document.getElementById('qsearch-results');
+function runQuestionSearch(code, rawQuery) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const resultsEl = $id('qsearch-results');
     if (!resultsEl) return;
 
     const query = searchCollapseWhitespace(rawQuery);
-    QSearchState.query = query;
+    ctx.QSearchState.query = query;
 
     if (!query) {
         resultsEl.style.display = 'none';
         resultsEl.innerHTML = '';
-        applyAccordionSearchFilter();
+        applyAccordionSearchFilter(code);
         return;
     }
 
-    const db = (typeof examDatabase !== 'undefined') ? examDatabase : window.examDatabase;
+    const db = ctx.examDatabase || (typeof examDatabase !== 'undefined' ? examDatabase : window.examDatabase);
     if (!db) {
         resultsEl.innerHTML = '<div class="qsearch-no-results">검색 가능한 지문 데이터가 없습니다.</div>';
         resultsEl.style.display = 'block';
@@ -1039,7 +1132,7 @@ function runQuestionSearch(rawQuery) {
     if (matches.length === 0) {
         resultsEl.innerHTML = '<div class="qsearch-no-results">검색 결과가 없습니다.</div>';
         resultsEl.style.display = 'block';
-        applyAccordionSearchFilter();
+        applyAccordionSearchFilter(code);
         return;
     }
 
@@ -1054,7 +1147,7 @@ function runQuestionSearch(rawQuery) {
         const rawSnippet = collapsedText.slice(snippetStart, idx + lowerQuery.length + 40);
         const snippet = qsearchEscapeHtml((snippetStart > 0 ? '…' : '') + rawSnippet);
         return `
-            <div class="qsearch-result-item" onclick="jumpToSearchedQuestion(${year}, ${num})">
+            <div class="qsearch-result-item" onclick="jumpToSearchedQuestion('${code}', ${year}, ${num})">
                 <span class="qsearch-result-tag">${year}년 ${num}번</span>
                 <span class="qsearch-result-snippet">${snippet}</span>
             </div>
@@ -1067,20 +1160,22 @@ function runQuestionSearch(rawQuery) {
 
     resultsEl.innerHTML = html;
     resultsEl.style.display = 'block';
-    applyAccordionSearchFilter();
+    applyAccordionSearchFilter(code);
 }
 
 /**
  * [설계 의도] 지문 검색어와 일치하는 기출문제가 하나라도 있는 중단원 카드만 아코디언 목록에 남기고
  * 나머지는 숨깁니다. 카테고리(대단원) 필터와 동시에 걸려도 되도록 renderDashboard() 끝에서도 호출됩니다.
  */
-function applyAccordionSearchFilter() {
-    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+function applyAccordionSearchFilter(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const container = $id('accordionContainer') || $id('accordion-container');
     if (!container) return;
 
     const items = container.querySelectorAll('.accordion-item');
-    const query = QSearchState.query;
-    let emptyMsg = document.getElementById('qsearch-empty-msg');
+    const query = ctx.QSearchState.query;
+    let emptyMsg = $id('qsearch-empty-msg');
 
     if (!query) {
         items.forEach(el => { el.style.display = ''; });
@@ -1088,12 +1183,12 @@ function applyAccordionSearchFilter() {
         return;
     }
 
-    const db = (typeof examDatabase !== 'undefined') ? examDatabase : window.examDatabase;
+    const db = ctx.examDatabase || (typeof examDatabase !== 'undefined' ? examDatabase : window.examDatabase);
     const strippedQuery = searchStripWhitespace(query).toLowerCase();
     const matchedGlobalIdx = new Set();
 
     if (db) {
-        (window.dashboardData || []).forEach(item => {
+        (ctx.dashboardData || []).forEach(item => {
             const hasMatch = (item.questions || []).some(q => {
                 const text = db[`${q.year}_${q.num}`];
                 return typeof text === 'string' && searchStripWhitespace(text).toLowerCase().includes(strippedQuery);
@@ -1104,7 +1199,7 @@ function applyAccordionSearchFilter() {
 
     let visibleCount = 0;
     items.forEach(el => {
-        const idx = el.id.replace('item-', '');
+        const idx = el.id.replace(`item-`, '');
         const show = matchedGlobalIdx.has(idx);
         el.style.display = show ? '' : 'none';
         if (show) visibleCount++;
@@ -1113,7 +1208,7 @@ function applyAccordionSearchFilter() {
     if (visibleCount === 0) {
         if (!emptyMsg) {
             emptyMsg = document.createElement('div');
-            emptyMsg.id = 'qsearch-empty-msg';
+            emptyMsg.id = `qsearch-empty-msg-${code}`;
             emptyMsg.className = 'qsearch-no-results';
             container.appendChild(emptyMsg);
         }
@@ -1124,11 +1219,13 @@ function applyAccordionSearchFilter() {
     }
 }
 
-function jumpToSearchedQuestion(year, num) {
-    const resultsEl = document.getElementById('qsearch-results');
+function jumpToSearchedQuestion(code, year, num) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const resultsEl = $id('qsearch-results');
     if (resultsEl) resultsEl.style.display = 'none';
 
-    const target = (window.dashboardData || []).find(item =>
+    const target = (ctx.dashboardData || []).find(item =>
         (item.questions || []).some(q => q.year === year && q.num === num)
     );
     if (!target) {
@@ -1137,29 +1234,31 @@ function jumpToSearchedQuestion(year, num) {
     }
 
     const globalIdx = target.global_idx;
-    let item = document.getElementById(`item-${globalIdx}`);
+    let item = ctx.container.querySelector(`#item-${globalIdx}`);
     if (!item && typeof filterCategory === 'function') {
-        filterCategory('all');
-        item = document.getElementById(`item-${globalIdx}`);
+        filterCategory(code, 'all');
+        item = ctx.container.querySelector(`#item-${globalIdx}`);
     }
     if (!item) return;
 
     if (!item.classList.contains('active')) {
-        toggleAccordion(String(globalIdx));
+        toggleAccordion(code, String(globalIdx));
     }
     item.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     setTimeout(() => {
-        const btn = document.getElementById(`btn-${globalIdx}-${year}-${num}`);
-        showQuestion(String(globalIdx), year, num, btn);
+        const btn = document.getElementById(`btn-${code}-${globalIdx}-${year}-${num}`);
+        showQuestion(code, String(globalIdx), year, num, btn);
     }, 350);
 }
 
 /**
  * 8. 아코디언 토글 제어 (대표 문제 자동 노출 탑재)
  */
-function toggleAccordion(idx) {
-    const item = document.getElementById(`item-${idx}`);
+function toggleAccordion(code, idx) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const item = ctx.container.querySelector(`#item-${idx}`);
     if (!item) return;
 
     const content = item.querySelector('.accordion-content');
@@ -1170,11 +1269,11 @@ function toggleAccordion(idx) {
         item.classList.add('active');
 
         // 대표 문제가 존재할 경우 대표 문제를 기본적으로 자동 노출
-        const targetData = window.dashboardData.find(d => String(d.global_idx) === String(idx));
+        const targetData = (ctx.dashboardData || []).find(d => String(d.global_idx) === String(idx));
         if (targetData && targetData.rep_question) {
             const activeBtn = item.querySelector(`.q-btn-${targetData.rep_year}-${targetData.rep_num}`) ||
-                document.getElementById(`btn-${idx}-${targetData.rep_year}-${targetData.rep_num}`);
-            showQuestion(idx, targetData.rep_year, targetData.rep_num, activeBtn);
+                document.getElementById(`btn-${code}-${idx}-${targetData.rep_year}-${targetData.rep_num}`);
+            showQuestion(code, idx, targetData.rep_year, targetData.rep_num, activeBtn);
         }
 
         content.style.maxHeight = content.scrollHeight + 1000 + 'px'; // 여유 마진 추가
@@ -1189,58 +1288,55 @@ function toggleAccordion(idx) {
 /**
  * 9. 개별 기출문항 클릭 시 상세 문제지 및 이미지 로드
  */
-// 로드된 기출문제를 캐싱할 전역 버퍼 객체
-window.loadedQuestions = window.loadedQuestions || {};
-
-function showQuestion(idx, year, num, btnElement, isRollingTransition) {
+function showQuestion(code, idx, year, num, btnElement, isRollingTransition) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     if (!isRollingTransition) {
         // [설계 의도] 사용자가 아코디언에서 직접 수동으로 문항 단추를 클릭한 경우,
         // 기존 전체 롤링 세션 상태를 로컬 중단원 세션으로 전환될 수 있도록 플래그를 리셋합니다.
-        if (window.rollingSession) {
-            window.rollingSession.isGlobal = false;
-            window.rollingSession.globalIdx = parseInt(idx);
+        if (ctx.rollingSession) {
+            ctx.rollingSession.isGlobal = false;
+            ctx.rollingSession.globalIdx = parseInt(idx);
         }
     }
 
     // 1) 연도별 클릭 버튼 액티브 스타일 교체
-    const item = document.getElementById(`item-${idx}`);
+    const item = ctx.container.querySelector(`#item-${idx}`);
     if (item) {
         item.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active-btn'));
     }
     if (btnElement) {
         btnElement.classList.add('active-btn');
     } else {
-        const backupBtn = document.getElementById(`btn-${idx}-${year}-${num}`);
+        const backupBtn = document.getElementById(`btn-${code}-${idx}-${year}-${num}`);
         if (backupBtn) backupBtn.classList.add('active-btn');
     }
 
     const key = `${year}_${num}`;
-    const viewer = document.getElementById(`viewer-${idx}`);
+    const viewer = document.getElementById(`viewer-${code}-${idx}`);
     if (!viewer) return;
 
     // [설계 의도] 문항이 화면에 열린 시점을 풀이 소요시간 측정의 시작점으로 기록합니다.
     // 옵션 토글/재렌더링(renderLoadedQuestion) 시에는 갱신되지 않고, 문항을 새로 여는 이 시점에만 리셋됩니다.
-    window.questionStartTimes = window.questionStartTimes || {};
-    window.questionStartTimes[key] = Date.now();
+    ctx.questionStartTimes[key] = Date.now();
 
     viewer.classList.remove('hidden');
 
     // 2) 타이틀 및 수정 버튼 상태 갱신
-    const title = document.getElementById(`viewer-title-${idx}`);
+    const title = document.getElementById(`viewer-title-${code}-${idx}`);
     if (title) {
-        const subjectTitle = window.SUBJECT_NAME || "감리사";
         title.innerText = `[상세 기출] ${year}년도 ${num}번 문항`;
     }
 
     // 수정 버튼 노출 및 데이터 매핑
-    const editBtn = document.getElementById(`edit-btn-${idx}`);
+    const editBtn = ctx.container.querySelector(`#edit-btn-${idx}`);
     if (editBtn) {
         editBtn.style.display = 'inline-flex';
         editBtn.dataset.qId = key;
         editBtn.innerText = "✏️ 수정"; // 편집 폼 상태에서 닫거나 전환 시 텍스트 리셋
     }
 
-    const body = document.getElementById(`viewer-body-${idx}`);
+    const body = ctx.container.querySelector(`#viewer-body-${idx}`);
     if (body) {
         body.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">데이터베이스에서 문항 정보를 조회하는 중...</div>';
     }
@@ -1252,23 +1348,24 @@ function showQuestion(idx, year, num, btnElement, isRollingTransition) {
             return response.json();
         })
         .then(data => {
+            DashboardCtx.active = code;
             // 보기 셔플용 인덱스 배열 생성 및 저장
             if (data && data.options && data.options.length > 0) {
                 const indices = Array.from({ length: data.options.length }, (_, i) => i);
                 data.shuffledIndices = shuffleArray(indices);
             }
-            // 로컬 전역 캐시에 저장
-            window.loadedQuestions[key] = data;
-            renderLoadedQuestion(idx, key);
+            // 인스턴스 캐시에 저장
+            ctx.loadedQuestions[key] = data;
+            renderLoadedQuestion(code, idx, key);
         })
         .catch(error => {
+            DashboardCtx.active = code;
             console.warn(`[경고] API를 통한 문제(${key}) 로드 실패. 로컬 폴백 시도.`, error);
             // 로컬 폴백
             let questionBody = "지문 정보를 읽어올 수 없습니다. API 서버 상태를 확인해 주세요.";
-            if (typeof examDatabase !== 'undefined') {
-                questionBody = examDatabase[key] || questionBody;
-            } else if (window.examDatabase) {
-                questionBody = window.examDatabase[key] || questionBody;
+            const fallbackDb = ctx.examDatabase || (typeof examDatabase !== 'undefined' ? examDatabase : window.examDatabase);
+            if (fallbackDb) {
+                questionBody = fallbackDb[key] || questionBody;
             }
 
             // 로컬 폴백 시에도 간이 파싱 수행 및 캐싱
@@ -1278,7 +1375,7 @@ function showQuestion(idx, year, num, btnElement, isRollingTransition) {
                 const indices = Array.from({ length: qAndO.options.length }, (_, i) => i);
                 shuffledIndices = shuffleArray(indices);
             }
-            window.loadedQuestions[key] = {
+            ctx.loadedQuestions[key] = {
                 id: key,
                 question: qAndO.question,
                 options: qAndO.options,
@@ -1287,11 +1384,11 @@ function showQuestion(idx, year, num, btnElement, isRollingTransition) {
                 shuffledIndices: shuffledIndices
             };
 
-            renderLoadedQuestion(idx, key);
+            renderLoadedQuestion(code, idx, key);
         });
 
     // 4) 원본 크롭 이미지 주소 바인딩 (여러 확장자를 순차 시도)
-    bindQuestionImage(idx, key);
+    bindQuestionImage(code, idx, key);
 }
 
 /**
@@ -1343,18 +1440,20 @@ function getImportanceBadgeHtml(importance) {
  * [설계 의도] 캐싱된 문제 데이터를 상세 뷰어 영역에 보기 좋게 렌더링합니다.
  * 동시에 사용자가 클릭 가능한 보기 버튼과 답안 제출 및 채점 패널을 렌더링합니다.
  */
-function renderLoadedQuestion(idx, qId) {
-    const data = window.loadedQuestions[qId];
+function renderLoadedQuestion(code, idx, qId) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const data = ctx.loadedQuestions[qId];
     if (!data) return;
 
-    const body = document.getElementById(`viewer-body-${idx}`);
+    const body = ctx.container.querySelector(`#viewer-body-${idx}`);
     if (!body) return;
 
     // 다음 문제 이동 버튼 준비 (랜덤 롤링 세션 기반)
     let nextQuestionButtonHtml = '';
 
     // 세션 조회 및 검증
-    let session = window.rollingSession;
+    let session = ctx.rollingSession;
     let isSessionValid = false;
 
     if (session && session.isActive) {
@@ -1362,9 +1461,9 @@ function renderLoadedQuestion(idx, qId) {
             // 글로벌 세션인 경우: 현재 문제(qId)가 글로벌 세션에 존재하는지만 체크
             isSessionValid = session.questions.some(sq => sq.qId === qId);
         } else {
-            // 로컬 중단원 세션인 경우: 현재 중단원(idx)과 세션의 중단원이 일치하며, 
+            // 로컬 중단원 세션인 경우: 현재 중단원(idx)과 세션의 중단원이 일치하며,
             // 현재 중단원의 문제 목록 크기가 세션 문제 목록 크기와 동일하고, 문제 구성이 일치하는지 체크
-            const localQsList = getConceptQuestionsList(idx);
+            const localQsList = getConceptQuestionsList(code, idx);
             isSessionValid = (String(session.globalIdx) === String(idx)) &&
                 (session.questions.length === localQsList.length) &&
                 (session.questions.every(sq => localQsList.some(aq => aq.qId === sq.qId)));
@@ -1374,24 +1473,24 @@ function renderLoadedQuestion(idx, qId) {
     if (!isSessionValid) {
         // 기존 세션이 없거나 유효하지 않다면 새로 세션 개시
         // 아코디언에서 직접 개별 문항을 클릭해 진입한 상황이므로 강제로 "로컬 중단원 롤링 세션"으로 초기화합니다.
-        const localQsList = getConceptQuestionsList(idx);
+        const localQsList = getConceptQuestionsList(code, idx);
         if (localQsList.length > 0) {
             const otherQs = localQsList.filter(q => q.qId !== qId);
-            const shuffledOthers = weightedShuffle(otherQs);
+            const shuffledOthers = weightedShuffle(code, otherQs);
             const currentQ = localQsList.find(q => q.qId === qId);
 
             const newQs = [];
             if (currentQ) newQs.push(currentQ);
             newQs.push(...shuffledOthers);
 
-            window.rollingSession = {
+            ctx.rollingSession = {
                 isActive: true,
                 questions: newQs,
                 currentIndex: currentQ ? 0 : -1,
                 isGlobal: false,
                 globalIdx: parseInt(idx)
             };
-            session = window.rollingSession;
+            session = ctx.rollingSession;
         }
     } else {
         // 세션이 유효하다면 인덱스만 동기화
@@ -1406,13 +1505,13 @@ function renderLoadedQuestion(idx, qId) {
         if (session.currentIndex < session.questions.length - 1) {
             const nextQ = session.questions[session.currentIndex + 1];
             nextQuestionButtonHtml = `
-                    <button onclick="moveToNextRollingQuestion('${nextQ.globalIdx}', ${nextQ.year}, ${nextQ.num}, event)" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">다음 문제 ➡️</button>
+                    <button onclick="moveToNextRollingQuestion('${code}', '${nextQ.globalIdx}', ${nextQ.year}, ${nextQ.num}, event)" style="background: var(--accent-gradient); border: none; color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">다음 문제 ➡️</button>
                 `;
         } else {
             // 롤링 세션의 모든 문제를 다 푼 경우 새롭게 랜덤 롤링 시작
             if (session.questions.length > 1) {
                 nextQuestionButtonHtml = `
-                        <button onclick="restartRollingSession(event)" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">새 롤링 시작 🔄</button>
+                        <button onclick="restartRollingSession('${code}', event)" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: #ffffff; padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 0.2rem;" onmouseover="this.style.background='rgba(139, 92, 246, 0.3)'" onmouseout="this.style.background='rgba(139, 92, 246, 0.2)'">새 롤링 시작 🔄</button>
                     `;
             }
         }
@@ -1424,8 +1523,8 @@ function renderLoadedQuestion(idx, qId) {
     const importanceBadge = getImportanceBadgeHtml(data.importance);
     let htmlContent = `<div class="question-text" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); margin-bottom: 1rem; white-space: pre-wrap;">${newTrendBadge}${importanceBadge}${data.question}</div>`;
 
-    // 이 문항의 풀이 완료(제출) 이력이 전역 버퍼에 있는지 확인
-    const submittedResult = window.quizSubmittedResults && window.quizSubmittedResults[qId];
+    // 이 문항의 풀이 완료(제출) 이력이 인스턴스 버퍼에 있는지 확인
+    const submittedResult = ctx.quizSubmittedResults && ctx.quizSubmittedResults[qId];
     const isSubmitted = !!submittedResult;
 
     // 보기 리스트 렌더링
@@ -1433,9 +1532,8 @@ function renderLoadedQuestion(idx, qId) {
         htmlContent += `<div class="inline-options-container" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem;">`;
 
         const numSymbols = ["①", "②", "③", "④", "⑤"];
-        window.currentDraftAnswers = window.currentDraftAnswers || {};
-        window.currentDraftAnswers[qId] = window.currentDraftAnswers[qId] || [];
-        const currentDraft = window.currentDraftAnswers[qId];
+        ctx.currentDraftAnswers[qId] = ctx.currentDraftAnswers[qId] || [];
+        const currentDraft = ctx.currentDraftAnswers[qId];
 
         // 셔플된 인덱스 배열 또는 순차 기본 배열을 이용
         const indices = data.shuffledIndices || Array.from({ length: data.options.length }, (_, i) => i);
@@ -1466,7 +1564,7 @@ function renderLoadedQuestion(idx, qId) {
                 if (isSelected) optClass += " selected";
             }
 
-            const clickHandler = isSubmitted ? '' : `onclick="handleInlineOptionClick('${idx}', '${qId}', ${optNum}, event, this)"`;
+            const clickHandler = isSubmitted ? '' : `onclick="handleInlineOptionClick('${code}', '${idx}', '${qId}', ${optNum}, event, this)"`;
 
             htmlContent += `
                 <button class="${optClass}" ${clickHandler} style="width: 100%; outline: none; font-family: inherit; text-align: left;">
@@ -1481,8 +1579,8 @@ function renderLoadedQuestion(idx, qId) {
     // 해당 문항의 모든 풀이 이력을 일반 퀴즈(quizFullHistoryList: 롤링 퀴즈+오답 복습)와
     // 년도별 120제 모의고사(yearlyExamQuestionLogs) 양쪽에서 함께 모아 최신순으로 정렬합니다.
     const combinedHistoryLogs = [
-        ...(window.quizFullHistoryList || []),
-        ...(window.yearlyExamQuestionLogs || [])
+        ...(ctx.quizFullHistoryList || []),
+        ...(ctx.yearlyExamQuestionLogs || [])
     ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     const questionLogs = combinedHistoryLogs.filter(log => {
@@ -1531,7 +1629,7 @@ function renderLoadedQuestion(idx, qId) {
             }
 
             const displayStyle = logIdx >= 4 ? 'display: none !important;' : 'display: flex;';
-            const extraClass = logIdx >= 4 ? `hidden-history-item-${qId}` : '';
+            const extraClass = logIdx >= 4 ? `hidden-history-item-${code}-${qId}` : '';
 
             historyHtml += `
                 <li class="${extraClass}" style="font-size: 0.8rem; color: var(--text-secondary); ${displayStyle} align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 4px; border-left: 2px solid ${itemColor};">
@@ -1545,7 +1643,7 @@ function renderLoadedQuestion(idx, qId) {
             historyHtml += `
                 </ul>
                 <div style="display: flex; justify-content: center; margin-top: 0.5rem;">
-                    <button class="history-more-btn" onclick="toggleMoreHistory('${qId}', this)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--text-secondary); padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; outline: none; font-family: inherit;">🔍 이력 더보기</button>
+                    <button class="history-more-btn" onclick="toggleMoreHistory('${code}', '${qId}', this)" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--text-secondary); padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; outline: none; font-family: inherit;">🔍 이력 더보기</button>
                 </div>
             </div>
             `;
@@ -1578,14 +1676,14 @@ function renderLoadedQuestion(idx, qId) {
                 <div class="inline-explanation-box" style="display: none; margin-top: 0.5rem;">
                     <strong>💡 정답 해설:</strong><br>${data.explanation || '등록된 해설이 없습니다.'}
                     <div class="ai-explain-section" style="margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed rgba(139, 92, 246, 0.18);">
-                        <button class="ai-explain-btn" id="ai-explain-trigger-${qId}" onclick="viewAiExplanation('${qId}', 'ai-explain-box-${qId}')" style="background: none; border: none; color: #a78bfa; font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 0; font-family: inherit;">${data.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
-                        <div id="ai-explain-box-${qId}" class="ai-explain-box" style="margin-top: 0.4rem;"></div>
+                        <button class="ai-explain-btn" id="ai-explain-trigger-${code}-${qId}" onclick="viewAiExplanation('${code}', '${qId}', 'ai-explain-box-${code}-${qId}')" style="background: none; border: none; color: #a78bfa; font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 0; font-family: inherit;">${data.ai_explanation ? '📖 AI 해설 보기' : '✨ AI 해설 생성'}</button>
+                        <div id="ai-explain-box-${code}-${qId}" class="ai-explain-box" style="margin-top: 0.4rem;"></div>
                     </div>
                 </div>
             </div>
             ${historyHtml}
             <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.8rem;">
-                <button onclick="retryInlineQuestion('${idx}', '${qId}', event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-family: inherit;">다시 풀기</button>
+                <button onclick="retryInlineQuestion('${code}', '${idx}', '${qId}', event)" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-secondary); padding: 0.35rem 0.8rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-family: inherit;">다시 풀기</button>
                 ${nextQuestionButtonHtml}
             </div>
         `;
@@ -1594,7 +1692,7 @@ function renderLoadedQuestion(idx, qId) {
         htmlContent += `
             ${historyHtml}
             <div style="display: flex; justify-content: flex-end; margin-top: 0.2rem;">
-                <button onclick="submitInlineAnswer('${idx}', '${qId}', event)" class="inline-quiz-submit-btn">
+                <button onclick="submitInlineAnswer('${code}', '${idx}', '${qId}', event)" class="inline-quiz-submit-btn">
                     💾 답안 제출
                 </button>
             </div>
@@ -1604,19 +1702,16 @@ function renderLoadedQuestion(idx, qId) {
     body.innerHTML = htmlContent;
 
     // 편집 버튼 텍스트 리셋
-    const editBtn = document.getElementById(`edit-btn-${idx}`);
+    const editBtn = ctx.container.querySelector(`#edit-btn-${idx}`);
     if (editBtn) editBtn.innerText = "✏️ 수정";
 
-    updateAccordionContentHeight(document.getElementById(`item-${idx}`));
+    updateAccordionContentHeight(ctx.container.querySelector(`#item-${idx}`));
 }
-
-window.currentDraftAnswers = window.currentDraftAnswers || {};
-window.quizSubmittedResults = window.quizSubmittedResults || {};
 
 /**
  * 9-A-0. 보기 텍스트를 드래그 선택 중일 때는 답안 토글을 막아 복사를 우선합니다.
  */
-function handleInlineOptionClick(idx, qId, optNum, event, buttonEl) {
+function handleInlineOptionClick(code, idx, qId, optNum, event, buttonEl) {
     if (event) event.stopPropagation();
 
     const sel = (window.getSelection && window.getSelection()) ? window.getSelection() : null;
@@ -1635,17 +1730,19 @@ function handleInlineOptionClick(idx, qId, optNum, event, buttonEl) {
     // 이전 선택 범위를 정리해 다음 클릭이 안정적으로 동작하도록 합니다.
     if (sel && sel.removeAllRanges) sel.removeAllRanges();
 
-    toggleInlineAnswer(idx, qId, optNum, event);
+    toggleInlineAnswer(code, idx, qId, optNum, event);
 }
 
 /**
  * 9-A. 인라인 문제 풀이에서 보기 선택을 토글합니다. (단일 선택 방식)
  */
-function toggleInlineAnswer(idx, qId, optNum, event) {
+function toggleInlineAnswer(code, idx, qId, optNum, event) {
     if (event) event.stopPropagation();
+    DashboardCtx.active = code;
+    const ctx = dctx();
 
-    window.currentDraftAnswers[qId] = window.currentDraftAnswers[qId] || [];
-    const currentDraft = window.currentDraftAnswers[qId];
+    ctx.currentDraftAnswers[qId] = ctx.currentDraftAnswers[qId] || [];
+    const currentDraft = ctx.currentDraftAnswers[qId];
 
     const valIdx = currentDraft.indexOf(optNum);
     if (valIdx > -1) {
@@ -1656,22 +1753,24 @@ function toggleInlineAnswer(idx, qId, optNum, event) {
         currentDraft.push(optNum);
     }
 
-    renderLoadedQuestion(idx, qId);
+    renderLoadedQuestion(code, idx, qId);
 }
 
 /**
  * 9-B. 인라인 퀴즈 답안을 채점하고 백엔드 + LocalStorage에 전송 저장합니다.
  */
-function submitInlineAnswer(idx, qId, event) {
+function submitInlineAnswer(code, idx, qId, event) {
     if (event) event.stopPropagation();
+    DashboardCtx.active = code;
+    const ctx = dctx();
 
-    const uAns = window.currentDraftAnswers[qId] || [];
+    const uAns = ctx.currentDraftAnswers[qId] || [];
     if (uAns.length === 0) {
         alert("답안을 선택해 주세요!");
         return;
     }
 
-    const data = window.loadedQuestions[qId];
+    const data = ctx.loadedQuestions[qId];
     if (!data) return;
 
     // 정답 계산
@@ -1700,22 +1799,22 @@ function submitInlineAnswer(idx, qId, event) {
     }).join(', ');
 
     // 제출 버퍼에 결과 기록
-    window.quizSubmittedResults[qId] = {
+    ctx.quizSubmittedResults[qId] = {
         isCorrect: isCorrect,
         userAnswer: uAns,
         cAnsStr: cAnsStr
     };
 
     // 이 문항의 개념(concept) 탐색
-    const subject = window.SUBJECT_CODE || "DB";
-    const matchedConcept = window.dashboardData.find(d => {
+    const subject = code || window.SUBJECT_CODE || "DB";
+    const matchedConcept = (ctx.dashboardData || []).find(d => {
         const key = qId.split('_'); // [year, num]
         return d.questions && d.questions.some(q => String(q.year) === String(key[0]) && String(q.num) === String(key[1]));
     });
     const conceptName = matchedConcept ? matchedConcept.concept : '기타';
 
     // 문항이 열린 시점부터 제출 시점까지의 풀이 소요시간(초)
-    const startTs = window.questionStartTimes && window.questionStartTimes[qId];
+    const startTs = ctx.questionStartTimes && ctx.questionStartTimes[qId];
     const elapsedTime = startTs ? Math.max(0, Math.round((Date.now() - startTs) / 1000)) : null;
 
     // 이력 포맷 상세화 적용: details에 q_id, user_choice, correct_answer, is_correct, elapsed_time 적재
@@ -1768,40 +1867,42 @@ function submitInlineAnswer(idx, qId, event) {
         body: JSON.stringify(payload)
     })
         .then(() => {
-            return loadQuizStatsAndMerge();
+            return loadQuizStatsAndMerge(code);
         })
         .then(() => {
-            renderLoadedQuestion(idx, qId);
+            DashboardCtx.active = code;
+            renderLoadedQuestion(code, idx, qId);
             if (isCorrect) {
                 if (typeof gamOnCorrectAnswer === 'function') {
-                    gamOnCorrectAnswer(idx, qId);
+                    gamOnCorrectAnswer(code, idx, qId);
                 }
             } else {
-                window.gamState.todaySolved = (window.gamState.todaySolved || 0) + 1;
-                gamUpdateExpUI();
+                ctx.gamState.todaySolved = (ctx.gamState.todaySolved || 0) + 1;
+                gamUpdateExpUI(code);
                 if (typeof gamTriggerPetIncorrectMessage === 'function') {
-                    gamTriggerPetIncorrectMessage();
+                    gamTriggerPetIncorrectMessage(code);
                 }
                 if (typeof gamApplyPetAnimation === 'function') {
-                    gamApplyPetAnimation('incorrect');
+                    gamApplyPetAnimation(code, 'incorrect');
                 }
             }
         })
         .catch(err => {
+            DashboardCtx.active = code;
             console.error(err);
-            renderLoadedQuestion(idx, qId);
+            renderLoadedQuestion(code, idx, qId);
             if (isCorrect) {
                 if (typeof gamOnCorrectAnswer === 'function') {
-                    gamOnCorrectAnswer(idx, qId);
+                    gamOnCorrectAnswer(code, idx, qId);
                 }
             } else {
-                window.gamState.todaySolved = (window.gamState.todaySolved || 0) + 1;
-                gamUpdateExpUI();
+                ctx.gamState.todaySolved = (ctx.gamState.todaySolved || 0) + 1;
+                gamUpdateExpUI(code);
                 if (typeof gamTriggerPetIncorrectMessage === 'function') {
-                    gamTriggerPetIncorrectMessage();
+                    gamTriggerPetIncorrectMessage(code);
                 }
                 if (typeof gamApplyPetAnimation === 'function') {
-                    gamApplyPetAnimation('incorrect');
+                    gamApplyPetAnimation(code, 'incorrect');
                 }
             }
         });
@@ -1810,24 +1911,26 @@ function submitInlineAnswer(idx, qId, event) {
 /**
  * 9-C. 문제를 다시 풀기 위해 캐시를 클리어하고 상태를 리셋합니다.
  */
-function retryInlineQuestion(idx, qId, event) {
+function retryInlineQuestion(code, idx, qId, event) {
     if (event) event.stopPropagation();
+    DashboardCtx.active = code;
+    const ctx = dctx();
 
-    if (window.quizSubmittedResults) {
-        delete window.quizSubmittedResults[qId];
+    if (ctx.quizSubmittedResults) {
+        delete ctx.quizSubmittedResults[qId];
     }
-    if (window.currentDraftAnswers) {
-        window.currentDraftAnswers[qId] = [];
+    if (ctx.currentDraftAnswers) {
+        ctx.currentDraftAnswers[qId] = [];
     }
 
     // 다시 풀기 시 보기를 새로운 순서로 재셔플
-    const data = window.loadedQuestions[qId];
+    const data = ctx.loadedQuestions[qId];
     if (data && data.options && data.options.length > 0) {
         const indices = Array.from({ length: data.options.length }, (_, i) => i);
         data.shuffledIndices = shuffleArray(indices);
     }
 
-    renderLoadedQuestion(idx, qId);
+    renderLoadedQuestion(code, idx, qId);
 }
 
 /**
@@ -2481,11 +2584,11 @@ function updateAccordionContentHeight(item) {
  * 소비자도 동일 규칙에 고정되어 있으므로 확장자는 png로 통일). 편집 후 즉시 갱신된 이미지가 보이도록
  * 캐시를 우회하는 타임스탬프 쿼리를 붙여 요청합니다.
  */
-function bindQuestionImage(idx, qId) {
-    const imgWrap = document.getElementById(`viewer-img-wrap-${idx}`);
-    const img = document.getElementById(`viewer-img-${idx}`);
-    const content = document.getElementById(`viewer-img-content-${idx}`);
-    const icon = document.getElementById(`viewer-img-toggle-icon-${idx}`);
+function bindQuestionImage(code, idx, qId) {
+    const imgWrap = document.getElementById(`viewer-img-wrap-${code}-${idx}`);
+    const img = document.getElementById(`viewer-img-${code}-${idx}`);
+    const content = document.getElementById(`viewer-img-content-${code}-${idx}`);
+    const icon = document.getElementById(`viewer-img-toggle-icon-${code}-${idx}`);
     if (!imgWrap || !img) return;
 
     imgWrap.style.display = 'flex';
@@ -2496,8 +2599,8 @@ function bindQuestionImage(idx, qId) {
     img.src = `/reports/images/${qId}.png?t=${Date.now()}`;
 }
 
-function hideImageContainer(idx) {
-    const imgWrap = document.getElementById(`viewer-img-wrap-${idx}`);
+function hideImageContainer(code, idx) {
+    const imgWrap = document.getElementById(`viewer-img-wrap-${code}-${idx}`);
     if (imgWrap) {
         imgWrap.style.display = 'none';
     }
@@ -2509,9 +2612,9 @@ function hideImageContainer(idx) {
  * 걸려 있어 img 자체의 인라인 style로는 숨길 수 없으므로, 감싸는 컨테이너를 토글합니다.
  * 펼친 뒤에는 아코디언의 max-height도 함께 갱신해 이미지가 잘리지 않게 합니다.
  */
-function toggleQuestionImageWrap(idx) {
-    const content = document.getElementById(`viewer-img-content-${idx}`);
-    const icon = document.getElementById(`viewer-img-toggle-icon-${idx}`);
+function toggleQuestionImageWrap(code, idx) {
+    const content = document.getElementById(`viewer-img-content-${code}-${idx}`);
+    const icon = document.getElementById(`viewer-img-toggle-icon-${code}-${idx}`);
     if (!content || !icon) return;
 
     const isHidden = content.style.display === 'none';
@@ -2525,13 +2628,15 @@ function toggleQuestionImageWrap(idx) {
 /**
  * 11. 기출 상세 뷰어 영역 숨기기
  */
-function closeViewer(idx, event) {
+function closeViewer(code, idx, event) {
     if (event) event.stopPropagation();
+    DashboardCtx.active = code;
+    const ctx = dctx();
 
-    const viewer = document.getElementById(`viewer-${idx}`);
+    const viewer = document.getElementById(`viewer-${code}-${idx}`);
     if (viewer) viewer.classList.add('hidden');
 
-    const item = document.getElementById(`item-${idx}`);
+    const item = ctx.container.querySelector(`#item-${idx}`);
     if (item) {
         item.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active-btn'));
 
@@ -2544,21 +2649,23 @@ function closeViewer(idx, event) {
 }
 
 // 닫기 래퍼 호환용
-function closeInlineViewer(idx, event) {
-    closeViewer(idx, event);
+function closeInlineViewer(code, idx, event) {
+    closeViewer(code, idx, event);
 }
 
 /**
  * 12. 세부 토픽 목록 팝업 모달 열기
  */
-window.openTopicListModal = function () {
+window.openTopicListModal = function (code) {
+    DashboardCtx.active = code || window.SUBJECT_CODE || DashboardCtx.active;
+    const ctx = dctx();
     const modal = document.getElementById('topic-modal');
     const listEl = document.getElementById('modal-topic-list');
-    if (!modal || !listEl || !window.dashboardData) return;
+    if (!modal || !listEl || !ctx.dashboardData) return;
 
     listEl.innerHTML = '';
 
-    window.dashboardData.forEach((item) => {
+    ctx.dashboardData.forEach((item) => {
         const li = document.createElement('li');
         li.className = 'modal-topic-item';
         li.style.cursor = 'pointer';
@@ -2568,14 +2675,15 @@ window.openTopicListModal = function () {
             closeTopicModal();
 
             // 필터링 적용 중 타겟 카테고리가 달라 가려져 있는 상태라면 필터를 강제 해제
-            const activeFilterBtn = document.querySelector('.filter-btn.active');
+            // (통합 뷰에서는 이 과목 섹션 안의 필터 버튼만 봐야 다른 과목의 활성 필터에 영향받지 않습니다)
+            const activeFilterBtn = ctx.container.querySelector('.filter-btn.active');
             const activeFilter = activeFilterBtn ? activeFilterBtn.innerText.trim() : '전체';
             if (activeFilter !== '전체 대단원' && activeFilter !== '전체' && item.category !== activeFilter) {
-                filterCategory('all');
+                filterCategory(code, 'all');
             }
 
             setTimeout(() => {
-                const itemEl = document.getElementById(`item-${item.global_idx}`);
+                const itemEl = ctx.container.querySelector(`#item-${item.global_idx}`);
                 if (itemEl) {
                     const trigger = itemEl.querySelector('.accordion-trigger');
                     const content = itemEl.querySelector('.accordion-content');
@@ -2625,8 +2733,10 @@ window.closeTopicModal = function (event) {
 /**
  * GAM-1. 게이미피케이션 EXP/Level 시스템을 초기화합니다.
  */
-function initGamification() {
-    window.gamState = {
+function initGamification(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    ctx.gamState = {
         totalExp: 0,
         level: 1,
         expInLevel: 0,
@@ -2634,86 +2744,90 @@ function initGamification() {
     };
 
     // UI 주입
-    gamInjectExpCard();
-    gamInjectLevelUpOverlay();
+    gamInjectExpCard(code);
+    gamInjectLevelUpOverlay(code);
 
     // [설계 의도]
-    // 과목별로 분리된 경험치 시스템을 실현하기 위해, 과목 대시보드의 식별자(window.SUBJECT_CODE)를 
+    // 과목별로 분리된 경험치 시스템을 실현하기 위해, 과목 대시보드의 식별자(ctx.code)를
     // 기반으로 해당 과목의 경험치 정보만 골라서 API 요청을 보냅니다.
-    const apiUrl = window.SUBJECT_CODE ? `/api/quiz/total-exp?subject=${window.SUBJECT_CODE}` : '/api/quiz/total-exp';
+    const apiUrl = ctx.code ? `/api/quiz/total-exp?subject=${ctx.code}` : '/api/quiz/total-exp';
 
     // API 조회하여 EXP 데이터 업데이트 (오직 서버 데이터베이스(DB) 기준 일관성 유지)
     fetch(apiUrl)
         .then(res => res.ok ? res.json() : { total_exp: 0, level: 1, exp_in_level: 0, today_solved: 0 })
         .then(data => {
+            DashboardCtx.active = code;
             const finalTotalExp = data.total_exp || 0;
-            window.gamState.totalExp = finalTotalExp;
-            window.gamState.level = Math.floor(finalTotalExp / 10) + 1;
-            window.gamState.expInLevel = finalTotalExp % 10;
-            window.gamState.todaySolved = data.today_solved || 0;
-            gamUpdateExpUI();
+            ctx.gamState.totalExp = finalTotalExp;
+            ctx.gamState.level = Math.floor(finalTotalExp / 10) + 1;
+            ctx.gamState.expInLevel = finalTotalExp % 10;
+            ctx.gamState.todaySolved = data.today_solved || 0;
+            gamUpdateExpUI(code);
         })
         .catch(err => {
+            DashboardCtx.active = code;
             console.warn("[경고] 게이미피케이션 데이터 로드 실패. 기본값으로 구동합니다.", err);
-            window.gamState.totalExp = 0;
-            window.gamState.level = 1;
-            window.gamState.expInLevel = 0;
-            window.gamState.todaySolved = 0;
-            gamUpdateExpUI();
+            ctx.gamState.totalExp = 0;
+            ctx.gamState.level = 1;
+            ctx.gamState.expInLevel = 0;
+            ctx.gamState.todaySolved = 0;
+            gamUpdateExpUI(code);
         });
 }
 
 /**
  * GAM-2. EXP/Level 카드 UI를 생성하여 상단에 주입합니다. (포켓몬 응원 펫 연동)
  */
-function gamInjectExpCard() {
+function gamInjectExpCard(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     // 이미 존재하면 스킵
-    if (document.getElementById('gam-exp-card')) return;
+    if ($id('gam-exp-card')) return;
 
     // 전역 설정에서 펫 목록 및 기본값 로드
     const petKeys = (window.APP_CONFIG && window.APP_CONFIG.PET_KEYS) || ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd', 'metagross'];
-    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
+    const defaultPet = gamGetDefaultPetForSubject(ctx.code);
 
-    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
+    const petStorageKey = ctx.code ? `gam_selected_pet_${ctx.code}` : 'gam_selected_pet';
     let currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     if (!petKeys.includes(currentPetKey)) currentPetKey = defaultPet;
 
     const activePet = gamGetPetProfile(currentPetKey);
 
     const card = document.createElement('div');
-    card.id = 'gam-exp-card';
+    card.id = `gam-exp-card-${code}`;
     card.className = 'gamification-exp-card';
     card.innerHTML = `
-        <div class="gam-pet-widget" style="display: flex; align-items: center; cursor: pointer; position: relative; margin-right: 0.5rem;" onclick="gamCyclePet()" title="클릭 시 포켓몬 캐릭터 교체">
+        <div class="gam-pet-widget" style="display: flex; align-items: center; cursor: pointer; position: relative; margin-right: 0.5rem;" onclick="gamCyclePet('${code}')" title="클릭 시 포켓몬 캐릭터 교체">
             <div class="gam-pet-avatar-wrapper" style="width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; transition: all 0.2s;">
-                <img id="gam-pet-img" src="${activePet.src}" alt="${activePet.name}" style="width: 85%; height: 85%; object-fit: contain; transform: scale(1.1); transition: transform 0.2s;" />
+                <img id="gam-pet-img-${code}" src="${activePet.src}" alt="${activePet.name}" style="width: 85%; height: 85%; object-fit: contain; transform: scale(1.1); transition: transform 0.2s;" />
             </div>
         </div>
         <div class="gam-level-badge" style="margin-left: auto;">
             <span class="gam-lv-label">LV</span>
-            <span class="gam-lv-num" id="gam-lv-value">1</span>
+            <span class="gam-lv-num" id="gam-lv-value-${code}">1</span>
         </div>
         <div class="gam-exp-wrapper">
             <div class="gam-exp-header">
-                <span class="gam-exp-title">${window.SUBJECT_NAME ? `🛡️ ${window.SUBJECT_NAME} 경험치 (EXP)` : "🛡️ 수험생 경험치 (EXP)"}</span>
-                <span class="gam-exp-value" id="gam-exp-text">0 / 10 EXP</span>
+                <span class="gam-exp-title">${ctx.name ? `🛡️ ${ctx.name} 경험치 (EXP)` : "🛡️ 수험생 경험치 (EXP)"}</span>
+                <span class="gam-exp-value" id="gam-exp-text-${code}">0 / 10 EXP</span>
             </div>
             <div class="gam-exp-bar-bg">
-                <div class="gam-exp-bar-fill" id="gam-exp-fill" style="width: 0%;"></div>
+                <div class="gam-exp-bar-fill" id="gam-exp-fill-${code}" style="width: 0%;"></div>
             </div>
             <!-- [설계 의도] 하루 학습 목표 150문항 게이지 바를 상단 카드 영역에 신설하여 결핍감과 완결 욕구를 자극합니다. -->
             <div class="gam-exp-header" style="margin-top: 0.6rem;">
                 <span class="gam-exp-title" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 500;">🎯 일일 학습 목표 (150문항)</span>
-                <span class="gam-exp-value" id="gam-goal-text" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 600;">0 / 150개</span>
+                <span class="gam-exp-value" id="gam-goal-text-${code}" style="color: var(--text-secondary); font-size: 0.68rem; font-weight: 600;">0 / 150개</span>
             </div>
             <div class="gam-exp-bar-bg" style="height: 5px; background: rgba(255,255,255,0.04);">
-                <div class="gam-exp-bar-fill" id="gam-goal-fill" style="width: 0%; background: linear-gradient(135deg, #10b981 0%, #059669 100%);"></div>
+                <div class="gam-exp-bar-fill" id="gam-goal-fill-${code}" style="width: 0%; background: linear-gradient(135deg, #10b981 0%, #059669 100%);"></div>
             </div>
         </div>
     `;
 
-    // header 직후에 삽입
-    const header = document.querySelector('header');
+    // 이 과목 섹션 자신의 header 직후에 삽입 (통합 뷰에서는 과목마다 자기 섹션의 header여야 함)
+    const header = ctx.container.querySelector('header') || document.querySelector('header');
     if (header) {
         header.parentNode.insertBefore(card, header.nextSibling);
     }
@@ -2742,14 +2856,16 @@ function gamInjectLevelUpOverlay() {
 /**
  * GAM-4. EXP UI 요소들을 현재 상태값으로 갱신합니다.
  */
-function gamUpdateExpUI() {
-    const { totalExp, level, expInLevel, todaySolved } = window.gamState;
+function gamUpdateExpUI(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const { totalExp, level, expInLevel, todaySolved } = ctx.gamState;
     const expPercent = (expInLevel / 10) * 100;
     const nextLevelExp = level * 10;
 
-    const lvValue = document.getElementById('gam-lv-value');
-    const expText = document.getElementById('gam-exp-text');
-    const expFill = document.getElementById('gam-exp-fill');
+    const lvValue = $id('gam-lv-value');
+    const expText = $id('gam-exp-text');
+    const expFill = $id('gam-exp-fill');
 
     if (lvValue) lvValue.textContent = level;
     if (expText) expText.textContent = `${totalExp} / ${nextLevelExp} EXP`;
@@ -2759,8 +2875,8 @@ function gamUpdateExpUI() {
     const dailyGoal = (window.APP_CONFIG && window.APP_CONFIG.DAILY_STUDY_GOAL) || 150;
 
     // 일일 학습 목표 게이지 바 동적 업데이트
-    const goalText = document.getElementById('gam-goal-text');
-    const goalFill = document.getElementById('gam-goal-fill');
+    const goalText = $id('gam-goal-text');
+    const goalFill = $id('gam-goal-fill');
 
     const solvedVal = todaySolved || 0;
     const goalPercent = Math.min((solvedVal / dailyGoal) * 100, 100);
@@ -2779,7 +2895,7 @@ function gamUpdateExpUI() {
     }
 
     // 오늘 푼 문항 수에 맞게 펫 말풍선 멘트와 비주얼(스케일, 아우라) 갱신
-    gamUpdatePetMessageByProgress(solvedVal);
+    gamUpdatePetMessageByProgress(code, solvedVal);
 }
 
 // 펫 캐릭터들의 풀이 단계별 독려 메시지 정의 (0개 / 1~49개 / 50~99개 / 100~149개 / 150개 이상)
@@ -2845,13 +2961,15 @@ const PROGRESS_PET_MESSAGES = {
 /**
  * 오늘 푼 문제 수(solvedVal)에 따라 펫의 말풍선 대사 및 이미지 스케일/필터 오라 효과를 업데이트합니다.
  */
-function gamUpdatePetMessageByProgress(solvedVal) {
-    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
+function gamUpdatePetMessageByProgress(code, solvedVal) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const petStorageKey = ctx.code ? `gam_selected_pet_${ctx.code}` : 'gam_selected_pet';
     let defaultPet = 'pikachu';
-    if (window.SUBJECT_CODE === 'SC') defaultPet = 'growlithe';
-    else if (window.SUBJECT_CODE === 'DB') defaultPet = 'squirtle';
-    else if (window.SUBJECT_CODE === 'PM') defaultPet = 'sirfetchd';
-    else if (window.SUBJECT_CODE === 'SA') defaultPet = 'rotom';
+    if (ctx.code === 'SC') defaultPet = 'growlithe';
+    else if (ctx.code === 'DB') defaultPet = 'squirtle';
+    else if (ctx.code === 'PM') defaultPet = 'sirfetchd';
+    else if (ctx.code === 'SA') defaultPet = 'rotom';
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
 
     // 일일 학습 목표량 설정값 읽기 (폴백 기본값 150)
@@ -2875,17 +2993,17 @@ function gamUpdatePetMessageByProgress(solvedVal) {
     const currentMsg = msgs[step];
 
     // 정답/오답으로 인한 특별 피드백 메시지 타이머가 없는 경우에만 일상 멘트를 대입합니다.
-    if (!window.gamPetBubbleTimeout) {
-        const bubble = document.getElementById('gam-pet-bubble-text');
-        const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+    if (!ctx.gamPetBubbleTimeout) {
+        const bubble = $id('gam-pet-bubble-text');
+        const runnerBubble = $id('gam-runner-pet-bubble-text');
         if (bubble) bubble.textContent = currentMsg;
         if (runnerBubble) runnerBubble.textContent = currentMsg;
     }
 
     // 펫 아바타 스케일 및 오라(Drop shadow) 실시간 변경
-    const img = document.getElementById('gam-pet-img');
-    const runnerImg = document.getElementById('gam-runner-pet-img');
-    const wrapper = document.querySelector('.gam-pet-avatar-wrapper');
+    const img = $id('gam-pet-img');
+    const runnerImg = $id('gam-runner-pet-img');
+    const wrapper = ctx.container.querySelector('.gam-pet-avatar-wrapper');
 
     [img, runnerImg].forEach(petImg => {
         if (!petImg) return;
@@ -2940,59 +3058,64 @@ function gamUpdatePetMessageByProgress(solvedVal) {
  * GAM-5. 정답 제출 시 호출되는 메인 게이미피케이션 핸들러
  * - EXP +1, 보물상자 + 보석 파티클, EXP 플로팅 뱃지, 레벨업 체크
  */
-function gamOnCorrectAnswer(idx, qId) {
-    const prevLevel = window.gamState.level;
+function gamOnCorrectAnswer(code, idx, qId) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const prevLevel = ctx.gamState.level;
 
     // EXP 및 오늘 푼 문제 수 증가
-    window.gamState.totalExp += 1;
-    window.gamState.level = Math.floor(window.gamState.totalExp / 10) + 1;
-    window.gamState.expInLevel = window.gamState.totalExp % 10;
-    window.gamState.todaySolved = (window.gamState.todaySolved || 0) + 1;
+    ctx.gamState.totalExp += 1;
+    ctx.gamState.level = Math.floor(ctx.gamState.totalExp / 10) + 1;
+    ctx.gamState.expInLevel = ctx.gamState.totalExp % 10;
+    ctx.gamState.todaySolved = (ctx.gamState.todaySolved || 0) + 1;
 
     // 연속 정답 콤보 누적
-    window.gamComboCount = (window.gamComboCount || 0) + 1;
+    ctx.gamComboCount = (ctx.gamComboCount || 0) + 1;
     let isComboTriggered = false;
-    if (window.gamComboCount >= 4) {
+    if (ctx.gamComboCount >= 4) {
         isComboTriggered = true;
     }
 
     // UI 갱신 (경험치 바 및 오늘의 학습 목표 150문항 진척도 등)
-    gamUpdateExpUI();
+    gamUpdateExpUI(code);
 
     // 5콤보 달성 또는 10콤보 이상 연속 정답 시 특별 축하 이펙트 구동, 그 외에는 일반 칭찬 멘트
     if (isComboTriggered) {
-        gamTriggerCombo5Effect(window.gamComboCount);
+        gamTriggerCombo5Effect(code, ctx.gamComboCount);
     } else {
-        gamTriggerPetCorrectMessage();
-        gamApplyPetAnimation('correct');
+        gamTriggerPetCorrectMessage(code);
+        gamApplyPetAnimation(code, 'correct');
     }
 
     // EXP +1 플로팅 뱃지 (퍼펙트 이펙트 집중을 위해 비활성화)
     // gamTriggerExpFloat();
 
     // 보물 상자 + 보석 파티클 (인라인 뷰어 내부에 삽입)
-    gamTriggerTreasureChest(idx, qId);
+    gamTriggerTreasureChest(code, idx, qId);
 
     // 인라인 뷰어 글로우 효과
-    const viewer = document.querySelector(`#item-${idx} .inline-question-viewer`);
+    const itemEl = ctx.container.querySelector(`#item-${idx}`);
+    const viewer = itemEl ? itemEl.querySelector('.inline-question-viewer') : null;
     if (viewer) {
         viewer.classList.add('gam-correct-glow');
         setTimeout(() => viewer.classList.remove('gam-correct-glow'), 700);
     }
 
     // 레벨업 체크
-    if (window.gamState.level > prevLevel) {
-        setTimeout(() => gamTriggerLevelUp(window.gamState.level), 900);
+    if (ctx.gamState.level > prevLevel) {
+        setTimeout(() => gamTriggerLevelUp(code, ctx.gamState.level), 900);
     }
 }
 
 /**
  * GAM-5-B. 펫 캐릭터를 클릭했을 때 다음 캐릭터로 교체합니다.
  */
-window.gamCyclePet = function () {
+window.gamCyclePet = function (code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     const petKeys = (window.APP_CONFIG && window.APP_CONFIG.PET_KEYS) || ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'growlithe', 'rotom', 'sirfetchd', 'metagross'];
-    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
-    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
+    const petStorageKey = ctx.code ? `gam_selected_pet_${ctx.code}` : 'gam_selected_pet';
+    const defaultPet = gamGetDefaultPetForSubject(ctx.code);
 
     let currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     let nextIdx = (petKeys.indexOf(currentPetKey) + 1) % petKeys.length;
@@ -3000,8 +3123,8 @@ window.gamCyclePet = function () {
     localStorage.setItem(petStorageKey, nextPetKey);
 
     const pet = gamGetPetProfile(nextPetKey);
-    const img = document.getElementById('gam-pet-img');
-    const runnerImg = document.getElementById('gam-runner-pet-img');
+    const img = $id('gam-pet-img');
+    const runnerImg = $id('gam-runner-pet-img');
 
     if (img) {
         img.src = pet.src;
@@ -3013,19 +3136,18 @@ window.gamCyclePet = function () {
     }
 
     // 교체 시 360도 스핀 애니메이션 적용
-    gamApplyPetAnimation('spin');
+    gamApplyPetAnimation(code, 'spin');
 
     // 펫 대사 및 비주얼 상태 즉시 업데이트 (오늘 푼 문제 수 비례)
-    gamUpdatePetMessageByProgress(window.gamState.todaySolved);
+    gamUpdatePetMessageByProgress(code, ctx.gamState.todaySolved);
 };
-
-// 복귀 타이머 ID를 관리할 전역 변수
-window.gamPetBubbleTimeout = null;
 
 /**
  * GAM-5-C. 정답 시 펫의 특별 칭찬 메시지를 말풍선에 띄웁니다.
  */
-function gamTriggerPetCorrectMessage() {
+function gamTriggerPetCorrectMessage(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     const PET_CORRECT_MESSAGES = {
         'pikachu': [
             '정답이에요! 짜릿한 백만볼트급 활약! ⚡',
@@ -3069,37 +3191,39 @@ function gamTriggerPetCorrectMessage() {
         ]
     };
 
-    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
-    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
+    const petStorageKey = ctx.code ? `gam_selected_pet_${ctx.code}` : 'gam_selected_pet';
+    const defaultPet = gamGetDefaultPetForSubject(ctx.code);
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_CORRECT_MESSAGES[currentPetKey] || ['정답입니다! 🎉'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
 
-    const bubble = document.getElementById('gam-pet-bubble-text');
-    const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+    const bubble = $id('gam-pet-bubble-text');
+    const runnerBubble = $id('gam-runner-pet-bubble-text');
 
     if (bubble) bubble.textContent = randomMsg;
     if (runnerBubble) runnerBubble.textContent = randomMsg;
 
     // 이전 복귀 타이머 제거
-    if (window.gamPetBubbleTimeout) {
-        clearTimeout(window.gamPetBubbleTimeout);
+    if (ctx.gamPetBubbleTimeout) {
+        clearTimeout(ctx.gamPetBubbleTimeout);
     }
 
     // 설정된 노출 시간(기본값 4초) 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
     const bubbleDuration = (window.APP_CONFIG && window.APP_CONFIG.PET_BUBBLE_DURATION) || 4000;
-    window.gamPetBubbleTimeout = setTimeout(() => {
-        window.gamPetBubbleTimeout = null;
-        gamUpdatePetMessageByProgress(window.gamState.todaySolved);
+    ctx.gamPetBubbleTimeout = setTimeout(() => {
+        ctx.gamPetBubbleTimeout = null;
+        gamUpdatePetMessageByProgress(code, ctx.gamState.todaySolved);
     }, bubbleDuration);
 }
 
 /**
  * GAM-5-D. 오답 시 펫의 특별 격려 메시지를 말풍선에 띄웁니다.
  */
-function gamTriggerPetIncorrectMessage() {
+function gamTriggerPetIncorrectMessage(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     // 오답 시 연속 콤보 초기화
-    window.gamComboCount = 0;
+    ctx.gamComboCount = 0;
 
     const PET_INCORRECT_MESSAGES = {
         'pikachu': [
@@ -3144,37 +3268,38 @@ function gamTriggerPetIncorrectMessage() {
         ]
     };
 
-    const petStorageKey = window.SUBJECT_CODE ? `gam_selected_pet_${window.SUBJECT_CODE}` : 'gam_selected_pet';
-    const defaultPet = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
+    const petStorageKey = ctx.code ? `gam_selected_pet_${ctx.code}` : 'gam_selected_pet';
+    const defaultPet = gamGetDefaultPetForSubject(ctx.code);
     const currentPetKey = localStorage.getItem(petStorageKey) || defaultPet;
     const msgs = PET_INCORRECT_MESSAGES[currentPetKey] || ['괜찮아요! 다시 한 번 검토해봅시다! 💪'];
     const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
 
-    const bubble = document.getElementById('gam-pet-bubble-text');
-    const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+    const bubble = $id('gam-pet-bubble-text');
+    const runnerBubble = $id('gam-runner-pet-bubble-text');
 
     if (bubble) bubble.textContent = randomMsg;
     if (runnerBubble) runnerBubble.textContent = randomMsg;
 
     // 이전 복귀 타이머 제거
-    if (window.gamPetBubbleTimeout) {
-        clearTimeout(window.gamPetBubbleTimeout);
+    if (ctx.gamPetBubbleTimeout) {
+        clearTimeout(ctx.gamPetBubbleTimeout);
     }
 
     // 설정된 노출 시간(기본값 4초) 후 오늘 풀이량 비례 상태 메시지로 자동 복귀
     const bubbleDuration = (window.APP_CONFIG && window.APP_CONFIG.PET_BUBBLE_DURATION) || 4000;
-    window.gamPetBubbleTimeout = setTimeout(() => {
-        window.gamPetBubbleTimeout = null;
-        gamUpdatePetMessageByProgress(window.gamState.todaySolved);
+    ctx.gamPetBubbleTimeout = setTimeout(() => {
+        ctx.gamPetBubbleTimeout = null;
+        gamUpdatePetMessageByProgress(code, ctx.gamState.todaySolved);
     }, bubbleDuration);
 }
 
 /**
  * GAM-5-E. 펫 이미지에 특정 애니메이션 효과(bounce, shake, spin)를 적용합니다.
  */
-function gamApplyPetAnimation(type) {
-    const mainImg = document.getElementById('gam-pet-img');
-    const runnerImg = document.getElementById('gam-runner-pet-img');
+function gamApplyPetAnimation(code, type) {
+    DashboardCtx.active = code;
+    const mainImg = $id('gam-pet-img');
+    const runnerImg = $id('gam-runner-pet-img');
 
     const classNameMap = {
         'correct': 'gam-pet-bounce',
@@ -3221,8 +3346,10 @@ function gamTriggerExpFloat() {
 /**
  * GAM-7. 보물 상자 팝업 + 보석 파티클을 인라인 뷰어의 피드백 영역에 삽입합니다.
  */
-function gamTriggerTreasureChest(idx, qId) {
-    const body = document.getElementById(`viewer-body-${idx}`);
+function gamTriggerTreasureChest(code, idx, qId) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const body = ctx.container.querySelector(`#viewer-body-${idx}`);
     if (!body) return;
 
     // 기존 보물 상자가 있다면 제거
@@ -3242,7 +3369,7 @@ function gamTriggerTreasureChest(idx, qId) {
     // 메시지 텍스트
     const msg = document.createElement('div');
     msg.className = 'gam-treasure-msg';
-    msg.innerHTML = `💎 보물 상자를 획득했습니다!<br>경험치 <span class="gam-exp-badge">EXP +1</span> 누적: ${window.gamState.totalExp}`;
+    msg.innerHTML = `💎 보물 상자를 획득했습니다!<br>경험치 <span class="gam-exp-badge">EXP +1</span> 누적: ${ctx.gamState.totalExp}`;
     container.appendChild(msg);
 
     // 보석 파티클 생성 (10개)
@@ -3333,7 +3460,7 @@ function gamSpawnTreasureChest(parentEl, insertBeforeSelector) {
 /**
  * GAM-8. 레벨업 전체화면 오버레이 이펙트를 구동합니다.
  */
-function gamTriggerLevelUp(newLevel) {
+function gamTriggerLevelUp(code, newLevel) {
     const overlay = document.getElementById('gam-levelup-overlay');
     if (!overlay) return;
 
@@ -3384,10 +3511,12 @@ function gamTriggerLevelUp(newLevel) {
 /**
  * 13-A. 특정 중단원(concept)에 매핑된 전체 기출문제 목록을 수집합니다.
  */
-function getConceptQuestionsList(globalIdx) {
+function getConceptQuestionsList(code, globalIdx) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     const list = [];
-    if (!window.dashboardData) return list;
-    const targetData = window.dashboardData.find(d => String(d.global_idx) === String(globalIdx));
+    if (!ctx.dashboardData) return list;
+    const targetData = ctx.dashboardData.find(d => String(d.global_idx) === String(globalIdx));
     if (targetData && targetData.questions) {
         targetData.questions.forEach(q => {
             list.push({
@@ -3405,15 +3534,17 @@ function getConceptQuestionsList(globalIdx) {
 /**
  * 14. 현재 화면에 표시된 (필터가 적용된) 전체 질문 목록을 순서대로 수집합니다.
  */
-function getActiveQuestionsList() {
+function getActiveQuestionsList(code) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
     const list = [];
-    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
-    if (!container || !window.dashboardData) return list;
+    const container = $id('accordionContainer') || $id('accordion-container');
+    if (!container || !ctx.dashboardData) return list;
 
     const items = container.querySelectorAll('.accordion-item');
     items.forEach(item => {
         const globalIdx = parseInt(item.id.replace('item-', ''));
-        const targetData = window.dashboardData.find(d => String(d.global_idx) === String(globalIdx));
+        const targetData = ctx.dashboardData.find(d => String(d.global_idx) === String(globalIdx));
         if (targetData && targetData.questions) {
             targetData.questions.forEach(q => {
                 list.push({
@@ -3432,10 +3563,12 @@ function getActiveQuestionsList() {
 /**
  * 15. 다음 롤링 타겟 문제로 이동합니다. (아코디언 제어 및 질문 상세 로드)
  */
-function moveToNextRollingQuestion(nextGlobalIdx, nextYear, nextNum, event) {
+function moveToNextRollingQuestion(code, nextGlobalIdx, nextYear, nextNum, event) {
     if (event) event.stopPropagation();
+    DashboardCtx.active = code;
+    const ctx = dctx();
 
-    const container = document.getElementById('accordionContainer') || document.getElementById('accordion-container');
+    const container = $id('accordionContainer') || $id('accordion-container');
     if (!container) return;
 
     // 다른 열린 아코디언 및 뷰어는 깔끔한 전환을 위해 일괄 초기화
@@ -3450,7 +3583,7 @@ function moveToNextRollingQuestion(nextGlobalIdx, nextYear, nextNum, event) {
         }
     });
 
-    const nextItem = document.getElementById(`item-${nextGlobalIdx}`);
+    const nextItem = ctx.container.querySelector(`#item-${nextGlobalIdx}`);
     if (nextItem) {
         nextItem.classList.add('active');
         const content = nextItem.querySelector('.accordion-content');
@@ -3463,8 +3596,8 @@ function moveToNextRollingQuestion(nextGlobalIdx, nextYear, nextNum, event) {
 
         setTimeout(() => {
             const nextBtn = nextItem.querySelector(`.q-btn-${nextYear}-${nextNum}`) ||
-                document.getElementById(`btn-${nextGlobalIdx}-${nextYear}-${nextNum}`);
-            showQuestion(nextGlobalIdx, nextYear, nextNum, nextBtn, true); // 롤링 전환 플래그 true 전달
+                document.getElementById(`btn-${code}-${nextGlobalIdx}-${nextYear}-${nextNum}`);
+            showQuestion(code, nextGlobalIdx, nextYear, nextNum, nextBtn, true); // 롤링 전환 플래그 true 전달
         }, 300);
     }
 }
@@ -3472,18 +3605,20 @@ function moveToNextRollingQuestion(nextGlobalIdx, nextYear, nextNum, event) {
 /**
  * 16. 전체 문제 롤링 시작 (활성 문항 전체를 랜덤하게 섞어 세션을 시작합니다)
  */
-function startGlobalRolling(event) {
+function startGlobalRolling(code, event) {
     if (event) event.stopPropagation();
+    DashboardCtx.active = code;
+    const ctx = dctx();
 
-    const activeQsList = getActiveQuestionsList();
+    const activeQsList = getActiveQuestionsList(code);
     if (activeQsList.length === 0) {
         alert("롤링을 시작할 문항이 없습니다. 필터 조건을 확인해주세요!");
         return;
     }
 
     // 전체 활성 문제를 가중치 기반으로 셔플하여 롤링 세션 개시
-    const shuffledQs = weightedShuffle(activeQsList);
-    window.rollingSession = {
+    const shuffledQs = weightedShuffle(code, activeQsList);
+    ctx.rollingSession = {
         isActive: true,
         questions: shuffledQs,
         currentIndex: 0,
@@ -3491,22 +3626,24 @@ function startGlobalRolling(event) {
     };
 
     const firstQ = shuffledQs[0];
-    moveToNextRollingQuestion(firstQ.globalIdx, firstQ.year, firstQ.num);
+    moveToNextRollingQuestion(code, firstQ.globalIdx, firstQ.year, firstQ.num);
 }
 
 /**
  * 17. 롤링 세션이 한 바퀴 다 끝났을 때 세션을 재셔플하여 롤링을 재시작합니다.
  */
-function restartRollingSession(event) {
+function restartRollingSession(code, event) {
     if (event) event.stopPropagation();
+    DashboardCtx.active = code;
+    const ctx = dctx();
 
-    const session = window.rollingSession;
+    const session = ctx.rollingSession;
     if (session && session.isActive && !session.isGlobal && session.globalIdx !== undefined) {
         // 로컬 중단원 세션 재시작
-        const localQsList = getConceptQuestionsList(session.globalIdx);
+        const localQsList = getConceptQuestionsList(code, session.globalIdx);
         if (localQsList.length > 0) {
-            const shuffledQs = weightedShuffle(localQsList);
-            window.rollingSession = {
+            const shuffledQs = weightedShuffle(code, localQsList);
+            ctx.rollingSession = {
                 isActive: true,
                 questions: shuffledQs,
                 currentIndex: 0,
@@ -3514,20 +3651,21 @@ function restartRollingSession(event) {
                 globalIdx: session.globalIdx
             };
             const firstQ = shuffledQs[0];
-            moveToNextRollingQuestion(firstQ.globalIdx, firstQ.year, firstQ.num);
+            moveToNextRollingQuestion(code, firstQ.globalIdx, firstQ.year, firstQ.num);
             return;
         }
     }
 
     // 기본은 전체 롤링 재시작
-    startGlobalRolling();
+    startGlobalRolling(code);
 }
 
 /**
  * 🔄 현재 사용자의 레벨에 따라 진화된 포켓몬 펫 키를 반환합니다.
  */
-function gamGetEvolvedPetKey(defaultPetKey) {
-    const level = (window.gamState && window.gamState.level) || 1;
+function gamGetEvolvedPetKey(code, defaultPetKey) {
+    const ctx = DashboardCtx.instances[code];
+    const level = (ctx && ctx.gamState && ctx.gamState.level) || 1;
 
     if (defaultPetKey === 'charmander') {
         if (level >= 31) return 'megacharizard';
@@ -3549,8 +3687,10 @@ function gamGetEvolvedPetKey(defaultPetKey) {
 /**
  * GAM-X. 5연속 정답(5콤보) 달성 시 특별 이펙트와 캐릭터 축하 연출을 구동합니다.
  */
-function gamTriggerCombo5Effect(comboCount) {
-    const count = comboCount || window.gamComboCount || 5;
+function gamTriggerCombo5Effect(code, comboCount) {
+    DashboardCtx.active = code;
+    const ctx = dctx();
+    const count = comboCount || ctx.gamComboCount || 5;
 
     // 기존에 존재하는 콤보 이펙트 오버레이가 있다면 즉시 제거하여 1가지만 남김
     const existingOverlay = document.querySelector('.gam-combo5-overlay');
@@ -3620,11 +3760,11 @@ function gamTriggerCombo5Effect(comboCount) {
     }
 
     // 2. 펫 캐릭터 특별 축하 모션 (360도 회전 바운스)
-    gamApplyPetAnimation('spin');
+    gamApplyPetAnimation(code, 'spin');
 
     // 3. 말풍선에 5콤보 달성 특별 축하 대사 주입
-    const defaultPetKey = gamGetDefaultPetForSubject(window.SUBJECT_CODE);
-    const activePetKey = gamGetEvolvedPetKey(defaultPetKey);
+    const defaultPetKey = gamGetDefaultPetForSubject(ctx.code);
+    const activePetKey = gamGetEvolvedPetKey(code, defaultPetKey);
 
     const COMBO5_MESSAGES = {
         'charmander': `🔥 와! 벌써 ${count}연속 정답! 파이리의 불꽃 콤보로 기세를 올리고 있어요! 🔥`,
@@ -3644,19 +3784,19 @@ function gamTriggerCombo5Effect(comboCount) {
 
     const comboMsg = COMBO5_MESSAGES[activePetKey] || `🌟 대단해요! ${count}연속 정답 돌파! 합격의 기운이 가득합니다! 🌟`;
 
-    const bubble = document.getElementById('gam-pet-bubble-text');
-    const runnerBubble = document.getElementById('gam-runner-pet-bubble-text');
+    const bubble = $id('gam-pet-bubble-text');
+    const runnerBubble = $id('gam-runner-pet-bubble-text');
 
     if (bubble) bubble.textContent = comboMsg;
     if (runnerBubble) runnerBubble.textContent = comboMsg;
 
     // 말풍선 대사가 4초 동안 노출되도록 복귀 타이머 연장
-    if (window.gamPetBubbleTimeout) {
-        clearTimeout(window.gamPetBubbleTimeout);
+    if (ctx.gamPetBubbleTimeout) {
+        clearTimeout(ctx.gamPetBubbleTimeout);
     }
-    window.gamPetBubbleTimeout = setTimeout(() => {
-        window.gamPetBubbleTimeout = null;
-        gamUpdatePetMessageByProgress(window.gamState.todaySolved);
+    ctx.gamPetBubbleTimeout = setTimeout(() => {
+        ctx.gamPetBubbleTimeout = null;
+        gamUpdatePetMessageByProgress(code, ctx.gamState.todaySolved);
     }, 4000);
 
     // 4. 1.5초 후 콤보 오버레이 제거 시작, 0.5초 간 페이드아웃 적용 (총 2.0초)
@@ -3687,8 +3827,8 @@ document.addEventListener('click', updateGamMouseCoords, { capture: true, passiv
 document.addEventListener('touchstart', updateGamMouseCoords, { capture: true, passive: true });
 
 // 나의 풀이 이력 더보기/접기 토글 함수
-window.toggleMoreHistory = function (qId, btnElement) {
-    const hiddenItems = document.querySelectorAll(`.hidden-history-item-${qId}`);
+window.toggleMoreHistory = function (code, qId, btnElement) {
+    const hiddenItems = document.querySelectorAll(`.hidden-history-item-${code}-${qId}`);
     if (hiddenItems.length > 0) {
         const isHidden = hiddenItems[0].style.getPropertyValue('display') === 'none' || hiddenItems[0].style.display === 'none';
         hiddenItems.forEach(el => {
@@ -3783,7 +3923,7 @@ function startProgressiveLogSimulation(container, targetId) {
  * [설계 의도] 이미 로드되어 있는 AI 해설(캐시)을 네트워크 호출 없이 즉시 박스에 그려주는 공통 렌더러.
  * fetchAiExplanation의 성공 응답 렌더링과, viewAiExplanation의 로컬 캐시 즉시 표시 양쪽에서 공유합니다.
  */
-function renderAiExplanationSuccess(qId, boxId, explanation, model, logsText) {
+function renderAiExplanationSuccess(code, qId, boxId, explanation, model, logsText) {
     const box = document.getElementById(boxId);
     if (!box) return;
     const aiModel = model || "알 수 없음";
@@ -3794,7 +3934,7 @@ function renderAiExplanationSuccess(qId, boxId, explanation, model, logsText) {
                 <span>✨ AI 해설</span>
                 <span style="background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.62rem; font-weight: normal;">🤖 ${aiModel}</span>
             </div>
-            <button onclick="fetchAiExplanation('${qId}', '${boxId}', true)" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; padding: 0; font-family: inherit; font-weight: bold;">🔄 해설 갱신</button>
+            <button onclick="fetchAiExplanation('${code}', '${qId}', '${boxId}', true)" style="background: none; border: none; color: #a78bfa; font-size: 0.62rem; cursor: pointer; padding: 0; font-family: inherit; font-weight: bold;">🔄 해설 갱신</button>
         </div>
         <p style="color: var(--text-secondary); font-size: 0.78rem; line-height: 1.55; white-space: pre-wrap; margin: 0.35rem 0 0;">${explanation}</p>
         <div style="margin-top: 0.5rem; text-align: left;">
@@ -3804,7 +3944,7 @@ function renderAiExplanationSuccess(qId, boxId, explanation, model, logsText) {
             </details>
         </div>
     `;
-    const triggerBtn = document.getElementById(`ai-explain-trigger-${qId}`);
+    const triggerBtn = document.getElementById(`ai-explain-trigger-${code}-${qId}`);
     if (triggerBtn) triggerBtn.textContent = '📖 AI 해설 보기';
 }
 
@@ -3813,11 +3953,12 @@ function renderAiExplanationSuccess(qId, boxId, explanation, model, logsText) {
  * 즉시 박스에 표시합니다. 캐시가 없으면 아무것도 하지 않고 false를 반환하여, 호출부가 "생성"까지
  * 자동으로 트리거할지 여부를 스스로 결정하게 합니다. 해설 영역을 펼치는 즉시 자동 표시하는 용도로도 재사용됩니다.
  */
-window.revealCachedAiExplanation = function (qId, boxId) {
-    const cached = window.loadedQuestions ? window.loadedQuestions[qId] : null;
+window.revealCachedAiExplanation = function (code, qId, boxId) {
+    const ctx = DashboardCtx.instances[code];
+    const cached = ctx && ctx.loadedQuestions ? ctx.loadedQuestions[qId] : null;
     if (cached && cached.ai_explanation) {
         renderAiExplanationSuccess(
-            qId, boxId, cached.ai_explanation,
+            code, qId, boxId, cached.ai_explanation,
             cached.ai_explanation_model || "알 수 없음 (이전 캐시)",
             "데이터베이스에 저장된 AI 해설을 즉시 불러왔습니다."
         );
@@ -3830,9 +3971,9 @@ window.revealCachedAiExplanation = function (qId, boxId) {
  * [설계 의도] "AI 해설 보기/생성" 버튼 클릭 시 호출되는 진입점.
  * 캐시가 있으면 즉시 표시하고, 없는 경우에만 fetchAiExplanation을 통해 서버(및 Gemini)를 호출해 새로 생성합니다.
  */
-window.viewAiExplanation = function (qId, boxId) {
-    if (window.revealCachedAiExplanation(qId, boxId)) return;
-    fetchAiExplanation(qId, boxId, false);
+window.viewAiExplanation = function (code, qId, boxId) {
+    if (window.revealCachedAiExplanation(code, qId, boxId)) return;
+    fetchAiExplanation(code, qId, boxId, false);
 };
 
 /**
@@ -3841,7 +3982,8 @@ window.viewAiExplanation = function (qId, boxId) {
  * forceRefresh=true(해설 갱신)일 때는 API 비용 발생을 사용자에게 확인받습니다.
  * yearly_exam.js의 구현과 동일하게 AI 모델 배지 및 실시간 연동 로그 패널을 포함합니다.
  */
-window.fetchAiExplanation = async function (qId, boxId, forceRefresh) {
+window.fetchAiExplanation = async function (code, qId, boxId, forceRefresh) {
+    const ctx = DashboardCtx.instances[code];
     const box = document.getElementById(boxId);
     if (!box) return;
 
@@ -3860,7 +4002,7 @@ window.fetchAiExplanation = async function (qId, boxId, forceRefresh) {
     `;
 
     // 실시간 진행 모사 로그 가동
-    const simInterval = startProgressiveLogSimulation(box, 'sim-logs-explain-' + qId);
+    const simInterval = startProgressiveLogSimulation(box, `sim-logs-explain-${code}-${qId}`);
 
     try {
         const url = `/api/question/ai-explain?id=${encodeURIComponent(qId)}${forceRefresh ? '&nocache=true' : ''}`;
@@ -3868,16 +4010,16 @@ window.fetchAiExplanation = async function (qId, boxId, forceRefresh) {
         const data = await response.json();
 
         if (simInterval) clearInterval(simInterval);
-        const simBox = document.getElementById('sim-logs-explain-' + qId);
+        const simBox = document.getElementById(`sim-logs-explain-${code}-${qId}`);
         if (simBox) simBox.remove();
 
         if (data.success && data.ai_explanation) {
             const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
-            renderAiExplanationSuccess(qId, boxId, data.ai_explanation, data.ai_model, logsText);
+            renderAiExplanationSuccess(code, qId, boxId, data.ai_explanation, data.ai_model, logsText);
             // 최신 캐시를 로컬 저장소에도 반영해, 이후 즉시 보기가 최신 상태를 사용하도록 합니다.
-            if (window.loadedQuestions && window.loadedQuestions[qId]) {
-                window.loadedQuestions[qId].ai_explanation = data.ai_explanation;
-                window.loadedQuestions[qId].ai_explanation_model = data.ai_model;
+            if (ctx && ctx.loadedQuestions && ctx.loadedQuestions[qId]) {
+                ctx.loadedQuestions[qId].ai_explanation = data.ai_explanation;
+                ctx.loadedQuestions[qId].ai_explanation_model = data.ai_model;
             }
         } else {
             const logsText = (data.logs && data.logs.length > 0) ? data.logs.join("\n") : "로그 정보가 없습니다.";
@@ -3893,7 +4035,7 @@ window.fetchAiExplanation = async function (qId, boxId, forceRefresh) {
         }
     } catch (e) {
         if (simInterval) clearInterval(simInterval);
-        const simBox = document.getElementById('sim-logs-explain-' + qId);
+        const simBox = document.getElementById(`sim-logs-explain-${code}-${qId}`);
         if (simBox) simBox.remove();
         box.innerHTML = `<div style="font-size: 0.72rem; color: #f87171;">⚠️ 네트워크 오류로 AI 해설을 불러오지 못했습니다.</div>`;
         console.error("AI 해설 로드 오류:", e);
