@@ -66,7 +66,7 @@ function initDashboardSubjectSelector() {
     wrapper.id = 'dashboard-subject-selector-wrap';
     wrapper.innerHTML = `
         <select id="dashboard-subject-select" class="dashboard-theme-select" aria-label="과목 선택">
-            <option value="">전체</option>
+            <option value="all_official_scopes.html">전체</option>
             ${options.map(o => `<option value="${o.href}">${o.label}</option>`).join('')}
         </select>
     `;
@@ -77,6 +77,14 @@ function initDashboardSubjectSelector() {
 
     const selector = document.getElementById('dashboard-subject-select');
     if (selector) {
+        // 현재 페이지 파일명과 일치하는 옵션을 기본 선택값으로 지정합니다.
+        // (지정하지 않으면 <select>는 항상 첫 번째 옵션인 "전체"를 보여줍니다.)
+        const currentFile = window.location.pathname.split('/').pop();
+        const matchedOption = Array.from(selector.options).find(opt => opt.value === currentFile);
+        if (matchedOption) {
+            selector.value = currentFile;
+        }
+
         selector.addEventListener('change', (e) => {
             if (e.target.value) {
                 window.location.href = e.target.value;

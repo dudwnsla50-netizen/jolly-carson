@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 과목 공식 범위별 기출 뷰어</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard_common.css">
+    <link rel="stylesheet" href="css/game.css">
+    <script src="js/config.js"></script>
+    <script src="js/dashboard_common.js?v=20260613"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>전체 과목 공식 범위별 기출분석</h1>
+            <p class="subtitle" id="db-mode-subtitle">5개 과목을 과목별로 구분해 한 화면에서 이어 볼 수 있는 통합 뷰입니다</p>
+
+            <div class="navigation-container">
+                <div class="meta-badges" id="dynamic-nav-badges">
+                    <a href="Learning_History/lhistory.html" class="badge history-badge" style="text-decoration: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; font-weight: 700;">📈 학습 분석</a>
+                    <a href="se_official_scopes.html" class="badge subject-badge" style="text-decoration: none;">소프트웨어공학</a>
+                    <a href="pm_official_scopes.html" class="badge subject-badge" style="text-decoration: none;">프로젝트 관리</a>
+                    <a href="db_official_scopes.html" class="badge subject-badge" style="text-decoration: none;">데이터베이스</a>
+                    <a href="sa_official_scopes.html" class="badge subject-badge" style="text-decoration: none;">시스템 아키텍처</a>
+                    <a href="sc_official_scopes.html" class="badge subject-badge" style="text-decoration: none;">보안</a>
+                </div>
+            </div>
+        </header>
+
+        <!--
+            [설계 의도] 과목마다 아코디언 데이터 구조/EXP·펫 위젯/문항 뷰어 상태가 모두 "현재 페이지
+            하나"를 전제로 전역(window) 상태를 공유하는 구조라, 5개 과목을 한 DOM에 직접 합쳐 렌더링하면
+            전역 상태가 서로 덮어써지는 충돌이 발생합니다. 대신 이미 완성되어 검증된 과목별 페이지를
+            그대로 iframe으로 끼워 넣어, 기존 과목별 화면과 완전히 동일하게 동작함을 보장하면서도
+            구현 리스크를 최소화합니다. 각 iframe은 동일 출처(same-origin)라 내부 문서 높이를 읽어와
+            iframe 자체를 내용물 높이에 맞게 자동으로 늘려, 이중 스크롤 없이 한 페이지처럼 보이게 합니다.
+        -->
+        <div class="all-subjects-stack" id="all-subjects-stack">
+            <iframe class="subject-frame" data-subject="SE" src="se_official_scopes.html" title="소프트웨어공학"></iframe>
+            <iframe class="subject-frame" data-subject="PM" src="pm_official_scopes.html" title="프로젝트 관리"></iframe>
+            <iframe class="subject-frame" data-subject="DB" src="db_official_scopes.html" title="데이터베이스"></iframe>
+            <iframe class="subject-frame" data-subject="SA" src="sa_official_scopes.html" title="시스템 아키텍처"></iframe>
+            <iframe class="subject-frame" data-subject="SC" src="sc_official_scopes.html" title="보안"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // [설계 의도] 아코디언 컨테이너가 없는 페이지이므로 loadDashboardDataAndInit()은 자동으로
+        // 건너뛰어지지만(dashboard_common.js 참고), 오답복습/년도별120제 배지 주입과 과목 콤보박스
+        // 초기화는 이 페이지에서도 그대로 동작해야 하므로 직접 호출합니다.
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initDashboardNav === 'function') initDashboardNav();
+        });
+
+        /**
+         * 동일 출처(same-origin) iframe의 내부 문서 높이를 읽어와 iframe height에 그대로 반영합니다.
+         * 내부 페이지의 아코디언을 펼치고 접을 때마다 높이가 바뀌므로 ResizeObserver로 계속 추적합니다.
+         */
+        function autoResizeIframe(iframe) {
+            const resize = () => {
+                try {
+                    const doc = iframe.contentDocument;
+                    if (doc && doc.body) {
+                        iframe.style.height = doc.body.scrollHeight + 'px';
+                    }
+                } catch (e) {
+                    // 동일 출처가 아니거나 아직 로드되지 않은 경우 조용히 무시합니다.
+                }
+            };
+
+            iframe.addEventListener('load', () => {
+                resize();
+                try {
+                    const doc = iframe.contentDocument;
+                    if (doc && doc.body && window.ResizeObserver) {
+                        new ResizeObserver(resize).observe(doc.body);
+                    }
+                } catch (e) { /* no-op */ }
+            });
+        }
+
+        document.querySelectorAll('.subject-frame').forEach(autoResizeIframe);
+    </script>
+</body>
+</html>

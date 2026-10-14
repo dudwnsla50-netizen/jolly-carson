@@ -226,6 +226,25 @@ body[data-theme="light"] button[style*="background: var(--accent-gradient)"] {
     margin: 0 auto;
 }
 
+/* 전체 과목 통합 뷰(all_official_scopes.html) - 과목별 페이지를 iframe으로 이어붙인 영역 */
+.all-subjects-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.subject-frame {
+    width: 100%;
+    border: none;
+    display: block;
+    border-radius: 12px;
+}
+
+.subject-frame:not(:last-child) {
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 1.5rem;
+}
+
 /* 3. 헤더 및 상단 메타 정보 영역 */
 header {
     text-align: center;

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-[10종 대시보드 일괄 리빌더 스크립트]
-- 목적: 10개 과목별(빈출순 5종, 공식범위순 5종) 대시보드 빌더 스크립트를
+[5종 대시보드 일괄 리빌더 스크립트]
+- 목적: 5개 과목별(공식범위순) 대시보드 빌더 스크립트를
   순차적으로 일괄 구동하여 reports 폴더 내 HTML을 재생성합니다.
 """
 import subprocess
@@ -9,20 +9,15 @@ import sys
 import os
 
 BUILDERS = [
-    "build_premium_db_viewer.py",
     "build_premium_db_official_viewer.py",
-    "build_premium_pm_viewer.py",
     "build_premium_pm_official_viewer.py",
-    "build_premium_se_viewer.py",
     "build_premium_se_official_viewer.py",
-    "build_premium_sa_viewer.py",
     "build_premium_sa_official_viewer.py",
-    "build_premium_sc_viewer.py",
     "build_premium_sc_official_viewer.py"
 ]
 
 def main():
-    print("=== [시작] Jolly-Carson 10종 대시보드 일괄 리빌드 ===")
+    print("=== [시작] Jolly-Carson 5종 대시보드 일괄 리빌드 ===")
     
     # 한글 출력 인코딩 설정
     if sys.stdout.encoding != 'utf-8':
