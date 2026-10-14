@@ -485,8 +485,12 @@ function startReview(subject) {
 
     switchView('card-view');
 
-    // 1) 전체 기출문제 약정 및 2) 단원 매핑 팩 동시 비동기 로딩 (Promise.all)
-    const questionsPromise = fetch(`/api/questions?subject=${subject}`)
+    // 1) 이번 세션에 실제로 풀 "오늘 복습 대상" 문항만 배치 조회 및 2) 단원 매핑 팩 동시 비동기 로딩 (Promise.all)
+    // [설계 의도] 예전에는 subject=로 그 과목의 전체 기출문제(수백 개, 문항당 리치 에디터 이미지가
+    // 포함된 경우 수백 KB)를 통째로 받아왔는데, 실제로 이번 세션에서 쓰는 건 오늘 복습 대상인
+    // dueQIds(보통 수십~백여 개) 뿐이었습니다. ids= 배치 조회(다른 화면에서도 이미 쓰는 경로)로
+    // 바꿔 불필요한 다운로드 용량과 지연을 줄입니다.
+    const questionsPromise = fetch(`/api/questions?ids=${encodeURIComponent(dueQIds.join(','))}`)
         .then(res => {
             if (!res.ok) throw new Error("문제를 가져오지 못했습니다.");
             return res.json();
@@ -974,7 +978,7 @@ function closeEditReviewQuestion() {
 function handleCardOptionClick(event, buttonEl, qId, optNum) {
     const sel = (window.getSelection && window.getSelection()) ? window.getSelection() : null;
     const hasSelection = !!(sel && !sel.isCollapsed && sel.toString && sel.toString().trim().length > 0);
-    const clickedTextNode = !!(event && event.target && event.target.closest && event.target.closest('.card-opt-text'));
+    const clickedTextNode = !!(event && event.target && event.target.closest && event.target.closest('.card-opt-text, .card-opt-num'));
 
     if (hasSelection && clickedTextNode && buttonEl && sel.rangeCount > 0) {
         const range = sel.getRangeAt(0);

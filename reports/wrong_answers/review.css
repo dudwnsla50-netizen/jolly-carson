@@ -567,8 +567,9 @@
     -webkit-user-select: none;
 }
 
-/* 보기 텍스트 자체는 드래그로 선택/복사할 수 있도록 예외 허용 (문항 번호 배지는 제외) */
-.card-opt-text {
+/* 보기 텍스트와 번호(①②③④)를 함께 드래그로 선택/복사할 수 있도록 예외 허용합니다. */
+.card-opt-text,
+.card-opt-num {
     user-select: text;
     -webkit-user-select: text;
     cursor: text;
