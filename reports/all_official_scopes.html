@@ -40,6 +40,18 @@
             </div>
         </header>
 
+        <div class="qsearch-box" id="global-qsearch-box">
+            <div class="qsearch-top-row">
+                <div class="qsearch-input-row">
+                    <span class="qsearch-icon">🔍</span>
+                    <input type="text" id="global-qsearch-input" class="qsearch-input"
+                        placeholder="5개 과목 전체 지문(문제 본문) 통합 검색" autocomplete="off"
+                        oninput="handleGlobalSearchInput(this.value)">
+                </div>
+            </div>
+            <div class="qsearch-results" id="global-qsearch-results" style="display: none;"></div>
+        </div>
+
         <div id="all-subjects-stack"></div>
     </div>
 
@@ -174,6 +186,111 @@
             // 접미사 포함이라 기본 경로는 그냥 no-op), 오답복습/년도별120제 배지 주입은 그 경로를 타지
             // 않으므로 직접 호출해 줍니다.
             if (typeof initDashboardNav === 'function') initDashboardNav();
+        });
+
+        /**
+         * [설계 의도] 과목마다 따로 뜨는 지문 검색창(dashboard_common.js가 자동 주입하는
+         * qsearch-box)은 CSS로 입력창만 숨겨두고, 이 전역 검색창 하나로 5개 과목을 동시에
+         * 검색합니다. 각 과목의 아코디언 필터링은 기존 applyAccordionSearchFilter(code)를
+         * 그대로 재사용하고(과목별 QSearchState.query만 갱신), 매칭 결과 미리보기 목록은
+         * 과목별 examDatabase(§ loadExamDatabaseForSubject)를 합쳐 이 페이지에서 직접 구성합니다.
+         */
+        let globalSearchDebounceTimer = null;
+        function handleGlobalSearchInput(value) {
+            clearTimeout(globalSearchDebounceTimer);
+            globalSearchDebounceTimer = setTimeout(() => runGlobalSearch(value), 150);
+        }
+
+        function escapeHtmlGlobal(str) {
+            return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function jumpFromGlobalSearch(code, year, num) {
+            const resultsEl = document.getElementById('global-qsearch-results');
+            if (resultsEl) resultsEl.style.display = 'none';
+            jumpToSearchedQuestion(code, year, num);
+        }
+
+        function runGlobalSearch(rawQuery) {
+            const query = searchCollapseWhitespace(rawQuery);
+            const resultsEl = document.getElementById('global-qsearch-results');
+
+            // 1) 과목별 아코디언 필터링 - 과목 각각의 QSearchState.query를 갱신한 뒤
+            //    기존 단일 과목 검색이 쓰는 필터 함수를 그대로 호출합니다.
+            SUBJECTS.forEach(s => {
+                const ctx = DashboardCtx.instances[s.code];
+                if (!ctx) return;
+                ctx.QSearchState.query = query;
+                if (typeof applyAccordionSearchFilter === 'function') applyAccordionSearchFilter(s.code);
+            });
+
+            if (!query) {
+                if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+                return;
+            }
+
+            // 2) 5개 과목 examDatabase를 모두 뒤져 통합 매칭 미리보기 목록을 만듭니다.
+            const lowerQuery = query.toLowerCase();
+            const strippedQuery = searchStripWhitespace(query).toLowerCase();
+            const matches = [];
+            SUBJECTS.forEach(s => {
+                const ctx = DashboardCtx.instances[s.code];
+                const db = ctx && ctx.examDatabase;
+                if (!db) return;
+                for (const key in db) {
+                    const text = db[key];
+                    if (typeof text === 'string' && searchStripWhitespace(text).toLowerCase().includes(strippedQuery)) {
+                        matches.push({ code: s.code, name: s.name, key, text });
+                    }
+                }
+            });
+
+            if (!resultsEl) return;
+
+            if (matches.length === 0) {
+                resultsEl.innerHTML = '<div class="qsearch-no-results">검색 결과가 없습니다. (지문 데이터를 아직 불러오는 중일 수 있습니다)</div>';
+                resultsEl.style.display = 'block';
+                return;
+            }
+
+            matches.sort((a, b) => {
+                const [ay, an] = a.key.split('_').map(Number);
+                const [by, bn] = b.key.split('_').map(Number);
+                return (by - ay) || (an - bn);
+            });
+
+            const MAX_RESULTS = 40;
+            const shown = matches.slice(0, MAX_RESULTS);
+            let html = shown.map(({ code, name, key, text }) => {
+                const [year, num] = key.split('_');
+                const collapsedText = searchCollapseWhitespace(text);
+                let idx = collapsedText.toLowerCase().indexOf(lowerQuery);
+                if (idx === -1) idx = 0;
+                const snippetStart = Math.max(0, idx - 15);
+                const rawSnippet = collapsedText.slice(snippetStart, idx + lowerQuery.length + 40);
+                const snippet = escapeHtmlGlobal((snippetStart > 0 ? '…' : '') + rawSnippet);
+                return `
+                    <div class="qsearch-result-item" onclick="jumpFromGlobalSearch('${code}', ${year}, ${num})">
+                        <span class="qsearch-result-tag">${name} · ${year}년 ${num}번</span>
+                        <span class="qsearch-result-snippet">${snippet}</span>
+                    </div>
+                `;
+            }).join('');
+
+            if (matches.length > MAX_RESULTS) {
+                html += `<div class="qsearch-more-note">외 ${matches.length - MAX_RESULTS}건 더 있습니다. 검색어를 구체화해 보세요.</div>`;
+            }
+
+            resultsEl.innerHTML = html;
+            resultsEl.style.display = 'block';
+        }
+
+        document.addEventListener('click', (e) => {
+            const box = document.getElementById('global-qsearch-box');
+            const resultsEl = document.getElementById('global-qsearch-results');
+            if (box && resultsEl && !box.contains(e.target)) {
+                resultsEl.style.display = 'none';
+            }
         });
     </script>
 </body>
